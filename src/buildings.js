@@ -17,7 +17,6 @@ import {
   hipRoof,
   shedRoof,
   wallX,
-  wallZ,
   doorLeaf,
   porch,
   chimney,
@@ -25,7 +24,7 @@ import {
   collide,
   tag
 } from "./buildings/kit.js";
-import { face, mate, anchorsOf } from "./buildings/anchors.js";
+import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -163,21 +162,26 @@ export function createRanch() {
   }
 
   // Interior partitions, with doorways that have a head height.
-  const partA = wallZ({
+  defineAnchor(main, "partition.west", {
+    position: { x: -4 - MCX, y: 0, z: 0 },
+    normal: { x: 1, y: 0, z: 0 }
+  });
+  defineAnchor(main, "partition.east", {
+    position: { x: 5.2 - MCX, y: 0, z: 0 },
+    normal: { x: 1, y: 0, z: 0 }
+  });
+  const partA = wallX({
     length: MD, height: CEIL, thickness: T, material: darkWood,
     openings: [{ x: 2.6 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
   });
-  partA.position.set(-4 - MCX, 0.12, 0);
-  main.add(partA);
-  const partB = wallZ({
+  mate(partA, "wallSide", anchorsOf(main).get("partition.west"), { offset: { y: 0.12 } });
+  const partB = wallX({
     length: MD, height: CEIL, thickness: T, material: darkWood,
     openings: [{ x: 1.8 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
   });
-  partB.position.set(5.2 - MCX, 0.12, 0);
-  main.add(partB);
+  mate(partB, "wallSide", anchorsOf(main).get("partition.east"), { offset: { y: 0.12 } });
   const partC = wallX({ length: 12 - 8.8, height: CEIL, thickness: T, material: darkWood });
-  partC.position.set((8.8 + 12) / 2 - MCX, 0.12, -5.35 - MCZ);
-  main.add(partC);
+  mate(partC, "wallSide", face(main, "back", { along: (8.8 + 12) / 2 - MCX }), { offset: { y: 0.12 } });
 
   // Chimneys — continuous from the hearth, topping out above each ridge.
   const mainRidge = MEAVE + ((MD + 0.9) / 2) * 0.5;

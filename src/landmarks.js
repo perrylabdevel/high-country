@@ -14,10 +14,12 @@ import {
   flatRoof,
   wallX,
   collide,
-  tag,
   doorLeaf,
   glazing,
   boardwalk,
+  falseFront,
+  steeple,
+  parapet,
   registerWaterPlacement
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
@@ -119,18 +121,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   }
   glazeWindows(front);
   glazeWindows(east);
-  const parapetH = 0.42;
-  for (const [px, pz, pw, pd] of [
-    [0, d / 2, w + 0.24, 0.2],
-    [0, -d / 2, w + 0.24, 0.2],
-    [w / 2, 0, 0.2, d],
-    [-w / 2, 0, 0.2, d]
-  ]) {
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(pw, parapetH, pd), adobe);
-    cap.position.set(px, eave + parapetH / 2, pz);
-    cap.castShadow = true;
-    st.add(cap);
-  }
+  mate(parapet({ w, d, height: 0.42, material: adobe }), "base", anchorsOf(st).get("wallTop"));
   const nVigas = Math.max(3, Math.round(w / 1.6));
   for (let i = 0; i < nVigas; i += 1) {
     const vx = -w / 2 + 0.7 + (i / (nVigas - 1)) * (w - 1.4);
@@ -224,57 +215,26 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   }
   mate(roofGroup, "base", anchorsOf(st).get("wallTop"));
 
-  // False front at the facade plane (local +Z = d/2), full width, rising above
-  // the eave, with side returns so the parapet hides the roof from oblique views.
+  // False front at the facade plane, with side returns so the parapet hides
+  // the roof from oblique views. Painted `wood` against the dark roof.
   if (lot.falseFront) {
-    const ffH = lot.falseFrontHeight || 2.0;
-    // The parapet sits at the roof's front overhang so the shed roof's high
-    // edge is fully behind it, and rises clearly above the roof ridge. It uses
-    // the light `wood` material so it reads as a painted facade against the
-    // dark roof, not as a continuation of the wall.
-    const ffZ = d / 2 + 0.3;
-    const ff = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, ffH, 0.4), wood);
-    ff.position.set(0, h + ffH / 2, ffZ);
-    ff.castShadow = true;
-    ff.receiveShadow = true;
-    tag(ff, "falseFront");
-    st.add(ff);
-
-    // Side returns are full-height solid walls (ground to parapet top) that
-    // wrap the front corners and extend back over the roof's full depth, so the
-    // roof's top slope is hidden from oblique and elevated views, not just
-    // dead-on. They sit at the roof's outer edge, not the wall edge.
-    for (const sx of [-w / 2 - 0.3, w / 2 + 0.3]) {
-      const ret = new THREE.Mesh(new THREE.BoxGeometry(0.4, h + ffH, d + 0.6), wood);
-      ret.position.set(sx, (h + ffH) / 2, 0);
-      ret.castShadow = true;
-      ret.receiveShadow = true;
-      tag(ret, "falseFront");
-      st.add(ret);
-    }
-
-    // A projecting cap gives the parapet a readable silhouette from the street,
-    // rather than making it look like a flat extension of the shed roof.
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 1.0, 0.32, 0.8), roof);
-    cap.position.set(0, h + ffH + 0.02, ffZ + 0.12);
-    cap.castShadow = true;
-    cap.receiveShadow = true;
-    tag(cap, "falseFront");
-    st.add(cap);
+    mate(
+      falseFront({
+        w,
+        d,
+        eave: h,
+        height: lot.falseFrontHeight || 2.0,
+        material: wood,
+        capMaterial: roof
+      }),
+      "wallSide",
+      face(st, "front")
+    );
   }
 
   // Steeple over the entry (gable end, +X), not centered on the ridge.
   if (lot.steeple) {
-    const steeple = new THREE.Mesh(new THREE.BoxGeometry(1.4, 4.5, 1.4), roof);
-    steeple.position.set(w / 2, h + 2.25, 0);
-    steeple.castShadow = true;
-    tag(steeple, "steeple");
-    st.add(steeple);
-    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.2, 4), roof);
-    spire.position.set(w / 2, h + 4.5 + 1.1, 0);
-    spire.castShadow = true;
-    tag(spire, "steeple");
-    st.add(spire);
+    mate(steeple({ material: roof }), "gable", anchorsOf(roofGroup).get("gableEnd.front"));
   }
 
   collide(st, x, z, lotYaw, [
