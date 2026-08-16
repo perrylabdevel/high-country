@@ -9,7 +9,7 @@
 import * as THREE from "three/webgpu";
 import { porch, structure } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
-import { anchorsOf, unmatedRequired, face } from "../src/buildings/anchors.js";
+import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
 
 const EPS = 1e-6;
 
@@ -129,5 +129,74 @@ const slid = face(house, "right", { along: 2.5 });
 vecEq(slid.position, [W / 2, 0, 2.5], "face(right, along: 2.5).position");
 vecEq(slid.normal, [1, 0, 0], "face(right, along: 2.5).normal");
 vecEq(houseAnchors.get("face.right").position, [W / 2, 0, 0], "face() must not mutate the stored face.right");
+
+function matrixEq(a, b, label) {
+  for (let i = 0; i < 16; i += 1) {
+    if (Math.abs(a.elements[i] - b.elements[i]) > 1e-5) {
+      throw new Error(`${label}: matrixWorld drifted at element ${i}`);
+    }
+  }
+}
+
+const ID_W = 22.5;
+const ID_D = 12.35;
+const idHouse = structure({
+  x: 0,
+  z: 0,
+  w: ID_W,
+  d: ID_D,
+  eave: 6.2,
+  name: "mateIdentity"
+});
+const oldSouth = porch({
+  width: ID_W,
+  depth: 4.6,
+  eave: 3.4,
+  material: wood,
+  roofMaterial: shingle
+});
+oldSouth.position.z = ID_D / 2;
+idHouse.add(oldSouth);
+oldSouth.updateMatrixWorld(true);
+const southBefore = oldSouth.matrixWorld.clone();
+idHouse.remove(oldSouth);
+
+const newSouth = porch({
+  width: ID_W,
+  depth: 4.6,
+  eave: 3.4,
+  material: wood,
+  roofMaterial: shingle
+});
+mate(newSouth, "wallSide", face(idHouse, "front"));
+newSouth.updateMatrixWorld(true);
+matrixEq(southBefore, newSouth.matrixWorld, "south porch mate vs typed z = d/2");
+
+const east = porch({
+  width: 9.2,
+  depth: 4.2,
+  eave: 3.4,
+  material: wood,
+  roofMaterial: shingle
+});
+mate(east, "wallSide", face(idHouse, "right", { along: 1.75 }));
+idHouse.updateMatrixWorld(true);
+east.updateMatrixWorld(true);
+const socket = {
+  position: new THREE.Vector3(ID_W / 2, 0, 1.75).applyMatrix4(idHouse.matrixWorld),
+  normal: new THREE.Vector3(1, 0, 0).transformDirection(idHouse.matrixWorld).normalize()
+};
+const plug = worldAnchor(east, "wallSide");
+if (plug.position.distanceTo(socket.position) > 1e-5) {
+  throw new Error(
+    `east porch wallSide not coincident with face.right: ` +
+      `${plug.position.toArray()} vs ${socket.position.toArray()}`
+  );
+}
+if (plug.normal.dot(socket.normal) > -1 + 1e-5) {
+  throw new Error(
+    `east porch wallSide must oppose face.right, dot ${plug.normal.dot(socket.normal)}`
+  );
+}
 
 console.log("PASS");

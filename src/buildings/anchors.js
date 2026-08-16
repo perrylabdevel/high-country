@@ -2,8 +2,7 @@
  * Named frames for kit pieces. See docs/ANCHORS.md.
  *
  * A frame is where *and* which way. Mating two anchors makes them coincident
- * with opposed normals. This module records those relationships; it does not
- * yet move objects (phase 1: derive + graph, nothing relocates).
+ * with opposed normals. `mate()` parents the child and sets its transform.
  *
  * `unmatedRequired` is the lint that turns "porch posts holding nothing"
  * into a failing check instead of a screenshot score.
@@ -31,6 +30,7 @@ export function defineAnchor(obj, name, frame) {
   ensure(obj);
   obj.userData.anchors.set(name, {
     name,
+    obj,
     position: copyVec(frame.position),
     normal: copyVec(frame.normal).normalize(),
     up: copyVec(frame.up || { x: 0, y: 1, z: 0 }).normalize(),
@@ -69,10 +69,56 @@ export function face(obj, side, { along = 0 } = {}) {
   position[axis] += along;
   return {
     name,
+    obj,
     position,
     normal: base.normal.clone(),
     up: base.up.clone(),
     required: base.required
+  };
+}
+
+/**
+ * Parent `child` to the object that owns `parentAnchor` and set its local
+ * transform so the two frames coincide with opposed normals (plug into socket).
+ */
+export function mate(child, childAnchorName, parentAnchor, opts = {}) {
+  const parent = parentAnchor?.obj;
+  if (!parent) {
+    throw new Error("parentAnchor is missing .obj — pass face() or an anchor from defineAnchor");
+  }
+  const childAnchor = anchorsOf(child).get(childAnchorName);
+  if (!childAnchor) {
+    throw new Error(`child has no anchor "${childAnchorName}"`);
+  }
+
+  const targetNormal = parentAnchor.normal.clone().negate();
+  const q = new THREE.Quaternion().setFromUnitVectors(childAnchor.normal, targetNormal);
+  const rotatedChildPos = childAnchor.position.clone().applyQuaternion(q);
+  const localPos = parentAnchor.position.clone().sub(rotatedChildPos);
+  if (opts.offset) {
+    localPos.add(copyVec(opts.offset));
+  }
+  if (opts.yawJitter) {
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), opts.yawJitter));
+  }
+
+  parent.add(child);
+  child.quaternion.copy(q);
+  child.position.copy(localPos);
+  recordMate(child, childAnchorName, parent, parentAnchor.name);
+  return child;
+}
+
+/** Named frame in world space. */
+export function worldAnchor(obj, name) {
+  const a = anchorsOf(obj).get(name);
+  if (!a) {
+    throw new Error(`${obj.userData?.name || obj.name || "object"} has no ${name}`);
+  }
+  obj.updateMatrixWorld(true);
+  return {
+    position: a.position.clone().applyMatrix4(obj.matrixWorld),
+    normal: a.normal.clone().transformDirection(obj.matrixWorld).normalize()
   };
 }
 

@@ -23,6 +23,7 @@ import {
   collide,
   tag
 } from "./buildings/kit.js";
+import { face, mate } from "./buildings/anchors.js";
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -265,15 +266,12 @@ export function createRanch() {
     width: MW, depth: 4.6, eave: 3.4, postSpacing: 3.4,
     material: darkWood, roofMaterial: roof
   });
-  southPorch.position.z = MD / 2;
-  main.add(southPorch);
+  mate(southPorch, "wallSide", face(main, "front"));
   const eastPorch = porch({
     width: 9.2, depth: 4.2, eave: 3.4, postSpacing: 3.1,
     material: darkWood, roofMaterial: roof
   });
-  eastPorch.rotation.y = -Math.PI / 2;
-  eastPorch.position.set(MW / 2, 0, 2.575 - MCZ);
-  main.add(eastPorch);
+  mate(eastPorch, "wallSide", face(main, "right", { along: 2.575 - MCZ }));
 
   // Steps up to the front door.
   for (let i = 0; i < 2; i += 1) {
