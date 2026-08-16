@@ -14,6 +14,7 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "../world.js";
 import { addOrientedBoxCollider } from "../collision.js";
+import { defineAnchor, recordMate } from "./anchors.js";
 
 /** Registry of every structure Group built via structure(), for the geometry checks. */
 export const STRUCTURES = [];
@@ -319,6 +320,23 @@ export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMat
   const shed = shedRoof({ w: width, d: depth, pitch: 0.2, overhang: 0.2, eave: y + eave, material: roofMaterial });
   shed.position.z = depth / 2;
   group.add(shed);
+  defineAnchor(group, "wallSide", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 },
+    up: { x: 0, y: 1, z: 0 }
+  });
+  defineAnchor(group, "roofSocket", {
+    position: { x: 0, y: eave, z: depth },
+    normal: { x: 0, y: 1, z: 0 },
+    up: { x: 0, y: 0, z: -1 },
+    required: true
+  });
+  defineAnchor(shed, "base", {
+    position: { x: 0, y: shed.userData.roofBase ?? y + eave, z: 0 },
+    normal: { x: 0, y: -1, z: 0 },
+    up: { x: 0, y: 0, z: 1 }
+  });
+  recordMate(shed, "base", group, "roofSocket");
   return group;
 }
 
