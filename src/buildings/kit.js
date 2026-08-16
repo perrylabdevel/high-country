@@ -1,0 +1,463 @@
+/**
+ * Building kit — shapes, sizes, rotations, roofs, openings.
+ *
+ * All dimensions in meters. Everything is built in the structure's local frame
+ * and added to a parent Group that carries rotation.y = yaw. Local frame:
+ *   +X right along the facade, +Z out through the front wall,
+ *   origin at the center of the floor.
+ *
+ * The kit is the single source of grounding (footing), roofs (gable/hip/shed/
+ * flat), walls with openings, door leaves, porches, and colliders. It replaces
+ * the four private copies of boxAt/box/mat across buildings.js, landmarks.js,
+ * interiors.js, and industry.js.
+ */
+import * as THREE from "three/webgpu";
+import { heightAt } from "../world.js";
+import { addOrientedBoxCollider } from "../collision.js";
+
+/** Registry of every structure Group built via structure(), for the geometry checks. */
+export const STRUCTURES = [];
+
+/** Lakeside meshes that must sit on WATER, not terrain. */
+export const WATER_PLACED = [];
+
+export function clearStructures() {
+  STRUCTURES.length = 0;
+  WATER_PLACED.length = 0;
+}
+
+export function registerWaterPlacement(name, x, z, y) {
+  WATER_PLACED.push({ name, x, z, y });
+}
+
+export function tag(obj, role, extra = {}) {
+  obj.userData.role = role;
+  Object.assign(obj.userData, extra);
+  return obj;
+}
+
+/**
+ * Sample heightAt at all four rotated corners of a footprint.
+ * Returns { y: min corner height, drop: max - min, corners: [[x,z] x4] }.
+ * Seat the structure at `y`; if `drop` > ~0.15, emit a foundation skirt.
+ */
+export function footing(x, z, w, d, yaw) {
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  const hw = w / 2;
+  const hd = d / 2;
+  const corners = [
+    [x + cos * hw - sin * hd, z + sin * hw + cos * hd],
+    [x + cos * hw + sin * hd, z + sin * hw - cos * hd],
+    [x - cos * hw - sin * hd, z - sin * hw + cos * hd],
+    [x - cos * hw + sin * hd, z - sin * hw - cos * hd]
+  ];
+  const ys = corners.map(([cx, cz]) => heightAt(cx, cz));
+  const y = Math.min(...ys);
+  const drop = Math.max(...ys) - y;
+  return { y, drop, corners };
+}
+
+/**
+ * Build a roof solid from explicit vertices. `length` is the ridge axis span,
+ * `width` the slope axis span, `rise` the ridge height above the eave, and
+ * `ridgeLen` the ridge length (full for gable, length - width for hip).
+ * Returns a single BufferGeometry mesh with computed normals.
+ */
+function buildRoof({ length, width, rise, ridgeLen, material }) {
+  const hl = length / 2;
+  const hw = width / 2;
+  const hr = ridgeLen / 2;
+
+  // Ridge endpoints
+  const r0 = [-hr, rise, 0];
+  const r1 = [hr, rise, 0];
+  // Eave corners (z = ±hw)
+  const s0 = [-hl, 0, hw];
+  const s1 = [hl, 0, hw];
+  const n0 = [-hl, 0, -hw];
+  const n1 = [hl, 0, -hw];
+
+  // Each face uses its own vertices (no sharing) so computeVertexNormals gives
+  // each face its true geometric normal — the gable ends must point ±X, not up.
+  const faces = [
+    [r0, s0, s1, r1], // south slope (+Z)
+    [r0, r1, n1, n0], // north slope (-Z)
+    [r1, s1, n1],     // east end (+X)
+    [r0, n0, s0]      // west end (-X)
+  ];
+
+  const positions = [];
+  const indices = [];
+  const push = (v) => positions.push(v[0], v[1], v[2]);
+  for (const face of faces) {
+    const base = positions.length / 3;
+    for (const v of face) {
+      push(v);
+    }
+    if (face.length === 4) {
+      indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    } else {
+      indices.push(base, base + 1, base + 2);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  // One-sided planes vanish from below the eave and at glancing angles; roofs
+  // are a shell, not a solid, so both sides have to draw.
+  material.side = THREE.DoubleSide;
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/**
+ * Gable roof. Ridge along the long axis by default. `pitch` is rise/run
+ * (0.5 = 6:12). `overhang` is added to both axes so the plan is always >= the
+ * footprint. Returns a Group positioned so the eave sits at y = eave.
+ */
+export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "auto", material }) {
+  const alongX = ridgeAxis === "auto" ? w >= d : ridgeAxis === "x";
+  const length = (alongX ? w : d) + overhang * 2;
+  const width = (alongX ? d : w) + overhang * 2;
+  const rise = (width / 2) * pitch;
+  const group = new THREE.Group();
+  const roof = buildRoof({ length, width, rise, ridgeLen: length, material });
+  if (!alongX) {
+    roof.rotation.y = Math.PI / 2;
+  }
+  roof.position.y = eave;
+  group.add(roof);
+  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "gable" });
+  return group;
+}
+
+/**
+ * Hip roof — a gable with a shortened ridge so the ends become hip slopes.
+ */
+export function hipRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "auto", material }) {
+  const alongX = ridgeAxis === "auto" ? w >= d : ridgeAxis === "x";
+  const length = (alongX ? w : d) + overhang * 2;
+  const width = (alongX ? d : w) + overhang * 2;
+  const rise = (width / 2) * pitch;
+  const ridgeLen = Math.max(0.01, length - width);
+  const group = new THREE.Group();
+  const roof = buildRoof({ length, width, rise, ridgeLen, material });
+  if (!alongX) {
+    roof.rotation.y = Math.PI / 2;
+  }
+  roof.position.y = eave;
+  group.add(roof);
+  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "hip" });
+  return group;
+}
+
+/**
+ * Shed roof — a single slope. By default high at the back (-Z) draining to the
+ * front (+Z). With `highFront` the ridge sits at the front (+Z) and drains to
+ * the rear (-Z), so a false-front parapet can hide the roof behind it.
+ */
+export function shedRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "auto", highFront = false, material }) {
+  const alongX = ridgeAxis === "auto" ? w >= d : ridgeAxis === "x";
+  const length = (alongX ? w : d) + overhang * 2;
+  const width = (alongX ? d : w) + overhang * 2;
+  const rise = width * pitch;
+  const hl = length / 2;
+  const hw = width / 2;
+  const positions = [];
+  const indices = [];
+  const push = (v) => positions.push(v[0], v[1], v[2]);
+  const base = positions.length / 3;
+  const backY = highFront ? 0 : rise;
+  const frontY = highFront ? rise : 0;
+  push([-hl, backY, -hw]); push([hl, backY, -hw]); push([-hl, frontY, hw]); push([hl, frontY, hw]);
+  const [A, B, C, D] = [0, 1, 2, 3].map((i) => base + i);
+  indices.push(A, C, D, A, D, B);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  material.side = THREE.DoubleSide;
+  const roof = new THREE.Mesh(geo, material);
+  if (!alongX) {
+    roof.rotation.y = Math.PI / 2;
+  }
+  const group = new THREE.Group();
+  roof.position.y = eave;
+  group.add(roof);
+  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "shed" });
+  return group;
+}
+
+/**
+ * Flat roof — a slab with a slight rear drain pitch.
+ */
+export function flatRoof({ w, d, overhang = 0.45, eave = 0, material }) {
+  const group = new THREE.Group();
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(w + overhang * 2, 0.3, d + overhang * 2), material);
+  slab.position.y = eave + 0.15;
+  slab.castShadow = true;
+  slab.receiveShadow = true;
+  group.add(slab);
+  tag(group, "roof", {
+    roofBase: eave,
+    roofTop: eave + 0.3,
+    plan: { length: w + overhang * 2, width: d + overhang * 2 },
+    type: "flat"
+  });
+  return group;
+}
+
+/**
+ * A wall along +X with openings. `openings` is an array of
+ * { x, w, h, fromFloor } (x is the opening center along the wall). Emits wall
+ * segments around each opening plus a header above it, so doorways get a head
+ * height for free. Returns a Group. The wall's bottom sits at y = 0 (the floor).
+ */
+export function wallX({ length, height, thickness, openings = [], material, y = 0 }) {
+  const group = new THREE.Group();
+  tag(group, "wall", { length, height, thickness, openings: openings.map((o) => ({ ...o })) });
+  const segs = [];
+  const sorted = [...openings].sort((a, b) => a.x - b.x);
+  let cursor = -length / 2;
+  for (const o of sorted) {
+    const left = o.x - o.w / 2;
+    const right = o.x + o.w / 2;
+    if (left > cursor + 0.05) {
+      segs.push([cursor, left]);
+    }
+    cursor = right;
+  }
+  if (length / 2 > cursor + 0.05) {
+    segs.push([cursor, length / 2]);
+  }
+  for (const [a, b] of segs) {
+    const w = b - a;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, height, thickness), material);
+    mesh.position.set((a + b) / 2, y + height / 2, 0);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+  for (const o of sorted) {
+    const headerH = height - o.fromFloor - o.h;
+    if (headerH > 0.05) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(o.w, headerH, thickness), material);
+      mesh.position.set(o.x, y + o.fromFloor + o.h + headerH / 2, 0);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      tag(mesh, "header", { openingW: o.w, openingH: o.h, fromFloor: o.fromFloor, class: o.class });
+      group.add(mesh);
+    } else if (o.fromFloor === 0) {
+      group.userData.fullHeightDoor = true;
+    }
+  }
+  return group;
+}
+
+/**
+ * A wall along +Z with openings (same semantics as wallX, rotated 90°).
+ */
+export function wallZ({ length, height, thickness, openings = [], material, y = 0 }) {
+  const g = wallX({ length, height, thickness, openings, material, y });
+  g.rotation.y = Math.PI / 2;
+  return g;
+}
+
+/**
+ * A door leaf. `hinge` is the local offset along the wall from the opening
+ * center to the hinge; `swing` is the open angle (radians). Leaf bottom sits at
+ * the floor. Returns a Mesh.
+ */
+export function doorLeaf({ width, height, thickness, hinge = 0, swing = 0, material, y = 0 }) {
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(width, height, thickness), material);
+  leaf.position.set(hinge + width / 2, y + height / 2, 0);
+  leaf.rotation.y = swing;
+  leaf.castShadow = true;
+  leaf.receiveShadow = true;
+  tag(leaf, "door", { width, height });
+  return leaf;
+}
+
+/**
+ * A porch: deck, posts, beam, rail, and a shed roof over it. `depth` is the
+ * porch depth (along +Z from the front wall). Returns a Group.
+ */
+export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMaterial, y = 0 }) {
+  const group = new THREE.Group();
+  tag(group, "porch");
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(width, 0.2, depth), material);
+  deck.position.set(0, y + 0.1, depth / 2);
+  deck.castShadow = true;
+  deck.receiveShadow = true;
+  group.add(deck);
+
+  const nPosts = Math.max(2, Math.round(width / postSpacing) + 1);
+  const postH = eave - 0.2;
+  for (let i = 0; i < nPosts; i += 1) {
+    const px = -width / 2 + (i / (nPosts - 1)) * width;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, postH, 0.22), material);
+    post.position.set(px, y + 0.2 + postH / 2, depth);
+    post.castShadow = true;
+    group.add(post);
+  }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(width, 0.2, 0.22), material);
+  beam.position.set(0, y + eave - 0.1, depth);
+  beam.castShadow = true;
+  group.add(beam);
+
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, 0.1), material);
+  rail.position.set(0, y + 0.9, depth);
+  group.add(rail);
+
+  const shed = shedRoof({ w: width, d: depth, pitch: 0.2, overhang: 0.2, eave: y + eave, material: roofMaterial });
+  shed.position.z = depth / 2;
+  group.add(shed);
+  return group;
+}
+
+/**
+ * A raised boardwalk — a continuous deck along a street, seated above the
+ * ground, with a front edge and posts. `length` runs along the street axis,
+ * `width` across it. Returns a Group.
+ */
+export function boardwalk({ length, width, height = 0.45, material, y = 0 }) {
+  const group = new THREE.Group();
+  tag(group, "boardwalk", { length, width, height });
+  // A solid raised deck: thick enough to read as an elevated platform, not a
+  // thin slab that vanishes edge-on at distance.
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.4, width), material);
+  deck.position.set(0, y + height, 0);
+  deck.castShadow = true;
+  deck.receiveShadow = true;
+  group.add(deck);
+
+  // A front fascia board makes the raised edge read clearly against the street.
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(length, height + 0.4, 0.16), material);
+  fascia.position.set(0, y + (height + 0.4) / 2, -width / 2);
+  fascia.castShadow = true;
+  group.add(fascia);
+
+  const nPosts = Math.max(2, Math.round(length / 3) + 1);
+  for (let i = 0; i < nPosts; i += 1) {
+    const px = -length / 2 + (i / (nPosts - 1)) * length;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, height, 0.3), material);
+    post.position.set(px, y + height / 2, 0);
+    post.castShadow = true;
+    group.add(post);
+  }
+  return group;
+}
+
+/**
+ * Emit oriented box colliders for a structure's walls in the local frame.
+ * `walls` is an array of { x, z, halfX, halfZ } in local coords. The collider
+ * is derived from the geometry, not typed in beside it.
+ */
+/**
+ * Emit oriented box colliders for a structure's walls in the local frame.
+ * `walls` is an array of { x, z, halfX, halfZ, openings } where `openings` is
+ * an optional array of { x, w } (opening center and width along the wall) to
+ * leave a gap in the collider (e.g. a doorway). The collider is derived from
+ * the geometry, not typed in beside it.
+ */
+export function collide(group, x, z, yaw, walls) {
+  group.userData.colliderWalls = walls.map((w) => ({ ...w, openings: (w.openings || []).map((o) => ({ ...o })) }));
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  const rot = (lx, lz) => ({ x: x + lx * cos - lz * sin, z: z + lx * sin + lz * cos });
+  for (const wall of walls) {
+    const openings = wall.openings || [];
+    if (!openings.length) {
+      const p = rot(wall.x, wall.z);
+      addOrientedBoxCollider(p.x, p.z, wall.halfX + 0.1, wall.halfZ + 0.1, yaw);
+      continue;
+    }
+    // Split the wall collider around each opening. `axis` is "x" if the wall
+    // runs along +X (halfX is the long half-extent), else "z". The long axis
+    // gets no margin so the door gap stays wide enough for the player; the
+    // thickness axis gets a small margin so the wall still blocks.
+    const axis = wall.halfX >= wall.halfZ ? "x" : "z";
+    const half = axis === "x" ? wall.halfX : wall.halfZ;
+    const thick = axis === "x" ? wall.halfZ : wall.halfX;
+    const sorted = [...openings].sort((a, b) => a.x - b.x);
+    let cursor = -half;
+    for (const o of sorted) {
+      const left = o.x - o.w / 2;
+      const right = o.x + o.w / 2;
+      if (left > cursor + 0.05) {
+        const c = (cursor + left) / 2;
+        const h = (left - cursor) / 2;
+        if (axis === "x") {
+          const p = rot(c, wall.z);
+          addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, yaw);
+        } else {
+          const p = rot(wall.x, c);
+          addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, yaw);
+        }
+      }
+      cursor = right;
+    }
+    if (half > cursor + 0.05) {
+      const c = (cursor + half) / 2;
+      const h = (half - cursor) / 2;
+      if (axis === "x") {
+        const p = rot(c, wall.z);
+        addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, yaw);
+      } else {
+        const p = rot(wall.x, c);
+        addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, yaw);
+      }
+    }
+  }
+}
+
+/**
+ * High-level structure builder. Builds a parent Group at (x, z) rotated to
+ * `yaw`, seats it on the terrain via footing, and records metadata on
+ * userData for the geometry checks.
+ */
+export function structure({
+  x, z, yaw = 0, w, d, eave, foundation = false, material,
+  name = "structure", waterAdjacent = false, habitable = false
+}) {
+  const f = footing(x, z, w, d, yaw);
+  const group = new THREE.Group();
+  group.position.set(x, f.y, z);
+  group.rotation.y = yaw;
+  group.name = name;
+  group.userData = {
+    kind: name,
+    name,
+    x,
+    z,
+    w,
+    d,
+    eave,
+    yaw,
+    placementY: f.y,
+    drop: f.drop,
+    foundation: Boolean(foundation),
+    foundationEmitted: false,
+    wallTop: f.y + eave,
+    waterAdjacent: Boolean(waterAdjacent),
+    habitable: Boolean(habitable)
+  };
+  if (foundation && f.drop > 0.15) {
+    const skirt = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, f.drop + 0.2, d + 0.4), material);
+    skirt.position.y = -f.drop / 2 - 0.1;
+    skirt.castShadow = true;
+    skirt.receiveShadow = true;
+    tag(skirt, "foundation");
+    group.add(skirt);
+    group.userData.foundationEmitted = true;
+  }
+  STRUCTURES.push(group);
+  return group;
+}

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Minimap probe</title>
+  <!--
+    Browser-truth check for the minimap needle and scroll. The Node checks model canvas
+    rotation by hand and twice got the sign wrong, which let a north/south-mirrored
+    needle pass for weeks. This renders the real minimap.js and reads the drawn pixels.
+
+      python3 -m http.server 8137 --bind 127.0.0.1
+      google-chrome-stable --headless --no-proxy-server --virtual-time-budget=20000 \
+        --dump-dom http://127.0.0.1:8137/scripts/minimap-probe.html | grep -A22 'id="out"'
+  -->
+  <style>
+    body { margin: 0; background: #1b1610; color: #e2d0a4; font: 13px Menlo, monospace; }
+    .panels { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+    figure { margin: 0; }
+    figcaption { padding: 4px 0; font-size: 12px; }
+    canvas { width: 260px; height: 260px; display: block; border: 1px solid #a67c42; }
+    pre { padding: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="minimap" class="hidden"><canvas id="minimap-chart" width="400" height="400"></canvas></div>
+  <div class="panels" id="panels"></div>
+  <pre id="out">running…</pre>
+
+  <script type="module">
+    import { createMinimap, displayPoint } from "../src/minimap.js";
+    import { POS, headingVector } from "../src/map.js";
+
+    /** Inverse of headingVector: the yaw that walks along (dx, dz). */
+    const bearing = (dx, dz) => Math.atan2(dx, -dz);
+
+    const D = 400;
+    const live = document.getElementById("minimap-chart");
+    const map = createMinimap();
+
+    const spawn = { x: POS.ranch.x + 6, z: POS.ranch.z + 18 };
+
+    function frame(x, z, yaw) {
+      map.update(x, z, yaw);
+      const ctx = live.getContext("2d");
+      return ctx.getImageData(0, 0, D, D);
+    }
+
+    function snapshot(label, x, z, yaw) {
+      map.update(x, z, yaw);
+      const fig = document.createElement("figure");
+      const c = document.createElement("canvas");
+      c.width = D;
+      c.height = D;
+      c.getContext("2d").drawImage(live, 0, 0);
+      const cap = document.createElement("figcaption");
+      cap.textContent = label;
+      fig.appendChild(c);
+      fig.appendChild(cap);
+      document.getElementById("panels").appendChild(fig);
+    }
+
+    /** Needle tip direction, measured from the rendered red arrow pixels. */
+    function needleTip(img) {
+      const d = img.data;
+      const pts = [];
+      for (let y = 0; y < D; y += 1) {
+        for (let x = 0; x < D; x += 1) {
+          const i = (y * D + x) * 4;
+          const r = d[i];
+          const g = d[i + 1];
+          const b = d[i + 2];
+          if (r > 150 && g < 90 && b < 60) {
+            pts.push([x - D / 2, y - D / 2]);
+          }
+        }
+      }
+      if (!pts.length) {
+        return null;
+      }
+      let max = 0;
+      pts.forEach(([px, py]) => {
+        max = Math.max(max, Math.hypot(px, py));
+      });
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      pts.forEach(([px, py]) => {
+        if (Math.hypot(px, py) > max * 0.85) {
+          sx += px;
+          sy += py;
+          n += 1;
+        }
+      });
+      const len = Math.hypot(sx / n, sy / n) || 1;
+      return { x: +(sx / n / len).toFixed(3), y: +(sy / n / len).toFixed(3) };
+    }
+
+    /** Rendered chart shift between two frames, by patch cross-correlation. */
+    function chartShift(a, b) {
+      const P = 70;
+      const ox = 60;
+      const oy = 60;
+      const R = 55;
+      let best = null;
+      for (let dy = -R; dy <= R; dy += 1) {
+        for (let dx = -R; dx <= R; dx += 1) {
+          let err = 0;
+          for (let y = 0; y < P; y += 3) {
+            for (let x = 0; x < P; x += 3) {
+              const ax = ox + x;
+              const ay = oy + y;
+              const bx = ax + dx;
+              const by = ay + dy;
+              if (bx < 0 || by < 0 || bx >= D || by >= D) {
+                err += 3000;
+                continue;
+              }
+              const ia = (ay * D + ax) * 4;
+              const ib = (by * D + bx) * 4;
+              err += Math.abs(a.data[ia] - b.data[ib]) +
+                Math.abs(a.data[ia + 1] - b.data[ib + 1]) +
+                Math.abs(a.data[ia + 2] - b.data[ib + 2]);
+            }
+          }
+          if (!best || err < best.err) {
+            best = { dx, dy, err };
+          }
+        }
+      }
+      return best;
+    }
+
+    function dot(a, b) {
+      return a.x * b.x + a.y * b.y;
+    }
+
+    const lines = [];
+    const fails = [];
+
+    function check(ok, msg) {
+      lines.push(`${ok ? "ok  " : "FAIL"} ${msg}`);
+      if (!ok) {
+        fails.push(msg);
+      }
+    }
+
+    // --- Needle: which way does the rendered arrow actually point? ---
+    const cards = [
+      ["north (yaw 0, spawn)", 0, { x: 0, y: -1 }, "UP"],
+      ["east  (yaw +pi/2)", Math.PI / 2, { x: 1, y: 0 }, "RIGHT"],
+      ["south (yaw pi)", Math.PI, { x: 0, y: 1 }, "DOWN"],
+      ["west  (yaw -pi/2)", -Math.PI / 2, { x: -1, y: 0 }, "LEFT"]
+    ];
+
+    cards.forEach(([label, yaw, want, word]) => {
+      const tip = needleTip(frame(spawn.x, spawn.z, yaw));
+      lines.push(`    facing ${label}: rendered needle = (${tip.x}, ${tip.y})`);
+      check(dot(tip, want) > 0.9, `facing ${label} -> needle must point ${word}`);
+    });
+
+    // --- Needle vs. the ranch house, the case in the screenshots ---
+    const houseX = POS.ranch.x;
+    const houseZ = POS.ranch.z - 8;
+    const houseYaw = bearing(houseX - spawn.x, houseZ - spawn.z);
+    const houseTip = needleTip(frame(spawn.x, spawn.z, houseYaw));
+    const houseOnMap = displayPoint(houseX, houseZ, spawn.x, spawn.z);
+    const houseDir = { x: houseOnMap.x - 200, y: houseOnMap.y - 200 };
+    lines.push(`    facing ranch house: needle = (${houseTip.x}, ${houseTip.y}), house on chart = (${houseDir.x.toFixed(1)}, ${houseDir.y.toFixed(1)})`);
+    check(dot(houseTip, houseDir) > 0, "facing the ranch house -> needle points at the house icon");
+
+    // --- Scroll: does rendered content move opposite travel? ---
+    const walks = [
+      ["walk north (-Z)", 0, -120, { x: 0, y: -1 }],
+      ["walk south (+Z)", 0, 120, { x: 0, y: 1 }],
+      ["walk east  (+X)", 120, 0, { x: 1, y: 0 }],
+      ["walk west  (-X)", -120, 0, { x: -1, y: 0 }]
+    ];
+
+    walks.forEach(([label, dx, dz, screenTravel]) => {
+      const before = frame(spawn.x, spawn.z, 0);
+      const after = frame(spawn.x + dx, spawn.z + dz, 0);
+      const s = chartShift(before, after);
+      lines.push(`    ${label}: rendered chart shifted (${s.dx}, ${s.dy})`);
+      check(
+        dot({ x: s.dx, y: s.dy }, screenTravel) < 0,
+        `${label} -> chart must slide opposite travel (travel on screen = ${screenTravel.x},${screenTravel.y})`
+      );
+    });
+
+    snapshot("spawn: facing the ranch house (north)", spawn.x, spawn.z, 0);
+    snapshot("facing south", spawn.x, spawn.z, Math.PI);
+    snapshot("facing east", spawn.x, spawn.z, Math.PI / 2);
+
+    lines.push("");
+    lines.push(fails.length ? `RESULT: ${fails.length} FAILED` : "RESULT: ALL PASS");
+    document.getElementById("out").textContent = lines.join("\n");
+    document.title = fails.length ? `FAIL:${fails.length}` : "PASS";
+  </script>
+</body>
+</html>

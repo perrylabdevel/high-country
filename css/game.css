@@ -1,0 +1,176 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0c1014;
+  font-family: Palatino, "Palatino Linotype", Georgia, serif;
+  color: #f4ead2;
+}
+body > canvas { display: block; width: 100%; height: 100%; }
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#hud-top {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 22px;
+  text-shadow: 0 1px 8px #000;
+  letter-spacing: 0.04em;
+  font-size: 15px;
+}
+#minimap {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: min(220px, 30vw);
+  aspect-ratio: 1 / 1;
+  border: 3px solid #3d2918;
+  outline: 1px solid #c4a36a;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  background: #e2d0a4;
+  transition: width 0.18s ease;
+}
+#minimap.large {
+  width: min(420px, 56vw);
+}
+#minimap-chart {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border: 1px solid rgba(244, 234, 210, 0.7);
+  border-radius: 50%;
+}
+#prompt, #dialogue, #title {
+  pointer-events: auto;
+}
+#prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 48px;
+  transform: translateX(-50%);
+  background: rgba(20, 12, 6, 0.72);
+  border: 1px solid #c4a36a;
+  padding: 8px 16px;
+}
+#dialogue, #title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #efe2c6;
+  color: #2a1c12;
+  border: 8px solid #3d2918;
+  padding: 28px 36px;
+  width: min(560px, calc(100% - 40px));
+  text-align: center;
+}
+#dialogue { text-align: left; }
+#dialogue-speaker {
+  color: #a33b1a;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.78em;
+}
+.kicker, .ep { color: #a33b1a; letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.78em; }
+h1 { margin: 0 0 8px; letter-spacing: 0.08em; font-size: 2.8rem; }
+.sub { color: #5a4330; }
+.fine { font-size: 0.82em; color: #5a4330; }
+button {
+  font: inherit;
+  background: #3d2918;
+  color: #efe2c6;
+  border: 1px solid #c4a36a;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+.hidden { display: none !important; }
+#debug-chip,
+#debug-panel {
+  pointer-events: auto;
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  background: rgba(12, 16, 20, 0.84);
+  border: 1px solid #c4a36a;
+  color: #f4ead2;
+  font: 12px/1.35 ui-monospace, "Cascadia Code", monospace;
+  text-shadow: none;
+}
+#debug-chip {
+  padding: 6px 10px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+#debug-chip.hot {
+  color: #e8c36a;
+}
+#debug-panel {
+  width: 248px;
+  padding: 10px 12px 8px;
+  z-index: 6;
+}
+#debug-panel:focus {
+  outline: none;
+}
+#debug-panel .debug-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #c4a36a;
+}
+#debug-panel .debug-close {
+  padding: 0 6px;
+  min-width: 0;
+  line-height: 1.2;
+  background: transparent;
+  border-color: #6a4e32;
+}
+#debug-panel .debug-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+}
+#debug-panel .debug-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+#debug-panel button {
+  padding: 3px 7px;
+  font: inherit;
+  min-width: 2.4em;
+}
+#debug-panel button.active {
+  background: #c4a36a;
+  color: #1a1208;
+}
+#debug-panel select {
+  font: inherit;
+  color: #f4ead2;
+  background: #1c1610;
+  border: 1px solid #6a4e32;
+  max-width: 160px;
+}
+#debug-panel #debug-stats {
+  margin: 8px 0 0;
+  color: #cbb58a;
+  font: inherit;
+}

@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "url": "",
+  "bundle": "textures-263365b03466.tar.gz",
+  "contentHash": "263365b03466f9008bc97ae8f52db7f086deb0a6f7fb4a2466adf70a8e44f879",
+  "bundleSha256": "7d4464febee017bc2be45c1df8bec9e1c93227c639d4a863ba3d1d05d73ab353",
+  "bundleBytes": 88593776,
+  "target": "public/textures",
+  "files": [
+    {
+      "path": "bark_2k_albedo.ktx2",
+      "bytes": 5455758,
+      "sha256": "58f95bd6805ab8a3da11055dd60895cf239fc5c997000f731ac700e50980c866"
+    },
+    {
+      "path": "bark_2k_normal.ktx2",
+      "bytes": 5453334,
+      "sha256": "aaa7f48d46799ccae0f9ec3d02488af2966f4ca8f53bc661d0fea5aaafd8b11a"
+    },
+    {
+      "path": "bark_2k_orm.ktx2",
+      "bytes": 5426380,
+      "sha256": "d4432784867a15555dddffb1d0046317aead63bdcca0ecc79c31ea8b54bb5b4c"
+    },
+    {
+      "path": "dirt_2k_albedo.ktx2",
+      "bytes": 5489001,
+      "sha256": "e773bf37c927fdf91a83047564c240bf67c9e675c9aeb57ed07e2880c4aa2bfc"
+    },
+    {
+      "path": "dirt_2k_normal.ktx2",
+      "bytes": 5439586,
+      "sha256": "89f95199df39e836173726886fabe97a3bdab29f8561018508f2aeacbbf80bab"
+    },
+    {
+      "path": "dirt_2k_orm.ktx2",
+      "bytes": 5379235,
+      "sha256": "3fadfbb76db5d7cb4ef5697976ea4eb56423ac839dcd51e4773bcb9d6d6a3d0e"
+    },
+    {
+      "path": "env/golden_2k.hdr",
+      "bytes": 5996454,
+      "sha256": "0d6de5d26052d30546ebd291ad6e96de88c342da3e5d8aee37298e9c12647911"
+    },
+    {
+      "path": "env/midday_2k.hdr",
+      "bytes": 4624289,
+      "sha256": "462a3cc63bfcd9fe0299137a0f33f4ade84e237f4cb6115fe46f5ab400693fe6"
+    },
+    {
+      "path": "grass_2k_albedo.ktx2",
+      "bytes": 5546069,
+      "sha256": "bee9cf4ea68288e12e86474f916bb5fdc743b5a83cdf969701a6007c677ca12b"
+    },
+    {
+      "path": "grass_2k_normal.ktx2",
+      "bytes": 5419917,
+      "sha256": "e534cb526e56e5361c9220a6a71d11a9e06b2bad2ef3eb217e8e8eeddc406bbe"
+    },
+    {
+      "path": "grass_2k_orm.ktx2",
+      "bytes": 5425099,
+      "sha256": "01d1aecee2b95da1d6b5a390182d5971e18ce0e62d4c35bd75c3c24873ba295d"
+    },
+    {
+      "path": "gravel_2k_albedo.ktx2",
+      "bytes": 5492228,
+      "sha256": "f6fd588c5715c4f94f7c38c786903b0e72a38c6f1139049544517b5234aa88f1"
+    },
+    {
+      "path": "gravel_2k_normal.ktx2",
+      "bytes": 5443183,
+      "sha256": "5ea2dd60fb0568ec2876e42d5cf4c5129fcd0995fb2c5e764a8f35d347c0e647"
+    },
+    {
+      "path": "gravel_2k_orm.ktx2",
+      "bytes": 5431640,
+      "sha256": "dfdbb926f53ba3ad5285bd8a5e7711f13fdbb14ad7e558ce5dd1304cad0f4a9d"
+    },
+    {
+      "path": "pine_twig_2k.png",
+      "bytes": 323124,
+      "sha256": "ed58515267e3a638535c9efd052219b22d28b5edb6e58885f18b055a4c493c96"
+    },
+    {
+      "path": "rock_2k_albedo.ktx2",
+      "bytes": 5223912,
+      "sha256": "2f9a56d0f1513e7a404c2b89f30649b0f32eb863b2c04796b2eb5f7a2a47f5e2"
+    },
+    {
+      "path": "rock_2k_normal.ktx2",
+      "bytes": 5346611,
+      "sha256": "f170fd6aa4bd15ac1ae2c943d661aa414ccec00eae863cfbb8e58f6606973589"
+    },
+    {
+      "path": "rock_2k_orm.ktx2",
+      "bytes": 4973084,
+      "sha256": "a4b19b4bdacabce96a1e17e8705858acd00bdad51061fc8a58c1ef6bfb28013b"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+.env
+.env.*
+!.env.example
+*.local
+
+# Audit screenshots are regenerable: npm run capture
+audit/current/
+audit/pass-*/
+audit/reports/inbox.json
+audit/reports/cursor-worksheet.md
+
+# Basis transcoder is copied in by postinstall
+public/basis/
+
+# Binary assets are fetched by postinstall: see assets/manifest.json
+public/textures/
+assets-dist/
+.asset-cache/
+
+# Agent transcripts do not belong in the repo
+.specstory/

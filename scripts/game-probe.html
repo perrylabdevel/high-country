@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Game probe</title>
+  <!--
+    Boots the real game, dismisses the title card, and lets you screenshot the world
+    and the minimap together. Pointer lock is unavailable headless, which is fine —
+    we only need a frame of the spawn view next to the chart.
+
+      python3 -m http.server 8137 --bind 127.0.0.1
+      google-chrome-stable --headless --no-proxy-server --window-size=1100,700 \
+        --screenshot=/tmp/game.png http://127.0.0.1:8137/scripts/game-probe.html
+  -->
+  <style>
+    html, body { margin: 0; background: #000; }
+    iframe { border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <iframe id="game" src="../index.html" width="1100" height="700"></iframe>
+  <script>
+    const frame = document.getElementById("game");
+    frame.addEventListener("load", () => {
+      const doc = frame.contentDocument;
+      // Pointer lock throws headless; swallow it so the game still enters.
+      doc.documentElement.requestPointerLock = () => {};
+      const canvas = doc.querySelector("canvas");
+      if (canvas) {
+        canvas.requestPointerLock = () => {};
+      }
+      const enter = () => {
+        const btn = doc.getElementById("btn-enter");
+        if (btn) {
+          btn.click();
+        }
+      };
+      enter();
+      setTimeout(enter, 400);
+    });
+  </script>
+</body>
+</html>

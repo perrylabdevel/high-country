@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>High Country</title>
+  <link rel="stylesheet" href="css/game.css" />
+</head>
+<body>
+  <div id="hud">
+    <div id="hud-top">
+      <span id="hud-place">High Country Ranch</span>
+      <span id="hud-hint">Click to lock look · Right-drag look · WASD · Shift sprint · C camera · E mount / talk</span>
+    </div>
+    <div id="crosshair"></div>
+    <div id="minimap" class="hidden">
+      <canvas id="minimap-chart" width="400" height="400"></canvas>
+    </div>
+    <div id="prompt" class="hidden"></div>
+    <div id="dialogue" class="hidden">
+      <p id="dialogue-speaker"></p>
+      <p id="dialogue-body"></p>
+      <p class="fine">E / click to continue</p>
+    </div>
+    <div id="title">
+      <p class="kicker">A family Western</p>
+      <h1>High Country</h1>
+      <p class="sub">Hold the ranch. Hold the family. Hold the valley.</p>
+      <p class="ep">Episode 1 — Ashes on the Divide</p>
+      <button type="button" id="btn-enter">Enter the ranch</button>
+      <p class="fine">Click to lock the mouse, or hold right mouse to look. Esc releases the pointer.</p>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

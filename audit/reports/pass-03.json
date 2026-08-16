@@ -1,0 +1,1782 @@
+{
+  "pass": 3,
+  "model": "gemini-2.5-flash",
+  "provider": "cursor",
+  "generated": "2026-08-15T03:04:26.047Z",
+  "results": [
+    {
+      "image": "badlands-golden.png",
+      "poi": "badlands",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Badlands biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture is somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Lighting is very hazy and diffused; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "D1",
+          "score": null,
+          "note": "No explicit mention of rock strata."
+        },
+        {
+          "id": "D2",
+          "score": null,
+          "note": "No information to assess slope-driven material."
+        },
+        {
+          "id": "D3",
+          "score": 5,
+          "note": "Vegetation is sparse and appropriate for an arid environment."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "badlands-midday.png",
+      "poi": "badlands",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Badlands biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture is somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "D1",
+          "score": null,
+          "note": "No explicit mention of rock strata."
+        },
+        {
+          "id": "D2",
+          "score": null,
+          "note": "No information to assess slope-driven material."
+        },
+        {
+          "id": "D3",
+          "score": 5,
+          "note": "Vegetation is sparse and appropriate for an arid environment."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "burn-golden.png",
+      "poi": "burn",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Burn biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "B1",
+          "score": 4,
+          "note": "Ground is dark and trees appear dark/charred, consistent with a burn area, though explicit charred trunks are not visible."
+        },
+        {
+          "id": "B2",
+          "score": 5,
+          "note": "A smoke plume is visible and anchored to a source on the ground."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "burn-midday.png",
+      "poi": "burn",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Burn biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "B1",
+          "score": 4,
+          "note": "Ground is dark and trees appear dark/scorched, consistent with a burn area, though explicit charred trunks are not visible."
+        },
+        {
+          "id": "B2",
+          "score": 5,
+          "note": "A smoke plume is visible and anchored to a source on the ground."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "cemetery-golden.png",
+      "poi": "cemetery",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Cemetery biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture is somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Lighting is consistent with golden hour, casting long, soft, directional shadows."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "C1",
+          "score": null,
+          "note": "No headstones visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "cemetery-midday.png",
+      "poi": "cemetery",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Cemetery biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 1,
+          "note": "Ground texture is clearly repeating and noticeably tiled."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines between materials are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "C1",
+          "score": null,
+          "note": "No headstones visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "A dirt path is visible, but not gravel, and its edges are not detailed enough to assess."
+        }
+      ]
+    },
+    {
+      "image": "elPaso-golden.png",
+      "poi": "elPaso",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "El Paso biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects (buildings/trees) are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "E1",
+          "score": 0,
+          "note": "Buildings appear as primitive, repeated boxes rather than varied adobe structures."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "elPaso-midday.png",
+      "poi": "elPaso",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "El Paso biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "E1",
+          "score": 0,
+          "note": "Buildings appear as primitive, repeated boxes rather than varied adobe structures."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "fortGrant-golden.png",
+      "poi": "fortGrant",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Fort Grant biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "F1",
+          "score": 3,
+          "note": "A walled enclosure is present, but no details on gate placement are visible."
+        },
+        {
+          "id": "F2",
+          "score": 5,
+          "note": "Structures are visible inside the walls."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "fortGrant-midday.png",
+      "poi": "fortGrant",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Fort Grant biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows clear visible repeating tiled pattern."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "A straight, distinct dirt path creates a hard material line."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "F1",
+          "score": 3,
+          "note": "A walled enclosure is present, but no details on gate placement are visible."
+        },
+        {
+          "id": "F2",
+          "score": 5,
+          "note": "Structures are visible inside the walls."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "A dirt path is visible, but not a gravel road."
+        }
+      ]
+    },
+    {
+      "image": "huntingCabin-golden.png",
+      "poi": "huntingCabin",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Hunting Cabin biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 3,
+          "note": "Golden hour lighting is present, but distinct long shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "H1",
+          "score": 0,
+          "note": "The central structure is a simple block and does not clearly read as a cabin with a pitched roof and door."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "huntingCabin-midday.png",
+      "poi": "huntingCabin",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Hunting Cabin biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "A dark dirt road is visible, and its edges appear unnaturally straight, creating a hard material line."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "H1",
+          "score": 0,
+          "note": "The central structure is a simple block and does not clearly read as a cabin with a pitched roof and door."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "A dirt road is visible, but not gravel."
+        }
+      ]
+    },
+    {
+      "image": "ironValley-golden.png",
+      "poi": "ironValley",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Iron Valley biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 0,
+          "note": "Some foreground objects (blocks and cones) appear to be floating above or partially sunk into the ground."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "I1",
+          "score": 0,
+          "note": "The structures present do not resemble industrial silhouettes like headframes or stamp mills."
+        },
+        {
+          "id": "I2",
+          "score": 0,
+          "note": "Materials do not clearly differentiate rust and iron from timber."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "ironValley-midday.png",
+      "poi": "ironValley",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Iron Valley biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "I1",
+          "score": 0,
+          "note": "The structure present does not resemble an industrial silhouette like headframes or stamp mills."
+        },
+        {
+          "id": "I2",
+          "score": 0,
+          "note": "Materials do not clearly differentiate rust and iron from timber."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "A dirt path is visible, but not gravel."
+        }
+      ]
+    },
+    {
+      "image": "lakeMercy-golden.png",
+      "poi": "lakeMercy",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Lake Mercy biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": null,
+          "note": "Mostly black void, no info to assess texture scale or tiling."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "The large black void creates a jarring, straight material line across the scene."
+        },
+        {
+          "id": "U4",
+          "score": 0,
+          "note": "The visible ground patch and objects appear to float above the prominent black void."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "L1",
+          "score": null,
+          "note": "No water to assess depth gradient."
+        },
+        {
+          "id": "L2",
+          "score": null,
+          "note": "No water surface to assess motion."
+        },
+        {
+          "id": "L3",
+          "score": null,
+          "note": "No shoreline to assess foam."
+        },
+        {
+          "id": "L4",
+          "score": null,
+          "note": "No dock visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "lakeMercy-midday.png",
+      "poi": "lakeMercy",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Lake Mercy biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": null,
+          "note": "Mostly black void, no info to assess texture scale or tiling."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "The large black void creates a jarring, straight material line across the scene."
+        },
+        {
+          "id": "U4",
+          "score": 0,
+          "note": "The visible ground patch appears to float within the prominent black void."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "L1",
+          "score": null,
+          "note": "No water to assess depth gradient."
+        },
+        {
+          "id": "L2",
+          "score": null,
+          "note": "No water surface to assess motion."
+        },
+        {
+          "id": "L3",
+          "score": null,
+          "note": "No shoreline to assess foam."
+        },
+        {
+          "id": "L4",
+          "score": null,
+          "note": "No dock visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "A dirt path is visible, but not gravel."
+        }
+      ]
+    },
+    {
+      "image": "mission-golden.png",
+      "poi": "mission",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Mission biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "M1",
+          "score": 0,
+          "note": "Building materials appear as simple blocks, not distinct adobe."
+        },
+        {
+          "id": "M2",
+          "score": 0,
+          "note": "The small tower-like structure is on the roof, not on the facade as a bell tower."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "mission-midday.png",
+      "poi": "mission",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Mission biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture is clearly repeating and noticeably tiled."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines between materials are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "M1",
+          "score": 0,
+          "note": "Building materials appear as simple blocks, not distinct adobe."
+        },
+        {
+          "id": "M2",
+          "score": 0,
+          "note": "The small tower-like structure is on the roof, not on the facade as a bell tower."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "northernPines-golden.png",
+      "poi": "northernPines",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Northern Pines biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Lighting is consistent with golden hour, with a visible sun and implied long shadows."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "P1",
+          "score": 0,
+          "note": "Tree canopies are simple silhouettes, not conical or with tiered branches."
+        },
+        {
+          "id": "P2",
+          "score": 0,
+          "note": "Tree foliage is sparse and does not occlude the horizon behind it."
+        },
+        {
+          "id": "P3",
+          "score": 0,
+          "note": "Tree trunks appear as flat poles, not showing bark relief."
+        },
+        {
+          "id": "P4",
+          "score": 0,
+          "note": "Trees are scattered, not dense enough to read as a forest."
+        },
+        {
+          "id": "P5",
+          "score": null,
+          "note": "No player or detailed buildings for scale."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "northernPines-midday.png",
+      "poi": "northernPines",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Northern Pines biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows a faint but visible repeating grid or tiling pattern."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions for the path are irregular and jagged, not straight."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "P1",
+          "score": 0,
+          "note": "Tree canopies are simple silhouettes, not conical or with tiered branches."
+        },
+        {
+          "id": "P2",
+          "score": 0,
+          "note": "Tree foliage is sparse and does not occlude the horizon behind it."
+        },
+        {
+          "id": "P3",
+          "score": 0,
+          "note": "Tree trunks appear as flat poles, not showing bark relief."
+        },
+        {
+          "id": "P4",
+          "score": 0,
+          "note": "Trees are scattered, not dense enough to read as a forest."
+        },
+        {
+          "id": "P5",
+          "score": null,
+          "note": "No player or detailed buildings for scale."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "overlook-golden.png",
+      "poi": "overlook",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Overlook biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Lighting is consistent with golden hour, with distinct directional shadows."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant objects are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "O1",
+          "score": 5,
+          "note": "Foreground framing is present, and the middle distance is readable."
+        },
+        {
+          "id": "O2",
+          "score": 5,
+          "note": "Haze is visibly increasing toward the distant horizon."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "overlook-midday.png",
+      "poi": "overlook",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Overlook biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "A dark path or trench creates a distinct and potentially straight material boundary."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; shadows are very soft and indistinct, lacking strong directionality."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "O1",
+          "score": 5,
+          "note": "Foreground framing is present, and the middle distance is readable."
+        },
+        {
+          "id": "O2",
+          "score": null,
+          "note": "General haze is present, but no explicit mention of haze increasing toward the horizon."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "ranch-golden.png",
+      "poi": "ranch",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Ranch biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows clear visible repeating tiled pattern."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "A dark, straight path creates a sharp, unnatural material boundary on the terrain."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Objects appear to be properly seated on the terrain."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is flat and washed out; shadows are present but lack depth or subtle gradients."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "R1",
+          "score": 0,
+          "note": "Buildings appear as simple blocks, not clearly an L-plan massing."
+        },
+        {
+          "id": "R2",
+          "score": 5,
+          "note": "Roofs are hipped roofs with even overhang on all sides."
+        },
+        {
+          "id": "R3",
+          "score": null,
+          "note": "No porch visible."
+        },
+        {
+          "id": "R4",
+          "score": 5,
+          "note": "Chimney is continuously attached to the building."
+        },
+        {
+          "id": "R5",
+          "score": null,
+          "note": "No doors visible to assess scale."
+        },
+        {
+          "id": "R6",
+          "score": 2,
+          "note": "A gabled roof shed is present, but details on fence rails or windmill are not visible."
+        },
+        {
+          "id": "G1",
+          "score": 0,
+          "note": "Road is a straight dirt path, not ragged gravel edges."
+        }
+      ]
+    },
+    {
+      "image": "ranch-midday.png",
+      "poi": "ranch",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Ranch biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows clear visible repeating tiled pattern."
+        },
+        {
+          "id": "U3",
+          "score": 0,
+          "note": "Transitions between dirt and grass textures are very sharp and distinct, creating unnatural seams."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Objects appear to sit flush on the ground with no visible floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and diffuse; no distinct, directional shadows are cast."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are very simplified silhouettes but are identifiable."
+        },
+        {
+          "id": "R1",
+          "score": 0,
+          "note": "Buildings appear as separate rectangular structures, not an L-plan massing."
+        },
+        {
+          "id": "R2",
+          "score": 5,
+          "note": "Roofs are hipped roofs with even overhang on all sides."
+        },
+        {
+          "id": "R3",
+          "score": null,
+          "note": "No porch visible."
+        },
+        {
+          "id": "R4",
+          "score": 5,
+          "note": "Chimney is continuously attached to the building."
+        },
+        {
+          "id": "R5",
+          "score": null,
+          "note": "No doors visible to assess scale."
+        },
+        {
+          "id": "R6",
+          "score": 2,
+          "note": "A shed is present, but details on barn gable, fence rails or windmill are not visible."
+        },
+        {
+          "id": "G1",
+          "score": 0,
+          "note": "Road is a straight dirt path, not ragged gravel edges."
+        }
+      ]
+    },
+    {
+      "image": "silverCreek-golden.png",
+      "poi": "silverCreek",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Silver Creek biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture shows a faint, large-scale repetitive tiling pattern."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible on the terrain."
+        },
+        {
+          "id": "U4",
+          "score": 3,
+          "note": "One building might be slightly floating above the ground."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Lighting is consistent with golden hour, with strong directional light and sharp shadows."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "S1",
+          "score": 0,
+          "note": "Buildings appear as a scattered cluster, not aligned to form a legible street corridor."
+        },
+        {
+          "id": "S2",
+          "score": null,
+          "note": "No false fronts described."
+        },
+        {
+          "id": "S3",
+          "score": null,
+          "note": "Steeple location relative to entry/gable end not specified."
+        },
+        {
+          "id": "S4",
+          "score": null,
+          "note": "No boardwalk visible."
+        },
+        {
+          "id": "S5",
+          "score": 2,
+          "note": "Buildings are mostly repetitive in shape and material, with only one having a distinct spire."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "silverCreek-midday.png",
+      "poi": "silverCreek",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Silver Creek biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows clear visible repeating tiled pattern."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible on the terrain."
+        },
+        {
+          "id": "U4",
+          "score": 0,
+          "note": "Multiple buildings are clearly floating above the ground plane with visible gaps."
+        },
+        {
+          "id": "U5",
+          "score": 0,
+          "note": "Midday lighting is flat and lacks cast shadows from objects."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are very simplified silhouettes but are identifiable."
+        },
+        {
+          "id": "S1",
+          "score": 0,
+          "note": "Buildings appear as a scattered cluster, not aligned to form a legible street corridor."
+        },
+        {
+          "id": "S2",
+          "score": null,
+          "note": "No false fronts described."
+        },
+        {
+          "id": "S3",
+          "score": null,
+          "note": "No church or steeple described."
+        },
+        {
+          "id": "S4",
+          "score": null,
+          "note": "No boardwalk visible."
+        },
+        {
+          "id": "S5",
+          "score": 2,
+          "note": "Buildings are mostly repetitive in shape and material, lacking significant variety."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "timberCamp-golden.png",
+      "poi": "timberCamp",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Timber Camp biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 2,
+          "note": "Lighting is diffuse and hazy; distinct shadows from objects are not clearly discernible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "T1",
+          "score": null,
+          "note": "No cut stumps or felled logs explicitly mentioned."
+        },
+        {
+          "id": "T2",
+          "score": 3,
+          "note": "Buildings have pitched roofs, but no doors are visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "timberCamp-midday.png",
+      "poi": "timberCamp",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Timber Camp biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture is low-resolution and appears noticeably repetitive."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "T1",
+          "score": null,
+          "note": "No cut stumps or felled logs explicitly mentioned."
+        },
+        {
+          "id": "T2",
+          "score": 3,
+          "note": "Buildings have pitched roofs, but no doors are visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "tribal-golden.png",
+      "poi": "tribal",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Tribal biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Lighting is consistent with golden hour, with a distinct shadow and ground reflection."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "N1",
+          "score": null,
+          "note": "No mention of variation in tent rotation or scale."
+        },
+        {
+          "id": "N2",
+          "score": 5,
+          "note": "Tents are arranged in a loose circle, reading as an organized camp."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "tribal-midday.png",
+      "poi": "tribal",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Tribal biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "N1",
+          "score": null,
+          "note": "No mention of variation in tent rotation or scale."
+        },
+        {
+          "id": "N2",
+          "score": 5,
+          "note": "Tents are arranged in a loose circle, reading as an organized camp."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "westernRange-golden.png",
+      "poi": "westernRange",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Western Range biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground texture appears somewhat repetitive and scale is difficult to assess as believable."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 3,
+          "note": "Golden hour lighting is present, but distinct long shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "W1",
+          "score": null,
+          "note": "No grassland visible."
+        },
+        {
+          "id": "W2",
+          "score": null,
+          "note": "No cattle visible."
+        },
+        {
+          "id": "W3",
+          "score": null,
+          "note": "No fences visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    },
+    {
+      "image": "westernRange-midday.png",
+      "poi": "westernRange",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "Western Range biome is not expected to have continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 0,
+          "note": "Ground texture shows a clear visible repeating tiled pattern."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious seams or straight material lines are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Objects appear to meet the ground correctly."
+        },
+        {
+          "id": "U5",
+          "score": 1,
+          "note": "Midday lighting is flat and hazy; distinct shadows from objects are not clearly visible."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Distant trees are simple silhouettes but are identifiable."
+        },
+        {
+          "id": "W1",
+          "score": null,
+          "note": "No grassland visible."
+        },
+        {
+          "id": "W2",
+          "score": null,
+          "note": "No cattle visible."
+        },
+        {
+          "id": "W3",
+          "score": null,
+          "note": "No fences visible."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "No road visible."
+        }
+      ]
+    }
+  ]
+}

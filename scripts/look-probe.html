@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Look probe</title>
+  <!--
+    Traces mouse -> yaw -> camera -> needle with the real Three.js camera and the exact
+    player.js formulas, so the turn direction is measured rather than argued about.
+
+      python3 -m http.server 8137 --bind 127.0.0.1
+      google-chrome-stable --headless --no-proxy-server --virtual-time-budget=20000 \
+        --dump-dom http://127.0.0.1:8137/scripts/look-probe.html | grep -A40 'id="out"'
+  -->
+  <style>body { background: #14110d; color: #e2d0a4; font: 13px Menlo, monospace; }</style>
+</head>
+<body>
+  <pre id="out">running…</pre>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/node_modules/three/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { lookCanvasAngle, displayPoint } from "../src/minimap.js";
+    import { POS, headingVector } from "../src/map.js";
+
+    // Verbatim from src/player.js.
+    const LOOK_SENS = 0.0024;
+    const AIM_DIST = 14;
+
+    const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 8000);
+    const EYE = 2;
+
+    /** camera.lookAt(aimPoint(...)) exactly as player.js does it, pitch 0. */
+    function aimCamera(yaw) {
+      const f = headingVector(yaw);
+      camera.position.set(0, EYE, 0);
+      camera.lookAt(new THREE.Vector3(f.x * AIM_DIST, EYE, f.z * AIM_DIST));
+      camera.updateMatrixWorld(true);
+    }
+
+    /** Screen x of a world point: -1 = left edge, +1 = right edge. */
+    function screenX(yaw, point) {
+      aimCamera(yaw);
+      const v = point.clone().project(camera);
+      return { x: +v.x.toFixed(3), inFront: v.z < 1 };
+    }
+
+    const marks = {
+      north: new THREE.Vector3(0, EYE, -300),
+      east: new THREE.Vector3(300, EYE, 0),
+      west: new THREE.Vector3(-300, EYE, 0)
+    };
+
+    // src/player.js: state.yaw += look.x * lookScale
+    // src/input.js: mouse.dx += event.movementX  (movementX > 0 = mouse RIGHT)
+    function applyMouse(yaw, movementX) {
+      return yaw + movementX * LOOK_SENS * 1;
+    }
+
+    const lines = [];
+    const yaw0 = 0; // facing north
+    const mouseRight = applyMouse(yaw0, +120);
+    const mouseLeft = applyMouse(yaw0, -120);
+
+    function needle(yaw) {
+      const a = lookCanvasAngle(yaw);
+      return { x: +Math.cos(a).toFixed(3), y: +Math.sin(a).toFixed(3) };
+    }
+
+    function heading(yaw) {
+      const f = headingVector(yaw);
+      const ns = f.z < -0.02 ? "north" : f.z > 0.02 ? "south" : "";
+      const ew = f.x > 0.02 ? "east" : f.x < -0.02 ? "west" : "";
+      return `forward=(x ${f.x.toFixed(3)}, z ${f.z.toFixed(3)}) i.e. ${(ns + ew) || "due north"}`;
+    }
+
+    function report(label, yaw) {
+      lines.push(`${label}`);
+      lines.push(`   yaw            ${yaw.toFixed(4)}`);
+      lines.push(`   world heading  ${heading(yaw)}`);
+      const n = screenX(yaw, marks.north);
+      const e = screenX(yaw, marks.east);
+      const w = screenX(yaw, marks.west);
+      lines.push(`   north marker   screen x ${n.x} ${n.inFront ? "(in front)" : "(behind)"}`);
+      lines.push(`   east  marker   screen x ${e.x} ${e.inFront ? "(in front)" : "(behind)"}`);
+      lines.push(`   west  marker   screen x ${w.x} ${w.inFront ? "(in front)" : "(behind)"}`);
+      const nd = needle(yaw);
+      lines.push(`   minimap needle (${nd.x}, ${nd.y})  [y<0 = up/north, x>0 = right/east]`);
+      lines.push("");
+    }
+
+    report("START — facing north", yaw0);
+    report("after MOUSE RIGHT (movementX = +120)", mouseRight);
+    report("after MOUSE LEFT  (movementX = -120)", mouseLeft);
+
+    // The decisive question: after shoving the mouse right, did the view swing toward
+    // east (correct) or west (inverted)?
+    const turnedEast = headingVector(mouseRight).x > 0;
+    const northAfterRight = screenX(mouseRight, marks.north).x;
+    const needleAfterRight = needle(mouseRight);
+
+    lines.push("--- verdict ---");
+    lines.push(`mouse RIGHT turns the camera toward ${turnedEast ? "EAST (correct)" : "WEST (INVERTED)"}`);
+    lines.push(`  the straight-ahead north marker slid to screen x ${northAfterRight}`);
+    lines.push(`  (turning right must push it LEFT / negative; it went ${northAfterRight < 0 ? "LEFT" : "RIGHT"})`);
+    lines.push(`the needle for that same yaw points (${needleAfterRight.x}, ${needleAfterRight.y}) = ${needleAfterRight.x < 0 ? "west" : "east"} of north`);
+
+    const cameraDir = turnedEast ? "east" : "west";
+    const needleDir = needleAfterRight.x > 0 ? "east" : "west";
+    lines.push("");
+    lines.push(`camera swung ${cameraDir.toUpperCase()}, needle swung ${needleDir.toUpperCase()} -> ${cameraDir === needleDir ? "AGREE (needle tracks the camera)" : "DISAGREE (needle is wrong)"}`);
+
+    // --- The real question: do the 3D view and the chart agree on which side a
+    // --- landmark sits, for the same player position and yaw?
+    lines.push("");
+    lines.push("--- 3D view vs. minimap chart, standing at the ranch facing north ---");
+
+    function sideInWorld(fromX, fromZ, yaw, target) {
+      const f = headingVector(yaw);
+      camera.position.set(fromX, EYE, fromZ);
+      camera.lookAt(new THREE.Vector3(
+        fromX + f.x * AIM_DIST,
+        EYE,
+        fromZ + f.z * AIM_DIST
+      ));
+      camera.updateMatrixWorld(true);
+      const v = new THREE.Vector3(target.x, EYE, target.z).project(camera);
+      return { x: v.x, inFront: v.z < 1 };
+    }
+
+    [["Silver Creek", POS.silverCreek], ["Iron Valley", POS.ironValley], ["Western Range", POS.westernRange]]
+      .forEach(([name, place]) => {
+        const view = sideInWorld(POS.ranch.x, POS.ranch.z, 0, place);
+        const chart = displayPoint(place.x, place.z, POS.ranch.x, POS.ranch.z);
+        const viewSide = view.x < 0 ? "LEFT" : "RIGHT";
+        const chartSide = chart.x < 200 ? "LEFT" : "RIGHT";
+        lines.push(`${name.padEnd(14)} world x ${place.x > POS.ranch.x ? "east" : "west"} of ranch`);
+        lines.push(`   in the 3D view : ${viewSide.padEnd(5)} (screen x ${view.x.toFixed(2)}${view.inFront ? "" : ", behind"})`);
+        lines.push(`   on the minimap : ${chartSide.padEnd(5)} (chart x ${chart.x.toFixed(1)} vs centre 200)`);
+        lines.push(`   -> ${viewSide === chartSide ? "AGREE" : "MIRRORED"}`);
+      });
+
+    document.getElementById("out").textContent = lines.join("\n");
+  </script>
+</body>
+</html>
