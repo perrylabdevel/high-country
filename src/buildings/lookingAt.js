@@ -1,18 +1,33 @@
 /**
- * Which kit structure the camera is aimed at. Used by the ?dev name overlay
- * so look-at notes can name ranchHouse vs barn without guessing.
+ * Which kit structure — or opening — the camera is aimed at. Used by the ?dev
+ * name overlay so look-at notes can name ranchHouse vs barn, and door vs window.
  *
  * Footprint test: center must lie inside the view ray's cylinder of radius
  * hypot(w, d)/2. Nearest along the ray wins.
  */
 
 export const LOOK_MAX_DIST = 90;
+export const LOOK_OPENING_DIST = 40;
 
 function record(item) {
   if (item && item.userData && item.userData.name != null && Number.isFinite(item.userData.x)) {
     return item.userData;
   }
   return item;
+}
+
+/** Same classes check-buildings uses: window if sill ≥ 0.5 m, else door. */
+export function openingKind(o) {
+  if (o.class) {
+    return o.class;
+  }
+  if ((o.w || 0) >= 2.8) {
+    return "barn";
+  }
+  if ((o.fromFloor || 0) >= 0.5) {
+    return "window";
+  }
+  return "door";
 }
 
 export function lookingAtStructure(list, origin, direction, maxDist = LOOK_MAX_DIST) {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SPEED_STEPS, LOOK_STEPS, stepValue, debugBlocksGame } from "../src/debug.js";
-import { lookingAtStructure } from "../src/buildings/lookingAt.js";
+import { lookingAtStructure, openingKind } from "../src/buildings/lookingAt.js";
 
 function assert(cond, msg) {
   if (!cond) {
@@ -75,6 +75,19 @@ const fromGroup = lookingAtStructure(
   { x: 0, y: 0, z: -1 }
 );
 assert(fromGroup === grouped, "lookingAtStructure must accept kit Groups via userData");
+
+assert(openingKind({ fromFloor: 0.9, w: 1.3, h: 1.5 }) === "window", "sill 0.9 m is a window");
+assert(openingKind({ fromFloor: 0, w: 0.92, h: 2.1 }) === "door", "fromFloor 0 is a door");
+assert(openingKind({ fromFloor: 0, w: 3.5, h: 4, class: "barn" }) === "barn", "class barn wins");
+
+const winHole = { name: "ranchEll window", x: 0, y: 0.9, z: 0, w: 1.3, d: 0.4, eave: 0 };
+const aimedWin = lookingAtStructure(
+  [winHole],
+  { x: 0, y: 1.62, z: 8 },
+  { x: 0, y: 0, z: -1 },
+  40
+);
+assert(aimedWin === winHole, "aiming at a window hole should name that opening");
 
 const labelSrc = readFileSync(join(root, "../src/dev/structureLabels.js"), "utf8");
 assert(labelSrc.includes('getElementById("hud")'), "structure labels mount under #hud so capture mode hides them");

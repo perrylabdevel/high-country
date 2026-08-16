@@ -198,6 +198,11 @@ button {
   color: #1a1208;
   font-size: 12px;
 }
+.opening-label {
+  font-size: 10px;
+  border-color: #6a4e32;
+  padding: 1px 5px;
+}
 #look-name {
   position: absolute;
   left: 50%;
