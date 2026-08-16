@@ -36,6 +36,7 @@ const { createLandmarks } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
+const { unmatedRequired } = await import("../src/buildings/anchors.js");
 const { WATER } = await import("../src/map.js");
 
 function walk(obj, fn) {
@@ -341,6 +342,13 @@ for (const w of WATER_PLACED) {
   check(
     Math.abs(w.y - WATER) <= 0.35,
     `${w.name}@(${w.x},${w.z}) y=${w.y.toFixed(2)} does not reference WATER=${WATER}`
+  );
+}
+
+for (const u of unmatedRequired(STRUCTURES)) {
+  check(
+    false,
+    `${u.obj.userData?.name || u.obj.userData?.role || "object"} ${u.name} is required but unmated`
   );
 }
 

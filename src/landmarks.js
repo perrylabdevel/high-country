@@ -16,6 +16,7 @@ import {
   collide,
   tag,
   doorLeaf,
+  glazing,
   boardwalk,
   registerWaterPlacement
 } from "./buildings/kit.js";
@@ -102,6 +103,22 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   const west = wallX({ length: d, height: eave, thickness: T, material: adobe });
   mate(west, "wallSide", face(st, "left"));
   mate(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }), "base", anchorsOf(st).get("wallTop"));
+  const glass = mat(0xf0d9a0, { emissive: 0x6a4018, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.1 });
+  function glazeWindows(wall) {
+    (wall.userData.openings || []).forEach((o, i) => {
+      if ((o.fromFloor || 0) < 0.5) {
+        return;
+      }
+      mate(
+        glazing({ width: o.w, height: o.h, thickness: 0.1, material: glass }),
+        "frame",
+        anchorsOf(wall).get(`opening.${i}`),
+        { offset: { x: 0, y: 0, z: -T / 2 } }
+      );
+    });
+  }
+  glazeWindows(front);
+  glazeWindows(east);
   const parapetH = 0.42;
   for (const [px, pz, pw, pd] of [
     [0, d / 2, w + 0.24, 0.2],
@@ -176,7 +193,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
 
   // Walls. Front wall (local +Z) carries the door; the church gets a gable-end
   // entry, so its door is on the +X gable end instead.
-  const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
+  const frontOpenings = lot.steeple ? [] : [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
   const front = wallX({ length: w, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
   mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: h, thickness: T, material: bodyMat });
@@ -186,6 +203,16 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   mate(east, "wallSide", face(st, "right"));
   const west = wallX({ length: d, height: h, thickness: T, material: bodyMat });
   mate(west, "wallSide", face(st, "left"));
+
+  const doorWall = lot.steeple ? east : front;
+  if (anchorsOf(doorWall).get("opening.0")) {
+    mate(
+      doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark }),
+      "frame",
+      anchorsOf(doorWall).get("opening.0"),
+      { offset: { x: 0, y: 0, z: T / 2 } }
+    );
+  }
 
   // Roof. Church and hotel get gables; commercial gets a shed behind the false
   // front (drains to the rear, -Z).
