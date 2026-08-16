@@ -20,7 +20,7 @@ import {
   boardwalk,
   registerWaterPlacement
 } from "./buildings/kit.js";
-import { mate, anchorsOf } from "./buildings/anchors.js";
+import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -94,8 +94,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
     );
   }
   const front = wallX({ length: w, height: eave, thickness: T, material: adobe, openings: door });
-  front.position.z = d / 2;
-  st.add(front);
+  mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: eave, thickness: T, material: adobe });
   back.position.z = -d / 2;
   st.add(back);
@@ -183,8 +182,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   // entry, so its door is on the +X gable end instead.
   const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
   const front = wallX({ length: w, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
-  front.position.z = d / 2;
-  st.add(front);
+  mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: h, thickness: T, material: bodyMat });
   back.position.z = -d / 2;
   st.add(back);
@@ -449,8 +447,7 @@ export function createLandmarks(scene) {
     north.position.z = -2.5;
     cabin.add(north);
     const south = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
-    south.position.z = 2.5;
-    cabin.add(south);
+    mate(south, "wallSide", face(cabin, "front"));
     const east = wallZ({ length: 5, height: 3.4, thickness: T, material: dark });
     east.position.x = 3.5;
     cabin.add(east);

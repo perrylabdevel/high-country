@@ -306,8 +306,7 @@ export function createRanch() {
     material: darkWood,
             openings: [{ x: 0, w: 3.5, h: 4.0, fromFloor: 0, class: "barn" }]
   });
-  barnSouth.position.z = BD / 2;
-  barn.add(barnSouth);
+  mate(barnSouth, "wallSide", face(barn, "front"));
   const barnEast = wallX({
     length: BD,
     height: BEAVE,
@@ -355,8 +354,7 @@ export function createRanch() {
     material: wood,
     openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }]
   });
-  bunkSouth.position.z = BKD / 2;
-  bunk.add(bunkSouth);
+  mate(bunkSouth, "wallSide", face(bunk, "front"));
   const bunkEast = wallX({ length: BKD, height: BKEAVE, thickness: T, material: wood });
   mate(bunkEast, "wallSide", face(bunk, "right"));
   const bunkWest = wallZ({ length: BKD, height: BKEAVE, thickness: T, material: wood });
@@ -401,8 +399,7 @@ export function createRanch() {
     material: darkWood,
     openings: [{ x: 0, w: 2.4, h: 2.6, fromFloor: 0, class: "bay" }]
   });
-  smithSouth.position.z = SD / 2;
-  smith.add(smithSouth);
+  mate(smithSouth, "wallSide", face(smith, "front"));
   const smithEast = wallX({ length: SD, height: SEAVE, thickness: T, material: darkWood });
   mate(smithEast, "wallSide", face(smith, "right"));
   const smithWest = wallZ({ length: SD, height: SEAVE, thickness: T, material: darkWood });
