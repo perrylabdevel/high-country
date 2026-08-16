@@ -231,8 +231,9 @@ export function flatRoof({ w, d, overhang = 0.45, eave = 0, material }) {
 /**
  * A wall along +X with openings. `openings` is an array of
  * { x, w, h, fromFloor } (x is the opening center along the wall). Emits wall
- * segments around each opening plus a header above it, so doorways get a head
- * height for free. Returns a Group. The wall's bottom sits at y = 0 (the floor).
+ * segments around each opening, a header above it, and a sill under ground-
+ * floor windows so they do not read as doors. Returns a Group. The wall's
+ * bottom sits at y = 0 (the floor).
  */
 export function wallX({ length, height, thickness, openings = [], material, y = 0 }) {
   const group = new THREE.Group();
@@ -270,6 +271,16 @@ export function wallX({ length, height, thickness, openings = [], material, y = 
       group.add(mesh);
     } else if (o.fromFloor === 0) {
       group.userData.fullHeightDoor = true;
+    }
+    // Ground-floor windows: a sill under the hole so it does not read as a door.
+    // Skip upper-story fromFloor values — those are not a slab from the floor.
+    if (o.fromFloor > 0.05 && o.fromFloor <= 1.2) {
+      const sill = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.fromFloor, thickness), material);
+      sill.position.set(o.x, y + o.fromFloor / 2, 0);
+      sill.castShadow = true;
+      sill.receiveShadow = true;
+      tag(sill, "sill", { openingW: o.w, openingH: o.h, fromFloor: o.fromFloor, class: o.class });
+      group.add(sill);
     }
   }
   openings.forEach((o, i) => {

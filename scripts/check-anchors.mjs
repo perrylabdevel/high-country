@@ -467,4 +467,41 @@ if (Math.abs(paneLocal.x - JAMB_X) > 0.15) {
   );
 }
 
+const WIN_SILL = 0.9;
+const WIN_W = 1.3;
+const WIN_H = 1.5;
+const winWall = wallX({
+  length: 10,
+  height: 4,
+  thickness: 0.22,
+  openings: [{ x: 0, w: WIN_W, h: WIN_H, fromFloor: WIN_SILL }],
+  material: wood
+});
+const sills = [];
+winWall.traverse((n) => {
+  if (n.userData.role === "sill") {
+    sills.push(n);
+  }
+});
+if (sills.length !== 1) {
+  throw new Error(`window opening must emit one sill, got ${sills.length}`);
+}
+winWall.updateMatrixWorld(true);
+const sillBox = new THREE.Box3().setFromObject(sills[0]);
+if (Math.abs(sillBox.max.y - WIN_SILL) > 1e-4) {
+  throw new Error(`sill top y=${sillBox.max.y}, want ${WIN_SILL}`);
+}
+if (sillBox.min.y > 0.05) {
+  throw new Error(`sill must sit on the floor, min y=${sillBox.min.y}`);
+}
+const doorSills = [];
+wall.traverse((n) => {
+  if (n.userData.role === "sill") {
+    doorSills.push(n);
+  }
+});
+if (doorSills.length !== 0) {
+  throw new Error("a fromFloor=0 doorway must not grow a sill");
+}
+
 console.log("PASS");
