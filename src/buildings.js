@@ -239,16 +239,24 @@ export function createRanch() {
   const door = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
   mate(door, "frame", anchorsOf(mSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
-  // Glazing in the south-wall window openings (door is opening.0).
-  for (let i = 1; i <= 4; i += 1) {
-    const o = mSouth.userData.openings[i];
-    mate(
-      glazing({ width: o.w, height: o.h, thickness: 0.1, material: glass }),
-      "frame",
-      anchorsOf(mSouth).get(`opening.${i}`),
-      { offset: { x: 0, y: 0, z: -T / 2 } }
-    );
+  function glazeWindows(wall) {
+    (wall.userData.openings || []).forEach((o, i) => {
+      if ((o.fromFloor || 0) < 0.5) {
+        return;
+      }
+      mate(
+        glazing({ width: o.w, height: o.h, thickness: 0.1, material: glass }),
+        "frame",
+        anchorsOf(wall).get(`opening.${i}`),
+        { offset: { x: 0, y: 0, z: -T / 2 } }
+      );
+    });
   }
+  glazeWindows(mSouth);
+  glazeWindows(mWest);
+  glazeWindows(mEast);
+  glazeWindows(eEast);
+  glazeWindows(eSouth);
 
   // L-shaped porch: along the south face, wrapping the east face.
   const southPorch = porch({
