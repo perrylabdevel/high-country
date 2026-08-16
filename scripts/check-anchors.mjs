@@ -19,7 +19,9 @@ import {
   falseFront,
   steeple,
   parapet,
-  footprintsOverlap
+  footprintsOverlap,
+  steps,
+  vigas
 } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
@@ -58,6 +60,13 @@ if (!wallSide) {
 }
 vecEq(wallSide.position, [0, 0, 0], "wallSide.position");
 vecEq(wallSide.normal, [0, 0, -1], "wallSide.normal");
+
+const deckEdge = anchors.get("deckEdge");
+if (!deckEdge) {
+  throw new Error("porch is missing deckEdge");
+}
+vecEq(deckEdge.position, [0, 0, DEPTH], "deckEdge.position");
+vecEq(deckEdge.normal, [0, 0, 1], "deckEdge.normal");
 
 const roofSocket = anchors.get("roofSocket");
 if (!roofSocket) {
@@ -720,6 +729,112 @@ if (footprintsOverlap(boxA, boxC, 0.8)) {
 const boxD = { x: 5.53, z: 0, w: 8, d: 7, yaw: Math.PI / 2 };
 if (!footprintsOverlap({ x: 0, z: 0, w: 9.5, d: 8, yaw: 0 }, boxD, 0.8)) {
   throw new Error("store vs cross-street lot at 5.53 m must overlap (the church-door blocker)");
+}
+
+const STEP_W = 1.6;
+const STEP_RISE = 0.16;
+const STEP_TREAD = 0.5;
+const PORCH_D = 4.6;
+const STEP_OUT = 0.55;
+const stepHouse = structure({ x: 0, z: 0, w: W, d: D, eave: STRUCT_EAVE, name: "stepsMate" });
+const stepPorch = porch({
+  width: W,
+  depth: PORCH_D,
+  eave: 3.4,
+  material: wood,
+  roofMaterial: shingle
+});
+mate(stepPorch, "wallSide", face(stepHouse, "front"));
+const typedSteps = new THREE.Group();
+for (let i = 0; i < 2; i += 1) {
+  const step = new THREE.Mesh(new THREE.BoxGeometry(STEP_W, STEP_RISE, STEP_TREAD), wood);
+  step.position.set(0, STEP_RISE / 2 + i * 0.14, PORCH_D + STEP_OUT - i * STEP_TREAD);
+  typedSteps.add(step);
+}
+stepPorch.add(typedSteps);
+typedSteps.updateMatrixWorld(true);
+const stepsBefore = new THREE.Box3().setFromObject(typedSteps);
+stepPorch.remove(typedSteps);
+
+const matedSteps = steps({
+  count: 2,
+  width: STEP_W,
+  rise: STEP_RISE,
+  tread: STEP_TREAD,
+  material: wood
+});
+mate(matedSteps, "wallSide", anchorsOf(stepPorch).get("deckEdge"), { offset: { z: STEP_OUT } });
+matedSteps.updateMatrixWorld(true);
+const stepsAfter = new THREE.Box3().setFromObject(matedSteps);
+if (stepsBefore.min.distanceTo(stepsAfter.min) > 1e-4 || stepsBefore.max.distanceTo(stepsAfter.max) > 1e-4) {
+  throw new Error("steps world box drifted from typed treads beyond the porch deck");
+}
+
+const VG_W = 10.5;
+const VG_D = 6.2;
+const VG_EAVE = 3.05;
+const vgHouse = structure({ x: 0, z: 0, w: VG_W, d: VG_D, eave: VG_EAVE, name: "vigasMate" });
+const typedVigas = new THREE.Group();
+const nVigas = Math.max(3, Math.round(VG_W / 1.6));
+for (let i = 0; i < nVigas; i += 1) {
+  const vx = -VG_W / 2 + 0.7 + (i / (nVigas - 1)) * (VG_W - 1.4);
+  const viga = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.15, 6), wood);
+  viga.rotation.x = Math.PI / 2;
+  viga.position.set(vx, VG_EAVE - 0.12, VG_D / 2 + 0.45);
+  typedVigas.add(viga);
+}
+vgHouse.add(typedVigas);
+typedVigas.updateMatrixWorld(true);
+const vigasBefore = new THREE.Box3().setFromObject(typedVigas);
+vgHouse.remove(typedVigas);
+
+const matedVigas = vigas({ w: VG_W, eave: VG_EAVE, material: wood });
+mate(matedVigas, "wallSide", face(vgHouse, "front"));
+matedVigas.updateMatrixWorld(true);
+const vigasAfter = new THREE.Box3().setFromObject(matedVigas);
+if (vigasBefore.min.distanceTo(vigasAfter.min) > 1e-4 || vigasBefore.max.distanceTo(vigasAfter.max) > 1e-4) {
+  throw new Error("vigas world box drifted from typed beams at z = d/2 + 0.45");
+}
+
+const IN_T = 0.22;
+const IN_H = 4.4;
+const inHouse = structure({ x: 0, z: 0, w: W, d: D, eave: IN_H, name: "interiorShell" });
+const typedFront = wallX({
+  length: W,
+  height: IN_H,
+  thickness: IN_T,
+  openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }],
+  material: wood
+});
+typedFront.position.z = D / 2 - IN_T / 2;
+inHouse.add(typedFront);
+typedFront.updateMatrixWorld(true);
+const inFrontBefore = typedFront.matrixWorld.clone();
+inHouse.remove(typedFront);
+
+const matedFront = wallX({
+  length: W,
+  height: IN_H,
+  thickness: IN_T,
+  openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }],
+  material: wood
+});
+mate(matedFront, "wallSide", face(inHouse, "front"), { offset: { z: -IN_T / 2 } });
+matedFront.updateMatrixWorld(true);
+matrixEq(inFrontBefore, matedFront.matrixWorld, "interior front wall mate vs typed z = d/2 - t/2");
+
+const typedInBack = wallX({ length: W, height: IN_H, thickness: IN_T, material: wood });
+typedInBack.position.z = -D / 2 + IN_T / 2;
+inHouse.add(typedInBack);
+typedInBack.updateMatrixWorld(true);
+const inBackBefore = new THREE.Box3().setFromObject(typedInBack);
+inHouse.remove(typedInBack);
+const matedInBack = wallX({ length: W, height: IN_H, thickness: IN_T, material: wood });
+mate(matedInBack, "wallSide", face(inHouse, "back"), { offset: { z: IN_T / 2 } });
+matedInBack.updateMatrixWorld(true);
+const inBackAfter = new THREE.Box3().setFromObject(matedInBack);
+if (inBackBefore.min.distanceTo(inBackAfter.min) > 1e-4 || inBackBefore.max.distanceTo(inBackAfter.max) > 1e-4) {
+  throw new Error("interior back wall world box drifted from typed z = -d/2 + t/2");
 }
 
 console.log("PASS");

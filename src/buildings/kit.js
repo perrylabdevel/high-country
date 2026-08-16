@@ -503,6 +503,50 @@ export function parapet({ w, d, height = 0.42, material }) {
 }
 
 /**
+ * Front-door steps. Origin at the lowest tread centre so `wallSide` mates to
+ * a porch `deckEdge` (or a wall face) with a small outward offset.
+ */
+export function steps({ count = 2, width, rise = 0.16, tread = 0.5, stepUp = 0.14, material }) {
+  const group = new THREE.Group();
+  tag(group, "steps", { count, width, rise, tread });
+  for (let i = 0; i < count; i += 1) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(width, rise, tread), material);
+    step.position.set(0, rise / 2 + i * stepUp, -i * tread);
+    step.castShadow = true;
+    step.receiveShadow = true;
+    group.add(step);
+  }
+  defineAnchor(group, "wallSide", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  return group;
+}
+
+/**
+ * Adobe vigas: round beams jutting through the front wall. Origin at the
+ * facade so `wallSide` mates to `face.front`.
+ */
+export function vigas({ w, eave, material, spacing = 1.6 }) {
+  const group = new THREE.Group();
+  tag(group, "vigas");
+  const n = Math.max(3, Math.round(w / spacing));
+  for (let i = 0; i < n; i += 1) {
+    const vx = -w / 2 + 0.7 + (i / (n - 1)) * (w - 1.4);
+    const viga = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.15, 6), material);
+    viga.rotation.x = Math.PI / 2;
+    viga.position.set(vx, eave - 0.12, 0.45);
+    viga.castShadow = true;
+    group.add(viga);
+  }
+  defineAnchor(group, "wallSide", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  return group;
+}
+
+/**
  * Window pane. Origin at the sill center; the glass sits at height/2.
  */
 export function glazing({ width, height, thickness, material }) {
@@ -556,6 +600,10 @@ export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMat
     position: { x: 0, y: 0, z: 0 },
     normal: { x: 0, y: 0, z: -1 },
     up: { x: 0, y: 1, z: 0 }
+  });
+  defineAnchor(group, "deckEdge", {
+    position: { x: 0, y: 0, z: depth },
+    normal: { x: 0, y: 0, z: 1 }
   });
   defineAnchor(group, "roofSocket", {
     position: { x: 0, y: eave, z: depth },
