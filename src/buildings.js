@@ -107,8 +107,7 @@ export function createRanch() {
       { x: 6.6 - MCX, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
     ]
   });
-  mSouth.position.z = MD / 2;
-  main.add(mSouth);
+  mate(mSouth, "wallSide", face(main, "front"));
 
   const mNorthLen = 4 - -10.5;
   const mNorth = wallX({ length: mNorthLen, height: MEAVE, thickness: T, material: wood });

@@ -130,6 +130,26 @@ vecEq(slid.position, [W / 2, 0, 2.5], "face(right, along: 2.5).position");
 vecEq(slid.normal, [1, 0, 0], "face(right, along: 2.5).normal");
 vecEq(houseAnchors.get("face.right").position, [W / 2, 0, 0], "face() must not mutate the stored face.right");
 
+const WALL_T = 0.22;
+const shell = wallX({ length: W, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+const wallPlug = anchorsOf(shell).get("wallSide");
+if (!wallPlug) {
+  throw new Error("wallX is missing wallSide");
+}
+vecEq(wallPlug.position, [0, 0, 0], "wall.wallSide.position");
+vecEq(wallPlug.normal, [0, 0, -1], "wall.wallSide.normal");
+
+const wallHouse = structure({ x: 0, z: 0, w: W, d: D, eave: STRUCT_EAVE, name: "wallMate" });
+const typedWall = wallX({ length: W, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+typedWall.position.z = D / 2;
+wallHouse.add(typedWall);
+typedWall.updateMatrixWorld(true);
+const wallBefore = typedWall.matrixWorld.clone();
+wallHouse.remove(typedWall);
+
+const matedWall = wallX({ length: W, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+mate(matedWall, "wallSide", face(wallHouse, "front"));
+matedWall.updateMatrixWorld(true);
 function matrixEq(a, b, label) {
   for (let i = 0; i < 16; i += 1) {
     if (Math.abs(a.elements[i] - b.elements[i]) > 1e-5) {
@@ -137,6 +157,7 @@ function matrixEq(a, b, label) {
     }
   }
 }
+matrixEq(wallBefore, matedWall.matrixWorld, "front wall mate vs typed z = d/2");
 
 const ID_W = 22.5;
 const ID_D = 12.35;

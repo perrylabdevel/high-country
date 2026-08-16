@@ -278,6 +278,10 @@ export function wallX({ length, height, thickness, openings = [], material, y = 
       normal: { x: 0, y: 0, z: 1 }
     });
   });
+  defineAnchor(group, "wallSide", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
   return group;
 }
 
