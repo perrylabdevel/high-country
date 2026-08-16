@@ -267,6 +267,26 @@ if (backOpenAfter.normal.dot(backOut) < 1 - 1e-4) {
   throw new Error("back opening must point out of the house (face.back) after mate");
 }
 
+const PART_LEN = 6;
+const PART_ALONG = -2;
+const typedPart = wallX({ length: PART_LEN, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+typedPart.position.set(PART_ALONG, 0, -D / 2);
+wallHouse.add(typedPart);
+typedPart.updateMatrixWorld(true);
+const partBoxBefore = new THREE.Box3().setFromObject(typedPart);
+wallHouse.remove(typedPart);
+
+const matedPart = wallX({ length: PART_LEN, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+mate(matedPart, "wallSide", face(wallHouse, "back", { along: PART_ALONG }));
+matedPart.updateMatrixWorld(true);
+const partBoxAfter = new THREE.Box3().setFromObject(matedPart);
+if (
+  partBoxBefore.min.distanceTo(partBoxAfter.min) > 1e-4 ||
+  partBoxBefore.max.distanceTo(partBoxAfter.max) > 1e-4
+) {
+  throw new Error("partial back wall world box drifted from typed position + along");
+}
+
 const ID_W = 22.5;
 const ID_D = 12.35;
 const idHouse = structure({
@@ -386,8 +406,7 @@ const oldBox = new THREE.Box3().setFromObject(oldStack);
 chHouse.remove(oldStack);
 
 const stack = chimney({ width: 1.15, height: chH, material: wood });
-stack.position.set(lx, 0, lz);
-chHouse.add(stack);
+mate(stack, "base", anchorsOf(chHouse).get("footing"), { offset: { x: lx, y: 0, z: lz } });
 stack.updateMatrixWorld(true);
 const newBox = new THREE.Box3().setFromObject(stack);
 if (oldBox.min.distanceTo(newBox.min) > 1e-5 || oldBox.max.distanceTo(newBox.max) > 1e-5) {

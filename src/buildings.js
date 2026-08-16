@@ -111,8 +111,7 @@ export function createRanch() {
 
   const mNorthLen = 4 - -10.5;
   const mNorth = wallX({ length: mNorthLen, height: MEAVE, thickness: T, material: wood });
-  mNorth.position.set((-10.5 + 4) / 2 - MCX, 0, -MD / 2);
-  main.add(mNorth);
+  mate(mNorth, "wallSide", face(main, "back", { along: (-10.5 + 4) / 2 - MCX }));
 
   const mWest = wallX({
     length: MD, height: MEAVE, thickness: T, material: wood,
@@ -145,8 +144,7 @@ export function createRanch() {
   mate(eSouth, "wallSide", face(ell, "back"));
   const eJoinLen = 16 - 12;
   const eJoin = wallX({ length: eJoinLen, height: EEAVE, thickness: T, material: wood });
-  eJoin.position.set((12 + 16) / 2 - ECX, 0, ED / 2);
-  ell.add(eJoin);
+  mate(eJoin, "wallSide", face(ell, "front", { along: (12 + 16) / 2 - ECX }));
 
   // Roofs — hips, both seated on their own eave.
   mate(hipRoof({ w: MW, d: MD, pitch: 0.5, overhang: 0.45, eave: MEAVE, material: roof }), "base", anchorsOf(main).get("wallTop"));
@@ -185,11 +183,9 @@ export function createRanch() {
   const mainRidge = MEAVE + ((MD + 0.9) / 2) * 0.5;
   const ellRidge = EEAVE + ((ED + 0.9) / 2) * 0.5;
   const mainStack = chimney({ width: 1.15, height: mainRidge + 0.8, material: stone });
-  mainStack.position.set(-6.8 - MCX, 0, -3.4 - MCZ);
-  main.add(mainStack);
+  mate(mainStack, "base", anchorsOf(main).get("footing"), { offset: { x: -6.8 - MCX, y: 0, z: -3.4 - MCZ } });
   const ellStack = chimney({ width: 1.05, height: ellRidge + 0.7, material: stone });
-  ellStack.position.set(10.2 - ECX, 0, -16.35 - ECZ);
-  ell.add(ellStack);
+  mate(ellStack, "base", anchorsOf(ell).get("footing"), { offset: { x: 10.2 - ECX, y: 0, z: -16.35 - ECZ } });
 
   // Furniture, ported from the house coordinates above.
   function furnish(blk, cx, cz, gx, gz, w, h, d, material, y = h / 2) {
@@ -328,6 +324,9 @@ export function createRanch() {
   const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: 0, material: wood });
   barnDoor.userData.class = "barn";
   mate(barnDoor, "frame", anchorsOf(barnSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
+  const barnEastDoor = doorLeaf({ width: 3.0, height: 3.5, thickness: 0.18, hinge: -1.5, swing: 0, material: wood });
+  barnEastDoor.userData.class = "barn";
+  mate(barnEastDoor, "frame", anchorsOf(barnEast).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
   collide(barn, barnX, barnZ, 0, [
     { x: 0, z: -BD / 2, halfX: BW / 2, halfZ: T / 2 },
@@ -364,6 +363,8 @@ export function createRanch() {
 
   const bunkRoof = gableRoof({ w: BKW, d: BKD, pitch: 0.5, overhang: 0.45, eave: BKEAVE, material: roof });
   mate(bunkRoof, "base", anchorsOf(bunk).get("wallTop"));
+  const bunkDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
+  mate(bunkDoor, "frame", anchorsOf(bunkSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
   const bunkFloor = new THREE.Mesh(new THREE.BoxGeometry(BKW - 0.5, 0.1, BKD - 0.5), wood);
   bunkFloor.position.y = 0.05;
