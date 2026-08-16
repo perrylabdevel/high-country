@@ -99,9 +99,8 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   back.position.z = -d / 2;
   st.add(back);
   const window = eave >= 3.2 ? [{ x: 0, w: 0.9, h: 1.1, fromFloor: 0.9 }] : [];
-  const east = wallZ({ length: d, height: eave, thickness: T, material: adobe, openings: window });
-  east.position.x = w / 2;
-  st.add(east);
+  const east = wallX({ length: d, height: eave, thickness: T, material: adobe, openings: window });
+  mate(east, "wallSide", face(st, "right"));
   const west = wallZ({ length: d, height: eave, thickness: T, material: adobe });
   west.position.x = -w / 2;
   st.add(west);
@@ -187,9 +186,8 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   back.position.z = -d / 2;
   st.add(back);
   const eastOpenings = lot.steeple ? [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] : [];
-  const east = wallZ({ length: d, height: h, thickness: T, material: bodyMat, openings: eastOpenings });
-  east.position.x = w / 2;
-  st.add(east);
+  const east = wallX({ length: d, height: h, thickness: T, material: bodyMat, openings: eastOpenings });
+  mate(east, "wallSide", face(st, "right"));
   const west = wallZ({ length: d, height: h, thickness: T, material: bodyMat });
   west.position.x = -w / 2;
   st.add(west);
@@ -448,9 +446,8 @@ export function createLandmarks(scene) {
     cabin.add(north);
     const south = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(south, "wallSide", face(cabin, "front"));
-    const east = wallZ({ length: 5, height: 3.4, thickness: T, material: dark });
-    east.position.x = 3.5;
-    cabin.add(east);
+    const east = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
+    mate(east, "wallSide", face(cabin, "right"));
     const west = wallZ({ length: 5, height: 3.4, thickness: T, material: dark });
     west.position.x = -3.5;
     cabin.add(west);
