@@ -14,7 +14,7 @@ export function createMaterialPanel(options: {
   onQuality?: () => void;
   onWater?: () => void;
 } = {}) {
-  const gui = new GUI({ title: "Materials" });
+  const gui = new GUI({ title: "Materials", closeFolders: true });
   const folders: { env?: GUI; terrain?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
   const onTerrain = options.onTerrain || (() => {});
   const onQuality = options.onQuality || onTerrain;
@@ -105,6 +105,8 @@ export function createMaterialPanel(options: {
       URL.revokeObjectURL(a.href);
     }
   }, "exportJson").name("Export settings as JSON");
+
+  gui.close();
 
   return gui;
 }
