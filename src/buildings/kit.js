@@ -477,5 +477,29 @@ export function structure({
     group.userData.foundationEmitted = true;
   }
   STRUCTURES.push(group);
+  defineAnchor(group, "face.front", {
+    position: { x: 0, y: 0, z: d / 2 },
+    normal: { x: 0, y: 0, z: 1 }
+  });
+  defineAnchor(group, "face.back", {
+    position: { x: 0, y: 0, z: -d / 2 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  defineAnchor(group, "face.right", {
+    position: { x: w / 2, y: 0, z: 0 },
+    normal: { x: 1, y: 0, z: 0 }
+  });
+  defineAnchor(group, "face.left", {
+    position: { x: -w / 2, y: 0, z: 0 },
+    normal: { x: -1, y: 0, z: 0 }
+  });
+  defineAnchor(group, "footing", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 1, z: 0 }
+  });
+  defineAnchor(group, "wallTop", {
+    position: { x: 0, y: eave, z: 0 },
+    normal: { x: 0, y: 1, z: 0 }
+  });
   return group;
 }

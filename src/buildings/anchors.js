@@ -44,6 +44,38 @@ export function anchorsOf(obj) {
   return obj.userData.anchors || new Map();
 }
 
+const FACE_ALONG = {
+  front: "x",
+  back: "x",
+  right: "z",
+  left: "z"
+};
+
+/**
+ * Named wall face of a structure, optionally slid along that face.
+ * Does not mutate the stored anchor.
+ */
+export function face(obj, side, { along = 0 } = {}) {
+  const name = `face.${side}`;
+  const base = anchorsOf(obj).get(name);
+  if (!base) {
+    throw new Error(`${obj.userData?.name || obj.name || "object"} has no ${name}`);
+  }
+  const axis = FACE_ALONG[side];
+  if (!axis) {
+    throw new Error(`unknown face "${side}"`);
+  }
+  const position = base.position.clone();
+  position[axis] += along;
+  return {
+    name,
+    position,
+    normal: base.normal.clone(),
+    up: base.up.clone(),
+    required: base.required
+  };
+}
+
 /**
  * Record that `child`'s named frame is mated to `parent`'s named frame.
  * Does not change transforms.

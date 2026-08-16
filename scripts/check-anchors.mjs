@@ -7,8 +7,9 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch } from "../src/buildings/kit.js";
-import { anchorsOf, unmatedRequired } from "../src/buildings/anchors.js";
+import { porch, structure } from "../src/buildings/kit.js";
+import { bakeHeightfield } from "../src/heightfield.js";
+import { anchorsOf, unmatedRequired, face } from "../src/buildings/anchors.js";
 
 const EPS = 1e-6;
 
@@ -80,5 +81,53 @@ const hit = missing.find((u) => u.obj === built && u.name === "roofSocket");
 if (!hit) {
   throw new Error("removing the porch roof must report unmated roofSocket");
 }
+
+bakeHeightfield();
+const W = 10;
+const D = 8;
+const STRUCT_EAVE = 3.5;
+const house = structure({
+  x: 0,
+  z: 0,
+  w: W,
+  d: D,
+  eave: STRUCT_EAVE,
+  name: "anchorTest"
+});
+const houseAnchors = anchorsOf(house);
+
+const expectedFaces = [
+  ["face.front", [0, 0, D / 2], [0, 0, 1]],
+  ["face.back", [0, 0, -D / 2], [0, 0, -1]],
+  ["face.right", [W / 2, 0, 0], [1, 0, 0]],
+  ["face.left", [-W / 2, 0, 0], [-1, 0, 0]]
+];
+for (const [name, pos, nrm] of expectedFaces) {
+  const a = houseAnchors.get(name);
+  if (!a) {
+    throw new Error(`structure is missing ${name}`);
+  }
+  vecEq(a.position, pos, `${name}.position`);
+  vecEq(a.normal, nrm, `${name}.normal`);
+}
+
+const footingA = houseAnchors.get("footing");
+if (!footingA) {
+  throw new Error("structure is missing footing");
+}
+vecEq(footingA.position, [0, 0, 0], "footing.position");
+vecEq(footingA.normal, [0, 1, 0], "footing.normal");
+
+const wallTop = houseAnchors.get("wallTop");
+if (!wallTop) {
+  throw new Error("structure is missing wallTop");
+}
+vecEq(wallTop.position, [0, STRUCT_EAVE, 0], "wallTop.position");
+vecEq(wallTop.normal, [0, 1, 0], "wallTop.normal");
+
+const slid = face(house, "right", { along: 2.5 });
+vecEq(slid.position, [W / 2, 0, 2.5], "face(right, along: 2.5).position");
+vecEq(slid.normal, [1, 0, 0], "face(right, along: 2.5).normal");
+vecEq(houseAnchors.get("face.right").position, [W / 2, 0, 0], "face() must not mutate the stored face.right");
 
 console.log("PASS");
