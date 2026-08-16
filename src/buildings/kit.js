@@ -148,6 +148,27 @@ export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = 
   roof.position.y = eave;
   group.add(roof);
   markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "gable" });
+  // Gable ends sit on the wall, not the overhang. Steeples mate here
+  // (docs/ANCHORS.md). Ridge along X → ±X; along Z → ±Z after the roof yaw.
+  if (alongX) {
+    defineAnchor(group, "gableEnd.front", {
+      position: { x: w / 2, y: eave, z: 0 },
+      normal: { x: 1, y: 0, z: 0 }
+    });
+    defineAnchor(group, "gableEnd.back", {
+      position: { x: -w / 2, y: eave, z: 0 },
+      normal: { x: -1, y: 0, z: 0 }
+    });
+  } else {
+    defineAnchor(group, "gableEnd.front", {
+      position: { x: 0, y: eave, z: d / 2 },
+      normal: { x: 0, y: 0, z: 1 }
+    });
+    defineAnchor(group, "gableEnd.back", {
+      position: { x: 0, y: eave, z: -d / 2 },
+      normal: { x: 0, y: 0, z: -1 }
+    });
+  }
   return group;
 }
 
@@ -349,6 +370,94 @@ export function chimney({ width, height, depth, material }) {
   defineAnchor(group, "exit", {
     position: { x: 0, y: height, z: 0 },
     normal: { x: 0, y: 1, z: 0 }
+  });
+  return group;
+}
+
+/**
+ * False-front parapet: street board, side returns, and a cap. Origin at the
+ * facade plane so `wallSide` mates to `face.front`. Dimensions match the
+ * typed Silver Creek lots (parapet 0.3 m in front of the wall).
+ */
+export function falseFront({ w, d, eave, height, material, capMaterial }) {
+  const group = new THREE.Group();
+  tag(group, "falseFront", { height });
+  const ffZ = 0.3;
+  const board = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, height, 0.4), material);
+  board.position.set(0, eave + height / 2, ffZ);
+  board.castShadow = true;
+  board.receiveShadow = true;
+  tag(board, "falseFront");
+  group.add(board);
+
+  for (const sx of [-w / 2 - 0.3, w / 2 + 0.3]) {
+    const ret = new THREE.Mesh(new THREE.BoxGeometry(0.4, eave + height, d + 0.6), material);
+    ret.position.set(sx, (eave + height) / 2, -d / 2);
+    ret.castShadow = true;
+    ret.receiveShadow = true;
+    tag(ret, "falseFront");
+    group.add(ret);
+  }
+
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 1.0, 0.32, 0.8), capMaterial);
+  cap.position.set(0, eave + height + 0.02, ffZ + 0.12);
+  cap.castShadow = true;
+  cap.receiveShadow = true;
+  tag(cap, "falseFront");
+  group.add(cap);
+
+  defineAnchor(group, "wallSide", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  return group;
+}
+
+/**
+ * Church steeple: square tower plus spire. Origin at the base so `gable`
+ * plugs into `gableEnd.front` (opposed ±X).
+ */
+export function steeple({ material, towerH = 4.5, towerW = 1.4, spireH = 2.2, spireR = 0.7 }) {
+  const group = new THREE.Group();
+  tag(group, "steeple");
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(towerW, towerH, towerW), material);
+  tower.position.y = towerH / 2;
+  tower.castShadow = true;
+  tag(tower, "steeple");
+  group.add(tower);
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(spireR, spireH, 4), material);
+  spire.position.y = towerH + spireH / 2;
+  spire.castShadow = true;
+  tag(spire, "steeple");
+  group.add(spire);
+  defineAnchor(group, "gable", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: -1, y: 0, z: 0 }
+  });
+  return group;
+}
+
+/**
+ * Adobe parapet caps around the four wall tops. Origin at the eave plane so
+ * `base` mates to `wallTop`.
+ */
+export function parapet({ w, d, height = 0.42, material }) {
+  const group = new THREE.Group();
+  tag(group, "parapet", { height });
+  for (const [px, pz, pw, pd] of [
+    [0, d / 2, w + 0.24, 0.2],
+    [0, -d / 2, w + 0.24, 0.2],
+    [w / 2, 0, 0.2, d],
+    [-w / 2, 0, 0.2, d]
+  ]) {
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(pw, height, pd), material);
+    cap.position.set(px, height / 2, pz);
+    cap.castShadow = true;
+    group.add(cap);
+  }
+  defineAnchor(group, "base", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
   });
   return group;
 }

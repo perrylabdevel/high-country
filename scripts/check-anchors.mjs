@@ -7,9 +7,21 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch, structure, hipRoof, chimney, wallX, wallZ, doorLeaf } from "../src/buildings/kit.js";
+import {
+  porch,
+  structure,
+  hipRoof,
+  gableRoof,
+  chimney,
+  wallX,
+  wallZ,
+  doorLeaf,
+  falseFront,
+  steeple,
+  parapet
+} from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
-import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
+import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
 
 const EPS = 1e-6;
 
@@ -521,6 +533,178 @@ wall.traverse((n) => {
 });
 if (doorSills.length !== 0) {
   throw new Error("a fromFloor=0 doorway must not grow a sill");
+}
+
+const FF_W = 9;
+const FF_D = 8;
+const FF_EAVE = 4.4;
+const FF_H = 2.4;
+const ffHouse = structure({
+  x: 0,
+  z: 0,
+  w: FF_W,
+  d: FF_D,
+  eave: FF_EAVE,
+  name: "falseFrontMate"
+});
+const typedFf = new THREE.Group();
+const typedBoard = new THREE.Mesh(new THREE.BoxGeometry(FF_W + 0.6, FF_H, 0.4), wood);
+typedBoard.position.set(0, FF_EAVE + FF_H / 2, FF_D / 2 + 0.3);
+typedFf.add(typedBoard);
+for (const sx of [-FF_W / 2 - 0.3, FF_W / 2 + 0.3]) {
+  const ret = new THREE.Mesh(new THREE.BoxGeometry(0.4, FF_EAVE + FF_H, FF_D + 0.6), wood);
+  ret.position.set(sx, (FF_EAVE + FF_H) / 2, 0);
+  typedFf.add(ret);
+}
+const typedCap = new THREE.Mesh(new THREE.BoxGeometry(FF_W + 1.0, 0.32, 0.8), shingle);
+typedCap.position.set(0, FF_EAVE + FF_H + 0.02, FF_D / 2 + 0.42);
+typedFf.add(typedCap);
+ffHouse.add(typedFf);
+typedFf.updateMatrixWorld(true);
+const ffBefore = new THREE.Box3().setFromObject(typedFf);
+ffHouse.remove(typedFf);
+
+const matedFf = falseFront({
+  w: FF_W,
+  d: FF_D,
+  eave: FF_EAVE,
+  height: FF_H,
+  material: wood,
+  capMaterial: shingle
+});
+mate(matedFf, "wallSide", face(ffHouse, "front"));
+matedFf.updateMatrixWorld(true);
+const ffAfter = new THREE.Box3().setFromObject(matedFf);
+if (ffBefore.min.distanceTo(ffAfter.min) > 1e-4 || ffBefore.max.distanceTo(ffAfter.max) > 1e-4) {
+  throw new Error("falseFront world box drifted from typed parapet at z = d/2 + 0.3");
+}
+
+const ST_W = 8;
+const ST_D = 8;
+const ST_EAVE = 7.2;
+const stHouse = structure({ x: 0, z: 0, w: ST_W, d: ST_D, eave: ST_EAVE, name: "steepleMate" });
+const stRoof = gableRoof({ w: ST_W, d: ST_D, pitch: 0.5, overhang: 0.45, eave: ST_EAVE, material: shingle });
+mate(stRoof, "base", anchorsOf(stHouse).get("wallTop"));
+const gableFront = anchorsOf(stRoof).get("gableEnd.front");
+if (!gableFront) {
+  throw new Error("gableRoof is missing gableEnd.front");
+}
+vecEq(gableFront.position, [ST_W / 2, ST_EAVE, 0], "gableEnd.front.position");
+vecEq(gableFront.normal, [1, 0, 0], "gableEnd.front.normal");
+vecEq(anchorsOf(stRoof).get("gableEnd.back").position, [-ST_W / 2, ST_EAVE, 0], "gableEnd.back.position");
+vecEq(anchorsOf(stRoof).get("gableEnd.back").normal, [-1, 0, 0], "gableEnd.back.normal");
+
+const typedTower = new THREE.Mesh(new THREE.BoxGeometry(1.4, 4.5, 1.4), wood);
+typedTower.position.set(ST_W / 2, ST_EAVE + 2.25, 0);
+stHouse.add(typedTower);
+const typedSpire = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.2, 4), wood);
+typedSpire.position.set(ST_W / 2, ST_EAVE + 4.5 + 1.1, 0);
+stHouse.add(typedSpire);
+stHouse.updateMatrixWorld(true);
+const steepleBefore = new THREE.Box3().setFromObject(typedTower).union(new THREE.Box3().setFromObject(typedSpire));
+stHouse.remove(typedTower);
+stHouse.remove(typedSpire);
+
+const matedSteeple = steeple({ material: wood });
+mate(matedSteeple, "gable", gableFront);
+stHouse.updateMatrixWorld(true);
+matedSteeple.updateMatrixWorld(true);
+const steepleAfter = new THREE.Box3().setFromObject(matedSteeple);
+if (
+  steepleBefore.min.distanceTo(steepleAfter.min) > 1e-4 ||
+  steepleBefore.max.distanceTo(steepleAfter.max) > 1e-4
+) {
+  throw new Error("steeple world box drifted from typed tower+spire at the +X gable");
+}
+const gablePlug = worldAnchor(matedSteeple, "gable");
+const gableSocket = worldAnchor(stRoof, "gableEnd.front");
+if (gablePlug.position.distanceTo(gableSocket.position) > 1e-5) {
+  throw new Error("steeple gable is not coincident with gableEnd.front");
+}
+if (gablePlug.normal.dot(gableSocket.normal) > -1 + 1e-5) {
+  throw new Error("steeple gable must oppose gableEnd.front");
+}
+
+const PART_X = -4.75;
+const PART_Y = 0.12;
+const PART_OPEN = 1.8;
+const partHouse = structure({ x: 0, z: 0, w: W, d: D, eave: STRUCT_EAVE, name: "partitionMate" });
+const typedPartA = wallZ({
+  length: D,
+  height: STRUCT_EAVE,
+  thickness: WALL_T,
+  openings: [{ x: PART_OPEN, w: 0.92, h: 2.03, fromFloor: 0 }],
+  material: wood
+});
+typedPartA.position.set(PART_X, PART_Y, 0);
+partHouse.add(typedPartA);
+typedPartA.updateMatrixWorld(true);
+const partABefore = new THREE.Box3().setFromObject(typedPartA);
+const partAOpenBefore = worldAnchor(typedPartA, "opening.0");
+partHouse.remove(typedPartA);
+
+defineAnchor(partHouse, "partition.west", {
+  position: { x: PART_X, y: 0, z: 0 },
+  normal: { x: 1, y: 0, z: 0 }
+});
+const matedPartA = wallX({
+  length: D,
+  height: STRUCT_EAVE,
+  thickness: WALL_T,
+  openings: [{ x: PART_OPEN, w: 0.92, h: 2.03, fromFloor: 0 }],
+  material: wood
+});
+mate(matedPartA, "wallSide", anchorsOf(partHouse).get("partition.west"), { offset: { y: PART_Y } });
+matedPartA.updateMatrixWorld(true);
+const partAAfter = new THREE.Box3().setFromObject(matedPartA);
+if (partABefore.min.distanceTo(partAAfter.min) > 1e-4 || partABefore.max.distanceTo(partAAfter.max) > 1e-4) {
+  throw new Error("interior wallZ partition world box drifted from mate to +X socket");
+}
+const partAOpenAfter = worldAnchor(matedPartA, "opening.0");
+if (partAOpenAfter.position.distanceTo(partAOpenBefore.position) > 1e-4) {
+  throw new Error("interior partition doorway drifted");
+}
+
+const JOIN_ALONG = 3.2;
+const typedJoin = wallX({ length: 3.2, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+typedJoin.position.set(JOIN_ALONG, PART_Y, -D / 2);
+partHouse.add(typedJoin);
+typedJoin.updateMatrixWorld(true);
+const joinBefore = new THREE.Box3().setFromObject(typedJoin);
+partHouse.remove(typedJoin);
+
+const matedJoin = wallX({ length: 3.2, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+mate(matedJoin, "wallSide", face(partHouse, "back", { along: JOIN_ALONG }), { offset: { y: PART_Y } });
+matedJoin.updateMatrixWorld(true);
+const joinAfter = new THREE.Box3().setFromObject(matedJoin);
+if (joinBefore.min.distanceTo(joinAfter.min) > 1e-4 || joinBefore.max.distanceTo(joinAfter.max) > 1e-4) {
+  throw new Error("back-join partition world box drifted from typed wallX at z = -d/2");
+}
+
+const PARA_H = 0.42;
+const paraHouse = structure({ x: 0, z: 0, w: W, d: D, eave: STRUCT_EAVE, name: "parapetMate" });
+const typedPara = new THREE.Group();
+for (const [px, pz, pw, pd] of [
+  [0, D / 2, W + 0.24, 0.2],
+  [0, -D / 2, W + 0.24, 0.2],
+  [W / 2, 0, 0.2, D],
+  [-W / 2, 0, 0.2, D]
+]) {
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(pw, PARA_H, pd), wood);
+  cap.position.set(px, STRUCT_EAVE + PARA_H / 2, pz);
+  typedPara.add(cap);
+}
+paraHouse.add(typedPara);
+typedPara.updateMatrixWorld(true);
+const paraBefore = new THREE.Box3().setFromObject(typedPara);
+paraHouse.remove(typedPara);
+
+const matedPara = parapet({ w: W, d: D, height: PARA_H, material: wood });
+mate(matedPara, "base", anchorsOf(paraHouse).get("wallTop"));
+matedPara.updateMatrixWorld(true);
+const paraAfter = new THREE.Box3().setFromObject(matedPara);
+if (paraBefore.min.distanceTo(paraAfter.min) > 1e-4 || paraBefore.max.distanceTo(paraAfter.max) > 1e-4) {
+  throw new Error("parapet world box drifted from typed caps at y = eave");
 }
 
 console.log("PASS");
