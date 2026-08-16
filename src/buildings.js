@@ -242,8 +242,7 @@ export function createRanch() {
 
   // Door leaf, standing open on its hinge at the jamb.
   const door = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
-  door.position.set(-MCX, 0, MD / 2 - T / 2);
-  main.add(door);
+  mate(door, "frame", anchorsOf(mSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
   // Glazing in the openings cut above.
   for (const [gx, gz, pw, ph, pd, py] of [
@@ -331,8 +330,7 @@ export function createRanch() {
 
   const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: 0, material: wood });
   barnDoor.userData.class = "barn";
-  barnDoor.position.set(0, 0, BD / 2 - T / 2);
-  barn.add(barnDoor);
+  mate(barnDoor, "frame", anchorsOf(barnSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
   collide(barn, barnX, barnZ, 0, [
     { x: 0, z: -BD / 2, halfX: BW / 2, halfZ: T / 2 },

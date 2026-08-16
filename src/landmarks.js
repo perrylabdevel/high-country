@@ -136,8 +136,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
     swing: Math.PI * 0.55,
     material: dark
   });
-  leaf.position.z = d / 2 + T / 2;
-  st.add(leaf);
+  mate(leaf, "frame", anchorsOf(front).get("opening.0"), { offset: { x: 0, y: 0, z: T / 2 } });
   collide(st, x, z, yaw, [
     { x: 0, z: -d / 2, halfX: w / 2, halfZ: T / 2 },
     { x: 0, z: d / 2, halfX: w / 2, halfZ: T / 2, openings: [{ x: 0, w: 1.2 }] },
@@ -461,8 +460,7 @@ export function createLandmarks(scene) {
     const cabinRoof = gableRoof({ w: 7, d: 5, pitch: 0.7, overhang: 0.3, eave: 3.4, material: roof });
     mate(cabinRoof, "base", anchorsOf(cabin).get("wallTop"));
     const cabinDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
-    cabinDoor.position.z = 2.5 + T / 2;
-    cabin.add(cabinDoor);
+    mate(cabinDoor, "frame", anchorsOf(south).get("opening.0"), { offset: { x: 0, y: 0, z: T / 2 } });
     collide(cabin, cx, cz, 0, [
       { x: 0, z: -2.5, halfX: 3.5, halfZ: T / 2 },
       { x: 0, z: 2.5, halfX: 3.5, halfZ: T / 2, openings: [{ x: 0, w: 1.2 }] },

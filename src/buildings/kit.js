@@ -272,6 +272,12 @@ export function wallX({ length, height, thickness, openings = [], material, y = 
       group.userData.fullHeightDoor = true;
     }
   }
+  openings.forEach((o, i) => {
+    defineAnchor(group, `opening.${i}`, {
+      position: { x: o.x, y: y + (o.fromFloor || 0), z: 0 },
+      normal: { x: 0, y: 0, z: 1 }
+    });
+  });
   return group;
 }
 
@@ -290,13 +296,19 @@ export function wallZ({ length, height, thickness, openings = [], material, y = 
  * the floor. Returns a Mesh.
  */
 export function doorLeaf({ width, height, thickness, hinge = 0, swing = 0, material, y = 0 }) {
+  const group = new THREE.Group();
+  tag(group, "door", { width, height });
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(width, height, thickness), material);
   leaf.position.set(hinge + width / 2, y + height / 2, 0);
   leaf.rotation.y = swing;
   leaf.castShadow = true;
   leaf.receiveShadow = true;
-  tag(leaf, "door", { width, height });
-  return leaf;
+  group.add(leaf);
+  defineAnchor(group, "frame", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  return group;
 }
 
 /**

@@ -7,7 +7,7 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch, structure, hipRoof, chimney } from "../src/buildings/kit.js";
+import { porch, structure, hipRoof, chimney, wallX, doorLeaf } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
 
@@ -271,6 +271,47 @@ if (exit.position.y + 1e-6 < ridgeW.position.y + 0.6) {
   throw new Error(
     `chimney exit y=${exit.position.y.toFixed(2)} is not 0.6 m above ridge y=${ridgeW.position.y.toFixed(2)}`
   );
+}
+
+const OPEN_X = -1;
+const OPEN_SILL = 0;
+const wall = wallX({
+  length: 10,
+  height: 4,
+  thickness: 0.22,
+  openings: [{ x: OPEN_X, w: 0.92, h: 2.1, fromFloor: OPEN_SILL }],
+  material: wood
+});
+const opening = anchorsOf(wall).get("opening.0");
+if (!opening) {
+  throw new Error("wallX is missing opening.0");
+}
+vecEq(opening.position, [OPEN_X, OPEN_SILL, 0], "opening.0.position");
+vecEq(opening.normal, [0, 0, 1], "opening.0.normal");
+
+const houseDoor = structure({ x: 0, z: 0, w: 10, d: 8, eave: 4, name: "doorMate" });
+wall.position.z = 4;
+houseDoor.add(wall);
+const leaf = doorLeaf({
+  width: 0.86,
+  height: 2.03,
+  thickness: 0.18,
+  hinge: -0.46,
+  swing: 0,
+  material: wood
+});
+mate(leaf, "frame", anchorsOf(wall).get("opening.0"), { offset: { x: 0, y: 0, z: -0.11 } });
+houseDoor.updateMatrixWorld(true);
+leaf.updateMatrixWorld(true);
+const frameW = worldAnchor(leaf, "frame");
+const openW = opening.position.clone();
+openW.z -= 0.11;
+openW.applyMatrix4(wall.matrixWorld);
+if (frameW.position.distanceTo(openW) > 1e-4) {
+  throw new Error(`door frame not on opening: ${frameW.position.toArray()} vs ${openW.toArray()}`);
+}
+if (frameW.normal.dot(new THREE.Vector3(0, 0, 1).transformDirection(wall.matrixWorld)) > -1 + 1e-4) {
+  throw new Error("door frame must oppose the wall opening normal");
 }
 
 console.log("PASS");
