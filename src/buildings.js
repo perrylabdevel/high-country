@@ -20,6 +20,7 @@ import {
   wallZ,
   doorLeaf,
   porch,
+  chimney,
   collide,
   tag
 } from "./buildings/kit.js";
@@ -188,15 +189,11 @@ export function createRanch() {
   // Chimneys — continuous from the hearth, topping out above each ridge.
   const mainRidge = MEAVE + ((MD + 0.9) / 2) * 0.5;
   const ellRidge = EEAVE + ((ED + 0.9) / 2) * 0.5;
-  const mainStack = new THREE.Mesh(new THREE.BoxGeometry(1.15, mainRidge + 0.8, 1.15), stone);
-  mainStack.position.set(-6.8 - MCX, (mainRidge + 0.8) / 2, -3.4 - MCZ);
-  mainStack.castShadow = true;
-  tag(mainStack, "chimney");
+  const mainStack = chimney({ width: 1.15, height: mainRidge + 0.8, material: stone });
+  mainStack.position.set(-6.8 - MCX, 0, -3.4 - MCZ);
   main.add(mainStack);
-  const ellStack = new THREE.Mesh(new THREE.BoxGeometry(1.05, ellRidge + 0.7, 1.05), stone);
-  ellStack.position.set(10.2 - ECX, (ellRidge + 0.7) / 2, -16.35 - ECZ);
-  ellStack.castShadow = true;
-  tag(ellStack, "chimney");
+  const ellStack = chimney({ width: 1.05, height: ellRidge + 0.7, material: stone });
+  ellStack.position.set(10.2 - ECX, 0, -16.35 - ECZ);
   ell.add(ellStack);
 
   // Furniture, ported from the house coordinates above.

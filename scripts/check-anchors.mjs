@@ -7,7 +7,7 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch, structure, hipRoof } from "../src/buildings/kit.js";
+import { porch, structure, hipRoof, chimney } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
 
@@ -216,5 +216,61 @@ const newRoof = hipRoof({ w: 10, d: 8, pitch: 0.5, overhang: 0.45, eave: 4, mate
 mate(newRoof, "base", anchorsOf(roofHouse).get("wallTop"));
 newRoof.updateMatrixWorld(true);
 matrixEq(roofBefore, newRoof.matrixWorld, "hipRoof mate vs structure.add at origin");
+
+const CH_W = 22.5;
+const CH_D = 12.35;
+const CH_EAVE = 6.2;
+const CH_OVER = 0.45;
+const chHouse = structure({
+  x: 0,
+  z: 0,
+  w: CH_W,
+  d: CH_D,
+  eave: CH_EAVE,
+  name: "chimneyTest"
+});
+const chRoof = hipRoof({
+  w: CH_W,
+  d: CH_D,
+  pitch: 0.5,
+  overhang: CH_OVER,
+  eave: CH_EAVE,
+  material: shingle
+});
+mate(chRoof, "base", anchorsOf(chHouse).get("wallTop"));
+const rise = ((CH_D + CH_OVER * 2) / 2) * 0.5;
+const ridgeLocal = anchorsOf(chRoof).get("ridge");
+if (!ridgeLocal) {
+  throw new Error("hipRoof is missing ridge");
+}
+vecEq(ridgeLocal.position, [0, CH_EAVE + rise, 0], "ridge.position");
+vecEq(ridgeLocal.normal, [0, 1, 0], "ridge.normal");
+
+const chH = CH_EAVE + rise + 0.8;
+const lx = -6.8 - 0.75;
+const lz = -3.4 - 0.825;
+const oldStack = new THREE.Mesh(new THREE.BoxGeometry(1.15, chH, 1.15), wood);
+oldStack.position.set(lx, chH / 2, lz);
+chHouse.add(oldStack);
+oldStack.updateMatrixWorld(true);
+const oldBox = new THREE.Box3().setFromObject(oldStack);
+chHouse.remove(oldStack);
+
+const stack = chimney({ width: 1.15, height: chH, material: wood });
+stack.position.set(lx, 0, lz);
+chHouse.add(stack);
+stack.updateMatrixWorld(true);
+const newBox = new THREE.Box3().setFromObject(stack);
+if (oldBox.min.distanceTo(newBox.min) > 1e-5 || oldBox.max.distanceTo(newBox.max) > 1e-5) {
+  throw new Error("chimney() world box drifted from the centered-mesh placement");
+}
+
+const exit = worldAnchor(stack, "exit");
+const ridgeW = worldAnchor(chRoof, "ridge");
+if (exit.position.y + 1e-6 < ridgeW.position.y + 0.6) {
+  throw new Error(
+    `chimney exit y=${exit.position.y.toFixed(2)} is not 0.6 m above ridge y=${ridgeW.position.y.toFixed(2)}`
+  );
+}
 
 console.log("PASS");

@@ -43,6 +43,10 @@ function markRoof(group, extra) {
     position: { x: 0, y: extra.roofBase, z: 0 },
     normal: { x: 0, y: -1, z: 0 }
   });
+  defineAnchor(group, "ridge", {
+    position: { x: 0, y: extra.roofTop, z: 0 },
+    normal: { x: 0, y: 1, z: 0 }
+  });
   return group;
 }
 
@@ -293,6 +297,29 @@ export function doorLeaf({ width, height, thickness, hinge = 0, swing = 0, mater
   leaf.receiveShadow = true;
   tag(leaf, "door", { width, height });
   return leaf;
+}
+
+/**
+ * Chimney stack. Origin at the base (hearth plane). `exit` is the top, which
+ * must clear the roof ridge (docs/ANCHORS.md).
+ */
+export function chimney({ width, height, depth, material }) {
+  const d = depth ?? width;
+  const group = new THREE.Group();
+  tag(group, "chimney");
+  const stack = new THREE.Mesh(new THREE.BoxGeometry(width, height, d), material);
+  stack.position.y = height / 2;
+  stack.castShadow = true;
+  group.add(stack);
+  defineAnchor(group, "base", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
+  });
+  defineAnchor(group, "exit", {
+    position: { x: 0, y: height, z: 0 },
+    normal: { x: 0, y: 1, z: 0 }
+  });
+  return group;
 }
 
 /**
