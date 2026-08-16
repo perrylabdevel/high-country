@@ -274,12 +274,14 @@ if (exit.position.y + 1e-6 < ridgeW.position.y + 0.6) {
 }
 
 const OPEN_X = -1;
+const OPEN_W = 0.92;
 const OPEN_SILL = 0;
+const JAMB_X = OPEN_X - OPEN_W / 2;
 const wall = wallX({
   length: 10,
   height: 4,
   thickness: 0.22,
-  openings: [{ x: OPEN_X, w: 0.92, h: 2.1, fromFloor: OPEN_SILL }],
+  openings: [{ x: OPEN_X, w: OPEN_W, h: 2.1, fromFloor: OPEN_SILL }],
   material: wood
 });
 const opening = anchorsOf(wall).get("opening.0");
@@ -297,7 +299,7 @@ const leaf = doorLeaf({
   height: 2.03,
   thickness: 0.18,
   hinge: -0.46,
-  swing: 0,
+  swing: Math.PI / 2,
   material: wood
 });
 mate(leaf, "frame", anchorsOf(wall).get("opening.0"), { offset: { x: 0, y: 0, z: -0.11 } });
@@ -312,6 +314,28 @@ if (frameW.position.distanceTo(openW) > 1e-4) {
 }
 if (frameW.normal.dot(new THREE.Vector3(0, 0, 1).transformDirection(wall.matrixWorld)) > -1 + 1e-4) {
   throw new Error("door frame must oppose the wall opening normal");
+}
+
+if (Math.abs(leaf.position.x - JAMB_X) > 1e-4) {
+  throw new Error(
+    `door hinge at x=${leaf.position.x}, want left jamb ${JAMB_X} (opening center is ${OPEN_X})`
+  );
+}
+let pane = null;
+leaf.traverse((o) => {
+  if (o.isMesh && !pane) {
+    pane = o;
+  }
+});
+if (!pane) {
+  throw new Error("doorLeaf has no mesh");
+}
+const paneLocal = pane.getWorldPosition(new THREE.Vector3());
+wall.worldToLocal(paneLocal);
+if (Math.abs(paneLocal.x - JAMB_X) > 0.15) {
+  throw new Error(
+    `swung leaf is at wall x=${paneLocal.x.toFixed(3)}, not the jamb ${JAMB_X} — hanging in the opening`
+  );
 }
 
 console.log("PASS");

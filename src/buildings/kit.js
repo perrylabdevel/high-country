@@ -291,21 +291,25 @@ export function wallZ({ length, height, thickness, openings = [], material, y = 
 }
 
 /**
- * A door leaf. `hinge` is the local offset along the wall from the opening
- * center to the hinge; `swing` is the open angle (radians). Leaf bottom sits at
- * the floor. Returns a Mesh.
+ * A door leaf. Origin is the hinge. `hinge` is the offset along the wall from
+ * the opening center to that jamb (negative = left). `swing` is the open angle
+ * around the hinge, not the leaf center. `frame` is the opening-center plug so
+ * mate() pins the jamb, not the middle of the hole.
  */
 export function doorLeaf({ width, height, thickness, hinge = 0, swing = 0, material, y = 0 }) {
   const group = new THREE.Group();
-  tag(group, "door", { width, height });
+  tag(group, "door", { width, height, hinge });
+  const pivot = new THREE.Group();
+  pivot.rotation.y = swing;
+  const intoOpening = hinge <= 0 ? 1 : -1;
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(width, height, thickness), material);
-  leaf.position.set(hinge + width / 2, y + height / 2, 0);
-  leaf.rotation.y = swing;
+  leaf.position.set(intoOpening * width / 2, y + height / 2, 0);
   leaf.castShadow = true;
   leaf.receiveShadow = true;
-  group.add(leaf);
+  pivot.add(leaf);
+  group.add(pivot);
   defineAnchor(group, "frame", {
-    position: { x: 0, y: 0, z: 0 },
+    position: { x: -hinge, y: 0, z: 0 },
     normal: { x: 0, y: 0, z: -1 }
   });
   return group;
