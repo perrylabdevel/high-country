@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "",
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-263365b03466.tar.gz",
   "bundle": "textures-263365b03466.tar.gz",
   "contentHash": "263365b03466f9008bc97ae8f52db7f086deb0a6f7fb4a2466adf70a8e44f879",
-  "bundleSha256": "7d4464febee017bc2be45c1df8bec9e1c93227c639d4a863ba3d1d05d73ab353",
-  "bundleBytes": 88593776,
+  "bundleSha256": "7b0245786cc8cd5403d2267a81a33194cabfaf5cd486025b4b78e2fea189a753",
+  "bundleBytes": 88593559,
   "target": "public/textures",
   "files": [
     {

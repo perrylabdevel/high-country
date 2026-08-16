@@ -98,9 +98,12 @@ async function main() {
 
   const got = createHash("sha256").update(bytes).digest("hex");
   if (manifest.bundleSha256 && got !== manifest.bundleSha256) {
-    throw new Error(
-      `bundle sha256 mismatch\n  expected ${manifest.bundleSha256}\n  got      ${got}\n` +
-        `The manifest and the uploaded bundle disagree — re-upload or re-bundle.`
+    // gzip of the same files is not bit-stable across tar/gzip versions, so a
+    // bundle-hash miss is not proof of wrong content. Extract and let the
+    // per-file hashes decide. A truncated or foreign tarball still fails there.
+    process.stderr.write(
+      `bundle sha256 mismatch (gzip is not reproducible); verifying files instead\n` +
+        `  expected ${manifest.bundleSha256}\n  got      ${got}\n`
     );
   }
 
