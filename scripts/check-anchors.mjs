@@ -7,7 +7,7 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch, structure, hipRoof, chimney, wallX, doorLeaf } from "../src/buildings/kit.js";
+import { porch, structure, hipRoof, chimney, wallX, wallZ, doorLeaf } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
 
@@ -158,6 +158,18 @@ function matrixEq(a, b, label) {
   }
 }
 matrixEq(wallBefore, matedWall.matrixWorld, "front wall mate vs typed z = d/2");
+
+const typedEast = wallZ({ length: D, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+typedEast.position.x = W / 2;
+wallHouse.add(typedEast);
+typedEast.updateMatrixWorld(true);
+const eastBefore = typedEast.matrixWorld.clone();
+wallHouse.remove(typedEast);
+
+const matedEast = wallX({ length: D, height: STRUCT_EAVE, thickness: WALL_T, material: wood });
+mate(matedEast, "wallSide", face(wallHouse, "right"));
+matedEast.updateMatrixWorld(true);
+matrixEq(eastBefore, matedEast.matrixWorld, "right wall mate vs wallZ at x = w/2");
 
 const ID_W = 22.5;
 const ID_D = 12.35;
