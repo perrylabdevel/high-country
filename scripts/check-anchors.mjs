@@ -220,6 +220,53 @@ if (westOpenAfter.normal.dot(leftOut) < 1 - 1e-4) {
   throw new Error("west opening must point out of the house (face.left) after mate");
 }
 
+const typedBack = wallX({
+  length: W,
+  height: STRUCT_EAVE,
+  thickness: WALL_T,
+  openings: [{ x: OPEN_ALONG, w: 1.25, h: 1.4, fromFloor: OPEN_SILL_W }],
+  material: wood
+});
+typedBack.position.z = -D / 2;
+wallHouse.add(typedBack);
+typedBack.updateMatrixWorld(true);
+const backOpenBefore = worldAnchor(typedBack, "opening.0");
+wallHouse.remove(typedBack);
+
+const unflippedBack = wallX({
+  length: W,
+  height: STRUCT_EAVE,
+  thickness: WALL_T,
+  openings: [{ x: OPEN_ALONG, w: 1.25, h: 1.4, fromFloor: OPEN_SILL_W }],
+  material: wood
+});
+mate(unflippedBack, "wallSide", face(wallHouse, "back"));
+unflippedBack.updateMatrixWorld(true);
+if (worldAnchor(unflippedBack, "opening.0").position.distanceTo(backOpenBefore.position) < 1e-3) {
+  throw new Error("unflipped back opening matched typed z = -d/2 — the along-sign flip is not being tested");
+}
+wallHouse.remove(unflippedBack);
+
+const matedBack = wallX({
+  length: W,
+  height: STRUCT_EAVE,
+  thickness: WALL_T,
+  openings: [{ x: -OPEN_ALONG, w: 1.25, h: 1.4, fromFloor: OPEN_SILL_W }],
+  material: wood
+});
+mate(matedBack, "wallSide", face(wallHouse, "back"));
+matedBack.updateMatrixWorld(true);
+const backOpenAfter = worldAnchor(matedBack, "opening.0");
+if (backOpenAfter.position.distanceTo(backOpenBefore.position) > 1e-4) {
+  throw new Error(
+    `back opening drifted: ${backOpenAfter.position.toArray()} vs ${backOpenBefore.position.toArray()}`
+  );
+}
+const backOut = new THREE.Vector3(0, 0, -1).transformDirection(wallHouse.matrixWorld);
+if (backOpenAfter.normal.dot(backOut) < 1 - 1e-4) {
+  throw new Error("back opening must point out of the house (face.back) after mate");
+}
+
 const ID_W = 22.5;
 const ID_D = 12.35;
 const idHouse = structure({

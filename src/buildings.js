@@ -140,10 +140,9 @@ export function createRanch() {
   mate(eEast, "wallSide", face(ell, "right"));
   const eSouth = wallX({
     length: EW, height: EEAVE, thickness: T, material: wood,
-    openings: [{ x: 10.2 - ECX, w: 1.25, h: 1.4, fromFloor: 0.9 }]
+    openings: [{ x: -(10.2 - ECX), w: 1.25, h: 1.4, fromFloor: 0.9 }]
   });
-  eSouth.position.z = -ED / 2;
-  ell.add(eSouth);
+  mate(eSouth, "wallSide", face(ell, "back"));
   const eJoinLen = 16 - 12;
   const eJoin = wallX({ length: eJoinLen, height: EEAVE, thickness: T, material: wood });
   eJoin.position.set((12 + 16) / 2 - ECX, 0, ED / 2);
@@ -295,8 +294,7 @@ export function createRanch() {
   const barn = structure({ name: "barn", x: barnX, z: barnZ, yaw: 0, w: BW, d: BD, eave: BEAVE, foundation: true, material: stone });
 
   const barnNorth = wallX({ length: BW, height: BEAVE, thickness: T, material: darkWood });
-  barnNorth.position.z = -BD / 2;
-  barn.add(barnNorth);
+  mate(barnNorth, "wallSide", face(barn, "back"));
   const barnSouth = wallX({
     length: BW,
     height: BEAVE,
@@ -342,8 +340,7 @@ export function createRanch() {
   const bunk = structure({ name: "bunkhouse", habitable: true, x: bunkX, z: bunkZ, yaw: 0, w: BKW, d: BKD, eave: BKEAVE, foundation: true, material: stone });
 
   const bunkNorth = wallX({ length: BKW, height: BKEAVE, thickness: T, material: wood });
-  bunkNorth.position.z = -BKD / 2;
-  bunk.add(bunkNorth);
+  mate(bunkNorth, "wallSide", face(bunk, "back"));
   const bunkSouth = wallX({
     length: BKW,
     height: BKEAVE,
@@ -386,8 +383,7 @@ export function createRanch() {
   const smith = structure({ name: "blacksmith", x: smithX, z: smithZ, yaw: 0, w: SW, d: SD, eave: SEAVE, foundation: true, material: stone });
 
   const smithNorth = wallX({ length: SW, height: SEAVE, thickness: T, material: darkWood });
-  smithNorth.position.z = -SD / 2;
-  smith.add(smithNorth);
+  mate(smithNorth, "wallSide", face(smith, "back"));
   const smithSouth = wallX({
     length: SW,
     height: SEAVE,

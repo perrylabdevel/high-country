@@ -95,8 +95,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   const front = wallX({ length: w, height: eave, thickness: T, material: adobe, openings: door });
   mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: eave, thickness: T, material: adobe });
-  back.position.z = -d / 2;
-  st.add(back);
+  mate(back, "wallSide", face(st, "back"));
   const window = eave >= 3.2 ? [{ x: 0, w: 0.9, h: 1.1, fromFloor: 0.9 }] : [];
   const east = wallX({ length: d, height: eave, thickness: T, material: adobe, openings: window });
   mate(east, "wallSide", face(st, "right"));
@@ -181,8 +180,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   const front = wallX({ length: w, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
   mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: h, thickness: T, material: bodyMat });
-  back.position.z = -d / 2;
-  st.add(back);
+  mate(back, "wallSide", face(st, "back"));
   const eastOpenings = lot.steeple ? [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] : [];
   const east = wallX({ length: d, height: h, thickness: T, material: bodyMat, openings: eastOpenings });
   mate(east, "wallSide", face(st, "right"));
@@ -439,8 +437,7 @@ export function createLandmarks(scene) {
     const cz = POS.timberCamp.z + dz;
     const cabin = structure({ name: "timberCabin", x: cx, z: cz, yaw: 0, w: 7, d: 5, eave: 3.4, foundation: true, material: stone });
     const north = wallX({ length: 7, height: 3.4, thickness: T, material: dark });
-    north.position.z = -2.5;
-    cabin.add(north);
+    mate(north, "wallSide", face(cabin, "back"));
     const south = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(south, "wallSide", face(cabin, "front"));
     const east = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
