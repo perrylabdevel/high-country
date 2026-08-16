@@ -37,6 +37,15 @@ export function tag(obj, role, extra = {}) {
   return obj;
 }
 
+function markRoof(group, extra) {
+  tag(group, "roof", extra);
+  defineAnchor(group, "base", {
+    position: { x: 0, y: extra.roofBase, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
+  });
+  return group;
+}
+
 /**
  * Sample heightAt at all four rotated corners of a footprint.
  * Returns { y: min corner height, drop: max - min, corners: [[x,z] x4] }.
@@ -134,7 +143,7 @@ export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = 
   }
   roof.position.y = eave;
   group.add(roof);
-  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "gable" });
+  markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "gable" });
   return group;
 }
 
@@ -154,7 +163,7 @@ export function hipRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "a
   }
   roof.position.y = eave;
   group.add(roof);
-  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "hip" });
+  markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "hip" });
   return group;
 }
 
@@ -192,7 +201,7 @@ export function shedRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "
   const group = new THREE.Group();
   roof.position.y = eave;
   group.add(roof);
-  tag(group, "roof", { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "shed" });
+  markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "shed" });
   return group;
 }
 
@@ -206,7 +215,7 @@ export function flatRoof({ w, d, overhang = 0.45, eave = 0, material }) {
   slab.castShadow = true;
   slab.receiveShadow = true;
   group.add(slab);
-  tag(group, "roof", {
+  markRoof(group, {
     roofBase: eave,
     roofTop: eave + 0.3,
     plan: { length: w + overhang * 2, width: d + overhang * 2 },

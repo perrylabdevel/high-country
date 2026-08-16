@@ -7,7 +7,7 @@
  * Reintroducing the bug — removing the porch roof — must fail.
  */
 import * as THREE from "three/webgpu";
-import { porch, structure } from "../src/buildings/kit.js";
+import { porch, structure, hipRoof } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor } from "../src/buildings/anchors.js";
 
@@ -198,5 +198,23 @@ if (plug.normal.dot(socket.normal) > -1 + 1e-5) {
     `east porch wallSide must oppose face.right, dot ${plug.normal.dot(socket.normal)}`
   );
 }
+
+const roofHouse = structure({
+  x: 0,
+  z: 0,
+  w: 10,
+  d: 8,
+  eave: 4,
+  name: "roofMate"
+});
+const oldRoof = hipRoof({ w: 10, d: 8, pitch: 0.5, overhang: 0.45, eave: 4, material: shingle });
+roofHouse.add(oldRoof);
+oldRoof.updateMatrixWorld(true);
+const roofBefore = oldRoof.matrixWorld.clone();
+roofHouse.remove(oldRoof);
+const newRoof = hipRoof({ w: 10, d: 8, pitch: 0.5, overhang: 0.45, eave: 4, material: shingle });
+mate(newRoof, "base", anchorsOf(roofHouse).get("wallTop"));
+newRoof.updateMatrixWorld(true);
+matrixEq(roofBefore, newRoof.matrixWorld, "hipRoof mate vs structure.add at origin");
 
 console.log("PASS");

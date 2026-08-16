@@ -20,6 +20,7 @@ import {
   boardwalk,
   registerWaterPlacement
 } from "./buildings/kit.js";
+import { mate, anchorsOf } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -105,7 +106,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   const west = wallZ({ length: d, height: eave, thickness: T, material: adobe });
   west.position.x = -w / 2;
   st.add(west);
-  st.add(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }));
+  mate(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }), "base", anchorsOf(st).get("wallTop"));
   const parapetH = 0.42;
   for (const [px, pz, pw, pd] of [
     [0, d / 2, w + 0.24, 0.2],
@@ -204,7 +205,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   } else {
     roofGroup = shedRoof({ w, d, pitch: 0.15, overhang: 0.3, eave: h, highFront: true, material: roof });
   }
-  st.add(roofGroup);
+  mate(roofGroup, "base", anchorsOf(st).get("wallTop"));
 
   // False front at the facade plane (local +Z = d/2), full width, rising above
   // the eave, with side returns so the parapet hides the roof from oblique views.
@@ -458,7 +459,7 @@ export function createLandmarks(scene) {
     west.position.x = -3.5;
     cabin.add(west);
     const cabinRoof = gableRoof({ w: 7, d: 5, pitch: 0.7, overhang: 0.3, eave: 3.4, material: roof });
-    cabin.add(cabinRoof);
+    mate(cabinRoof, "base", anchorsOf(cabin).get("wallTop"));
     const cabinDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
     cabinDoor.position.z = 2.5 + T / 2;
     cabin.add(cabinDoor);
@@ -568,7 +569,7 @@ export function createLandmarks(scene) {
   const smY = heightAt(smX, smZ);
   const smShed = structure({ name: "stampMill", x: smX, z: smZ, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, material: stone });
   const smRoof = gableRoof({ w: 16, d: 12, pitch: 0.55, overhang: 0.5, eave: 6, material: roof });
-  smShed.add(smRoof);
+  mate(smRoof, "base", anchorsOf(smShed).get("wallTop"));
   for (let i = 0; i < 6; i += 1) {
     const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 5.5, 6), iron);
     rod.position.set(smX - 6 + i * 2.4, smY + 2.75, smZ);

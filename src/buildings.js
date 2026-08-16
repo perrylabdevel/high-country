@@ -23,7 +23,7 @@ import {
   collide,
   tag
 } from "./buildings/kit.js";
-import { face, mate } from "./buildings/anchors.js";
+import { face, mate, anchorsOf } from "./buildings/anchors.js";
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -153,8 +153,8 @@ export function createRanch() {
   ell.add(eJoin);
 
   // Roofs — hips, both seated on their own eave.
-  main.add(hipRoof({ w: MW, d: MD, pitch: 0.5, overhang: 0.45, eave: MEAVE, material: roof }));
-  ell.add(hipRoof({ w: EW, d: ED, pitch: 0.5, overhang: 0.45, eave: EEAVE, material: roof }));
+  mate(hipRoof({ w: MW, d: MD, pitch: 0.5, overhang: 0.45, eave: MEAVE, material: roof }), "base", anchorsOf(main).get("wallTop"));
+  mate(hipRoof({ w: EW, d: ED, pitch: 0.5, overhang: 0.45, eave: EEAVE, material: roof }), "base", anchorsOf(ell).get("wallTop"));
 
   // Floors and ground-floor ceilings.
   for (const [blk, w, d] of [[main, MW, MD], [ell, EW, ED]]) {
@@ -330,7 +330,7 @@ export function createRanch() {
   barn.add(barnWest);
 
   const barnRoof = gableRoof({ w: BW, d: BD, pitch: 0.5, overhang: 0.45, eave: BEAVE, material: roof });
-  barn.add(barnRoof);
+  mate(barnRoof, "base", anchorsOf(barn).get("wallTop"));
 
   const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: 0, material: wood });
   barnDoor.userData.class = "barn";
@@ -375,7 +375,7 @@ export function createRanch() {
   bunk.add(bunkWest);
 
   const bunkRoof = gableRoof({ w: BKW, d: BKD, pitch: 0.5, overhang: 0.45, eave: BKEAVE, material: roof });
-  bunk.add(bunkRoof);
+  mate(bunkRoof, "base", anchorsOf(bunk).get("wallTop"));
 
   const bunkFloor = new THREE.Mesh(new THREE.BoxGeometry(BKW - 0.5, 0.1, BKD - 0.5), wood);
   bunkFloor.position.y = 0.05;
@@ -422,7 +422,7 @@ export function createRanch() {
   smith.add(smithWest);
 
   const smithRoof = shedRoof({ w: SW, d: SD, pitch: 0.2, overhang: 0.3, eave: SEAVE, material: roof });
-  smith.add(smithRoof);
+  mate(smithRoof, "base", anchorsOf(smith).get("wallTop"));
 
   const anvil = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.5), new THREE.MeshStandardNodeMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.4 }));
   anvil.position.set(0, 0.55, 0);
