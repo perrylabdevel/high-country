@@ -22,6 +22,9 @@ import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { POS, placeLabel } from "./map.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
+import { STRUCTURES } from "./buildings/kit.js";
+import { lookingAtStructure } from "./buildings/lookingAt.js";
+import { createStructureLabels } from "./dev/structureLabels.js";
 import { createKtx2Loader } from "./materials/ktx2.js";
 import { applyHdri, syncEnvironmentIntensity } from "./materials/hdri.ts";
 import { materialSettings } from "./materials/settings.ts";
@@ -218,6 +221,7 @@ async function boot() {
   }
   let stats = null;
   let infoEl = null;
+  let structureLabels = null;
   if (isDev) {
     stats = new Stats();
     stats.showPanel(0);
@@ -225,6 +229,7 @@ async function boot() {
     infoEl = document.createElement("div");
     infoEl.style.cssText = "position:fixed;left:80px;top:0;color:#7ef;font:11px/1.4 monospace;text-shadow:0 1px 2px #000;pointer-events:none;z-index:10";
     document.body.appendChild(infoEl);
+    structureLabels = createStructureLabels();
   }
   scene.add(await createTerrain());
   // depthSource: "buffer" (viewportDepthTexture) fails WebGPU bind-group
@@ -488,6 +493,14 @@ async function boot() {
     placeEl.textContent = placeLabel(player.object.position.x, player.object.position.z);
     minimap.update(player.object.position.x, player.object.position.z, player.state.yaw);
     debug.update(player);
+    if (structureLabels) {
+      camera.getWorldDirection(cameraDirection);
+      structureLabels.update(
+        camera,
+        STRUCTURES,
+        lookingAtStructure(STRUCTURES, camera.position, cameraDirection)
+      );
+    }
     hintEl.textContent = player.state.mode === "fly"
       ? "Fly · WASD · Space up · Ctrl/Q down · Shift fast · F land · [ ] speed · M map"
       : player.state.mounted

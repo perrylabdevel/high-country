@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SPEED_STEPS, LOOK_STEPS, stepValue, debugBlocksGame } from "../src/debug.js";
+import { lookingAtStructure } from "../src/buildings/lookingAt.js";
 
 function assert(cond, msg) {
   if (!cond) {
@@ -40,5 +41,45 @@ assert(playerSrc.includes('"fly"'), "player has a fly camera mode");
 assert(playerSrc.includes("toggleFly"), "player exposes toggleFly");
 assert(playerSrc.includes("FLY_CEILING"), "fly camera has an altitude ceiling");
 
+const barn = { name: "barn", x: 0, y: 0, z: 0, w: 16, d: 12, eave: 8 };
+const house = { name: "ranchHouse", x: 0, y: 0, z: 40, w: 22, d: 12, eave: 6 };
+
+const southOfBarn = lookingAtStructure(
+  [barn, house],
+  { x: 0, y: 1.62, z: 30 },
+  { x: 0, y: 0, z: -1 }
+);
+assert(southOfBarn?.name === "barn", `looking north from south of the barn should hit barn, got ${southOfBarn?.name}`);
+
+const lookingAway = lookingAtStructure(
+  [barn],
+  { x: 0, y: 1.62, z: 30 },
+  { x: 0, y: 0, z: 1 }
+);
+assert(lookingAway === null, "looking away from the barn must not name it");
+
+const nearer = lookingAtStructure(
+  [barn, house],
+  { x: 0, y: 1.62, z: 55 },
+  { x: 0, y: 0, z: -1 }
+);
+assert(nearer?.name === "ranchHouse", `looking north past the house should hit ranchHouse first, got ${nearer?.name}`);
+
+const grouped = {
+  name: "bunkhouse",
+  userData: { name: "bunkhouse", x: 8, y: 0, z: 0, w: 10, d: 8, eave: 4 }
+};
+const fromGroup = lookingAtStructure(
+  [grouped],
+  { x: 8, y: 1.62, z: 20 },
+  { x: 0, y: 0, z: -1 }
+);
+assert(fromGroup === grouped, "lookingAtStructure must accept kit Groups via userData");
+
+const labelSrc = readFileSync(join(root, "../src/dev/structureLabels.js"), "utf8");
+assert(labelSrc.includes('getElementById("hud")'), "structure labels mount under #hud so capture mode hides them");
+
 console.log(JSON.stringify({ SPEED_STEPS, LOOK_STEPS }, null, 2));
 console.log("PASS");
+
+

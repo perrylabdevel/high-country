@@ -174,3 +174,41 @@ button {
   color: #cbb58a;
   font: inherit;
 }
+#structure-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.structure-label {
+  position: absolute;
+  transform: translate(-50%, -120%);
+  background: rgba(12, 16, 20, 0.72);
+  border: 1px solid #6a4e32;
+  padding: 2px 7px;
+  font: 11px/1.2 ui-monospace, "Cascadia Code", monospace;
+  color: #f4ead2;
+  text-shadow: none;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.structure-label.aim {
+  border-color: #c4a36a;
+  background: rgba(196, 163, 106, 0.92);
+  color: #1a1208;
+  font-size: 12px;
+}
+#look-name {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 18px);
+  transform: translateX(-50%);
+  background: rgba(12, 16, 20, 0.78);
+  border: 1px solid #c4a36a;
+  padding: 3px 10px;
+  font: 13px/1.2 ui-monospace, "Cascadia Code", monospace;
+  color: #e8c36a;
+  text-shadow: none;
+  pointer-events: none;
+  letter-spacing: 0.04em;
+}
