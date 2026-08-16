@@ -28,7 +28,8 @@ const {
   STRUCTURES,
   WATER_PLACED,
   clearStructures,
-  footing
+  footing,
+  footprintsOverlap
 } = await import("../src/buildings/kit.js");
 const { clearColliders, listBoxColliders } = await import("../src/collision.js");
 const { createRanch } = await import("../src/buildings.js");
@@ -36,7 +37,7 @@ const { createLandmarks } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
-const { unmatedRequired } = await import("../src/buildings/anchors.js");
+const { unmatedRequired, worldAnchor, anchorsOf } = await import("../src/buildings/anchors.js");
 const { WATER } = await import("../src/map.js");
 
 function walk(obj, fn) {
@@ -113,7 +114,7 @@ const EXPECTED_STRUCTURE_COUNTS = {
   church: 1,
   saloon: 1,
   livery: 1,
-  streetLot: 14,
+  streetLot: 11,
   timberCabin: 3,
   stampMill: 1,
   elPasoCasa: 1,
@@ -350,6 +351,53 @@ for (const u of unmatedRequired(STRUCTURES)) {
     false,
     `${u.obj.userData?.name || u.obj.userData?.role || "object"} ${u.name} is required but unmated`
   );
+}
+
+const SILVER = STRUCTURES.filter((s) => s.userData.streetYaw !== undefined);
+for (let i = 0; i < SILVER.length; i += 1) {
+  for (let j = i + 1; j < SILVER.length; j += 1) {
+    const a = SILVER[i].userData;
+    const b = SILVER[j].userData;
+    if (footprintsOverlap(a, b, 0.8)) {
+      check(
+        false,
+        `${label(SILVER[i])} overlaps ${label(SILVER[j])} (centres ${Math.hypot(a.x - b.x, a.z - b.z).toFixed(1)} m apart)`
+      );
+    }
+  }
+}
+
+const church = STRUCTURES.find((s) => s.userData.name === "church");
+if (church) {
+  church.updateMatrixWorld(true);
+  let churchDoor = null;
+  church.traverse((n) => {
+    if (churchDoor || n.userData?.role !== "wall") {
+      return;
+    }
+    if (anchorsOf(n).get("opening.0")) {
+      churchDoor = worldAnchor(n, "opening.0");
+    }
+  });
+  check(Boolean(churchDoor), "church has no door opening");
+  if (churchDoor) {
+    const blocker = SILVER.find((s) => {
+      if (s === church) {
+        return false;
+      }
+      return footprintsOverlap(
+        { x: churchDoor.position.x, z: churchDoor.position.z, w: 1.2, d: 1.2, yaw: 0 },
+        s.userData,
+        0
+      );
+    });
+    check(
+      !blocker,
+      blocker
+        ? `church door at (${churchDoor.position.x.toFixed(1)}, ${churchDoor.position.z.toFixed(1)}) is inside ${label(blocker)}`
+        : "church door blocked"
+    );
+  }
 }
 
 if (failures.length) {

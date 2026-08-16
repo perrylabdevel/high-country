@@ -20,7 +20,9 @@ import {
   falseFront,
   steeple,
   parapet,
-  registerWaterPlacement
+  registerWaterPlacement,
+  STRUCTURES,
+  footprintsOverlap
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
@@ -174,6 +176,13 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   // Local +Z maps to world (-sin yaw, cos yaw). We want the front wall (+Z) to
   // face the street, so (-sin yaw, cos yaw) = streetDir.
   const lotYaw = Math.atan2(-streetDirX, streetDirZ);
+
+  // Cross streets meet the main row in an intersection. Skip a lot whose
+  // footprint would land inside a building that is already there.
+  const proposed = { x, z, w, d, yaw: lotYaw };
+  if (STRUCTURES.some((s) => s.userData.w && footprintsOverlap(proposed, s.userData, 0.8))) {
+    return;
+  }
 
   const st = structure({
     name: lot.name || "streetLot",

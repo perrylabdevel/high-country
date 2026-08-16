@@ -73,6 +73,46 @@ export function footing(x, z, w, d, yaw) {
 }
 
 /**
+ * True if two yawed footprints overlap in plan, or come closer than
+ * `clearance` metres. Used so a cross street cannot plant a lot inside an
+ * already-built facade.
+ */
+export function footprintsOverlap(a, b, clearance = 0) {
+  const corners = (p) => {
+    const c = Math.cos(p.yaw);
+    const s = Math.sin(p.yaw);
+    const hw = p.w / 2;
+    const hd = p.d / 2;
+    return [
+      [-hw, -hd],
+      [hw, -hd],
+      [hw, hd],
+      [-hw, hd]
+    ].map(([lx, lz]) => [p.x + c * lx - s * lz, p.z + s * lx + c * lz]);
+  };
+  const A = corners(a);
+  const B = corners(b);
+  const axes = [
+    [Math.cos(a.yaw), Math.sin(a.yaw)],
+    [-Math.sin(a.yaw), Math.cos(a.yaw)],
+    [Math.cos(b.yaw), Math.sin(b.yaw)],
+    [-Math.sin(b.yaw), Math.cos(b.yaw)]
+  ];
+  for (const [ux, uz] of axes) {
+    const proj = (pts) => {
+      const vs = pts.map(([px, pz]) => px * ux + pz * uz);
+      return [Math.min(...vs), Math.max(...vs)];
+    };
+    const [amin, amax] = proj(A);
+    const [bmin, bmax] = proj(B);
+    if (amax + clearance < bmin || bmax + clearance < amin) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Build a roof solid from explicit vertices. `length` is the ridge axis span,
  * `width` the slope axis span, `rise` the ridge height above the eave, and
  * `ridgeLen` the ridge length (full for gable, length - width for hip).

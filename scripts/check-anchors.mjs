@@ -18,7 +18,8 @@ import {
   doorLeaf,
   falseFront,
   steeple,
-  parapet
+  parapet,
+  footprintsOverlap
 } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
@@ -705,6 +706,20 @@ matedPara.updateMatrixWorld(true);
 const paraAfter = new THREE.Box3().setFromObject(matedPara);
 if (paraBefore.min.distanceTo(paraAfter.min) > 1e-4 || paraBefore.max.distanceTo(paraAfter.max) > 1e-4) {
   throw new Error("parapet world box drifted from typed caps at y = eave");
+}
+
+const boxA = { x: 0, z: 0, w: 10, d: 8, yaw: 0 };
+const boxB = { x: 6, z: 0, w: 10, d: 8, yaw: 0 };
+if (!footprintsOverlap(boxA, boxB)) {
+  throw new Error("axis-aligned boxes 6 m apart must overlap");
+}
+const boxC = { x: 20, z: 0, w: 10, d: 8, yaw: 0 };
+if (footprintsOverlap(boxA, boxC, 0.8)) {
+  throw new Error("boxes 20 m apart must not overlap");
+}
+const boxD = { x: 5.53, z: 0, w: 8, d: 7, yaw: Math.PI / 2 };
+if (!footprintsOverlap({ x: 0, z: 0, w: 9.5, d: 8, yaw: 0 }, boxD, 0.8)) {
+  throw new Error("store vs cross-street lot at 5.53 m must overlap (the church-door blocker)");
 }
 
 console.log("PASS");
