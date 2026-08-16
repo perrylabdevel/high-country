@@ -51,50 +51,51 @@ looking at the state this brief describes.
 
 ---
 
-## 3. Running Codex models in the Claude CLI — what changes
+## 3. Cursor subscription only — what changes
 
-Mostly nothing. Two things matter, and the second one can silently ruin the
-whole series.
+This branch grades **only** through the Cursor model selected in the chat that
+fills `inbox.json`. Claude CLI (`claude -p`), Google Gemini API
+(`GEMINI_API_KEY`), and OpenAI are disabled in `scripts/grade.mjs`.
 
-### 3.1 Keep the grader pinned to `haiku`, whatever you run as implementer
+### 3.1 The grader is the Cursor picker, not a spawned CLI
 
-`scripts/grade.mjs` spawns a **separate `claude -p` process per image**. It does
-not have to use the same model you are running. It should not.
+`npm run grade` with no flags writes the worksheet. It does not spawn a model.
+The agent in **this** Cursor chat looks at the PNGs and fills
+`audit/reports/inbox.json`, then:
 
-The score series has already been broken twice — passes 01–03 were graded by
-`gemini-2.5-flash` through Cursor, 04–05 by `haiku` through the CLI. **Pass 05
-is the first pass comparable to the one before it.** Grades from two different
-models are not the same measurement; switching the grader again throws away the
-only trend data this project has.
-
-So: implementer on whatever model you like, **grader stays `haiku`**. If your
-CLI configuration routes `--model haiku` somewhere else, set `GRADE_MODEL`
-explicitly to whatever names the same grader as pass 04 and 05, and check the
-report header after the run:
-
-```
-**Grader model: `haiku`** (provider: claude, temperature 0)
+```sh
+npm run grade -- --compile audit/reports/inbox.json
 ```
 
-If that line changes, the report will also print a warning that the series is
-broken. Do not ignore it. If you genuinely must change graders, say so in the
-commit and treat the next two passes as a fresh baseline.
+Pin the model in Cursor's UI (Auto off). Put the picker name in inbox.json's
+`model` field. If you do not know it, write `model unknown` — do not guess.
+
+The score series on `main` was already broken twice — passes 01–03 were
+`gemini-2.5-flash`, 04 onward `haiku`. **This branch starts a new series.**
+Grades from two models are not the same measurement. Check the report header:
+
+```
+**Grader model: `<picker name>`** (provider: cursor, temperature 0)
+```
+
+If that line names a different model than the previous pass on this branch, the
+report will also print a warning that the series is broken. Do not ignore it.
 
 ### 3.2 Verify the grader can actually see, before trusting one score
 
-The entire loop assumes the CLI's `Read` tool delivers pixels to the backing
-model. Confirm it, once, before any grading run:
-
-```sh
-claude -p --model haiku --allowedTools Read \
-  'Read audit/current/lakeMercy-midday.png and describe the water colour in one sentence.'
-```
+The entire loop assumes Cursor's Read tool delivers pixels to the model
+selected in this chat. Confirm it, once, before any grading run: open
+`audit/current/lakeMercy-midday.png` (or a diagnostic capture) in this chat
+and describe the water colour in one sentence.
 
 A correct answer names the water as black or very dark. **If it says it cannot
 view images, or gives a generic description that would fit any screenshot,
 stop.** A grader that cannot see does not error — it fills in plausible middle
 scores, and every number after that is fiction. This project has already been
 burned once by a check that passed without checking anything.
+
+Do not run `claude -p --model haiku` on this branch. Do not set
+`GEMINI_API_KEY` or `OPENAI_API_KEY` to grade.
 
 Everything else — editing, building, running checks — is model-agnostic.
 
@@ -103,9 +104,10 @@ Everything else — editing, building, running checks — is model-agnostic.
 ## 3b. Splitting planning from execution
 
 A strong model planning and a cheaper one executing is a sound split, and this
-project already does it in one place: the grader is `haiku` while the
-implementer is not. Extending it to implementation works, with one condition
-this project learned expensively.
+project already does it in one place: the grader is the Cursor model selected
+in the auditor chat, which may be cheaper or the same as the implementer.
+Extending it to implementation works, with one condition this project learned
+expensively.
 
 **The split is safe in proportion to how machine-checkable the step is.**
 

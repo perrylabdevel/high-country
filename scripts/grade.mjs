@@ -1,52 +1,48 @@
 /**
  * Score every capture in audit/current/ against the rubric and write a pass
- * report. This is the enforced half of docs/VISION_AUDIT.md: the model is a
- * constant in this file and is stamped into every report, so a drifting grader
- * is visible in the artifact rather than being something an agent promised.
+ * report. This is the enforced half of docs/VISION_AUDIT.md.
  *
- * Cursor's Gemini (the model on your subscription) cannot be called from this
- * script. `npm run grade` with no flags hits Google's paid Gemini API, which is
- * a different product and needs GEMINI_API_KEY. The subscription path is:
+ * This branch grades only through a Cursor subscription model in chat. The
+ * script never calls Claude CLI, Google Gemini, or OpenAI. The model is the
+ * one selected in the Cursor picker for the chat that fills inbox.json.
  *
  *   npm run capture
- *   npm run grade:cursor              # writes a worksheet + inbox template
- *   # pin a Cursor agent to Gemini 2.5 Flash, open the PNGs, fill inbox.json
+ *   npm run grade                     # worksheet + empty inbox (same as grade:cursor)
+ *   # this Cursor chat @-attaches the PNGs and fills inbox.json
  *   npm run grade -- --compile audit/reports/inbox.json
+ *
+ * Put the picker name in inbox.json's `model` field. If you do not know it,
+ * write "model unknown" — do not guess, and do not substitute haiku / Gemini
+ * API / OpenAI. Changing the grader breaks comparability with previous passes.
  *
  * Exit codes — the point of a script over a prompt is that these are checkable:
  *   0  PASSED   the §6 stop condition is met, the loop is over
  *   2  CONTINUE graded fine, the bar is not met yet
- *   1  the run itself failed (no key, no captures, API errors)
+ *   1  the run itself failed (no captures, bad inbox)
  *
  * Writes audit/reports/pass-NN.md (human) and pass-NN.json (machine, used to
  * compare against the previous pass — markdown is not parsed back).
  *
- * Everything that does not need the network — capture discovery, scoring maths,
- * the stop condition, report writing, cursor worksheet — is covered by
- * `node scripts/grade.mjs --selftest`.
+ * Capture discovery, scoring maths, the stop condition, report writing, and
+ * the cursor worksheet are covered by `node scripts/grade.mjs --selftest`.
  */
 import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { criteriaFor } from "./rubric.mjs";
 
 // ---------------------------------------------------------------- config ----
 
-/**
- * The pinned grader. Changing this breaks comparability with every previous
- * pass: grades from two models are not the same measurement. If you change it,
- * say so in the commit and expect the series to restart.
- */
-const PROVIDER = process.env.GRADE_PROVIDER || "claude"; // "claude" | "gemini" | "openai"
+/** Cursor subscription only. Any other GRADE_PROVIDER is a hard error. */
+const EXTERNAL_PROVIDERS = new Set(["claude", "gemini", "openai"]);
 
 /**
- * The pinned grader, per provider. "claude" shells out to the Claude CLI in
- * print mode, which uses your subscription and needs no API key.
+ * Optional label stamped into the empty inbox. The agent that grades must
+ * overwrite this with the Cursor picker name. Do not default to haiku, Gemini
+ * API, or OpenAI — those are not this branch.
  */
-const MODELS = { claude: "haiku", gemini: "gemini-2.5-flash", openai: "gpt-5-mini" };
-const MODEL = process.env.GRADE_MODEL || MODELS[PROVIDER] || MODELS.claude;
+const MODEL = process.env.GRADE_MODEL || "";
+const PROVIDER = "cursor";
 
 /**
  * A pass cannot be declared clean while the grader has declined to assess much
@@ -58,8 +54,6 @@ const MIN_COVERAGE = Number(process.env.GRADE_MIN_COVERAGE || 0.8);
 
 const CAPTURE_DIR = process.env.GRADE_CAPTURES || "audit/current";
 const REPORT_DIR = "audit/reports";
-const CONCURRENCY = Number(process.env.GRADE_CONCURRENCY || 4);
-const MAX_RETRIES = 3;
 const CANONICAL_CAPTURE_DIR = "audit/current";
 const POI_IDS = [
   "ranch", "silverCreek", "lakeMercy", "northernPines", "timberCamp", "burn",
@@ -75,107 +69,19 @@ const EXPECTED_CAPTURE_FILES = POI_IDS.flatMap((poi) => [
 // creative grader makes the score series noise.
 const TEMPERATURE = 0;
 
-// ------------------------------------------------------------- providers ----
-
-function apiKey() {
-  if (PROVIDER === "claude") {
-    return null; // the CLI carries its own auth
-  }
-  const key = PROVIDER === "gemini" ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY;
-  if (!key) {
+/**
+ * Refuse Claude CLI / Google Gemini API / OpenAI. This branch has no outbound
+ * grader — pixels are scored in a Cursor chat, then compiled.
+ */
+export function assertCursorSubscriptionOnly(provider = process.env.GRADE_PROVIDER) {
+  if (provider && EXTERNAL_PROVIDERS.has(provider)) {
     throw new Error(
-      `no ${PROVIDER === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY"}. ` +
-        `Cursor's subscription Gemini cannot be called from this script — it is not the Google API. ` +
-        `Use the Cursor path instead: npm run grade:cursor  then pin a Cursor agent to Gemini 2.5 Flash, ` +
-        `grade audit/current/, fill audit/reports/inbox.json, and run npm run grade -- --compile audit/reports/inbox.json`
+      `GRADE_PROVIDER=${provider} is disabled on this branch. ` +
+        `Grade in a Cursor chat (subscription model in the picker, Auto off), ` +
+        `fill audit/reports/inbox.json, then: npm run grade -- --compile audit/reports/inbox.json`
     );
   }
-  return key;
 }
-
-async function callGemini(prompt, base64) {
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent` +
-    `?key=${encodeURIComponent(apiKey())}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }, { inline_data: { mime_type: "image/png", data: base64 } }]
-        }
-      ],
-      generationConfig: { temperature: TEMPERATURE, responseMimeType: "application/json" }
-    })
-  });
-  if (!res.ok) {
-    throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  }
-  const body = await res.json();
-  const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error(`gemini returned no text: ${JSON.stringify(body).slice(0, 300)}`);
-  }
-  return text;
-}
-
-async function callOpenAi(prompt, base64) {
-  const base = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-  const res = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey()}`
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      temperature: TEMPERATURE,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:image/png;base64,${base64}` } }
-          ]
-        }
-      ]
-    })
-  });
-  if (!res.ok) {
-    throw new Error(`openai ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  }
-  const body = await res.json();
-  const text = body?.choices?.[0]?.message?.content;
-  if (!text) {
-    throw new Error(`openai returned no content: ${JSON.stringify(body).slice(0, 300)}`);
-  }
-  return text;
-}
-
-const execFileAsync = promisify(execFile);
-
-/**
- * Grade via the Claude CLI in print mode. Each image is a separate process with
- * a fresh context, which is the point: a grader that shares a session with the
- * implementer confirms what the implementer meant to build. The model reads the
- * PNG itself via the Read tool, so no base64 round-trip.
- */
-async function callClaude(prompt, _base64, imagePath) {
-  const { stdout } = await execFileAsync(
-    "claude",
-    ["-p", `${prompt}\n\nThe screenshot to grade is the file at ${imagePath}. Read it first.`,
-     "--model", MODEL, "--allowedTools", "Read"],
-    { maxBuffer: 8 * 1024 * 1024, timeout: 180000 }
-  );
-  if (!stdout.trim()) {
-    throw new Error("claude CLI returned nothing");
-  }
-  return stdout;
-}
-
-const call = PROVIDER === "claude" ? callClaude : PROVIDER === "gemini" ? callGemini : callOpenAi;
 
 // --------------------------------------------------------------- prompts ----
 
@@ -329,61 +235,6 @@ export function findRegressions(current, previous) {
     }
   }
   return out.sort((a, b) => a.now - b.now || b.was - a.was);
-}
-
-// ----------------------------------------------------------------- runner ---
-
-async function mapLimit(items, limit, fn) {
-  const out = new Array(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (true) {
-      const i = next++;
-      if (i >= items.length) {
-        return;
-      }
-      out[i] = await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
-  return out;
-}
-
-async function gradeImage(file) {
-  const [poi, lightWithExt] = path.basename(file, ".png").split("-");
-  const light = lightWithExt || "midday";
-  const criteria = criteriaFor(poi);
-  const prompt = buildPrompt(poi, light, criteria);
-  const base64 = (await readFile(file)).toString("base64");
-
-  let lastErr;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
-    try {
-      const scored = parseScores(await call(prompt, base64, file));
-      // Any criterion the grader dropped is unassessed, not passing.
-      const byId = new Map(scored.map((c) => [c.id, c]));
-      return {
-        image: path.basename(file),
-        poi,
-        light,
-        criteria: criteria.map((c) => byId.get(c.id) || { id: c.id, score: null, note: "grader omitted this criterion" })
-      };
-    } catch (err) {
-      lastErr = err;
-      if (attempt < MAX_RETRIES) {
-        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-      }
-    }
-  }
-  // Per the auditor honesty rules: a failure scores 0 and says so. It is never
-  // skipped, because a skipped image looks like a passing one in the average.
-  return {
-    image: path.basename(file),
-    poi,
-    light,
-    error: String(lastErr && lastErr.message).slice(0, 200),
-    criteria: criteria.map((c) => ({ id: c.id, score: 0, note: `grading failed: ${lastErr && lastErr.message}` }))
-  };
 }
 
 // ---------------------------------------------------------------- report ----
@@ -565,8 +416,8 @@ async function writeCursorPrompts() {
   await validateCaptureSet(files);
   await mkdir(REPORT_DIR, { recursive: true });
   const inbox = {
-    model: MODEL,
-    provider: "cursor",
+    model: MODEL || "model unknown",
+    provider: PROVIDER,
     results: files.map(resultStub)
   };
   const inboxPath = path.join(REPORT_DIR, "inbox.json");
@@ -575,8 +426,11 @@ async function writeCursorPrompts() {
   const lines = [];
   lines.push("# Cursor grading worksheet");
   lines.push("");
-  lines.push("Cursor's Gemini subscription is a chat model. It cannot be reached from `npm run grade`.");
-  lines.push("Pin **this** agent to **Gemini 2.5 Flash** (Auto off), then:");
+  lines.push("This branch grades only through a **Cursor subscription** model.");
+  lines.push("Use the model already selected in **this** chat (Auto off). Do not spawn Claude CLI, Google Gemini API, or OpenAI.");
+  lines.push("Put the picker name in `inbox.json`'s `model` field. If you do not know it, write `model unknown`.");
+  lines.push("");
+  lines.push("Then:");
   lines.push("");
   lines.push("1. Open every PNG in `audit/current/`. Look at the image. Do not grade from filenames or from the code.");
   lines.push("2. Fill `audit/reports/inbox.json`: each criterion gets `score` 0–5, or `null` if you cannot assess this frame.");
@@ -601,7 +455,7 @@ async function writeCursorPrompts() {
   await writeFile(sheet, lines.join("\n"));
   process.stdout.write(
     `wrote ${inboxPath} and ${sheet}\n` +
-      `Pin a Cursor agent to Gemini 2.5 Flash, fill inbox.json from the screenshots, then:\n` +
+      `Grade the PNGs in this Cursor chat, fill inbox.json, then:\n` +
       `  npm run grade -- --compile ${inboxPath}\n`
   );
 }
@@ -628,7 +482,7 @@ function rejectPlaceholder(results) {
   if (copouts.length >= numbered.length * 0.5) {
     throw new Error(
       "inbox is a placeholder (grader claimed it cannot see images). That is not a grade. " +
-        "Do not compile it. @-attach the PNGs in a Gemini 2.5 Flash chat so the model actually gets pixels."
+        "Do not compile it. @-attach the PNGs in this Cursor chat so the selected model actually gets pixels."
     );
   }
   if (numbered.length >= 10 && numbered.every((c) => c.score === 3)) {
@@ -701,6 +555,7 @@ async function main() {
   if (process.argv.includes("--selftest")) {
     return selftest();
   }
+  assertCursorSubscriptionOnly();
   if (process.argv.includes("--prompts")) {
     return writeCursorPrompts();
   }
@@ -713,20 +568,8 @@ async function main() {
     return compileInbox(inboxPath);
   }
 
-  apiKey(); // fail fast, before spending a single call — and before capture lookup,
-            // so a missing Cursor-subscription confusion is the first error you see
-  const files = await listCaptureFiles();
-  const capture = await validateCaptureSet(files);
-
-  process.stdout.write(`grading ${files.length} ${capture.backend} captures with ${MODEL} (provider: ${PROVIDER})\n`);
-
-  const results = await mapLimit(files, CONCURRENCY, async (f) => {
-    const r = await gradeImage(path.join(CAPTURE_DIR, f));
-    process.stdout.write(`  ${r.image}${r.error ? " (FAILED)" : ""}\n`);
-    return r;
-  });
-
-  await writePass(results, MODEL, PROVIDER, capture);
+  // No Claude CLI / Gemini API / OpenAI on this branch. Default is the Cursor worksheet.
+  return writeCursorPrompts();
 }
 
 /** Covers everything that does not need the network. */
@@ -806,7 +649,7 @@ function selftest() {
   const files = ["ranch-midday.png"];
   const merged = mergeInbox(
     {
-      model: "gemini-2.5-flash",
+      model: "cursor-test",
       results: [{ image: "ranch-midday.png", criteria: [{ id: "U1", score: 4, note: "ok" }] }]
     },
     files
@@ -833,6 +676,18 @@ function selftest() {
     threw = true;
   }
   assert(threw, "placeholder all-3 cannot-view inbox must not compile");
+
+  for (const banned of ["claude", "gemini", "openai"]) {
+    let refused = false;
+    try {
+      assertCursorSubscriptionOnly(banned);
+    } catch {
+      refused = true;
+    }
+    assert(refused, `${banned} must be refused on this branch`);
+  }
+  assertCursorSubscriptionOnly(undefined);
+  assertCursorSubscriptionOnly("cursor");
 
   process.stdout.write("selftest ok\n");
 }

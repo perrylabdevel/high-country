@@ -31,22 +31,23 @@ instructions an agent physically cannot carry out.
 
 **The delegation problem.** §4's implementer prompt says every visual judgement
 goes to the pinned vision model. On a Cursor subscription an agent has exactly
-one model — its own — and no tool for calling a different one. Cursor Gemini is
-a chat model on the subscription; it is not `GEMINI_API_KEY` and cannot be
-reached from a Node script. So "delegate to the vision model" is not something
-the implementer can do unaided. Two ways to close that:
+one model — its own — and no tool for calling a different one. So "delegate to
+the vision model" is not something the implementer can do unaided.
+
+**This branch: Cursor subscription only.** Claude CLI, Google Gemini API, and
+OpenAI are disabled. Close the loop like this:
 
 - **Default: two Cursor chats, you route between them.** Implementer does code
-  on its own model. After capture, you open a **separate** Gemini 2.5 Flash
-  chat (Auto off) and **@-attach the PNGs** so the model gets pixels — a
-  Cursor Agent that only sees file paths will claim it cannot view images and
-  must be stopped, not allowed to fill 3s. That chat fills
+  on its own Cursor model (Auto off). After capture, you open a **separate**
+  Cursor chat on the same subscription, pin the grader model in the picker
+  (Auto off), and **@-attach the PNGs** so the model gets pixels — a Cursor
+  Agent that only sees file paths will claim it cannot view images and must be
+  stopped, not allowed to fill 3s. That chat fills
   `audit/reports/inbox.json`. Then `npm run grade -- --compile audit/reports/inbox.json`
-  writes the pass report. Subscription Gemini is used; no Google API key.
-- **Optional paid API — `npm run grade` with no flags.** Hits
-  `generativelanguage.googleapis.com` with `GEMINI_API_KEY`. That is Google's
-  Gemini product, not Cursor's. Use it only if you deliberately want extra API
-  spend. See §8.
+  writes the pass report. No Google API key, no Claude CLI.
+- **Do not run `npm run grade` expecting it to call an API.** On this branch
+  that command writes the worksheet. It never hits `generativelanguage.googleapis.com`,
+  OpenAI, or `claude -p`.
 
 **What is genuinely self-applying** — the parts encoded as runnable commands:
 `npm run capture`, `npm run build`, `npm run check`, `npm run check:buildings`,
@@ -58,31 +59,30 @@ exits non-zero is a rule.
 
 ## 1. Which vision model
 
-**Use Gemini 2.5 Flash, and pin it.**
+**Use the Cursor model selected in this chat, and pin it (Auto off).**
+
+This branch does not spawn Claude CLI, Google Gemini API, or OpenAI. The grader
+is whichever model is in the Cursor picker for the chat that fills inbox.json.
+Record that picker name in the inbox; do not guess.
 
 Reasoning, in the order that matters here:
 
 - **Consistency beats peak quality for grading.** A grade is only useful compared
   to the previous grade. If the model rotates — or if you leave Cursor on Auto —
   "canopy density: 3/5" this run and "4/5" next run tells you nothing about the
-  code, because the grader changed underneath you. Pin one model for the whole
-  campaign and only change it deliberately, recording the switch in the report.
-- **Cost.** You will run 32 images per pass, many passes. Flash-tier pricing is
-  roughly an order of magnitude below the frontier models and the task —
-  "compare this render to written criteria and score it" — does not need
-  frontier reasoning.
-- **Throughput.** High rate limits matter when a single audit pass is 32 image
-  calls.
+  code, because the grader changed underneath you. Pin one Cursor model for the
+  whole campaign on this branch and only change it deliberately, recording the
+  switch in the report.
+- **Cost.** You will run 32 images per pass, many passes. Stay on the Cursor
+  subscription. Do not add Google or OpenAI API spend.
+- **This branch starts a new series.** Passes 01–15 on `main` were
+  `gemini-2.5-flash` then `haiku`. Those numbers are not comparable to grades
+  from this Cursor model.
 
-Alternates, if Flash is unavailable or you dislike its output: **GPT-5-mini** or
-**Claude Haiku 4.5**. Both are cheap with solid image understanding. Do not mix
-them into one campaign.
-
-Verify the exact name in Cursor's model picker before you start — the roster
-changes, and this doc was written against a May 2026 knowledge cutoff. In Cursor:
-open the chat model selector, turn **Auto off**, and select the model explicitly.
-For the background/auditor agent, set the model on that agent's own config, not
-just the foreground chat.
+Verify the exact name in Cursor's model picker before you start. Open the chat
+model selector, turn **Auto off**, and select the model explicitly. For a
+background/auditor agent, set the model on that agent's own config, not just
+the foreground chat.
 
 **On model tiers, stated precisely.** "Reasoning model" is the wrong axis —
 essentially every current frontier model does extended thinking, and it is a
@@ -211,18 +211,18 @@ Read these first and treat them as the specification:
   audit/reports/latest.md   (the auditor's most recent grades, if present)
 
 YOUR MODEL POLICY — read §0 first; the human sets your model, you cannot:
-- Do all code work on your own model.
+- Do all code work on your own Cursor model (Auto off).
 - For ANY visual judgement — "does this look right", "is the canopy dense
   enough", "did that change help" — the judgement must come from a separate
-  Cursor agent pinned to Gemini 2.5 Flash looking at the actual screenshot,
-  never from your reasoning about the code you just wrote. An agent that
-  grades its own render confirms what it meant to build.
-- Do NOT run `npm run grade` with no flags. That calls Google's paid Gemini
-  API (GEMINI_API_KEY). Cursor subscription Gemini cannot be reached from
-  that script.
-- After capture, run `npm run grade:cursor` (writes the worksheet + inbox
-  template), then STOP. Tell the human to open a separate agent, pin Gemini
-  2.5 Flash (Auto off), fill audit/reports/inbox.json from the PNGs, and run
+  Cursor chat looking at the actual screenshot, never from your reasoning
+  about the code you just wrote. An agent that grades its own render confirms
+  what it meant to build.
+- Do NOT spawn Claude CLI, set GEMINI_API_KEY, or set OPENAI_API_KEY. This
+  branch refuses those. `npm run grade` with no flags writes the worksheet;
+  it does not call an API.
+- After capture, run `npm run grade` (writes the worksheet + inbox template),
+  then STOP. Tell the human to open a separate Cursor chat, pin a subscription
+  model (Auto off), fill audit/reports/inbox.json from the PNGs, and run
   `npm run grade -- --compile audit/reports/inbox.json`. Continue only from
   audit/reports/latest.md.
 - Do not substitute your own assessment of your own render while waiting.
@@ -236,8 +236,8 @@ LOOP:
 2. Make the change. Keep it scoped to that criterion.
 3. npm run build && npm run check && npm run check:buildings — all must pass.
 4. node scripts/capture-poi.mjs — regenerate the affected screenshots.
-5. npm run grade:cursor, then stop and ask the human to run the Cursor auditor
-   (Gemini 2.5 Flash). Do not grade the images yourself.
+5. npm run grade, then stop and ask the human to run the Cursor auditor
+   in a separate chat on a pinned subscription model. Do not grade the images yourself.
 6. When audit/reports/latest.md exists, if the auditor flagged a regression on
    this criterion, revert rather than stacking a second fix on top.
 7. Commit. One criterion per commit, and say in the message which criterion.
@@ -312,9 +312,10 @@ and tell the human to run capture in the implementer chat.
 You only edit audit/reports/inbox.json (scores) and then run the compile
 command. The compile script, not you, decides CONTINUE vs PASSED.
 
-MODEL: this loop assumes you were pinned to Gemini 2.5 Flash by hand (see §0 —
-you cannot set this yourself). Put that model name in inbox.json's `model`
-field before compiling. If you do not know it, write "model unknown".
+MODEL: this loop assumes you were pinned to a Cursor subscription model by
+hand (see §0 — you cannot set this yourself). Put that picker name in
+inbox.json's `model` field before compiling. If you do not know it, write
+"model unknown". Do not write haiku, gemini-2.5-flash, or an OpenAI id.
 
 INPUTS:
   audit/current/*.png              32 screenshots, <poi>-<light>.png
@@ -400,43 +401,37 @@ anyway: until the check can fail, nothing else it covers is protected.
 
 ---
 
-## 8. Grading — Cursor path (default) vs paid API
+## 8. Grading — Cursor subscription only
 
-Cursor Gemini is **not** the Google Gemini API. Do not set `GEMINI_API_KEY` to
-use your Cursor subscription; that key hits `generativelanguage.googleapis.com`
-and bills Google, not Cursor.
+This branch does not call Claude CLI, Google Gemini API, or OpenAI. Do not set
+`GEMINI_API_KEY` or `OPENAI_API_KEY` to grade; `scripts/grade.mjs` refuses
+`GRADE_PROVIDER=claude|gemini|openai`.
 
-**Default (subscription Gemini in Cursor):**
+**Default (Cursor subscription model in chat):**
 
 ```sh
 npm run capture
-npm run grade:cursor
-# pin a separate Cursor agent to Gemini 2.5 Flash (Auto off)
-# that agent opens audit/current/*.png and fills audit/reports/inbox.json
+npm run grade
+# in a Cursor chat: pin a subscription model (Auto off), @-attach PNGs,
+# fill audit/reports/inbox.json, put the picker name in inbox.model
 npm run grade -- --compile audit/reports/inbox.json
 ```
 
-`grade:cursor` writes `audit/reports/cursor-worksheet.md` and a scored-empty
+`npm run grade` writes `audit/reports/cursor-worksheet.md` and a scored-empty
 `inbox.json`. `--compile` reads the filled inbox, scores against
 `scripts/rubric.mjs`, and writes `audit/reports/pass-NN.md` plus a `pass-NN.json`
 sidecar. The next run compares against that sidecar rather than parsing markdown
 back.
 
-**Optional paid Google/OpenAI API** (extra spend, not the Cursor subscription):
-
-```sh
-export GEMINI_API_KEY=...        # or OPENAI_API_KEY with GRADE_PROVIDER=openai
-npm run grade
-```
-
 | | |
 |---|---|
-| Model | `gemini-2.5-flash`, a constant at the top of `scripts/grade.mjs` |
+| Model | the Cursor picker name recorded in `inbox.json` |
+| Provider | `cursor` |
 | Temperature | 0 — a creative grader turns the score series into noise |
 | Exit 0 | PASSED, the §6 stop condition is met |
 | Exit 2 | CONTINUE, graded fine, bar not met |
-| Exit 1 | the run failed — no captures, bad inbox, or (API path only) no key / API errors |
-| Env | `GRADE_PROVIDER` (gemini\|openai), `GRADE_CAPTURES`, `GRADE_CONCURRENCY`, `OPENAI_BASE_URL` |
+| Exit 1 | the run failed — no captures, bad inbox, or an external GRADE_PROVIDER |
+| Env | `GRADE_CAPTURES`, `GRADE_MODEL` (optional inbox label only) |
 
 Behaviour worth knowing:
 
@@ -457,13 +452,8 @@ new criteria. Criterion ids are the key of the score series: never renumber one,
 retire it and add a new id instead, or every past report silently changes
 meaning.
 
-**Cost.** The default Cursor path uses the Gemini model already on the
-subscription. `npm run grade` with no flags is extra Google/OpenAI API spend
-and is optional.
+**Cost.** Stay on the Cursor subscription. There is no paid Google/OpenAI path
+on this branch.
 
-**Caveat: not exercised against a live API.** It was written in a sandbox with
-no outbound network, so the Gemini and OpenAI request shapes come from their
-documented formats and the first real run may need a correction. Everything that
-does not need the network — capture discovery, score parsing, regression
-detection, the stop condition, report rendering — is covered by
-`npm run grade:selftest`, which passes.
+Capture discovery, score parsing, regression detection, the stop condition, and
+report rendering are covered by `npm run grade:selftest`.
