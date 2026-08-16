@@ -13,7 +13,6 @@ import {
   shedRoof,
   flatRoof,
   wallX,
-  wallZ,
   collide,
   tag,
   doorLeaf,
