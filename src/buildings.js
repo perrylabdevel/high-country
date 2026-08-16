@@ -21,6 +21,7 @@ import {
   doorLeaf,
   porch,
   chimney,
+  glazing,
   collide,
   tag
 } from "./buildings/kit.js";
@@ -244,17 +245,15 @@ export function createRanch() {
   const door = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
   mate(door, "frame", anchorsOf(mSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
-  // Glazing in the openings cut above.
-  for (const [gx, gz, pw, ph, pd, py] of [
-    [-6.4, 7, 1.35, 1.5, 0.1, 1.65],
-    [6.6, 7, 1.35, 1.5, 0.1, 1.65],
-    [-6.4, 7, 1.25, 1.4, 0.1, CEIL + 1.6],
-    [6.6, 7, 1.25, 1.4, 0.1, CEIL + 1.6]
-  ]) {
-    const glassPane = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, pd), glass);
-    glassPane.position.set(gx - MCX, py, gz - MCZ - T / 2);
-    tag(glassPane, "window", { sill: py - ph / 2, head: py + ph / 2 });
-    main.add(glassPane);
+  // Glazing in the south-wall window openings (door is opening.0).
+  for (let i = 1; i <= 4; i += 1) {
+    const o = mSouth.userData.openings[i];
+    mate(
+      glazing({ width: o.w, height: o.h, thickness: 0.1, material: glass }),
+      "frame",
+      anchorsOf(mSouth).get(`opening.${i}`),
+      { offset: { x: 0, y: 0, z: -T / 2 } }
+    );
   }
 
   // L-shaped porch: along the south face, wrapping the east face.

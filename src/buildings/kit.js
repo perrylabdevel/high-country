@@ -335,6 +335,22 @@ export function chimney({ width, height, depth, material }) {
 }
 
 /**
+ * Window pane. Origin at the sill center; the glass sits at height/2.
+ */
+export function glazing({ width, height, thickness, material }) {
+  const group = new THREE.Group();
+  tag(group, "window", { sill: 0, head: height, width, height });
+  const pane = new THREE.Mesh(new THREE.BoxGeometry(width, height, thickness), material);
+  pane.position.y = height / 2;
+  group.add(pane);
+  defineAnchor(group, "frame", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 0, z: -1 }
+  });
+  return group;
+}
+
+/**
  * A porch: deck, posts, beam, rail, and a shed roof over it. `depth` is the
  * porch depth (along +Z from the front wall). Returns a Group.
  */
