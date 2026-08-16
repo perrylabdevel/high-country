@@ -114,15 +114,14 @@ export function createRanch() {
   mNorth.position.set((-10.5 + 4) / 2 - MCX, 0, -MD / 2);
   main.add(mNorth);
 
-  const mWest = wallZ({
+  const mWest = wallX({
     length: MD, height: MEAVE, thickness: T, material: wood,
     openings: [
-      { x: 2.2 - MCZ, w: 1.3, h: 1.5, fromFloor: 0.9 },
-      { x: -3.2 - MCZ, w: 1.3, h: 1.5, fromFloor: 0.9 }
+      { x: -(2.2 - MCZ), w: 1.3, h: 1.5, fromFloor: 0.9 },
+      { x: -(-3.2 - MCZ), w: 1.3, h: 1.5, fromFloor: 0.9 }
     ]
   });
-  mWest.position.x = -MW / 2;
-  main.add(mWest);
+  mate(mWest, "wallSide", face(main, "left"));
 
   const mEast = wallX({
     length: MD, height: MEAVE, thickness: T, material: wood,
@@ -132,9 +131,8 @@ export function createRanch() {
 
   // Ell shell. Its north end (house z = -5.35) is closed only east of the main
   // block; west of that the two blocks share the opening.
-  const eWest = wallZ({ length: ED, height: EEAVE, thickness: T, material: wood });
-  eWest.position.x = -EW / 2;
-  ell.add(eWest);
+  const eWest = wallX({ length: ED, height: EEAVE, thickness: T, material: wood });
+  mate(eWest, "wallSide", face(ell, "left"));
   const eEast = wallX({
     length: ED, height: EEAVE, thickness: T, material: wood,
     openings: [{ x: -11.5 - ECZ, w: 1.25, h: 1.4, fromFloor: 0.9 }]
@@ -315,9 +313,8 @@ export function createRanch() {
     openings: [{ x: 0, w: 3.0, h: 3.5, fromFloor: 0, class: "barn" }]
   });
   mate(barnEast, "wallSide", face(barn, "right"));
-  const barnWest = wallZ({ length: BD, height: BEAVE, thickness: T, material: darkWood });
-  barnWest.position.x = -BW / 2;
-  barn.add(barnWest);
+  const barnWest = wallX({ length: BD, height: BEAVE, thickness: T, material: darkWood });
+  mate(barnWest, "wallSide", face(barn, "left"));
 
   const barnRoof = gableRoof({ w: BW, d: BD, pitch: 0.5, overhang: 0.45, eave: BEAVE, material: roof });
   mate(barnRoof, "base", anchorsOf(barn).get("wallTop"));
@@ -357,9 +354,8 @@ export function createRanch() {
   mate(bunkSouth, "wallSide", face(bunk, "front"));
   const bunkEast = wallX({ length: BKD, height: BKEAVE, thickness: T, material: wood });
   mate(bunkEast, "wallSide", face(bunk, "right"));
-  const bunkWest = wallZ({ length: BKD, height: BKEAVE, thickness: T, material: wood });
-  bunkWest.position.x = -BKW / 2;
-  bunk.add(bunkWest);
+  const bunkWest = wallX({ length: BKD, height: BKEAVE, thickness: T, material: wood });
+  mate(bunkWest, "wallSide", face(bunk, "left"));
 
   const bunkRoof = gableRoof({ w: BKW, d: BKD, pitch: 0.5, overhang: 0.45, eave: BKEAVE, material: roof });
   mate(bunkRoof, "base", anchorsOf(bunk).get("wallTop"));
@@ -402,9 +398,8 @@ export function createRanch() {
   mate(smithSouth, "wallSide", face(smith, "front"));
   const smithEast = wallX({ length: SD, height: SEAVE, thickness: T, material: darkWood });
   mate(smithEast, "wallSide", face(smith, "right"));
-  const smithWest = wallZ({ length: SD, height: SEAVE, thickness: T, material: darkWood });
-  smithWest.position.x = -SW / 2;
-  smith.add(smithWest);
+  const smithWest = wallX({ length: SD, height: SEAVE, thickness: T, material: darkWood });
+  mate(smithWest, "wallSide", face(smith, "left"));
 
   const smithRoof = shedRoof({ w: SW, d: SD, pitch: 0.2, overhang: 0.3, eave: SEAVE, material: roof });
   mate(smithRoof, "base", anchorsOf(smith).get("wallTop"));

@@ -101,9 +101,8 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   const window = eave >= 3.2 ? [{ x: 0, w: 0.9, h: 1.1, fromFloor: 0.9 }] : [];
   const east = wallX({ length: d, height: eave, thickness: T, material: adobe, openings: window });
   mate(east, "wallSide", face(st, "right"));
-  const west = wallZ({ length: d, height: eave, thickness: T, material: adobe });
-  west.position.x = -w / 2;
-  st.add(west);
+  const west = wallX({ length: d, height: eave, thickness: T, material: adobe });
+  mate(west, "wallSide", face(st, "left"));
   mate(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }), "base", anchorsOf(st).get("wallTop"));
   const parapetH = 0.42;
   for (const [px, pz, pw, pd] of [
@@ -188,9 +187,8 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   const eastOpenings = lot.steeple ? [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] : [];
   const east = wallX({ length: d, height: h, thickness: T, material: bodyMat, openings: eastOpenings });
   mate(east, "wallSide", face(st, "right"));
-  const west = wallZ({ length: d, height: h, thickness: T, material: bodyMat });
-  west.position.x = -w / 2;
-  st.add(west);
+  const west = wallX({ length: d, height: h, thickness: T, material: bodyMat });
+  mate(west, "wallSide", face(st, "left"));
 
   // Roof. Church and hotel get gables; commercial gets a shed behind the false
   // front (drains to the rear, -Z).
@@ -448,9 +446,8 @@ export function createLandmarks(scene) {
     mate(south, "wallSide", face(cabin, "front"));
     const east = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
     mate(east, "wallSide", face(cabin, "right"));
-    const west = wallZ({ length: 5, height: 3.4, thickness: T, material: dark });
-    west.position.x = -3.5;
-    cabin.add(west);
+    const west = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
+    mate(west, "wallSide", face(cabin, "left"));
     const cabinRoof = gableRoof({ w: 7, d: 5, pitch: 0.7, overhang: 0.3, eave: 3.4, material: roof });
     mate(cabinRoof, "base", anchorsOf(cabin).get("wallTop"));
     const cabinDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
