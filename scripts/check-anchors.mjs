@@ -22,7 +22,8 @@ import {
   footprintsOverlap,
   steps,
   vigas,
-  anvil
+  anvil,
+  block
 } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
@@ -890,6 +891,47 @@ if (bayFrame.position.distanceTo(bayTarget) > 1e-4) {
 }
 if (Math.abs(bayLeaf.position.x + BAY_W / 2) > 1e-4) {
   throw new Error(`bay hinge at x=${bayLeaf.position.x}, want left jamb ${-BAY_W / 2}`);
+}
+
+const BLOCK_W = 1.15;
+const BLOCK_H = 0.72;
+const BLOCK_D = 1.15;
+const BLOCK_X = 2.1;
+const BLOCK_Z = -1.4;
+const blockHouse = structure({ x: 0, z: 0, w: 8, d: 7, eave: 3.6, name: "blockMate" });
+const typedBlock = new THREE.Mesh(new THREE.BoxGeometry(BLOCK_W, BLOCK_H, BLOCK_D), wood);
+typedBlock.position.set(BLOCK_X, BLOCK_H / 2, BLOCK_Z);
+blockHouse.add(typedBlock);
+typedBlock.updateMatrixWorld(true);
+const blockBefore = new THREE.Box3().setFromObject(typedBlock);
+blockHouse.remove(typedBlock);
+
+const matedBlock = block({ w: BLOCK_W, h: BLOCK_H, d: BLOCK_D, material: wood });
+mate(matedBlock, "base", anchorsOf(blockHouse).get("footing"), {
+  offset: { x: BLOCK_X, z: BLOCK_Z }
+});
+matedBlock.updateMatrixWorld(true);
+const blockAfter = new THREE.Box3().setFromObject(matedBlock);
+if (blockBefore.min.distanceTo(blockAfter.min) > 1e-5 || blockBefore.max.distanceTo(blockAfter.max) > 1e-5) {
+  throw new Error("block world box drifted from the typed mesh sitting on the floor");
+}
+
+const RAISED_H = 0.16;
+const RAISED_Y = 0.54;
+const typedRaised = new THREE.Mesh(new THREE.BoxGeometry(2.1, RAISED_H, 1.25), wood);
+typedRaised.position.set(BLOCK_X, RAISED_Y, BLOCK_Z);
+blockHouse.add(typedRaised);
+typedRaised.updateMatrixWorld(true);
+const raisedBefore = new THREE.Box3().setFromObject(typedRaised);
+blockHouse.remove(typedRaised);
+const matedRaised = block({ w: 2.1, h: RAISED_H, d: 1.25, material: wood });
+mate(matedRaised, "base", anchorsOf(blockHouse).get("footing"), {
+  offset: { x: BLOCK_X, y: RAISED_Y - RAISED_H / 2, z: BLOCK_Z }
+});
+matedRaised.updateMatrixWorld(true);
+const raisedAfter = new THREE.Box3().setFromObject(matedRaised);
+if (raisedBefore.min.distanceTo(raisedAfter.min) > 1e-5 || raisedBefore.max.distanceTo(raisedAfter.max) > 1e-5) {
+  throw new Error("raised block world box drifted from the typed mesh at y = 0.54");
 }
 
 console.log("PASS");
