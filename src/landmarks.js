@@ -27,7 +27,9 @@ import {
   boxOnGround,
   boxOnPlane,
   cylOnGround,
-  coneOnGround
+  coneOnGround,
+  coneOnPlane,
+  post
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
@@ -424,18 +426,11 @@ export function createLandmarks(scene) {
     [-fortHalf, 0, 1.2, fortDepth * 2],
     [fortHalf, 0, 1.2, fortDepth * 2]
   ]) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, fortWallH, d), stone);
-    wall.position.set(fort.x + dx, heightAt(fort.x + dx, fort.z + dz) + fortWallH / 2, fort.z + dz);
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    group.add(wall);
+    boxOnGround(group, fort.x + dx, fort.z + dz, w, fortWallH, d, stone, false);
   }
   // East gate posts.
   for (const gz of [fort.z - gateHalf, fort.z + gateHalf]) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.5, fortWallH + 1.5, 0.5), stone);
-    post.position.set(fort.x + fortHalf, heightAt(fort.x + fortHalf, gz) + (fortWallH + 1.5) / 2, gz);
-    post.castShadow = true;
-    group.add(post);
+    boxOnGround(group, fort.x + fortHalf, gz, 0.5, fortWallH + 1.5, 0.5, stone, false);
   }
   addBoxCollider(fort.x, fort.z + fortDepth, 14, 0.7);
   addBoxCollider(fort.x, fort.z - fortDepth, 14, 0.7);
@@ -455,22 +450,13 @@ export function createLandmarks(scene) {
   // the shaft. Big enough to read as an industrial silhouette at 62 m.
   const hfH = 16;
   for (const sgn of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.9, hfH, 0.9), iron);
-    leg.position.set(ivX + sgn * 5, ivY + hfH / 2, ivZ - 6);
-    leg.rotation.z = sgn * 0.22;
-    leg.castShadow = true;
-    group.add(leg);
+    const leg = boxOnPlane(group, ivX + sgn * 5, ivY, ivZ - 6, 0.9, hfH, 0.9, iron, false);
+    leg.children[0].rotation.z = sgn * 0.22;
   }
   for (const y of [4, 8, 12]) {
-    const brace = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 0.4), iron);
-    brace.position.set(ivX, ivY + y, ivZ - 6);
-    brace.castShadow = true;
-    group.add(brace);
+    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, 10, 0.4, 0.4, iron, false);
   }
-  const crossbar = new THREE.Mesh(new THREE.BoxGeometry(11, 0.7, 0.7), iron);
-  crossbar.position.set(ivX, ivY + hfH, ivZ - 6);
-  crossbar.castShadow = true;
-  group.add(crossbar);
+  boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, 11, 0.7, 0.7, iron, false);
   const sheave = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.6, 12), iron);
   sheave.rotation.x = Math.PI / 2;
   sheave.position.set(ivX, ivY + hfH, ivZ - 6);
@@ -487,15 +473,15 @@ export function createLandmarks(scene) {
   const smShed = structure({ name: "stampMill", x: smX, z: smZ, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, material: stone });
   const smRoof = gableRoof({ w: 16, d: 12, pitch: 0.55, overhang: 0.5, eave: 6, material: roof });
   mate(smRoof, "base", anchorsOf(smShed).get("wallTop"));
+  const millFloor = anchorsOf(smShed).get("footing");
   for (let i = 0; i < 6; i += 1) {
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 5.5, 6), iron);
-    rod.position.set(smX - 6 + i * 2.4, smY + 2.75, smZ);
-    rod.castShadow = true;
-    smShed.add(rod);
+    mate(post({ rTop: 0.28, rBot: 0.28, h: 5.5, material: iron, radialSegments: 6 }), "base", millFloor, {
+      offset: { x: -6 + i * 2.4 }
+    });
   }
   const camshaft = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 14, 8), iron);
   camshaft.rotation.z = Math.PI / 2;
-  camshaft.position.set(smX, smY + 1.4, smZ);
+  camshaft.position.set(0, 1.4, 0);
   camshaft.castShadow = true;
   smShed.add(camshaft);
   collide(smShed, smX, smZ, 0, [
@@ -507,14 +493,8 @@ export function createLandmarks(scene) {
   group.add(smShed);
 
   // Tailings: a broad conical waste pile, rust-colored, beside the mill.
-  const tailings = new THREE.Mesh(new THREE.ConeGeometry(7, 5, 10), rust);
-  tailings.position.set(smX + 14, smY + 2.5, smZ + 8);
-  tailings.castShadow = true;
-  group.add(tailings);
-  const tailings2 = new THREE.Mesh(new THREE.ConeGeometry(5, 3.5, 8), rust);
-  tailings2.position.set(smX + 20, smY + 1.75, smZ + 2);
-  tailings2.castShadow = true;
-  group.add(tailings2);
+  coneOnPlane(group, smX + 14, smY, smZ + 8, 7, 5, rust, false, 0, undefined, 10);
+  coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, false, 0, undefined, 8);
 
   boxAt(group, POS.company.x, POS.company.z, 12, 6, 9, wood);
   for (const [dx, dz] of [[-18, 10], [16, 8], [4, 18]]) {
@@ -572,11 +552,8 @@ export function createLandmarks(scene) {
   for (let i = 0; i < 5; i += 1) {
     const hx = POS.cemetery.x + (i - 2) * 2.2 + (seeded(i) - 0.5) * 0.4;
     const hz = POS.cemetery.z + (seeded(i + 3) - 0.5) * 0.4;
-    const stone2 = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.1, 0.18), stone);
-    stone2.position.set(hx, heightAt(hx, hz) + 0.55, hz);
+    const stone2 = boxOnGround(group, hx, hz, 0.35, 1.1, 0.18, stone, false);
     stone2.rotation.y = (seeded(i + 7) - 0.5) * 0.4;
-    stone2.castShadow = true;
-    group.add(stone2);
   }
   boxAt(group, POS.huntingCabin.x, POS.huntingCabin.z, 7, 3.6, 5.5, dark);
   boxAt(group, POS.overlook.x, POS.overlook.z, 8, 0.2, 1.1, dark, false);

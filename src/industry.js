@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
 import { POS, ROADS, samplePolyline } from "./map.js";
-import { boxOnGround, grounded, block } from "./buildings/kit.js";
+import { boxOnGround, grounded, block, coneOnGround } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
@@ -46,11 +46,7 @@ function slagHeap(group, x, z, sx, sy, sz, material) {
 
 function tentAt(group, x, z, canvas) {
   boxAt(group, x, z, 2.6, 0.95, 2.4, canvas);
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(2.15, 2.6, 7), canvas);
-  cone.position.set(x, heightAt(x, z) + 1.85, z);
-  cone.castShadow = true;
-  cone.receiveShadow = true;
-  group.add(cone);
+  coneOnGround(group, x, z, 2.15, 2.6, canvas, false, 1.85 - 1.3);
 }
 
 function railCartSpots(mines) {

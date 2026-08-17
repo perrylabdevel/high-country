@@ -1,8 +1,8 @@
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
 import { heightAt } from "./world.js";
-import { addBoxCollider, addCylinderCollider } from "./collision.js";
-import { boxOnGround } from "./buildings/kit.js";
+import { addBoxCollider } from "./collision.js";
+import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -13,10 +13,7 @@ function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
 }
 
 function charcoalPit(group, x, z, discMat, stickMat, stickCount) {
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.45, 0.16, 10), discMat);
-  disc.position.set(x, heightAt(x, z) + 0.08, z);
-  disc.receiveShadow = true;
-  group.add(disc);
+  cylOnGround(group, x, z, 2.35, 2.45, 0.16, discMat, false, undefined, 0, 10);
   const offsets = [
     [0.7, 0.35],
     [-0.85, 0.2],
@@ -32,14 +29,7 @@ function charcoalPit(group, x, z, discMat, stickMat, stickCount) {
 }
 
 function stumpAt(group, x, z, radius, h, material) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.92, radius, h, 8), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-  if (radius > 0.7) {
-    addCylinderCollider(x, z, radius);
-  }
+  cylOnGround(group, x, z, radius * 0.92, radius, h, material, radius > 0.7, radius);
 }
 
 function sawbuckAt(group, x, z, wood) {
@@ -69,11 +59,7 @@ function logStack(group, x, z, wood, yaw) {
 
 function tentAt(group, x, z, canvas) {
   boxAt(group, x, z, 2.6, 0.95, 2.4, canvas);
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(2.15, 2.6, 7), canvas);
-  cone.position.set(x, heightAt(x, z) + 1.85, z);
-  cone.castShadow = true;
-  cone.receiveShadow = true;
-  group.add(cone);
+  coneOnGround(group, x, z, 2.15, 2.6, canvas, false, 1.85 - 1.3);
 }
 
 function ladderAt(group, x, z, wood) {
