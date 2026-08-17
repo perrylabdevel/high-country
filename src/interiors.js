@@ -10,8 +10,8 @@
 import * as THREE from "three/webgpu";
 import { addOrientedBoxCollider } from "./collision.js";
 import { ENTERABLE_LOTS } from "./landmarks.js";
-import { tag, wallX } from "./buildings/kit.js";
-import { face, mate } from "./buildings/anchors.js";
+import { tag, wallX, block } from "./buildings/kit.js";
+import { face, mate, anchorsOf } from "./buildings/anchors.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -22,11 +22,8 @@ function mat(color, extra = {}) {
 }
 
 function box(group, x, y, z, w, h, d, material, collide = false) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.set(x, y + h / 2, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
+  const mesh = block({ w, h, d, material });
+  mate(mesh, "base", anchorsOf(group).get("footing"), { offset: { x, y, z } });
   if (collide) {
     const yaw = group.userData.yaw;
     const cos = Math.cos(yaw);
