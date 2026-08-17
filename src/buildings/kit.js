@@ -13,8 +13,8 @@
  */
 import * as THREE from "three/webgpu";
 import { heightAt } from "../world.js";
-import { addOrientedBoxCollider } from "../collision.js";
-import { defineAnchor, recordMate } from "./anchors.js";
+import { addOrientedBoxCollider, addBoxCollider } from "../collision.js";
+import { defineAnchor, recordMate, mate, anchorsOf } from "./anchors.js";
 
 /** Registry of every structure Group built via structure(), for the geometry checks. */
 export const STRUCTURES = [];
@@ -468,6 +468,21 @@ export function grounded({ x, z, yaw = 0, name } = {}) {
     normal: { x: 0, y: 1, z: 0 }
   });
   return group;
+}
+
+/**
+ * Typed `boxAt`: a block mated to a grounded pad. Returns the block so the
+ * caller can yaw it. Does not register a kit structure.
+ */
+export function boxOnGround(parent, x, z, w, h, d, material, collide = true, yOff = 0) {
+  const pad = grounded({ x, z });
+  const piece = block({ w, h, d, material });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addBoxCollider(x, z, w / 2, d / 2);
+  }
+  return piece;
 }
 
 /**

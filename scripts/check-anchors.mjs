@@ -25,6 +25,7 @@ import {
   anvil,
   block,
   grounded,
+  boxOnGround,
   STRUCTURES
 } from "../src/buildings/kit.js";
 import { bakeHeightfield, heightAt } from "../src/heightfield.js";
@@ -973,6 +974,21 @@ if (liftBefore.min.distanceTo(liftAfter.min) > 1e-5 || liftBefore.max.distanceTo
 
 if (STRUCTURES.length !== structuresBeforeGrounded) {
   throw new Error("grounded() must not register a kit structure");
+}
+
+const boxParent = new THREE.Group();
+const typedBoxAt = new THREE.Mesh(new THREE.BoxGeometry(GROUND_W, GROUND_H, GROUND_D), wood);
+typedBoxAt.position.set(GROUND_X, groundY + GROUND_H / 2 + GROUND_OFF, GROUND_Z);
+typedBoxAt.updateMatrixWorld(true);
+const boxAtBefore = new THREE.Box3().setFromObject(typedBoxAt);
+const matedBoxAt = boxOnGround(boxParent, GROUND_X, GROUND_Z, GROUND_W, GROUND_H, GROUND_D, wood, false, GROUND_OFF);
+boxParent.updateMatrixWorld(true);
+const boxAtAfter = new THREE.Box3().setFromObject(matedBoxAt);
+if (boxAtBefore.min.distanceTo(boxAtAfter.min) > 1e-5 || boxAtBefore.max.distanceTo(boxAtAfter.max) > 1e-5) {
+  throw new Error("boxOnGround world box drifted from typed boxAt");
+}
+if (STRUCTURES.length !== structuresBeforeGrounded) {
+  throw new Error("boxOnGround() must not register a kit structure");
 }
 
 console.log("PASS");
