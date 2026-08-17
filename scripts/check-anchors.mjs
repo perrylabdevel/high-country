@@ -23,9 +23,11 @@ import {
   steps,
   vigas,
   anvil,
-  block
+  block,
+  grounded,
+  STRUCTURES
 } from "../src/buildings/kit.js";
-import { bakeHeightfield } from "../src/heightfield.js";
+import { bakeHeightfield, heightAt } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
 
 const EPS = 1e-6;
@@ -932,6 +934,45 @@ matedRaised.updateMatrixWorld(true);
 const raisedAfter = new THREE.Box3().setFromObject(matedRaised);
 if (raisedBefore.min.distanceTo(raisedAfter.min) > 1e-5 || raisedBefore.max.distanceTo(raisedAfter.max) > 1e-5) {
   throw new Error("raised block world box drifted from the typed mesh at y = 0.54");
+}
+
+const GROUND_X = 12;
+const GROUND_Z = -7;
+const GROUND_W = 1.5;
+const GROUND_H = 0.85;
+const GROUND_D = 0.9;
+const GROUND_OFF = 1.05;
+const structuresBeforeGrounded = STRUCTURES.length;
+const groundY = heightAt(GROUND_X, GROUND_Z);
+const typedGround = new THREE.Mesh(new THREE.BoxGeometry(GROUND_W, GROUND_H, GROUND_D), wood);
+typedGround.position.set(GROUND_X, groundY + GROUND_H / 2, GROUND_Z);
+typedGround.updateMatrixWorld(true);
+const groundBefore = new THREE.Box3().setFromObject(typedGround);
+
+const pad = grounded({ x: GROUND_X, z: GROUND_Z });
+const matedGround = block({ w: GROUND_W, h: GROUND_H, d: GROUND_D, material: wood });
+mate(matedGround, "base", anchorsOf(pad).get("footing"));
+pad.updateMatrixWorld(true);
+const groundAfter = new THREE.Box3().setFromObject(matedGround);
+if (groundBefore.min.distanceTo(groundAfter.min) > 1e-5 || groundBefore.max.distanceTo(groundAfter.max) > 1e-5) {
+  throw new Error("grounded block world box drifted from typed boxAt on heightAt");
+}
+
+const typedLift = new THREE.Mesh(new THREE.BoxGeometry(GROUND_W, GROUND_H, GROUND_D), wood);
+typedLift.position.set(GROUND_X, groundY + GROUND_H / 2 + GROUND_OFF, GROUND_Z);
+typedLift.updateMatrixWorld(true);
+const liftBefore = new THREE.Box3().setFromObject(typedLift);
+const liftPad = grounded({ x: GROUND_X, z: GROUND_Z });
+const matedLift = block({ w: GROUND_W, h: GROUND_H, d: GROUND_D, material: wood });
+mate(matedLift, "base", anchorsOf(liftPad).get("footing"), { offset: { y: GROUND_OFF } });
+liftPad.updateMatrixWorld(true);
+const liftAfter = new THREE.Box3().setFromObject(matedLift);
+if (liftBefore.min.distanceTo(liftAfter.min) > 1e-5 || liftBefore.max.distanceTo(liftAfter.max) > 1e-5) {
+  throw new Error("grounded block with yOff drifted from typed boxAt yOff = 1.05");
+}
+
+if (STRUCTURES.length !== structuresBeforeGrounded) {
+  throw new Error("grounded() must not register a kit structure");
 }
 
 console.log("PASS");

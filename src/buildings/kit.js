@@ -452,6 +452,25 @@ export function block({ w, h, d, material, role = "prop", extra = {} }) {
 }
 
 /**
+ * A pad on the terrain at a single heightAt sample — the same seat as
+ * `place()` / `boxAt`, not four-corner footing(). Has a `footing` frame so
+ * `block` can mate without registering a kit structure.
+ */
+export function grounded({ x, z, yaw = 0, name } = {}) {
+  const group = new THREE.Group();
+  if (name) {
+    group.userData.name = name;
+  }
+  group.position.set(x, heightAt(x, z), z);
+  group.rotation.y = yaw;
+  defineAnchor(group, "footing", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: 1, z: 0 }
+  });
+  return group;
+}
+
+/**
  * False-front parapet: street board, side returns, and a cap. Origin at the
  * facade plane so `wallSide` mates to `face.front`. Dimensions match the
  * typed Silver Creek lots (parapet 0.3 m in front of the wall).
