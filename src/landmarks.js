@@ -23,7 +23,9 @@ import {
   vigas,
   registerWaterPlacement,
   STRUCTURES,
-  footprintsOverlap
+  footprintsOverlap,
+  grounded,
+  block
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
@@ -32,15 +34,14 @@ function mat(color, extra = {}) {
 }
 
 function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + yOff, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
+  const pad = grounded({ x, z });
+  const piece = block({ w, h, d, material });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  group.add(pad);
   if (collide) {
     addBoxCollider(x, z, w / 2, d / 2);
   }
-  return mesh;
+  return piece;
 }
 
 function cylAt(group, x, z, rTop, rBot, h, material, collide = true) {
@@ -445,16 +446,10 @@ export function createLandmarks(scene) {
       { x: -3.5, z: 0, halfX: T / 2, halfZ: 2.5 }
     ]);
     group.add(cabin);
-    const woodpile = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.2, 1.2), wood);
-    woodpile.position.set(cx + 6, heightAt(cx + 6, cz) + 0.6, cz);
-    woodpile.castShadow = true;
-    group.add(woodpile);
+    boxAt(group, cx + 6, cz, 3.2, 1.2, 1.2, wood, false);
   }
   for (const [dx, dz] of [[-22, -10], [20, 12], [8, -18]]) {
-    const log = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.85, 1.5), wood);
-    log.position.set(POS.timberCamp.x + dx, heightAt(POS.timberCamp.x + dx, POS.timberCamp.z + dz) + 0.45, POS.timberCamp.z + dz);
-    log.castShadow = true;
-    group.add(log);
+    boxAt(group, POS.timberCamp.x + dx, POS.timberCamp.z + dz, 4.8, 0.85, 1.5, wood, false, 0.45 - 0.425);
   }
 
   for (let i = 0; i < 6; i += 1) {

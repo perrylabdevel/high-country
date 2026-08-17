@@ -23,7 +23,8 @@ import {
   collide,
   steps,
   anvil,
-  block
+  block,
+  grounded
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -515,38 +516,37 @@ export function createRanch() {
   // ---------------- Ranch gate (crossbeam on posts) ----------------
   const gateX = POS.ranchGate.x;
   const gateZ = POS.ranchGate.z;
+  function groundBox(x, z, w, h, d, material, yOff = 0) {
+    const pad = grounded({ x, z });
+    const piece = block({ w, h, d, material });
+    mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+    group.add(pad);
+    return piece;
+  }
   for (const gx of [gateX, gateX + 8]) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.5, 0.3), darkWood);
-    post.position.set(gx, groundY(gx, gateZ) + 2.75, gateZ);
-    post.castShadow = true;
-    group.add(post);
+    groundBox(gx, gateZ, 0.3, 5.5, 0.3, darkWood);
     addBoxCollider(gx, gateZ, 0.2, 0.2);
   }
-  const gateBeam = new THREE.Mesh(new THREE.BoxGeometry(9, 0.35, 0.35), darkWood);
-  gateBeam.position.set(gateX + 4, groundY(gateX + 4, gateZ) + 5.5, gateZ);
-  gateBeam.castShadow = true;
-  group.add(gateBeam);
+  groundBox(gateX + 4, gateZ, 9, 0.35, 0.35, darkWood, 5.5 - 0.175);
 
   // ---------------- Hitching rail ----------------
-  const hitch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.1, 3.4), darkWood);
-  hitch.position.set(ox + 8, groundY(ox + 8, oz + 14) + 0.55, oz + 14);
-  group.add(hitch);
+  groundBox(ox + 8, oz + 14, 0.16, 1.1, 3.4, darkWood);
   addBoxCollider(ox + 8, oz + 14, 0.35, 1.8);
 
   // ---------------- Wagon (front wheels smaller) ----------------
-  const wagon = new THREE.Group();
-  const wagonBed = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.38, 1.7), darkWood);
-  wagonBed.position.y = 0.95;
-  wagon.add(wagonBed);
-  const wagonSideL = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.5, 0.12), wood);
-  wagonSideL.position.set(0, 1.28, 0.82);
-  wagon.add(wagonSideL);
-  const wagonSideR = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.5, 0.12), wood);
-  wagonSideR.position.set(0, 1.28, -0.82);
-  wagon.add(wagonSideR);
-  const wagonSeat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.65, 1.5), wood);
-  wagonSeat.position.set(1.35, 1.45, 0);
-  wagon.add(wagonSeat);
+  const wagon = grounded({ x: ox - 18, z: oz + 8 });
+  mate(block({ w: 3.8, h: 0.38, d: 1.7, material: darkWood }), "base", anchorsOf(wagon).get("footing"), {
+    offset: { y: 0.95 - 0.19 }
+  });
+  mate(block({ w: 3.6, h: 0.5, d: 0.12, material: wood }), "base", anchorsOf(wagon).get("footing"), {
+    offset: { y: 1.28 - 0.25, z: 0.82 }
+  });
+  mate(block({ w: 3.6, h: 0.5, d: 0.12, material: wood }), "base", anchorsOf(wagon).get("footing"), {
+    offset: { y: 1.28 - 0.25, z: -0.82 }
+  });
+  mate(block({ w: 0.7, h: 0.65, d: 1.5, material: wood }), "base", anchorsOf(wagon).get("footing"), {
+    offset: { x: 1.35, y: 1.45 - 0.325 }
+  });
   for (const [wx, wz, r] of [[-1.3, 0.95, 0.65], [-1.3, -0.95, 0.65], [1.3, 0.95, 0.5], [1.3, -0.95, 0.5]]) {
     const wheel = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.22, 10), darkWood);
     wheel.rotation.x = Math.PI / 2;
@@ -554,26 +554,26 @@ export function createRanch() {
     wheel.castShadow = true;
     wagon.add(wheel);
   }
-  place(wagon, -18, 8);
+  group.add(wagon);
   addBoxCollider(ox - 18, oz + 8, 2.0, 1.0);
 
   // ---------------- Hay ----------------
   const hayMat = new THREE.MeshStandardNodeMaterial({ color: 0xc4a050, roughness: 0.92 });
-  const hay = new THREE.Group();
-  const baleA = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.85, 0.9), hayMat);
-  baleA.position.set(0, 0.45, 0);
-  hay.add(baleA);
-  const baleB = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.75, 0.85), hayMat);
-  baleB.position.set(1.55, 0.4, 0.35);
-  hay.add(baleB);
-  const baleC = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.8), hayMat);
-  baleC.position.set(0.35, 0.38, 1.15);
-  hay.add(baleC);
-  place(hay, 16, 32);
+  const hay = grounded({ x: ox + 16, z: oz + 32 });
+  mate(block({ w: 1.5, h: 0.85, d: 0.9, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
+    offset: { y: 0.45 - 0.425 }
+  });
+  mate(block({ w: 1.35, h: 0.75, d: 0.85, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
+    offset: { x: 1.55, y: 0.4 - 0.375, z: 0.35 }
+  });
+  mate(block({ w: 1.2, h: 0.7, d: 0.8, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
+    offset: { x: 0.35, y: 0.38 - 0.35, z: 1.15 }
+  });
+  group.add(hay);
   addBoxCollider(ox + 16.6, oz + 32.4, 1.6, 1.2);
 
   // ---------------- Woodpile ----------------
-  const woodpile = new THREE.Group();
+  const woodpile = grounded({ x: ox - 16, z: oz - 4 });
   const logs = [
     [0, 0.12, 0, 1.15, 0.22, 0.22],
     [0.08, 0.12, 0.26, 1.05, 0.2, 0.2],
@@ -583,19 +583,15 @@ export function createRanch() {
     [0, 0.52, 0, 0.9, 0.18, 0.18]
   ];
   for (const [lx, ly, lz, lw, lh, ld] of logs) {
-    const log = new THREE.Mesh(new THREE.BoxGeometry(lw, lh, ld), darkWood);
-    log.position.set(lx, ly, lz);
-    woodpile.add(log);
+    mate(block({ w: lw, h: lh, d: ld, material: darkWood }), "base", anchorsOf(woodpile).get("footing"), {
+      offset: { x: lx, y: ly - lh / 2, z: lz }
+    });
   }
-  place(woodpile, -16, -4);
+  group.add(woodpile);
   addBoxCollider(ox - 16, oz - 4, 0.7, 0.45);
 
   // ---------------- Trough ----------------
-  const trough = new THREE.Group();
-  const troughBox = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.5, 0.8), wood);
-  troughBox.position.y = 0.32;
-  trough.add(troughBox);
-  place(trough, 11, 16);
+  groundBox(ox + 11, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
   addBoxCollider(ox + 11, oz + 16, 1.4, 0.5);
 
   return group;
