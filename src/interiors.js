@@ -10,12 +10,12 @@
 import * as THREE from "three/webgpu";
 import { addOrientedBoxCollider } from "./collision.js";
 import { ENTERABLE_LOTS } from "./landmarks.js";
-import { tag } from "./buildings/kit.js";
+import { tag, wallX } from "./buildings/kit.js";
+import { face, mate } from "./buildings/anchors.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
 const DOOR_H = 2.1;
-const JAMB_INSET = 0.1;
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -38,24 +38,6 @@ function box(group, x, y, z, w, h, d, material, collide = false) {
   return mesh;
 }
 
-function wallSegX(group, x0, x1, z, thick, h, material, collide = false) {
-  const len = x1 - x0;
-  if (len < 0.08) {
-    return;
-  }
-  const cx = (x0 + x1) / 2;
-  box(group, cx, 0, z, len, h, thick, material, collide);
-}
-
-function wallSegZ(group, x, z0, z1, thick, h, material, collide = false) {
-  const len = z1 - z0;
-  if (len < 0.08) {
-    return;
-  }
-  const cz = (z0 + z1) / 2;
-  box(group, x, 0, cz, thick, h, len, material, collide);
-}
-
 /**
  * Build the four walls of a lot in its local frame. The front wall (+Z) has a
  * doorway with a head height and a lintel above it. Returns nothing; adds to
@@ -64,7 +46,6 @@ function wallSegZ(group, x, z0, z1, thick, h, material, collide = false) {
 function addShell(lot, wallMat, floorMat) {
   const { w, h, d, group } = lot;
   const t = WALL_THICK;
-  const halfGap = DOOR_W / 2;
 
   // Floor at the structure's footing (y=0 in local frame).
   const floor = box(group, 0, 0, 0, w - t * 2, 0.08, d - t * 2, floorMat);
@@ -73,24 +54,30 @@ function addShell(lot, wallMat, floorMat) {
   const ceiling = box(group, 0, ceilH - 0.08, 0, w - t * 2, 0.08, d - t * 2, floorMat);
   tag(ceiling, "ceiling", { height: ceilH });
 
-  // Front wall (+Z) with a doorway.
-  const frontZ = d / 2 - t / 2;
-  wallSegX(group, -w / 2, -halfGap, frontZ, t, h, wallMat);
-  wallSegX(group, halfGap, w / 2, frontZ, t, h, wallMat);
-  // Lintel above the door.
-  const lintelH = h - DOOR_H;
-  if (lintelH > 0.05) {
-    const lintel = box(group, 0, DOOR_H, frontZ, DOOR_W, lintelH, t, wallMat);
-    tag(lintel, "lintel", { openingW: DOOR_W, openingH: DOOR_H, fromFloor: 0 });
-  } else {
+  const front = wallX({
+    length: w,
+    height: h,
+    thickness: t,
+    openings: [{ x: 0, w: DOOR_W, h: DOOR_H, fromFloor: 0 }],
+    material: wallMat
+  });
+  mate(front, "wallSide", face(group, "front"), { offset: { z: -t / 2 } });
+  front.traverse((n) => {
+    if (n.userData.role === "header") {
+      tag(n, "lintel", { openingW: DOOR_W, openingH: DOOR_H, fromFloor: 0 });
+    }
+  });
+  if (front.userData.fullHeightDoor) {
     group.userData.fullHeightDoor = true;
   }
   group.userData.interiorDoor = { w: DOOR_W, h: DOOR_H };
 
-  // Back wall (-Z) and side walls.
-  wallSegX(group, -w / 2, w / 2, -d / 2 + t / 2, t, h, wallMat, true);
-  wallSegZ(group, -w / 2 + t / 2, -d / 2, d / 2, t, h, wallMat, true);
-  wallSegZ(group, w / 2 - t / 2, -d / 2, d / 2, t, h, wallMat, true);
+  const back = wallX({ length: w, height: h, thickness: t, material: wallMat });
+  mate(back, "wallSide", face(group, "back"), { offset: { z: t / 2 } });
+  const right = wallX({ length: d, height: h, thickness: t, material: wallMat });
+  mate(right, "wallSide", face(group, "right"), { offset: { x: -t / 2 } });
+  const left = wallX({ length: d, height: h, thickness: t, material: wallMat });
+  mate(left, "wallSide", face(group, "left"), { offset: { x: t / 2 } });
 }
 
 /**

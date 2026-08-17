@@ -22,7 +22,8 @@ import {
   chimney,
   glazing,
   collide,
-  tag
+  tag,
+  steps
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -270,12 +271,12 @@ export function createRanch() {
   });
   mate(eastPorch, "wallSide", face(main, "right", { along: 2.575 - MCZ }));
 
-  // Steps up to the front door.
-  for (let i = 0; i < 2; i += 1) {
-    const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 0.5), darkWood);
-    step.position.set(-MCX, 0.08 + i * 0.14, MD / 2 + 4.6 + 0.55 - i * 0.5);
-    main.add(step);
-  }
+  mate(
+    steps({ count: 2, width: 1.6, rise: 0.16, tread: 0.5, material: darkWood }),
+    "wallSide",
+    anchorsOf(southPorch).get("deckEdge"),
+    { offset: { x: -MCX, z: 0.55 } }
+  );
 
   collide(main, houseX + MCX, houseZ + MCZ, 0, [
     { x: (-10.5 + 4) / 2 - MCX, z: -MD / 2, halfX: mNorthLen / 2, halfZ: T / 2 },

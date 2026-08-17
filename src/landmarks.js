@@ -20,6 +20,7 @@ import {
   falseFront,
   steeple,
   parapet,
+  vigas,
   registerWaterPlacement,
   STRUCTURES,
   footprintsOverlap
@@ -124,15 +125,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   glazeWindows(front);
   glazeWindows(east);
   mate(parapet({ w, d, height: 0.42, material: adobe }), "base", anchorsOf(st).get("wallTop"));
-  const nVigas = Math.max(3, Math.round(w / 1.6));
-  for (let i = 0; i < nVigas; i += 1) {
-    const vx = -w / 2 + 0.7 + (i / (nVigas - 1)) * (w - 1.4);
-    const viga = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.15, 6), dark);
-    viga.rotation.x = Math.PI / 2;
-    viga.position.set(vx, eave - 0.12, d / 2 + 0.45);
-    viga.castShadow = true;
-    st.add(viga);
-  }
+  mate(vigas({ w, eave, material: dark }), "wallSide", face(st, "front"));
   const leaf = doorLeaf({
     width: 0.86,
     height: 2.03,
