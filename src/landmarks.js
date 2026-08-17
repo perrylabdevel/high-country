@@ -148,7 +148,8 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
 /**
  * Build one lot on a street. The building is a rotated structure facing the
  * street (local +Z = front). Commercial lots get a shed roof behind a false
- * front at the facade plane; the church and hotel get gable roofs. Enterable
+ * front at the facade plane; lots without a false front get a gable so the
+ * high shed edge does not fly above equal-height walls. Enterable
  * lots register their rotated group so interiors.js can build in the local
  * frame.
  */
@@ -207,13 +208,13 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
     );
   }
 
-  // Roof. Church and hotel get gables; commercial gets a shed behind the false
-  // front (drains to the rear, -Z).
+  // Shed only behind a false front — otherwise the high edge flies above
+  // equal-height walls. Church, hotel, and side-street lots get gables.
   let roofGroup;
-  if (lot.steeple || lot.gable) {
-    roofGroup = gableRoof({ w, d, pitch: 0.5, overhang: 0.45, eave: h, material: roof });
-  } else {
+  if (lot.falseFront) {
     roofGroup = shedRoof({ w, d, pitch: 0.15, overhang: 0.3, eave: h, highFront: true, material: roof });
+  } else {
+    roofGroup = gableRoof({ w, d, pitch: 0.5, overhang: 0.45, eave: h, material: roof });
   }
   mate(roofGroup, "base", anchorsOf(st).get("wallTop"));
 
@@ -353,7 +354,7 @@ export function createLandmarks(scene) {
     { w: 8, h: 4.6, d: 7 },
     { w: 7, h: 3.8, d: 6 }
   ], wood, dark, stone, roof);
-  boxAt(group, town.x + 8, town.z + 28, 16, 3.2, 8, rust);
+  boxAt(group, town.x + 8, town.z + 40, 16, 3.2, 8, rust);
 
   const hitchC = Math.cos(townYaw);
   const hitchS = Math.sin(townYaw);

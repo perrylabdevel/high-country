@@ -121,6 +121,30 @@ building left its collider square to the world.
 frame, reuse the existing AABB resolve, rotate back. ~15 lines.
 **Note:** this had to land *before* any rotation work, not after.
 
+### 2.9 Shed roofs and blocked openings are not named special cases
+
+**Symptom:** the ranch smith bay opened into the corral fence (sub-metre gap);
+its shed sat on four equal walls with no false front, so the ridge flew. The
+church door had the same shape of bug against a neighboring lot. Both were
+caught as `name === "blacksmith"` / church-only checks, so the next copy
+would have shipped.
+
+**Cause:** anchors make two frames coincide. They do not choose a roof form,
+and they do not ask whether the space *outside* an opening is walkable. A
+fence is not a kit structure; `boxAt` colliders are not footprints.
+
+**Fix:** `check-buildings.mjs` now asserts, for every kit structure: a shed
+on equal-height walls must have a false front (or a wall that reaches the
+ridge); every perimeter door/bay/barn must have 1.5 m of clear approach
+along the opening normal, against other footprints *and* foreign colliders.
+Independent literals in the same file prove both predicates before the
+scene is built. Side-street lots without false fronts got gables; the rust
+warehouse on Silver Creek's south row moved behind the lots (`town.z+40`)
+so a door was not inside its collider.
+
+**Found by:** the ranch smith yaw/roof pass, then running the generalized
+check against the rest of the town.
+
 ---
 
 ## 3. Verification — the expensive lessons

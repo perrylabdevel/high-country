@@ -38,7 +38,7 @@ const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
 const { unmatedRequired, worldAnchor, anchorsOf } = await import("../src/buildings/anchors.js");
-const { WATER, POS } = await import("../src/map.js");
+const { WATER } = await import("../src/map.js");
 
 function walk(obj, fn) {
   fn(obj);
@@ -88,6 +88,147 @@ function label(s) {
 function worldBox(obj) {
   obj.updateMatrixWorld(true);
   return new THREE.Box3().setFromObject(obj);
+}
+
+/** Shed on equal-height walls with no false front leaves a flying ridge. */
+function shedUnfinished(roof, walls, hasFalseFront) {
+  if (roof.userData.type !== "shed") {
+    return false;
+  }
+  if (hasFalseFront) {
+    return false;
+  }
+  const ridge = roof.userData.roofTop;
+  return !walls.some((w) => (w.userData.height || 0) >= ridge - 0.05);
+}
+
+function pointInCollider(col, x, z, pad) {
+  const dx = x - col.x;
+  const dz = z - col.z;
+  const c = Math.cos(-(col.yaw || 0));
+  const s = Math.sin(-(col.yaw || 0));
+  const lx = dx * c - dz * s;
+  const lz = dx * s + dz * c;
+  return Math.abs(lx) <= col.halfX + pad && Math.abs(lz) <= col.halfZ + pad;
+}
+
+function colliderIsOwn(s, col) {
+  const u = s.userData;
+  const dx = col.x - u.x;
+  const dz = col.z - u.z;
+  const c = Math.cos(-(u.yaw || 0));
+  const sn = Math.sin(-(u.yaw || 0));
+  const lx = dx * c - dz * sn;
+  const lz = dx * sn + dz * c;
+  const hw = u.w / 2;
+  const hd = u.d / 2;
+  if (
+    Math.hypot(lx, lz) < 0.6 &&
+    Math.abs(col.halfX - hw) < 0.4 &&
+    Math.abs(col.halfZ - hd) < 0.4
+  ) {
+    return true;
+  }
+  // Thin perimeter walls, including segments split around an opening. A
+  // fence 0.4 m outside the face is not own — that is the ranch-smith case.
+  if (Math.min(col.halfX, col.halfZ) >= 0.45) {
+    return false;
+  }
+  const onFrontOrBack = Math.abs(Math.abs(lz) - hd) < 0.25 && Math.abs(lx) <= hw + 0.3;
+  const onLeftOrRight = Math.abs(Math.abs(lx) - hw) < 0.25 && Math.abs(lz) <= hd + 0.3;
+  return onFrontOrBack || onLeftOrRight;
+}
+
+function onPerimeter(s, wall) {
+  const u = s.userData;
+  return (
+    Math.abs(Math.abs(wall.position.x) - u.w / 2) < 0.45 ||
+    Math.abs(Math.abs(wall.position.z) - u.d / 2) < 0.45
+  );
+}
+
+/**
+ * Walkable opening whose outward 1.5 m is blocked by another footprint or a
+ * collider that is not this structure (fence, trough, neighboring wall).
+ * Opening normals face out after mate() (wallSide is -Z, opening is +Z).
+ */
+function openingApproachBlocked(s, worldOpening, structures, colliders) {
+  const outwardX = worldOpening.normal.x;
+  const outwardZ = worldOpening.normal.z;
+  const pad = 0.3;
+  const probe = { w: 1.2, d: 1.2, yaw: 0 };
+  for (let dist = 0; dist <= 1.5 + 1e-6; dist += 0.25) {
+    const x = worldOpening.position.x + outwardX * dist;
+    const z = worldOpening.position.z + outwardZ * dist;
+    for (const other of structures) {
+      if (other === s) {
+        continue;
+      }
+      if (footprintsOverlap({ ...probe, x, z }, other.userData, 0)) {
+        return `${dist.toFixed(2)} m out is inside ${label(other)}`;
+      }
+    }
+    if (dist < 0.2) {
+      continue;
+    }
+    for (const col of colliders) {
+      if (colliderIsOwn(s, col)) {
+        continue;
+      }
+      if (pointInCollider(col, x, z, pad)) {
+        return `${dist.toFixed(2)} m out hits a collider at (${col.x.toFixed(1)}, ${col.z.toFixed(1)})`;
+      }
+    }
+  }
+  return null;
+}
+
+{
+  const roof = { userData: { type: "shed", roofTop: 5 } };
+  const equalWalls = [{ userData: { height: 4 } }, { userData: { height: 4 } }];
+  if (!shedUnfinished(roof, equalWalls, false)) {
+    throw new Error("equal-height shed without a false front must be unfinished");
+  }
+  if (shedUnfinished(roof, equalWalls, true)) {
+    throw new Error("a false front finishes a shed");
+  }
+  if (shedUnfinished(roof, [{ userData: { height: 5 } }], false)) {
+    throw new Error("a wall to the ridge finishes a shed");
+  }
+  if (shedUnfinished({ userData: { type: "gable", roofTop: 5 } }, equalWalls, false)) {
+    throw new Error("a gable is not an unfinished shed");
+  }
+}
+
+{
+  const self = {
+    userData: {
+      name: "probe",
+      x: 0,
+      z: 0,
+      w: 8,
+      d: 6,
+      yaw: 0,
+      colliderWalls: [{ x: 0, z: 3, halfX: 4, halfZ: 0.11 }]
+    }
+  };
+  const opening = { position: { x: 0, y: 1, z: 3 }, normal: { x: 0, y: 0, z: 1 } };
+  const nearFence = { x: 0, z: 3.4, halfX: 5, halfZ: 0.22, yaw: 0 };
+  const farFence = { x: 0, z: 20, halfX: 5, halfZ: 0.22, yaw: 0 };
+  const ownWall = { x: 0, z: 3, halfX: 4, halfZ: 0.21, yaw: 0 };
+  const hit = openingApproachBlocked(self, opening, [], [nearFence, ownWall]);
+  if (!hit) {
+    throw new Error("openingApproachBlocked missed a fence 0.4 m outside the door");
+  }
+  const clear = openingApproachBlocked(self, opening, [], [farFence, ownWall]);
+  if (clear) {
+    throw new Error(`openingApproachBlocked flagged a fence 17 m away (${clear})`);
+  }
+  const neighbor = { userData: { name: "other", x: 0, z: 6, w: 8, d: 6, yaw: 0 } };
+  const intoLot = openingApproachBlocked(self, opening, [self, neighbor], [ownWall]);
+  if (!intoLot) {
+    throw new Error("openingApproachBlocked missed a door that opens into another footprint");
+  }
 }
 
 bakeHeightfield();
@@ -195,12 +336,15 @@ for (const s of STRUCTURES) {
       `${label(s)} roof plan ${size.x.toFixed(2)}×${size.z.toFixed(2)} < footprint ${u.w}×${u.d}`
     );
 
-    // Ranch smith: a shed on four equal walls leaves the high edge flying.
-    // Town smith hides that edge with a false front.
-    if (u.name === "blacksmith" && roof.userData.type === "shed") {
-      const hasFalseFront = collect(s, (n) => n.userData.role === "falseFront").length > 0;
+    // Shed on equal-height walls leaves the high edge flying unless a false
+    // front (or a wall that reaches the ridge) hides it.
+    if (shedUnfinished(
+      roof,
+      collect(s, (n) => n.userData.role === "wall"),
+      collect(s, (n) => n.userData.role === "falseFront").length > 0
+    )) {
       check(
-        hasFalseFront,
+        false,
         `${label(s)} shed roof ridge is ${(roof.userData.roofTop - u.eave).toFixed(2)} m above equal-height walls with no false front`
       );
     }
@@ -238,6 +382,23 @@ for (const s of STRUCTURES) {
         );
         doorOpenings.push(o);
       }
+    }
+
+    if (onPerimeter(s, wall)) {
+      (wall.userData.openings || []).forEach((o, i) => {
+        if (openingClass(o) === "window") {
+          return;
+        }
+        if (!anchorsOf(wall).get(`opening.${i}`)) {
+          return;
+        }
+        const world = worldAnchor(wall, `opening.${i}`);
+        const blocked = openingApproachBlocked(s, world, STRUCTURES, colliders);
+        check(
+          !blocked,
+          `${label(s)} ${openingClass(o)} at (${world.position.x.toFixed(1)}, ${world.position.z.toFixed(1)}) ${blocked}`
+        );
+      });
     }
   }
 
@@ -374,77 +535,6 @@ for (let i = 0; i < SILVER.length; i += 1) {
         `${label(SILVER[i])} overlaps ${label(SILVER[j])} (centres ${Math.hypot(a.x - b.x, a.z - b.z).toFixed(1)} m apart)`
       );
     }
-  }
-}
-
-const church = STRUCTURES.find((s) => s.userData.name === "church");
-if (church) {
-  church.updateMatrixWorld(true);
-  let churchDoor = null;
-  church.traverse((n) => {
-    if (churchDoor || n.userData?.role !== "wall") {
-      return;
-    }
-    if (anchorsOf(n).get("opening.0")) {
-      churchDoor = worldAnchor(n, "opening.0");
-    }
-  });
-  check(Boolean(churchDoor), "church has no door opening");
-  if (churchDoor) {
-    const blocker = SILVER.find((s) => {
-      if (s === church) {
-        return false;
-      }
-      return footprintsOverlap(
-        { x: churchDoor.position.x, z: churchDoor.position.z, w: 1.2, d: 1.2, yaw: 0 },
-        s.userData,
-        0
-      );
-    });
-    check(
-      !blocker,
-      blocker
-        ? `church door at (${churchDoor.position.x.toFixed(1)}, ${churchDoor.position.z.toFixed(1)}) is inside ${label(blocker)}`
-        : "church door blocked"
-    );
-  }
-}
-
-const ranchSmith = STRUCTURES.find((s) => {
-  if (s.userData.name !== "blacksmith") {
-    return false;
-  }
-  return Math.hypot(s.userData.x - POS.ranch.x, s.userData.z - POS.ranch.z) < 80;
-});
-check(Boolean(ranchSmith), "ranch blacksmith is missing");
-if (ranchSmith) {
-  ranchSmith.updateMatrixWorld(true);
-  let bay = null;
-  ranchSmith.traverse((n) => {
-    if (bay || n.userData?.role !== "wall") {
-      return;
-    }
-    const opening = (n.userData.openings || []).find((o) => o.class === "bay");
-    if (opening && anchorsOf(n).get("opening.0")) {
-      bay = worldAnchor(n, "opening.0");
-    }
-  });
-  check(Boolean(bay), "ranch blacksmith has no bay opening");
-  if (bay) {
-    const x0 = POS.ranch.x + 12;
-    const x1 = POS.ranch.x + 42;
-    const z0 = POS.ranch.z + 28;
-    const z1 = POS.ranch.z + 48;
-    const px = bay.position.x;
-    const pz = bay.position.z;
-    const inside = px >= x0 && px <= x1 && pz >= z0 && pz <= z1;
-    const approachX = px + bay.normal.x * 2.5;
-    const approachZ = pz + bay.normal.z * 2.5;
-    const approachInside = approachX >= x0 && approachX <= x1 && approachZ >= z0 && approachZ <= z1;
-    check(
-      !inside && !approachInside,
-      `ranch blacksmith bay at (${px.toFixed(1)}, ${pz.toFixed(1)}) opens into the corral`
-    );
   }
 }
 
