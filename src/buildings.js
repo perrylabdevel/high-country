@@ -23,7 +23,8 @@ import {
   glazing,
   collide,
   tag,
-  steps
+  steps,
+  anvil
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -414,9 +415,19 @@ export function createRanch() {
   const smithRoof = shedRoof({ w: SW, d: SD, pitch: 0.2, overhang: 0.3, eave: SEAVE, material: roof });
   mate(smithRoof, "base", anchorsOf(smith).get("wallTop"));
 
-  const anvil = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.7, 0.5), new THREE.MeshStandardNodeMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.4 }));
-  anvil.position.set(0, 0.55, 0);
-  smith.add(anvil);
+  const smithBay = doorLeaf({
+    width: 2.4, height: 2.6, thickness: 0.18, hinge: -1.2, swing: 0, material: darkWood
+  });
+  smithBay.userData.class = "bay";
+  mate(smithBay, "frame", anchorsOf(smithSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
+
+  const iron = new THREE.MeshStandardNodeMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.4 });
+  mate(
+    anvil({ width: 1.1, height: 0.7, depth: 0.5, material: iron }),
+    "base",
+    anchorsOf(smith).get("footing"),
+    { offset: { x: 0, y: 0.2, z: 0 } }
+  );
 
   collide(smith, smithX, smithZ, 0, [
     { x: 0, z: -SD / 2, halfX: SW / 2, halfZ: T / 2 },

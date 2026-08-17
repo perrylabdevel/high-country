@@ -415,6 +415,23 @@ export function chimney({ width, height, depth, material }) {
 }
 
 /**
+ * Anvil block. Origin at the base so `base` mates to `footing`.
+ */
+export function anvil({ width = 1.1, height = 0.7, depth = 0.5, material }) {
+  const group = new THREE.Group();
+  tag(group, "anvil");
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+  mesh.position.y = height / 2;
+  mesh.castShadow = true;
+  group.add(mesh);
+  defineAnchor(group, "base", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
+  });
+  return group;
+}
+
+/**
  * False-front parapet: street board, side returns, and a cap. Origin at the
  * facade plane so `wallSide` mates to `face.front`. Dimensions match the
  * typed Silver Creek lots (parapet 0.3 m in front of the wall).

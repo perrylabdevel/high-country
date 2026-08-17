@@ -21,7 +21,8 @@ import {
   parapet,
   footprintsOverlap,
   steps,
-  vigas
+  vigas,
+  anvil
 } from "../src/buildings/kit.js";
 import { bakeHeightfield } from "../src/heightfield.js";
 import { anchorsOf, unmatedRequired, face, mate, worldAnchor, defineAnchor } from "../src/buildings/anchors.js";
@@ -835,6 +836,60 @@ matedInBack.updateMatrixWorld(true);
 const inBackAfter = new THREE.Box3().setFromObject(matedInBack);
 if (inBackBefore.min.distanceTo(inBackAfter.min) > 1e-4 || inBackBefore.max.distanceTo(inBackAfter.max) > 1e-4) {
   throw new Error("interior back wall world box drifted from typed z = -d/2 + t/2");
+}
+
+const ANVIL_H = 0.7;
+const ANVIL_Y = 0.55;
+const anvilHouse = structure({ x: 0, z: 0, w: 8, d: 7, eave: 3.6, name: "anvilMate" });
+const typedAnvil = new THREE.Mesh(new THREE.BoxGeometry(1.1, ANVIL_H, 0.5), wood);
+typedAnvil.position.set(0, ANVIL_Y, 0);
+anvilHouse.add(typedAnvil);
+typedAnvil.updateMatrixWorld(true);
+const anvilBefore = new THREE.Box3().setFromObject(typedAnvil);
+anvilHouse.remove(typedAnvil);
+
+const matedAnvil = anvil({ width: 1.1, height: ANVIL_H, depth: 0.5, material: wood });
+mate(matedAnvil, "base", anchorsOf(anvilHouse).get("footing"), {
+  offset: { x: 0, y: ANVIL_Y - ANVIL_H / 2, z: 0 }
+});
+matedAnvil.updateMatrixWorld(true);
+const anvilAfter = new THREE.Box3().setFromObject(matedAnvil);
+if (anvilBefore.min.distanceTo(anvilAfter.min) > 1e-5 || anvilBefore.max.distanceTo(anvilAfter.max) > 1e-5) {
+  throw new Error("anvil world box drifted from the typed mesh at y = 0.55");
+}
+
+const BAY_W = 2.4;
+const BAY_H = 2.6;
+const bayHouse = structure({ x: 0, z: 0, w: 8, d: 7, eave: 3.6, name: "bayMate" });
+const bayWall = wallX({
+  length: 8,
+  height: 3.6,
+  thickness: WALL_T,
+  openings: [{ x: 0, w: BAY_W, h: BAY_H, fromFloor: 0, class: "bay" }],
+  material: wood
+});
+mate(bayWall, "wallSide", face(bayHouse, "front"));
+const bayLeaf = doorLeaf({
+  width: BAY_W,
+  height: BAY_H,
+  thickness: 0.18,
+  hinge: -BAY_W / 2,
+  swing: 0,
+  material: wood
+});
+bayLeaf.userData.class = "bay";
+mate(bayLeaf, "frame", anchorsOf(bayWall).get("opening.0"), { offset: { x: 0, y: 0, z: -WALL_T / 2 } });
+bayHouse.updateMatrixWorld(true);
+bayLeaf.updateMatrixWorld(true);
+const bayFrame = worldAnchor(bayLeaf, "frame");
+const bayOpen = worldAnchor(bayWall, "opening.0");
+const bayTarget = bayOpen.position.clone();
+bayTarget.z -= WALL_T / 2;
+if (bayFrame.position.distanceTo(bayTarget) > 1e-4) {
+  throw new Error(`bay door frame not on opening: ${bayFrame.position.toArray()} vs ${bayTarget.toArray()}`);
+}
+if (Math.abs(bayLeaf.position.x + BAY_W / 2) > 1e-4) {
+  throw new Error(`bay hinge at x=${bayLeaf.position.x}, want left jamb ${-BAY_W / 2}`);
 }
 
 console.log("PASS");
