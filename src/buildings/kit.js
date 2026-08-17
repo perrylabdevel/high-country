@@ -13,7 +13,7 @@
  */
 import * as THREE from "three/webgpu";
 import { heightAt } from "../world.js";
-import { addOrientedBoxCollider, addBoxCollider } from "../collision.js";
+import { addOrientedBoxCollider, addBoxCollider, addCylinderCollider } from "../collision.js";
 import { defineAnchor, recordMate, mate, anchorsOf } from "./anchors.js";
 
 /** Registry of every structure Group built via structure(), for the geometry checks. */
@@ -452,16 +452,55 @@ export function block({ w, h, d, material, role = "prop", extra = {} }) {
 }
 
 /**
- * A pad on the terrain at a single heightAt sample — the same seat as
- * `place()` / `boxAt`, not four-corner footing(). Has a `footing` frame so
- * `block` can mate without registering a kit structure.
+ * A cylinder that sits on a surface. Origin at the base so `base` mates to
+ * `footing`. Mesh is the same CylinderGeometry the typed `cylAt` used.
  */
-export function grounded({ x, z, yaw = 0, name } = {}) {
+export function post({ rTop, rBot, h, material, radialSegments = 8, role = "prop", extra = {} }) {
+  const group = new THREE.Group();
+  tag(group, role, extra);
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, radialSegments), material);
+  mesh.position.y = h / 2;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  defineAnchor(group, "base", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
+  });
+  return group;
+}
+
+/**
+ * A cone that sits on a surface. Origin at the base so `base` mates to
+ * `footing`. Mesh is the same ConeGeometry the typed `coneAt` used.
+ */
+export function cone({ r, h, material, radialSegments = 7, role = "prop", extra = {} }) {
+  const group = new THREE.Group();
+  tag(group, role, extra);
+  const mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, radialSegments), material);
+  mesh.position.y = h / 2;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  defineAnchor(group, "base", {
+    position: { x: 0, y: 0, z: 0 },
+    normal: { x: 0, y: -1, z: 0 }
+  });
+  return group;
+}
+
+/**
+ * A pad on the terrain at a single heightAt sample — the same seat as
+ * `place()` / `boxAt`, not four-corner footing(). Pass `y` to sit on WATER
+ * (or any other plane) instead of terrain. Has a `footing` frame so pieces
+ * can mate without registering a kit structure.
+ */
+export function grounded({ x, z, y, yaw = 0, name } = {}) {
   const group = new THREE.Group();
   if (name) {
     group.userData.name = name;
   }
-  group.position.set(x, heightAt(x, z), z);
+  group.position.set(x, y ?? heightAt(x, z), z);
   group.rotation.y = yaw;
   defineAnchor(group, "footing", {
     position: { x: 0, y: 0, z: 0 },
@@ -481,6 +520,51 @@ export function boxOnGround(parent, x, z, w, h, d, material, collide = true, yOf
   parent.add(pad);
   if (collide) {
     addBoxCollider(x, z, w / 2, d / 2);
+  }
+  return piece;
+}
+
+/**
+ * Typed box whose base sits on an explicit world Y, not heightAt. Dock
+ * decks use WATER; a terrain pad would float them or drown them.
+ */
+export function boxOnPlane(parent, x, y, z, w, h, d, material, collide = true, yOff = 0) {
+  const pad = grounded({ x, z, y });
+  const piece = block({ w, h, d, material });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addBoxCollider(x, z, w / 2, d / 2);
+  }
+  return piece;
+}
+
+/**
+ * Typed `cylAt`: a post mated to a grounded pad. Does not register a kit
+ * structure.
+ */
+export function cylOnGround(parent, x, z, rTop, rBot, h, material, collide = true, colliderR, yOff = 0, radialSegments = 8) {
+  const pad = grounded({ x, z });
+  const piece = post({ rTop, rBot, h, material, radialSegments });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addCylinderCollider(x, z, colliderR ?? Math.max(rTop, rBot));
+  }
+  return piece;
+}
+
+/**
+ * Typed `coneAt`: a cone mated to a grounded pad. Does not register a kit
+ * structure.
+ */
+export function coneOnGround(parent, x, z, r, h, material, collide = false, yOff = 0, colliderR, radialSegments = 7) {
+  const pad = grounded({ x, z });
+  const piece = cone({ r, h, material, radialSegments });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addCylinderCollider(x, z, colliderR ?? r * 0.45);
   }
   return piece;
 }

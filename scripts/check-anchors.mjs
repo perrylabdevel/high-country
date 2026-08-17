@@ -24,8 +24,13 @@ import {
   vigas,
   anvil,
   block,
+  post,
+  cone,
   grounded,
   boxOnGround,
+  boxOnPlane,
+  cylOnGround,
+  coneOnGround,
   STRUCTURES
 } from "../src/buildings/kit.js";
 import { bakeHeightfield, heightAt } from "../src/heightfield.js";
@@ -989,6 +994,73 @@ if (boxAtBefore.min.distanceTo(boxAtAfter.min) > 1e-5 || boxAtBefore.max.distanc
 }
 if (STRUCTURES.length !== structuresBeforeGrounded) {
   throw new Error("boxOnGround() must not register a kit structure");
+}
+
+const CYL_RT = 0.1;
+const CYL_RB = 0.12;
+const CYL_H = 9;
+const typedCyl = new THREE.Mesh(new THREE.CylinderGeometry(CYL_RT, CYL_RB, CYL_H, 8), wood);
+typedCyl.position.set(GROUND_X, groundY + CYL_H / 2, GROUND_Z);
+typedCyl.updateMatrixWorld(true);
+const cylBefore = new THREE.Box3().setFromObject(typedCyl);
+const matedCyl = cylOnGround(boxParent, GROUND_X, GROUND_Z, CYL_RT, CYL_RB, CYL_H, wood, false);
+boxParent.updateMatrixWorld(true);
+const cylAfter = new THREE.Box3().setFromObject(matedCyl);
+if (cylBefore.min.distanceTo(cylAfter.min) > 1e-5 || cylBefore.max.distanceTo(cylAfter.max) > 1e-5) {
+  throw new Error("cylOnGround world box drifted from typed cylAt");
+}
+
+const CONE_R = 2.5;
+const CONE_H = 4;
+const CONE_OFF = 0.2;
+const typedCone = new THREE.Mesh(new THREE.ConeGeometry(CONE_R, CONE_H, 7), wood);
+typedCone.position.set(GROUND_X, groundY + CONE_H / 2 + CONE_OFF, GROUND_Z);
+typedCone.updateMatrixWorld(true);
+const coneBefore = new THREE.Box3().setFromObject(typedCone);
+const matedCone = coneOnGround(boxParent, GROUND_X, GROUND_Z, CONE_R, CONE_H, wood, false, CONE_OFF);
+boxParent.updateMatrixWorld(true);
+const coneAfter = new THREE.Box3().setFromObject(matedCone);
+if (coneBefore.min.distanceTo(coneAfter.min) > 1e-5 || coneBefore.max.distanceTo(coneAfter.max) > 1e-5) {
+  throw new Error("coneOnGround world box drifted from typed coneAt");
+}
+
+const PLANE_Y = 13.1;
+const DOCK_H = 0.35;
+const typedDock = new THREE.Mesh(new THREE.BoxGeometry(4, DOCK_H, 18), wood);
+typedDock.position.set(GROUND_X, PLANE_Y, GROUND_Z);
+typedDock.updateMatrixWorld(true);
+const dockBefore = new THREE.Box3().setFromObject(typedDock);
+const waterPad = grounded({ x: GROUND_X, z: GROUND_Z, y: PLANE_Y });
+if (Math.abs(waterPad.position.y - PLANE_Y) > 1e-5) {
+  throw new Error("grounded({ y }) must sit on the given plane, not heightAt");
+}
+const matedDock = boxOnPlane(boxParent, GROUND_X, PLANE_Y - DOCK_H / 2, GROUND_Z, 4, DOCK_H, 18, wood, false);
+boxParent.updateMatrixWorld(true);
+const dockAfter = new THREE.Box3().setFromObject(matedDock);
+if (dockBefore.min.distanceTo(dockAfter.min) > 1e-5 || dockBefore.max.distanceTo(dockAfter.max) > 1e-5) {
+  throw new Error("boxOnPlane world box drifted from typed dock deck on WATER");
+}
+
+const postPad = grounded({ x: GROUND_X, z: GROUND_Z });
+const matedPost = post({ rTop: CYL_RT, rBot: CYL_RB, h: CYL_H, material: wood });
+mate(matedPost, "base", anchorsOf(postPad).get("footing"));
+postPad.updateMatrixWorld(true);
+const postAfter = new THREE.Box3().setFromObject(matedPost);
+if (cylBefore.min.distanceTo(postAfter.min) > 1e-5 || cylBefore.max.distanceTo(postAfter.max) > 1e-5) {
+  throw new Error("post world box drifted from typed cylinder sitting on heightAt");
+}
+
+const conePad = grounded({ x: GROUND_X, z: GROUND_Z });
+const matedSpike = cone({ r: CONE_R, h: CONE_H, material: wood });
+mate(matedSpike, "base", anchorsOf(conePad).get("footing"), { offset: { y: CONE_OFF } });
+conePad.updateMatrixWorld(true);
+const spikeAfter = new THREE.Box3().setFromObject(matedSpike);
+if (coneBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneBefore.max.distanceTo(spikeAfter.max) > 1e-5) {
+  throw new Error("cone world box drifted from typed coneAt");
+}
+
+if (STRUCTURES.length !== structuresBeforeGrounded) {
+  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane must not register a kit structure");
 }
 
 console.log("PASS");
