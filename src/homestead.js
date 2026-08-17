@@ -2,9 +2,8 @@
 
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
-import { heightAt } from "./world.js";
-import { addBoxCollider, addCylinderCollider } from "./collision.js";
-import { boxOnGround } from "./buildings/kit.js";
+import { addBoxCollider } from "./collision.js";
+import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -15,25 +14,11 @@ function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
 }
 
 function cylAt(group, x, z, rTop, rBot, h, material, collide = true) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, 8), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2, z);
-  mesh.castShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addCylinderCollider(x, z, Math.max(rTop, rBot));
-  }
-  return mesh;
+  return cylOnGround(group, x, z, rTop, rBot, h, material, collide);
 }
 
 function coneAt(group, x, z, r, h, material, collide = false, yOff = 0) {
-  const mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + yOff, z);
-  mesh.castShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addCylinderCollider(x, z, r * 0.45);
-  }
-  return mesh;
+  return coneOnGround(group, x, z, r, h, material, collide, yOff);
 }
 
 function cemeteryFence(group, wood, stone) {

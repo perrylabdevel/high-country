@@ -24,7 +24,8 @@ import {
   steps,
   anvil,
   block,
-  grounded
+  grounded,
+  post
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -48,12 +49,6 @@ export function createRanch() {
   });
 
   const group = new THREE.Group();
-
-  function place(obj, x, z) {
-    obj.position.set(ox + x, groundY(ox + x, oz + z), oz + z);
-    group.add(obj);
-    return obj;
-  }
 
   // ---------------- Ranch house (L-plan: main block + kitchen ell) ----------------
   // Two kit structures sharing one seat height so the floors line up. The main
@@ -439,20 +434,16 @@ export function createRanch() {
   group.add(smith);
 
   // ---------------- Windmill (American multi-vane) ----------------
-  const mill = new THREE.Group();
   const millX = ox + 34;
   const millZ = oz - 6;
-  const millY = groundY(millX, millZ);
+  const mill = grounded({ x: millX, z: millZ, name: "windmill" });
+  const millFoot = anchorsOf(mill).get("footing");
   const towerH = 9;
-  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, towerH, 8), darkWood);
-  tower.position.set(millX, millY + towerH / 2, millZ);
-  tower.castShadow = true;
-  mill.add(tower);
+  mate(post({ rTop: 0.5, rBot: 0.9, h: towerH, material: darkWood }), "base", millFoot);
   for (const [dx, dz] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.18, towerH, 0.18), darkWood);
-    leg.position.set(millX + dx, millY + towerH / 2, millZ + dz);
-    leg.castShadow = true;
-    mill.add(leg);
+    mate(block({ w: 0.18, h: towerH, d: 0.18, material: darkWood }), "base", millFoot, {
+      offset: { x: dx, z: dz }
+    });
   }
   const fan = new THREE.Group();
   const fanMat = new THREE.MeshStandardNodeMaterial({ color: 0xd9c49a, roughness: 0.7 });
@@ -470,10 +461,10 @@ export function createRanch() {
   const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 0.6), fanMat);
   tail.position.set(0, 0, 1.1);
   fan.add(tail);
-  fan.position.set(millX, millY + towerH + 0.4, millZ);
+  fan.position.set(0, towerH + 0.4, 0);
   mill.add(fan);
   mill.userData.blades = fan;
-  place(mill, 34, -6);
+  group.add(mill);
   addCylinderCollider(millX, millZ, 0.9);
 
   // ---------------- Fences (3 rails) ----------------

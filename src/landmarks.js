@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
-import { addBoxCollider, addCylinderCollider } from "./collision.js";
+import { addBoxCollider } from "./collision.js";
 import { POS, WATER, mapToWorld, CREEKS } from "./map.js";
 import {
   makeWaterNormalTexture,
@@ -24,7 +24,10 @@ import {
   registerWaterPlacement,
   STRUCTURES,
   footprintsOverlap,
-  boxOnGround
+  boxOnGround,
+  boxOnPlane,
+  cylOnGround,
+  coneOnGround
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
@@ -34,28 +37,6 @@ function mat(color, extra = {}) {
 
 function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
   return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
-}
-
-function cylAt(group, x, z, rTop, rBot, h, material, collide = true) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, 8), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2, z);
-  mesh.castShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addCylinderCollider(x, z, Math.max(rTop, rBot));
-  }
-  return mesh;
-}
-
-function coneAt(group, x, z, r, h, material, collide = false, yOff = 0) {
-  const mesh = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + yOff, z);
-  mesh.castShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addCylinderCollider(x, z, r * 0.45);
-  }
-  return mesh;
 }
 
 export const ENTERABLE_LOTS = [];
@@ -368,50 +349,27 @@ export function createLandmarks(scene) {
   const dock = POS.lakeMercy;
   // Dock references WATER, not terrain height.
   const dockY = WATER + 0.1;
-  const dockDeck = new THREE.Mesh(new THREE.BoxGeometry(4, 0.35, 18), dark);
-  dockDeck.position.set(dock.x - 20, dockY, dock.z - 90);
-  dockDeck.castShadow = true;
-  dockDeck.receiveShadow = true;
-  group.add(dockDeck);
+  boxOnPlane(group, dock.x - 20, dockY - 0.175, dock.z - 90, 4, 0.35, 18, dark, false);
   registerWaterPlacement("dockDeck", dock.x - 20, dock.z - 90, dockY);
-  const dockPlank = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 10), dark);
-  dockPlank.position.set(dock.x - 28, dockY, dock.z - 84);
-  dockPlank.castShadow = true;
-  group.add(dockPlank);
+  boxOnPlane(group, dock.x - 28, dockY - 0.15, dock.z - 84, 2.4, 0.3, 10, dark, false);
   registerWaterPlacement("dockPlank", dock.x - 28, dock.z - 84, dockY);
   for (const [dx, dz] of [[-14, -102], [-14, -101.2], [-14, -102.8]]) {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.32, 3.1), dark);
-    post.position.set(dock.x + dx, dockY - 0.1, dock.z + dz);
-    post.castShadow = true;
-    group.add(post);
+    boxOnPlane(group, dock.x + dx, dockY - 0.1 - 0.16, dock.z + dz, 1.35, 0.32, 3.1, dark, false);
   }
   addBoxCollider(dock.x - 20, dock.z - 90, 2.2, 9.2);
 
   // Fire watch tower — four-legged braced tower with a lookout cabin.
   const tower = POS.fireWatch;
   const towerH = 18;
-  const towerY = heightAt(tower.x, tower.z);
   for (const [dx, dz] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, towerH, 6), dark);
-    leg.position.set(tower.x + dx, towerY + towerH / 2, tower.z + dz);
-    leg.castShadow = true;
-    group.add(leg);
+    cylOnGround(group, tower.x + dx, tower.z + dz, 0.12, 0.18, towerH, dark, false, undefined, 0, 6);
   }
   for (const [dx, dz] of [[-1.6, 0], [1.6, 0], [0, -1.6], [0, 1.6]]) {
-    const brace = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 3.2), dark);
-    brace.position.set(tower.x + dx, towerY + towerH * 0.5, tower.z + dz);
-    brace.castShadow = true;
-    group.add(brace);
+    boxOnGround(group, tower.x + dx, tower.z + dz, 0.1, 0.1, 3.2, dark, false, towerH * 0.5 - 0.05);
   }
-  const lookout = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.4, 4.2), wood);
-  lookout.position.set(tower.x, towerY + towerH + 1.2, tower.z);
-  lookout.castShadow = true;
-  group.add(lookout);
-  const lookoutRoof = new THREE.Mesh(new THREE.ConeGeometry(3.2, 1.6, 4), roof);
+  boxOnGround(group, tower.x, tower.z, 4.2, 2.4, 4.2, wood, false, towerH);
+  const lookoutRoof = coneOnGround(group, tower.x, tower.z, 3.2, 1.6, roof, false, towerH + 2.4, undefined, 4);
   lookoutRoof.rotation.y = Math.PI / 4;
-  lookoutRoof.position.set(tower.x, towerY + towerH + 2.4 + 0.8, tower.z);
-  lookoutRoof.castShadow = true;
-  group.add(lookoutRoof);
   addBoxCollider(tower.x, tower.z, 1.8, 1.8);
 
   // Timber camp — cabins with gable roofs.
@@ -452,7 +410,7 @@ export function createLandmarks(scene) {
   boxAt(group, POS.barrett.x, POS.barrett.z, 10, 5.5, 8, wood);
   boxAt(group, POS.barrett.x + 12, POS.barrett.z + 4, 8, 4, 6, dark);
   boxAt(group, POS.sheepCamp.x, POS.sheepCamp.z, 6, 2.6, 4, canvas);
-  coneAt(group, POS.sheepCamp.x + 8, POS.sheepCamp.z + 3, 2.4, 3.4, canvas, true);
+  coneOnGround(group, POS.sheepCamp.x + 8, POS.sheepCamp.z + 3, 2.4, 3.4, canvas, true);
 
   // Fort Grant — four equal walls with a centered gate on the east.
   const fort = POS.fortGrant;
@@ -518,10 +476,7 @@ export function createLandmarks(scene) {
   sheave.position.set(ivX, ivY + hfH, ivZ - 6);
   sheave.castShadow = true;
   group.add(sheave);
-  const shaftBox = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4, 3.5), dark);
-  shaftBox.position.set(ivX, ivY + 2, ivZ - 6);
-  shaftBox.castShadow = true;
-  group.add(shaftBox);
+  boxOnGround(group, ivX, ivZ - 6, 3.5, 4, 3.5, dark, false);
   addBoxCollider(ivX, ivZ - 6, 2, 2);
 
   // Stamp mill: an open-sided shed with a visible battery of stamp rods and a
@@ -568,23 +523,10 @@ export function createLandmarks(scene) {
 
   // Mission — adobe with a campanario on the facade (not a centered cone).
   const mission = POS.mission;
-  const missionBody = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 8), adobe);
-  missionBody.position.set(mission.x, heightAt(mission.x, mission.z) + 3, mission.z);
-  missionBody.castShadow = true;
-  missionBody.receiveShadow = true;
-  group.add(missionBody);
-  const missionRoof = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.4, 8.6), roof);
-  missionRoof.position.set(mission.x, heightAt(mission.x, mission.z) + 6.2, mission.z);
-  missionRoof.castShadow = true;
-  group.add(missionRoof);
-  const campanario = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.5, 1.6), adobe);
-  campanario.position.set(mission.x, heightAt(mission.x, mission.z) + 6 + 2.25, mission.z + 4.2);
-  campanario.castShadow = true;
-  group.add(campanario);
-  const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.8, 8), iron);
-  bell.position.set(mission.x, heightAt(mission.x, mission.z) + 6 + 3.4, mission.z + 4.2);
-  bell.castShadow = true;
-  group.add(bell);
+  boxOnGround(group, mission.x, mission.z, 10, 6, 8, adobe, false);
+  boxOnGround(group, mission.x, mission.z, 10.6, 0.4, 8.6, roof, false, 6);
+  boxOnGround(group, mission.x, mission.z + 4.2, 2.4, 4.5, 1.6, adobe, false, 6);
+  cylOnGround(group, mission.x, mission.z + 4.2, 0.5, 0.5, 0.8, iron, false, undefined, 9);
   addBoxCollider(mission.x, mission.z, 5.2, 4.2);
   boxAt(group, POS.vipers.x, POS.vipers.z, 7, 3, 5, rust);
   boxAt(group, POS.hideout.x, POS.hideout.z, 6, 2.6, 5, dark);
@@ -622,13 +564,8 @@ export function createLandmarks(scene) {
     const tx = POS.tribal.x + Math.cos(a) * r;
     const tz = POS.tribal.z + Math.sin(a) * r;
     const s = 0.8 + seeded(i * 0.3 + 0.7) * 0.5;
-    const tipi = new THREE.Mesh(new THREE.ConeGeometry(2.6 * s, 4.2 * s, 7), canvas);
-    tipi.position.set(tx, heightAt(tx, tz) + 2.1 * s, tz);
+    const tipi = coneOnGround(group, tx, tz, 2.6 * s, 4.2 * s, canvas, true, 0, 1.2 * s);
     tipi.rotation.y = seeded(tx * 0.1 + tz * 0.1) * Math.PI * 2;
-    tipi.castShadow = true;
-    tipi.receiveShadow = true;
-    group.add(tipi);
-    addCylinderCollider(tx, tz, 1.2 * s);
   }
 
   // Cemetery — headstones with jitter.
