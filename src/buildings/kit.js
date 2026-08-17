@@ -570,6 +570,21 @@ export function coneOnGround(parent, x, z, r, h, material, collide = false, yOff
 }
 
 /**
+ * Typed cone whose base sits on an explicit world Y, not heightAt. Tailings
+ * piles use the mill's sample so they do not stair-step on a slope.
+ */
+export function coneOnPlane(parent, x, y, z, r, h, material, collide = false, yOff = 0, colliderR, radialSegments = 7) {
+  const pad = grounded({ x, z, y });
+  const piece = cone({ r, h, material, radialSegments });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addCylinderCollider(x, z, colliderR ?? r * 0.45);
+  }
+  return piece;
+}
+
+/**
  * False-front parapet: street board, side returns, and a cap. Origin at the
  * facade plane so `wallSide` mates to `face.front`. Dimensions match the
  * typed Silver Creek lots (parapet 0.3 m in front of the wall).

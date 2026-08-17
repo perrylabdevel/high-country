@@ -31,6 +31,7 @@ import {
   boxOnPlane,
   cylOnGround,
   coneOnGround,
+  coneOnPlane,
   STRUCTURES
 } from "../src/buildings/kit.js";
 import { bakeHeightfield, heightAt } from "../src/heightfield.js";
@@ -1041,6 +1042,34 @@ if (dockBefore.min.distanceTo(dockAfter.min) > 1e-5 || dockBefore.max.distanceTo
   throw new Error("boxOnPlane world box drifted from typed dock deck on WATER");
 }
 
+const TAIL_R = 7;
+const TAIL_H = 5;
+const typedTail = new THREE.Mesh(new THREE.ConeGeometry(TAIL_R, TAIL_H, 10), wood);
+typedTail.position.set(GROUND_X, PLANE_Y + TAIL_H / 2, GROUND_Z);
+typedTail.updateMatrixWorld(true);
+const tailBefore = new THREE.Box3().setFromObject(typedTail);
+const matedTail = coneOnPlane(boxParent, GROUND_X, PLANE_Y, GROUND_Z, TAIL_R, TAIL_H, wood, false, 0, undefined, 10);
+boxParent.updateMatrixWorld(true);
+const tailAfter = new THREE.Box3().setFromObject(matedTail);
+if (tailBefore.min.distanceTo(tailAfter.min) > 1e-5 || tailBefore.max.distanceTo(tailAfter.max) > 1e-5) {
+  throw new Error("coneOnPlane world box drifted from typed tailings cone on mill height");
+}
+
+const TILT = 0.22;
+const LEG_H = 16;
+const typedTilt = new THREE.Mesh(new THREE.BoxGeometry(0.9, LEG_H, 0.9), wood);
+typedTilt.position.set(GROUND_X, PLANE_Y + LEG_H / 2, GROUND_Z);
+typedTilt.rotation.z = TILT;
+typedTilt.updateMatrixWorld(true);
+const tiltBefore = new THREE.Box3().setFromObject(typedTilt);
+const matedTilt = boxOnPlane(boxParent, GROUND_X, PLANE_Y, GROUND_Z, 0.9, LEG_H, 0.9, wood, false);
+matedTilt.children[0].rotation.z = TILT;
+boxParent.updateMatrixWorld(true);
+const tiltAfter = new THREE.Box3().setFromObject(matedTilt);
+if (tiltBefore.min.distanceTo(tiltAfter.min) > 1e-5 || tiltBefore.max.distanceTo(tiltAfter.max) > 1e-5) {
+  throw new Error("tilted boxOnPlane mesh drifted from typed A-frame leg");
+}
+
 const postPad = grounded({ x: GROUND_X, z: GROUND_Z });
 const matedPost = post({ rTop: CYL_RT, rBot: CYL_RB, h: CYL_H, material: wood });
 mate(matedPost, "base", anchorsOf(postPad).get("footing"));
@@ -1060,7 +1089,7 @@ if (coneBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneBefore.max.distanceT
 }
 
 if (STRUCTURES.length !== structuresBeforeGrounded) {
-  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane must not register a kit structure");
+  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane/coneOnPlane must not register a kit structure");
 }
 
 console.log("PASS");
