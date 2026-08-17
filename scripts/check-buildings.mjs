@@ -38,7 +38,7 @@ const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
 const { unmatedRequired, worldAnchor, anchorsOf } = await import("../src/buildings/anchors.js");
-const { WATER } = await import("../src/map.js");
+const { WATER, POS } = await import("../src/map.js");
 
 function walk(obj, fn) {
   fn(obj);
@@ -194,6 +194,16 @@ for (const s of STRUCTURES) {
       size.x + 0.05 >= u.w && size.z + 0.05 >= u.d,
       `${label(s)} roof plan ${size.x.toFixed(2)}×${size.z.toFixed(2)} < footprint ${u.w}×${u.d}`
     );
+
+    // Ranch smith: a shed on four equal walls leaves the high edge flying.
+    // Town smith hides that edge with a false front.
+    if (u.name === "blacksmith" && roof.userData.type === "shed") {
+      const hasFalseFront = collect(s, (n) => n.userData.role === "falseFront").length > 0;
+      check(
+        hasFalseFront,
+        `${label(s)} shed roof ridge is ${(roof.userData.roofTop - u.eave).toFixed(2)} m above equal-height walls with no false front`
+      );
+    }
   }
 
   // 3. Chimneys are continuous from near the floor, not floating above the eave.
@@ -396,6 +406,44 @@ if (church) {
       blocker
         ? `church door at (${churchDoor.position.x.toFixed(1)}, ${churchDoor.position.z.toFixed(1)}) is inside ${label(blocker)}`
         : "church door blocked"
+    );
+  }
+}
+
+const ranchSmith = STRUCTURES.find((s) => {
+  if (s.userData.name !== "blacksmith") {
+    return false;
+  }
+  return Math.hypot(s.userData.x - POS.ranch.x, s.userData.z - POS.ranch.z) < 80;
+});
+check(Boolean(ranchSmith), "ranch blacksmith is missing");
+if (ranchSmith) {
+  ranchSmith.updateMatrixWorld(true);
+  let bay = null;
+  ranchSmith.traverse((n) => {
+    if (bay || n.userData?.role !== "wall") {
+      return;
+    }
+    const opening = (n.userData.openings || []).find((o) => o.class === "bay");
+    if (opening && anchorsOf(n).get("opening.0")) {
+      bay = worldAnchor(n, "opening.0");
+    }
+  });
+  check(Boolean(bay), "ranch blacksmith has no bay opening");
+  if (bay) {
+    const x0 = POS.ranch.x + 12;
+    const x1 = POS.ranch.x + 42;
+    const z0 = POS.ranch.z + 28;
+    const z1 = POS.ranch.z + 48;
+    const px = bay.position.x;
+    const pz = bay.position.z;
+    const inside = px >= x0 && px <= x1 && pz >= z0 && pz <= z1;
+    const approachX = px + bay.normal.x * 2.5;
+    const approachZ = pz + bay.normal.z * 2.5;
+    const approachInside = approachX >= x0 && approachX <= x1 && approachZ >= z0 && approachZ <= z1;
+    check(
+      !inside && !approachInside,
+      `ranch blacksmith bay at (${px.toFixed(1)}, ${pz.toFixed(1)}) opens into the corral`
     );
   }
 }

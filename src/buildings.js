@@ -15,7 +15,6 @@ import {
   footing,
   gableRoof,
   hipRoof,
-  shedRoof,
   wallX,
   doorLeaf,
   porch,
@@ -395,7 +394,7 @@ export function createRanch() {
   const SW = 8;
   const SD = 7;
   const SEAVE = 3.6;
-  const smith = structure({ name: "blacksmith", x: smithX, z: smithZ, yaw: 0, w: SW, d: SD, eave: SEAVE, foundation: true, material: stone });
+  const smith = structure({ name: "blacksmith", x: smithX, z: smithZ, yaw: Math.PI, w: SW, d: SD, eave: SEAVE, foundation: true, material: stone });
 
   const smithNorth = wallX({ length: SW, height: SEAVE, thickness: T, material: darkWood });
   mate(smithNorth, "wallSide", face(smith, "back"));
@@ -412,7 +411,7 @@ export function createRanch() {
   const smithWest = wallX({ length: SD, height: SEAVE, thickness: T, material: darkWood });
   mate(smithWest, "wallSide", face(smith, "left"));
 
-  const smithRoof = shedRoof({ w: SW, d: SD, pitch: 0.2, overhang: 0.3, eave: SEAVE, material: roof });
+  const smithRoof = gableRoof({ w: SW, d: SD, pitch: 0.5, overhang: 0.45, eave: SEAVE, material: roof });
   mate(smithRoof, "base", anchorsOf(smith).get("wallTop"));
 
   const smithBay = doorLeaf({
@@ -429,7 +428,7 @@ export function createRanch() {
     { offset: { x: 0, y: 0.2, z: 0 } }
   );
 
-  collide(smith, smithX, smithZ, 0, [
+  collide(smith, smithX, smithZ, Math.PI, [
     { x: 0, z: -SD / 2, halfX: SW / 2, halfZ: T / 2 },
     { x: 0, z: SD / 2, halfX: SW / 2, halfZ: T / 2, openings: [{ x: 0, w: 2.4 }] },
     { x: SW / 2, z: 0, halfX: T / 2, halfZ: SD / 2 },
