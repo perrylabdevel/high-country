@@ -2,30 +2,22 @@ import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
 import { POS, ROADS, samplePolyline } from "./map.js";
+import { boxOnGround, grounded, block } from "./buildings/kit.js";
+import { mate, anchorsOf } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
 }
 
 function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + yOff, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addBoxCollider(x, z, w / 2, d / 2);
-  }
-  return mesh;
+  return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
 }
 
 function oreCart(group, x, z, yaw, rust, iron) {
-  const cart = new THREE.Group();
-  const tub = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.85, 2.2), rust);
-  tub.position.y = 0.58;
-  tub.castShadow = true;
-  tub.receiveShadow = true;
-  cart.add(tub);
+  const cart = grounded({ x, z, yaw });
+  mate(block({ w: 1.2, h: 0.85, d: 2.2, material: rust }), "base", anchorsOf(cart).get("footing"), {
+    offset: { y: 0.58 - 0.425 }
+  });
   for (const [lx, lz] of [[0.58, 0.7], [0.58, -0.7], [-0.58, 0.7], [-0.58, -0.7]]) {
     const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 8), iron);
     wheel.rotation.z = Math.PI / 2;
@@ -33,8 +25,6 @@ function oreCart(group, x, z, yaw, rust, iron) {
     wheel.castShadow = true;
     cart.add(wheel);
   }
-  cart.position.set(x, heightAt(x, z), z);
-  cart.rotation.y = yaw;
   group.add(cart);
   addBoxCollider(x, z, 1.15, 1.15);
   return { x, z };

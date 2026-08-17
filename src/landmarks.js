@@ -24,8 +24,7 @@ import {
   registerWaterPlacement,
   STRUCTURES,
   footprintsOverlap,
-  grounded,
-  block
+  boxOnGround
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 
@@ -34,14 +33,7 @@ function mat(color, extra = {}) {
 }
 
 function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  const pad = grounded({ x, z });
-  const piece = block({ w, h, d, material });
-  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
-  group.add(pad);
-  if (collide) {
-    addBoxCollider(x, z, w / 2, d / 2);
-  }
-  return piece;
+  return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
 }
 
 function cylAt(group, x, z, rTop, rBot, h, material, collide = true) {

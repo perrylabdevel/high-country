@@ -2,21 +2,14 @@ import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addCylinderCollider } from "./collision.js";
+import { boxOnGround } from "./buildings/kit.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
 }
 
 function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + yOff, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-  if (collide) {
-    addBoxCollider(x, z, w / 2, d / 2);
-  }
-  return mesh;
+  return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
 }
 
 function charcoalPit(group, x, z, discMat, stickMat, stickCount) {
