@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
 import { POS, ROADS, samplePolyline } from "./map.js";
-import { boxOnGround, grounded, block, coneOnGround } from "./buildings/kit.js";
+import { boxOnGround, grounded, block, coneOnGround, wheelOn } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
@@ -19,11 +19,7 @@ function oreCart(group, x, z, yaw, rust, iron) {
     offset: { y: 0.58 - 0.425 }
   });
   for (const [lx, lz] of [[0.58, 0.7], [0.58, -0.7], [-0.58, 0.7], [-0.58, -0.7]]) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.16, 8), iron);
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(lx, 0.22, lz);
-    wheel.castShadow = true;
-    cart.add(wheel);
+    wheelOn(cart, { x: lx, y: 0.22, z: lz, r: 0.22, thick: 0.16, material: iron, axis: "z" });
   }
   group.add(cart);
   addBoxCollider(x, z, 1.15, 1.15);

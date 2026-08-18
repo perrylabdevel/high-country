@@ -26,7 +26,9 @@ import {
   block,
   grounded,
   post,
-  boxOnGround
+  boxOnGround,
+  boxLookAt,
+  wheelOn
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -489,10 +491,7 @@ export function createRanch() {
         const len = Math.hypot(nx - x, nz - z);
         for (const railH of [0.4, 0.8, 1.2]) {
           const midY = (groundY(x, z) + groundY(nx, nz)) / 2 + railH;
-          const railA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, len), darkWood);
-          railA.position.set((x + nx) / 2, midY, (z + nz) / 2);
-          railA.lookAt(nx, midY, nz);
-          fence.add(railA);
+          boxLookAt(fence, (x + nx) / 2, midY, (z + nz) / 2, 0.08, 0.08, len, nx, midY, nz, darkWood);
         }
       }
     }
@@ -538,11 +537,7 @@ export function createRanch() {
     offset: { x: 1.35, y: 1.45 - 0.325 }
   });
   for (const [wx, wz, r] of [[-1.3, 0.95, 0.65], [-1.3, -0.95, 0.65], [1.3, 0.95, 0.5], [1.3, -0.95, 0.5]]) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.22, 10), darkWood);
-    wheel.rotation.x = Math.PI / 2;
-    wheel.position.set(wx, r, wz);
-    wheel.castShadow = true;
-    wagon.add(wheel);
+    wheelOn(wagon, { x: wx, y: r, z: wz, r, thick: 0.22, material: darkWood, axis: "x", radialSegments: 10 });
   }
   group.add(wagon);
   addBoxCollider(ox - 18, oz + 8, 2.0, 1.0);

@@ -1,8 +1,7 @@
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
-import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
-import { boxOnGround, cylOnGround, grounded, block } from "./buildings/kit.js";
+import { boxOnGround, cylOnGround, grounded, block, wheelOn } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
 
 function mat(color, extra = {}) {
@@ -26,11 +25,7 @@ function brokenWagon(group, x, z, wood, rust) {
     offset: { y: 1.08 - 0.11 }
   });
   for (const [lx, lz] of [[1.05, 0.82], [-0.95, -0.82]]) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.16, 8), rust);
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(lx, 0.36, lz);
-    wheel.castShadow = true;
-    wagon.add(wheel);
+    wheelOn(wagon, { x: lx, y: 0.36, z: lz, r: 0.36, thick: 0.16, material: rust, axis: "z" });
   }
   group.add(wagon);
   addBoxCollider(x, z, 1.7, 1.05);
@@ -77,11 +72,8 @@ export function createFort(scene) {
   const wagonX = fort.x + 18;
   const wagonZ = fort.z - 8.5;
   brokenWagon(group, wagonX, wagonZ, wood, rust);
-  const fallen = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.16, 8), rust);
-  fallen.rotation.x = Math.PI / 2;
-  fallen.position.set(wagonX - 1.6, heightAt(wagonX - 1.6, wagonZ - 1.6) + 0.08, wagonZ - 1.6);
-  fallen.castShadow = true;
-  group.add(fallen);
+  const fallen = cylOnGround(group, wagonX - 1.6, wagonZ - 1.6, 0.36, 0.36, 0.16, rust, false);
+  fallen.children[0].rotation.x = Math.PI / 2;
 
   const ringX = fort.x + 0.5;
   const ringZ = fort.z + 1.5;

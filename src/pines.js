@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
-import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
+import { boxOnGround, cylOnGround, coneOnGround, cylOnPlane } from "./buildings/kit.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -69,16 +69,10 @@ function ladderAt(group, x, z, wood) {
 function brokenWagon(group, x, z, rust, iron) {
   const y = heightAt(x, z);
   boxAt(group, x, z, 2.6, 0.7, 1.35, rust);
-  const attached = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 8), iron);
-  attached.rotation.z = Math.PI / 2;
-  attached.position.set(x + 0.85, y + 0.42, z + 0.72);
-  attached.castShadow = true;
-  group.add(attached);
-  const fallen = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 8), iron);
-  fallen.rotation.x = Math.PI / 2;
-  fallen.position.set(x - 1.55, y + 0.12, z - 0.95);
-  fallen.castShadow = true;
-  group.add(fallen);
+  const attached = cylOnPlane(group, x + 0.85, y, z + 0.72, 0.42, 0.42, 0.12, iron, false, undefined, 0.42 - 0.06);
+  attached.children[0].rotation.z = Math.PI / 2;
+  const fallen = cylOnPlane(group, x - 1.55, y, z - 0.95, 0.42, 0.42, 0.12, iron, false, undefined, 0.12 - 0.06);
+  fallen.children[0].rotation.x = Math.PI / 2;
 }
 
 function fallenTrunk(group, x, z, len, yaw, ash) {
