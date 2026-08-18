@@ -130,7 +130,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
  * lots register their rotated group so interiors.js can build in the local
  * frame.
  */
-function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
+function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const along = (i - (lot.lotsLen - 1) / 2) * 14;
@@ -144,21 +144,25 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   const bodyMat = lot.stone ? stone : lot.dark ? dark : i % 2 ? dark : wood;
   const streetDirX = s * toward;
   const streetDirZ = -c * toward;
-  // Local +Z maps to world (-sin yaw, cos yaw). We want the front wall (+Z) to
-  // face the street, so (-sin yaw, cos yaw) = streetDir.
-  const lotYaw = Math.atan2(-streetDirX, streetDirZ);
+  // rotation.y = t maps local +Z to world (sin t, cos t) — not (-sin t, cos t).
+  // We want the front wall (+Z) to face the street, so (sin t, cos t) =
+  // streetDir. Negating streetDirX mirrors the lot about the street: the
+  // building lands 2*yaw off the row its own centre sits in (17.2 deg on
+  // Silver Creek). It stayed invisible because the boardwalk, the collider
+  // frame, and the alignment check all carried the same mirror.
+  const lotYaw = Math.atan2(streetDirX, streetDirZ);
 
   // Cross streets meet the main row in an intersection. Skip a lot whose
   // footprint would land inside a building that is already there.
   const proposed = { x, z, w, d, yaw: lotYaw };
   if (STRUCTURES.some((s) => s.userData.w && footprintsOverlap(proposed, s.userData, 0.8))) {
-    return;
+    return null;
   }
 
   const st = structure({
     name: lot.name || "streetLot",
     habitable: Boolean(lot.enterable),
-    x, z, yaw: lotYaw, w, d, eave: h, foundation: true, material: stone
+    x, z, yaw: lotYaw, w, d, eave: h, foundation: true, material: stone, lift
   });
   st.userData.streetYaw = yaw;
 
@@ -258,31 +262,71 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof) {
   }
 
   group.add(st);
+  return st;
 }
 
-function street(group, origin, yaw, lots, wood, dark, stone, roof) {
-  lots.forEach((lot, i) => {
-    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof);
-  });
+/** Height of a storefront plinth, and of the boardwalk deck that meets it. */
+const BOARDWALK_LIFT = 0.45;
 
-  // A raised boardwalk runs the length of the street in front of the storefronts.
-  if (!lots.some((l) => l.falseFront)) {
+/**
+ * Streets are identified by a counter, not by yaw: Silver Creek runs three
+ * rows at yaw 0.15, so yaw cannot tell a lot's own street from a parallel one
+ * two blocks over.
+ */
+let streetSeq = 0;
+
+function street(group, origin, yaw, lots, wood, dark, stone, roof) {
+  const streetId = streetSeq++;
+  // A street with false fronts gets a boardwalk, and every lot on it is seated
+  // on a plinth of the same height so the thresholds meet the deck. Without
+  // the lift the floors sit in the dirt and a raised deck rides over the
+  // doorways; with it, floor and walking surface are one plane.
+  const hasWalk = lots.some((l) => l.falseFront);
+  const lift = hasWalk ? BOARDWALK_LIFT : 0;
+  const built = lots.map((lot, i) =>
+    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof, lift)
+  );
+  for (const st of built) {
+    if (st) {
+      st.userData.streetId = streetId;
+    }
+  }
+
+  if (!hasWalk) {
     return;
   }
   const side = lots[0]?.side || 10;
   const toward = Math.sign(side) || 1;
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
-  const length = lots.length * 14;
-  const d = lots[0]?.d || 8;
-  const bw = new THREE.Group();
-  const deck = boardwalk({ length, width: 4.0, height: 1.5, material: wood });
-  const deckX = origin.x - s * (side - toward * (d / 2 + 2.2));
-  const deckZ = origin.z + c * (side - toward * (d / 2 + 2.2));
-  bw.add(deck);
-  bw.position.set(deckX, heightAt(deckX, deckZ), deckZ);
-  bw.rotation.y = yaw;
-  group.add(bw);
+  // One offset for the whole run, clear of the deepest facade, so the walk is
+  // straight rather than stepping in and out with each lot's depth.
+  const maxD = Math.max(...lots.map((l) => l.d || 7));
+  const perp = side - toward * (maxD / 2 + 2.2);
+
+  // One segment per lot, each seated on that lot's own floor. A single slab
+  // spanning the row cannot be right at both ends: the floors it serves vary
+  // by ~0.7 m across this street.
+  built.forEach((st, i) => {
+    if (!st) {
+      return;
+    }
+    const along = (i - (lots.length - 1) / 2) * 14;
+    const x = origin.x + c * along - s * perp;
+    const z = origin.z + s * along + c * perp;
+    const bw = new THREE.Group();
+    bw.add(boardwalk({ length: 14, width: 4.0, height: BOARDWALK_LIFT, material: wood }));
+    // boardwalk() puts its walking surface at height + 0.2 above the group
+    // origin, so seat the group that far below the floor to land flush.
+    bw.position.set(x, st.userData.placementY - (BOARDWALK_LIFT + 0.2), z);
+    // Same frame as the lots: rotation.y = t maps local +X to (cos t, -sin t),
+    // and the deck's length runs along +X, so the street axis (cos yaw,
+    // sin yaw) needs -yaw.
+    bw.rotation.y = -yaw;
+    bw.userData.streetYaw = yaw;
+    bw.userData.streetId = streetId;
+    group.add(bw);
+  });
 }
 
 export function createLandmarks(scene) {

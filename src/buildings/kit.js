@@ -881,14 +881,19 @@ export function boardwalk({ length, width, height = 0.45, material, y = 0 }) {
  */
 export function collide(group, x, z, yaw, walls) {
   group.userData.colliderWalls = walls.map((w) => ({ ...w, openings: (w.openings || []).map((o) => ({ ...o })) }));
-  const cos = Math.cos(yaw);
-  const sin = Math.sin(yaw);
+  // The collider layer rotates a local offset by +phi in (x,z); three.js maps
+  // local to world with rotation.y = yaw, which is -yaw in that convention.
+  // Use -yaw so a wall's colliders land on the wall as rendered — otherwise
+  // the door gap is mirrored onto the opposite side of the facade.
+  const phi = -yaw;
+  const cos = Math.cos(phi);
+  const sin = Math.sin(phi);
   const rot = (lx, lz) => ({ x: x + lx * cos - lz * sin, z: z + lx * sin + lz * cos });
   for (const wall of walls) {
     const openings = wall.openings || [];
     if (!openings.length) {
       const p = rot(wall.x, wall.z);
-      addOrientedBoxCollider(p.x, p.z, wall.halfX + 0.1, wall.halfZ + 0.1, yaw);
+      addOrientedBoxCollider(p.x, p.z, wall.halfX + 0.1, wall.halfZ + 0.1, phi);
       continue;
     }
     // Split the wall collider around each opening. `axis` is "x" if the wall
@@ -908,10 +913,10 @@ export function collide(group, x, z, yaw, walls) {
         const h = (left - cursor) / 2;
         if (axis === "x") {
           const p = rot(c, wall.z);
-          addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, yaw);
+          addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, phi);
         } else {
           const p = rot(wall.x, c);
-          addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, yaw);
+          addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, phi);
         }
       }
       cursor = right;
@@ -921,10 +926,10 @@ export function collide(group, x, z, yaw, walls) {
       const h = (half - cursor) / 2;
       if (axis === "x") {
         const p = rot(c, wall.z);
-        addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, yaw);
+        addOrientedBoxCollider(p.x, p.z, h, thick + 0.1, phi);
       } else {
         const p = rot(wall.x, c);
-        addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, yaw);
+        addOrientedBoxCollider(p.x, p.z, thick + 0.1, h, phi);
       }
     }
   }
@@ -937,11 +942,17 @@ export function collide(group, x, z, yaw, walls) {
  */
 export function structure({
   x, z, yaw = 0, w, d, eave, foundation = false, material,
-  name = "structure", waterAdjacent = false, habitable = false
+  name = "structure", waterAdjacent = false, habitable = false, lift = 0
 }) {
   const f = footing(x, z, w, d, yaw);
+  // `lift` seats the floor deliberately above the terrain — a plinth, so a
+  // storefront threshold can meet a raised boardwalk instead of sitting in the
+  // dirt while the deck rides over the door. The skirt then spans the whole
+  // gap, terrain to floor, which is what invariant 7 already requires.
+  const seatY = f.y + lift;
+  const skirtDrop = f.drop + lift;
   const group = new THREE.Group();
-  group.position.set(x, f.y, z);
+  group.position.set(x, seatY, z);
   group.rotation.y = yaw;
   group.name = name;
   group.userData = {
@@ -953,17 +964,18 @@ export function structure({
     d,
     eave,
     yaw,
-    placementY: f.y,
+    placementY: seatY,
+    lift,
     drop: f.drop,
     foundation: Boolean(foundation),
     foundationEmitted: false,
-    wallTop: f.y + eave,
+    wallTop: seatY + eave,
     waterAdjacent: Boolean(waterAdjacent),
     habitable: Boolean(habitable)
   };
-  if (foundation && f.drop > 0.15) {
-    const skirt = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, f.drop + 0.2, d + 0.4), material);
-    skirt.position.y = -f.drop / 2 - 0.1;
+  if (foundation && skirtDrop > 0.15) {
+    const skirt = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, skirtDrop + 0.2, d + 0.4), material);
+    skirt.position.y = -skirtDrop / 2 - 0.1;
     skirt.castShadow = true;
     skirt.receiveShadow = true;
     tag(skirt, "foundation");

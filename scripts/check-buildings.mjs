@@ -234,7 +234,8 @@ function openingApproachBlocked(s, worldOpening, structures, colliders) {
 bakeHeightfield();
 clearColliders();
 clearStructures();
-const scene = { add() {} };
+const sceneAdds = [];
+const scene = { add(o) { sceneAdds.push(o); } };
 createRanch();
 createLandmarks(scene);
 createInteriors(scene);
@@ -286,6 +287,7 @@ function check(cond, msg) {
   if (!cond) {
     failures.push(msg);
   }
+  return Boolean(cond);
 }
 
 const colliders = listBoxColliders();
@@ -307,13 +309,24 @@ for (const s of STRUCTURES) {
     );
   }
 
-  // 9. Street alignment — lot yaw is parallel or anti-parallel to the street axis
-  // (lots sit on either side, so a π flip is the other sidewalk).
+  // 9. Street alignment — the lot's rendered facade axis is parallel to the
+  // street axis (a pi flip is the other sidewalk, so compare undirected).
+  //
+  // This compares WORLD axes, not raw yaw numbers. Differencing the Euler
+  // angles cannot see a mirrored lot: rotation.y = t maps +X to
+  // (cos t, -sin t), so a lot mirrored about the street differs from the
+  // street angle by exactly pi and the old subtraction reported 0. Every
+  // Silver Creek storefront sat 17.2 deg off its row while this check was
+  // green.
   if (u.streetYaw !== undefined) {
-    const diff = Math.abs(((u.yaw - u.streetYaw) % Math.PI + Math.PI) % Math.PI);
+    const axis = new THREE.Vector3(1, 0, 0)
+      .applyQuaternion(s.getWorldQuaternion(new THREE.Quaternion()))
+      .setY(0)
+      .normalize();
+    const sinOff = Math.abs(axis.x * Math.sin(u.streetYaw) - axis.z * Math.cos(u.streetYaw));
     check(
-      diff < 0.05 || Math.abs(diff - Math.PI) < 0.05,
-      `${label(s)} not aligned to the street (yaw ${u.yaw.toFixed(3)}, street ${u.streetYaw.toFixed(3)})`
+      sinOff < 0.05,
+      `${label(s)} not aligned to the street (${(Math.asin(Math.min(1, sinOff)) * 180 / Math.PI).toFixed(1)} deg off its row)`
     );
   }
 
@@ -487,8 +500,10 @@ for (const s of STRUCTURES) {
       const match = wallsList.some((cw) => Math.hypot(cw.x - wall.position.x, cw.z - wall.position.z) <= 0.35);
       check(match, `${label(s)} wall at local (${wall.position.x.toFixed(2)},${wall.position.z.toFixed(2)}) has no collide() entry`);
     }
-    const cos = Math.cos(u.yaw);
-    const sin = Math.sin(u.yaw);
+    // Same frame collide() uses: three.js maps local to world with
+    // rotation.y = yaw, i.e. -yaw in this 2D (x,z) rotation.
+    const cos = Math.cos(-u.yaw);
+    const sin = Math.sin(-u.yaw);
     for (const cw of wallsList) {
       const wx = u.x + cw.x * cos - cw.z * sin;
       const wz = u.z + cw.x * sin + cw.z * cos;
@@ -535,6 +550,64 @@ for (let i = 0; i < SILVER.length; i += 1) {
         `${label(SILVER[i])} overlaps ${label(SILVER[j])} (centres ${Math.hypot(a.x - b.x, a.z - b.z).toFixed(1)} m apart)`
       );
     }
+  }
+}
+
+// 13. Boardwalk — runs along its own street, its walking surface lands on the
+// storefront floor it serves, and it is actually raised above the street.
+// All three come from real defects: the deck was rotated +yaw instead of -yaw
+// (17.2 deg off the row, walking its ends ~18.6 m from the shopfronts), and it
+// was seated 0.5 m proud of the sills so it rode across every doorway. No
+// other invariant could see either one.
+const decks = [];
+for (const root of sceneAdds) {
+  root.updateMatrixWorld(true);
+  root.traverse((n) => {
+    if (n.userData?.role === "boardwalk") {
+      decks.push(n);
+    }
+  });
+}
+check(decks.length > 0, "no boardwalk was emitted for any street");
+
+for (const deck of decks) {
+  const owner = deck.parent.userData;
+  const pos = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  deck.matrixWorld.decompose(pos, quat, new THREE.Vector3());
+
+  const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(quat).setY(0).normalize();
+  const sinOff = Math.abs(axis.x * Math.sin(owner.streetYaw) - axis.z * Math.cos(owner.streetYaw));
+  check(
+    sinOff < 0.01,
+    `boardwalk at (${pos.x.toFixed(1)},${pos.z.toFixed(1)}) is ${(Math.asin(Math.min(1, sinOff)) * 180 / Math.PI).toFixed(1)} deg off its street axis`
+  );
+
+  // Nearest lot on the SAME street — yaw alone cannot identify one, since
+  // Silver Creek runs three streets at yaw 0.15.
+  let lot = null;
+  let bestDist = Infinity;
+  for (const other of STRUCTURES) {
+    if (other.userData.streetId !== owner.streetId) {
+      continue;
+    }
+    const dist = Math.hypot(other.userData.x - pos.x, other.userData.z - pos.z);
+    if (dist < bestDist) {
+      bestDist = dist;
+      lot = other;
+    }
+  }
+  if (check(lot !== null, `boardwalk at (${pos.x.toFixed(1)},${pos.z.toFixed(1)}) serves no lot on its street`)) {
+    const top = pos.y + deck.userData.height + 0.2;
+    const delta = top - lot.userData.placementY;
+    check(
+      Math.abs(delta) <= 0.05,
+      `boardwalk at ${label(lot)} sits ${delta > 0 ? "+" : ""}${delta.toFixed(2)} m off its floor (deck ${top.toFixed(2)}, sill ${lot.userData.placementY.toFixed(2)})`
+    );
+    check(
+      top - heightAt(pos.x, pos.z) >= 0.25,
+      `boardwalk at ${label(lot)} stands only ${(top - heightAt(pos.x, pos.z)).toFixed(2)} m above the street — not a raised walk`
+    );
   }
 }
 
