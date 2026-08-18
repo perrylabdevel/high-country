@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SPEED_STEPS, LOOK_STEPS, stepValue, debugBlocksGame } from "../src/debug.js";
@@ -92,7 +92,44 @@ assert(aimedWin === winHole, "aiming at a window hole should name that opening")
 const labelSrc = readFileSync(join(root, "../src/dev/structureLabels.js"), "utf8");
 assert(labelSrc.includes('getElementById("hud")'), "structure labels mount under #hud so capture mode hides them");
 
-console.log(JSON.stringify({ SPEED_STEPS, LOOK_STEPS }, null, 2));
+// The x-ray overlay colours by the kit's tag() role. A role tagged in src/
+// but missing from ROLE_COLORS renders as anonymous grey, which is exactly
+// the silent gap the overlay exists to close — so require full coverage.
+const { ROLE_COLORS, MODES } = await import("../src/dev/xray.js");
+assert(MODES.length === 3, "x-ray has off / roles / xray modes");
+
+const SRC_DIR = join(root, "../src");
+function jsFiles(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...jsFiles(full));
+    } else if (/\.(js|ts)$/.test(entry.name)) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+const tagged = new Set();
+for (const file of jsFiles(SRC_DIR)) {
+  const text = readFileSync(file, "utf8");
+  for (const m of text.matchAll(/\btag\(\s*\w+\s*,\s*"([a-zA-Z]+)"/g)) {
+    tagged.add(m[1]);
+  }
+}
+assert(tagged.size > 0, "found tag() roles to check the x-ray palette against");
+const uncoloured = [...tagged].filter((role) => ROLE_COLORS[role] === undefined).sort();
+assert(
+  uncoloured.length === 0,
+  `x-ray ROLE_COLORS is missing tagged role(s): ${uncoloured.join(", ")}`
+);
+
+const xraySrc = readFileSync(join(root, "../src/dev/xray.js"), "utf8");
+assert(xraySrc.includes("depthTest"), "x-ray mode draws through occluders");
+assert(xraySrc.includes('from "three/webgpu"'), "x-ray imports three/webgpu, not a second three");
+
+console.log(JSON.stringify({ SPEED_STEPS, LOOK_STEPS, xrayRoles: tagged.size }, null, 2));
 console.log("PASS");
 
 

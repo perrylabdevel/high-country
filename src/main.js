@@ -25,6 +25,7 @@ import { createDebug, debugBlocksGame } from "./debug.js";
 import { STRUCTURES } from "./buildings/kit.js";
 import { lookingAtStructure } from "./buildings/lookingAt.js";
 import { createStructureLabels } from "./dev/structureLabels.js";
+import { createXray } from "./dev/xray.js";
 import { createKtx2Loader } from "./materials/ktx2.js";
 import { applyHdri, syncEnvironmentIntensity } from "./materials/hdri.ts";
 import { materialSettings } from "./materials/settings.ts";
@@ -259,6 +260,13 @@ async function boot() {
   scene.add(player.object);
   horse = createHorse();
   scene.add(horse.object);
+
+  if (isDev) {
+    // Built after the world so it can see every mesh. Also driveable from a
+    // capture script: window.__xray(2) for the see-through pass.
+    const xray = createXray(scene);
+    window.__xray = (n) => xray.setMode(n);
+  }
 
   const npcs = [
     { name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2, color: 0x5b3a24, line: "Smoke on the north wind. Too early, and too steady. If you ride, take the trail past the corral and keep the lake on your right." },
