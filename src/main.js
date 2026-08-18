@@ -223,6 +223,7 @@ async function boot() {
   let stats = null;
   let infoEl = null;
   let structureLabels = null;
+  let planCamera = null;
   if (isDev) {
     stats = new Stats();
     stats.showPanel(0);
@@ -266,6 +267,33 @@ async function boot() {
     // capture script: window.__xray(2) for the see-through pass.
     const xray = createXray(scene);
     window.__xray = (n) => xray.setMode(n);
+
+    // Orthographic plan view. A perspective overhead shot foreshortens: roofs
+    // that merely sit behind one another look interpenetrated, and a facade
+    // line that steps in and out looks straight. In an ortho plan a metre is
+    // a metre anywhere in frame, so alignment, gaps and overlap can be read
+    // off the image instead of guessed at.
+    //   window.__planView(120)                centre on the player, 120 m wide
+    //   window.__planView(160, x, z)          centre on a point
+    //   window.__planView(null)               back to the game camera
+    window.__planView = (size, cx, cz) => {
+      if (!size) {
+        planCamera = null;
+        return null;
+      }
+      const centreX = cx ?? player.object.position.x;
+      const centreZ = cz ?? player.object.position.z;
+      const aspect = window.innerWidth / window.innerHeight;
+      const half = size / 2;
+      planCamera = new THREE.OrthographicCamera(
+        -half * aspect, half * aspect, half, -half, 0.1, 4000
+      );
+      planCamera.position.set(centreX, heightAt(centreX, centreZ) + 600, centreZ);
+      planCamera.up.set(0, 0, -1);
+      planCamera.lookAt(centreX, heightAt(centreX, centreZ), centreZ);
+      planCamera.updateProjectionMatrix();
+      return { size, centreX, centreZ };
+    };
   }
 
   const npcs = [
@@ -527,7 +555,7 @@ async function boot() {
     }
     followLight();
     vegetation.update(camera.position);
-    renderer.render(scene, camera);
+    renderer.render(scene, planCamera || camera);
     if (stats) {
       stats.update();
       const r = renderer.info.render;
