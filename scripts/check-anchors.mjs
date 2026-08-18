@@ -29,6 +29,8 @@ import {
   grounded,
   boxOnGround,
   boxOnPlane,
+  boxLookAt,
+  wheelOn,
   cylOnGround,
   cylOnPlane,
   coneOnGround,
@@ -1100,6 +1102,73 @@ if (trunkBefore.min.distanceTo(trunkAfter.min) > 1e-5 || trunkBefore.max.distanc
   throw new Error("fallen trunk world box drifted from typed yaw+tilt mesh");
 }
 
+const RAIL_LEN = 3;
+const railMidX = GROUND_X;
+const railMidZ = GROUND_Z + RAIL_LEN / 2;
+const railY = PLANE_Y;
+const railTx = GROUND_X;
+const railTz = GROUND_Z + RAIL_LEN;
+const typedRail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, RAIL_LEN), wood);
+typedRail.position.set(railMidX, railY, railMidZ);
+typedRail.lookAt(railTx, railY, railTz);
+typedRail.updateMatrixWorld(true);
+const railBefore = new THREE.Box3().setFromObject(typedRail);
+const matedRail = boxLookAt(boxParent, railMidX, railY, railMidZ, 0.08, 0.08, RAIL_LEN, railTx, railY, railTz, wood);
+boxParent.updateMatrixWorld(true);
+const railAfter = new THREE.Box3().setFromObject(matedRail);
+if (railBefore.min.distanceTo(railAfter.min) > 1e-5 || railBefore.max.distanceTo(railAfter.max) > 1e-5) {
+  throw new Error("boxLookAt world box drifted from typed fence rail");
+}
+
+const WHEEL_R = 0.65;
+const WHEEL_T = 0.22;
+const WHEEL_X = -1.3;
+const WHEEL_Z = 0.95;
+const typedWheel = new THREE.Mesh(new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, WHEEL_T, 10), wood);
+typedWheel.rotation.x = Math.PI / 2;
+typedWheel.position.set(GROUND_X + WHEEL_X, groundY + WHEEL_R, GROUND_Z + WHEEL_Z);
+typedWheel.updateMatrixWorld(true);
+const wheelBefore = new THREE.Box3().setFromObject(typedWheel);
+const wheelPad = grounded({ x: GROUND_X, z: GROUND_Z });
+boxParent.add(wheelPad);
+const matedWheel = wheelOn(wheelPad, {
+  x: WHEEL_X,
+  y: WHEEL_R,
+  z: WHEEL_Z,
+  r: WHEEL_R,
+  thick: WHEEL_T,
+  material: wood,
+  axis: "x",
+  radialSegments: 10
+});
+boxParent.updateMatrixWorld(true);
+const wheelAfter = new THREE.Box3().setFromObject(matedWheel);
+if (wheelBefore.min.distanceTo(wheelAfter.min) > 1e-5 || wheelBefore.max.distanceTo(wheelAfter.max) > 1e-5) {
+  throw new Error("wheelOn world box drifted from typed wagon wheel");
+}
+
+const FORT_R = 0.36;
+const FORT_T = 0.16;
+const typedFortWheel = new THREE.Mesh(new THREE.CylinderGeometry(FORT_R, FORT_R, FORT_T, 8), wood);
+typedFortWheel.rotation.z = Math.PI / 2;
+typedFortWheel.position.set(GROUND_X + 1.05, groundY + FORT_R, GROUND_Z + 0.82);
+typedFortWheel.updateMatrixWorld(true);
+const fortWheelBefore = new THREE.Box3().setFromObject(typedFortWheel);
+const matedFortWheel = wheelOn(wheelPad, {
+  x: 1.05,
+  y: FORT_R,
+  z: 0.82,
+  r: FORT_R,
+  thick: FORT_T,
+  material: wood,
+  axis: "z"
+});
+boxParent.updateMatrixWorld(true);
+const fortWheelAfter = new THREE.Box3().setFromObject(matedFortWheel);
+if (fortWheelBefore.min.distanceTo(fortWheelAfter.min) > 1e-5 || fortWheelBefore.max.distanceTo(fortWheelAfter.max) > 1e-5) {
+  throw new Error("wheelOn Z-axle drifted from typed fort wagon wheel");
+}
+
 const postPad = grounded({ x: GROUND_X, z: GROUND_Z });
 const matedPost = post({ rTop: CYL_RT, rBot: CYL_RB, h: CYL_H, material: wood });
 mate(matedPost, "base", anchorsOf(postPad).get("footing"));
@@ -1119,7 +1188,7 @@ if (coneBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneBefore.max.distanceT
 }
 
 if (STRUCTURES.length !== structuresBeforeGrounded) {
-  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane/coneOnPlane/cylOnPlane must not register a kit structure");
+  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane/coneOnPlane/cylOnPlane/boxLookAt/wheelOn must not register a kit structure");
 }
 
 console.log("PASS");

@@ -540,6 +540,35 @@ export function boxOnPlane(parent, x, y, z, w, h, d, material, collide = true, y
 }
 
 /**
+ * Typed fence rail: a box centered at (x, y, z) whose inner mesh looks at a
+ * neighbor. lookAt runs on the mesh (origin at center), not the base group.
+ */
+export function boxLookAt(parent, x, y, z, w, h, d, tx, ty, tz, material) {
+  const pad = grounded({ x, z, y: y - h / 2 });
+  const piece = block({ w, h, d, material });
+  mate(piece, "base", anchorsOf(pad).get("footing"));
+  parent.add(pad);
+  pad.updateMatrixWorld(true);
+  piece.children[0].lookAt(tx, ty, tz);
+  return piece;
+}
+
+/**
+ * A wheel mated to an existing pad. `y` is the typed mesh-center height above
+ * the pad. Inner-mesh rotation around X or Z matches the typed axle.
+ */
+export function wheelOn(pad, { x, y, z, r, thick, material, axis, radialSegments = 8 }) {
+  const piece = post({ rTop: r, rBot: r, h: thick, material, radialSegments });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { x, y: y - thick / 2, z } });
+  if (axis === "x") {
+    piece.children[0].rotation.x = Math.PI / 2;
+  } else if (axis === "z") {
+    piece.children[0].rotation.z = Math.PI / 2;
+  }
+  return piece;
+}
+
+/**
  * Typed `cylAt`: a post mated to a grounded pad. Does not register a kit
  * structure.
  */
