@@ -555,6 +555,21 @@ export function cylOnGround(parent, x, z, rTop, rBot, h, material, collide = tru
 }
 
 /**
+ * Typed cylinder whose base sits on an explicit world Y, not heightAt.
+ * Headframe sheave uses the mill sample so the wheel stays on the A-frame.
+ */
+export function cylOnPlane(parent, x, y, z, rTop, rBot, h, material, collide = true, colliderR, yOff = 0, radialSegments = 8) {
+  const pad = grounded({ x, z, y });
+  const piece = post({ rTop, rBot, h, material, radialSegments });
+  mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
+  parent.add(pad);
+  if (collide) {
+    addCylinderCollider(x, z, colliderR ?? Math.max(rTop, rBot));
+  }
+  return piece;
+}
+
+/**
  * Typed `coneAt`: a cone mated to a grounded pad. Does not register a kit
  * structure.
  */

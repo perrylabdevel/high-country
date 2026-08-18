@@ -30,6 +30,7 @@ import {
   boxOnGround,
   boxOnPlane,
   cylOnGround,
+  cylOnPlane,
   coneOnGround,
   coneOnPlane,
   STRUCTURES
@@ -1070,6 +1071,35 @@ if (tiltBefore.min.distanceTo(tiltAfter.min) > 1e-5 || tiltBefore.max.distanceTo
   throw new Error("tilted boxOnPlane mesh drifted from typed A-frame leg");
 }
 
+const typedAxle = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.6, 12), wood);
+typedAxle.rotation.x = Math.PI / 2;
+typedAxle.position.set(GROUND_X, PLANE_Y + LEG_H, GROUND_Z);
+typedAxle.updateMatrixWorld(true);
+const axleBefore = new THREE.Box3().setFromObject(typedAxle);
+const matedAxle = cylOnPlane(boxParent, GROUND_X, PLANE_Y, GROUND_Z, 1.8, 1.8, 0.6, wood, false, undefined, LEG_H - 0.3, 12);
+matedAxle.children[0].rotation.x = Math.PI / 2;
+boxParent.updateMatrixWorld(true);
+const axleAfter = new THREE.Box3().setFromObject(matedAxle);
+if (axleBefore.min.distanceTo(axleAfter.min) > 1e-5 || axleBefore.max.distanceTo(axleAfter.max) > 1e-5) {
+  throw new Error("cylOnPlane axle drifted from typed sheave");
+}
+
+const TRUNK_YAW = 0.4;
+const typedTrunk = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.36, 0.4), wood);
+typedTrunk.position.set(GROUND_X, groundY + 0.18 + 0.1, GROUND_Z);
+typedTrunk.rotation.y = TRUNK_YAW;
+typedTrunk.rotation.z = 0.07;
+typedTrunk.updateMatrixWorld(true);
+const trunkBefore = new THREE.Box3().setFromObject(typedTrunk);
+const matedTrunk = boxOnGround(boxParent, GROUND_X, GROUND_Z, 4.8, 0.36, 0.4, wood, false, 0.1);
+matedTrunk.children[0].rotation.y = TRUNK_YAW;
+matedTrunk.children[0].rotation.z = 0.07;
+boxParent.updateMatrixWorld(true);
+const trunkAfter = new THREE.Box3().setFromObject(matedTrunk);
+if (trunkBefore.min.distanceTo(trunkAfter.min) > 1e-5 || trunkBefore.max.distanceTo(trunkAfter.max) > 1e-5) {
+  throw new Error("fallen trunk world box drifted from typed yaw+tilt mesh");
+}
+
 const postPad = grounded({ x: GROUND_X, z: GROUND_Z });
 const matedPost = post({ rTop: CYL_RT, rBot: CYL_RB, h: CYL_H, material: wood });
 mate(matedPost, "base", anchorsOf(postPad).get("footing"));
@@ -1089,7 +1119,7 @@ if (coneBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneBefore.max.distanceT
 }
 
 if (STRUCTURES.length !== structuresBeforeGrounded) {
-  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane/coneOnPlane must not register a kit structure");
+  throw new Error("post/cone/cylOnGround/coneOnGround/boxOnPlane/coneOnPlane/cylOnPlane must not register a kit structure");
 }
 
 console.log("PASS");
