@@ -27,6 +27,7 @@ import {
   boxOnGround,
   boxOnPlane,
   cylOnGround,
+  cylOnPlane,
   coneOnGround,
   coneOnPlane,
   post
@@ -457,11 +458,8 @@ export function createLandmarks(scene) {
     boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, 10, 0.4, 0.4, iron, false);
   }
   boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, 11, 0.7, 0.7, iron, false);
-  const sheave = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.6, 12), iron);
-  sheave.rotation.x = Math.PI / 2;
-  sheave.position.set(ivX, ivY + hfH, ivZ - 6);
-  sheave.castShadow = true;
-  group.add(sheave);
+  const sheave = cylOnPlane(group, ivX, ivY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
+  sheave.children[0].rotation.x = Math.PI / 2;
   boxOnGround(group, ivX, ivZ - 6, 3.5, 4, 3.5, dark, false);
   addBoxCollider(ivX, ivZ - 6, 2, 2);
 
@@ -479,11 +477,9 @@ export function createLandmarks(scene) {
       offset: { x: -6 + i * 2.4 }
     });
   }
-  const camshaft = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 14, 8), iron);
-  camshaft.rotation.z = Math.PI / 2;
-  camshaft.position.set(0, 1.4, 0);
-  camshaft.castShadow = true;
-  smShed.add(camshaft);
+  const camshaft = post({ rTop: 0.4, rBot: 0.4, h: 14, material: iron });
+  mate(camshaft, "base", millFloor, { offset: { y: 1.4 - 7 } });
+  camshaft.children[0].rotation.z = Math.PI / 2;
   collide(smShed, smX, smZ, 0, [
     { x: 0, z: -6, halfX: 8, halfZ: T / 2 },
     { x: 0, z: 6, halfX: 8, halfZ: T / 2 },

@@ -33,16 +33,12 @@ function stumpAt(group, x, z, radius, h, material) {
 }
 
 function sawbuckAt(group, x, z, wood) {
-  const y = heightAt(x, z);
   const top = boxAt(group, x, z, 3.2, 0.12, 0.7, wood, false, 0.84);
   top.receiveShadow = true;
   for (const end of [-1.35, 1.35]) {
     for (const tilt of [0.52, -0.52]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.05, 0.12), wood);
-      leg.position.set(x + end, y + 0.48, z);
-      leg.rotation.z = tilt;
-      leg.castShadow = true;
-      group.add(leg);
+      const leg = boxAt(group, x + end, z, 0.12, 1.05, 0.12, wood, false, 0.48 - 0.525);
+      leg.children[0].rotation.z = tilt;
     }
   }
   addBoxCollider(x, z, 1.6, 0.4);
@@ -86,14 +82,9 @@ function brokenWagon(group, x, z, rust, iron) {
 }
 
 function fallenTrunk(group, x, z, len, yaw, ash) {
-  const h = 0.36;
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, h, 0.4), ash);
-  mesh.position.set(x, heightAt(x, z) + h / 2 + 0.1, z);
-  mesh.rotation.y = yaw;
-  mesh.rotation.z = 0.07;
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
+  const trunk = boxAt(group, x, z, len, 0.36, 0.4, ash, false, 0.1);
+  trunk.children[0].rotation.y = yaw;
+  trunk.children[0].rotation.z = 0.07;
 }
 
 export function createPines(scene) {

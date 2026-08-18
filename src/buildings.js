@@ -25,7 +25,8 @@ import {
   anvil,
   block,
   grounded,
-  post
+  post,
+  boxOnGround
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 
@@ -481,9 +482,7 @@ export function createRanch() {
       const t = i / count;
       const x = x0 + dx * t;
       const z = z0 + dz * t;
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.3, 0.18), darkWood);
-      post.position.set(x, groundY(x, z) + 0.65, z);
-      fence.add(post);
+      boxOnGround(fence, x, z, 0.18, 1.3, 0.18, darkWood, false);
       if (i < count) {
         const nx = x0 + dx * ((i + 1) / count);
         const nz = z0 + dz * ((i + 1) / count);

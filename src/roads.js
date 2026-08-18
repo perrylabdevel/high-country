@@ -14,6 +14,7 @@ import {
 } from "./map.js";
 import { TEXTURE_SETS } from "./materials/textureManifest.ts";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
+import { boxOnPlane } from "./buildings/kit.js";
 
 const KIND_LOOK = {
   stage: { color: [0.38, 0.25, 0.14], rut: [0.24, 0.14, 0.08], lift: 0.22, slices: 5 },
@@ -253,25 +254,24 @@ function addBridges(group) {
   for (const br of BRIDGES) {
     const p = mapToWorld(br.u, br.v);
     const y = heightAt(p.x, p.z) + bridgeLift(p.x, p.z) + 0.22;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(br.width, 0.32, br.length), deckMat);
-    deck.position.set(p.x, y, p.z);
+    const deck = boxOnPlane(group, p.x, y - 0.16, p.z, br.width, 0.32, br.length, deckMat, false);
     deck.rotation.y = headingRotationY(br.yaw);
-    deck.castShadow = true;
-    deck.receiveShadow = true;
-    group.add(deck);
     const spin = headingRotationY(br.yaw);
     const cx = Math.cos(spin);
     const sx = Math.sin(spin);
     for (const side of [-1, 1]) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.7, br.length), railMat);
-      rail.position.set(
+      const rail = boxOnPlane(
+        group,
         p.x + cx * side * (br.width * 0.45),
-        y + 0.45,
-        p.z - sx * side * (br.width * 0.45)
+        y + 0.1,
+        p.z - sx * side * (br.width * 0.45),
+        0.16,
+        0.7,
+        br.length,
+        railMat,
+        false
       );
       rail.rotation.y = spin;
-      rail.castShadow = true;
-      group.add(rail);
     }
   }
 }

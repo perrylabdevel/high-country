@@ -2,6 +2,7 @@ import * as THREE from "three/webgpu";
 import { POS, WATER } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addCylinderCollider } from "./collision.js";
+import { boxOnPlane, coneOnPlane, registerWaterPlacement } from "./buildings/kit.js";
 
 const LAKE_RX = 310;
 const LAKE_RZ = 242;
@@ -74,31 +75,29 @@ export function createShore(scene) {
     const x = islandX + rock.dx;
     const z = islandZ + rock.dz;
     const mesh = rock.kind === "box"
-      ? new THREE.Mesh(new THREE.BoxGeometry(rock.r * 1.6, rock.r * 1.1, rock.r * 1.4), rockMat)
+      ? boxOnPlane(group, x, WATER + 0.35 - rock.r * 1.1 / 2, z, rock.r * 1.6, rock.r * 1.1, rock.r * 1.4, rockMat, false)
       : new THREE.Mesh(new THREE.DodecahedronGeometry(rock.r, 0), rockMat);
-    mesh.position.set(x, WATER + 0.35, z);
-    mesh.rotation.set(0.3, rock.dx, 0.15);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
+    if (rock.kind === "box") {
+      mesh.children[0].rotation.set(0.3, rock.dx, 0.15);
+    } else {
+      mesh.position.set(x, WATER + 0.35, z);
+      mesh.rotation.set(0.3, rock.dx, 0.15);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
     if (rock.r > 1.2) {
       addCylinderCollider(x, z, rock.r * 0.55);
     }
   }
 
   const cabinMat = new THREE.MeshStandardNodeMaterial({ color: 0x3a2a1c, roughness: 0.9 });
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.6, 1.6), cabinMat);
-  cabin.position.set(islandX + 0.6, WATER + 0.18 + 0.8, islandZ - 0.4);
-  cabin.castShadow = true;
-  cabin.receiveShadow = true;
-  group.add(cabin);
+  boxOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.8, 1.6, 1.6, cabinMat, false);
   addBoxCollider(islandX + 0.6, islandZ - 0.4, 0.9, 0.8);
+  registerWaterPlacement("islandCabin", islandX + 0.6, islandZ - 0.4, WATER + 0.18);
 
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.45, 0.9, 4), cabinMat);
+  const roof = coneOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.45, 0.9, cabinMat, false, 1.85 - 0.45, undefined, 4);
   roof.rotation.y = Math.PI / 4;
-  roof.position.set(islandX + 0.6, WATER + 0.18 + 1.85, islandZ - 0.4);
-  roof.castShadow = true;
-  group.add(roof);
 
   const reedGeo = new THREE.BoxGeometry(0.07, 1.35, 0.07);
   const reedMat = new THREE.MeshStandardNodeMaterial({ color: 0x4a6a38, roughness: 0.9 });
