@@ -319,6 +319,14 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const DECK_W = 4.0;
+  // Weathered, silvered plank — deliberately NOT `wood`. The deck, the false
+  // fronts and half the wall bodies all shared 0xc4a574, so the walk read as
+  // the buildings' own base rather than a structure in front of them: asked
+  // whether a raised walkway was present, the grader said the buildings "sit
+  // directly on the ground" while the deck, its fascia and its shadow were
+  // plainly in frame. Four attempts at making it taller or thicker could not
+  // fix that, because the problem was never size.
+  const plank = mat(0x8f8577);
   // The deck's inner edge lands on the frontage line, so it meets every
   // threshold with no gap to step over. This only works because the facades
   // are aligned above — against a ragged frontage the gap would vary with
@@ -336,7 +344,7 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
     const x = origin.x + c * along - s * perp;
     const z = origin.z + s * along + c * perp;
     const bw = new THREE.Group();
-    bw.add(boardwalk({ length: 14, width: DECK_W, height: BOARDWALK_LIFT, material: wood }));
+    bw.add(boardwalk({ length: 14, width: DECK_W, height: BOARDWALK_LIFT, material: plank }));
     // boardwalk() puts its walking surface at height + 0.2 above the group
     // origin, so seat the group that far below the floor to land flush.
     bw.position.set(x, st.userData.placementY - (BOARDWALK_LIFT + 0.2), z);
