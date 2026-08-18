@@ -130,17 +130,23 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
  * lots register their rotated group so interiors.js can build in the local
  * frame.
  */
-function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0) {
+function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0, facade = null) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const along = (i - (lot.lotsLen - 1) / 2) * 14;
   const side = lot.side || 10;
   const toward = Math.sign(side) || 1;
-  const x = origin.x + c * along - s * side;
-  const z = origin.z + s * along + c * side;
   const h = lot.h || 5.5;
   const w = lot.w || 8;
   const d = lot.d || 7;
+  // Seat the lot by its FRONT WALL, not its centre. Lots vary in depth, so a
+  // fixed centre offset puts each facade at side - d/2 — a storefront line
+  // ragged by up to a metre, which no straight boardwalk can abut and which
+  // reads as a broken street edge. Fixing the facade and letting depth run
+  // backwards is also how the frontage actually worked.
+  const perp = facade === null ? side : facade + toward * (d / 2);
+  const x = origin.x + c * along - s * perp;
+  const z = origin.z + s * along + c * perp;
   const bodyMat = lot.stone ? stone : lot.dark ? dark : i % 2 ? dark : wood;
   const streetDirX = s * toward;
   const streetDirZ = -c * toward;
@@ -243,7 +249,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0)
       d,
       yaw: lotYaw,
       along,
-      side,
+      side: perp,
       toward,
       stone: Boolean(lot.stone),
       dark: Boolean(lot.dark),
@@ -254,7 +260,7 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0)
   }
 
   if (lot.sign) {
-    const signSide = side - toward * (Math.min(w, d) * 0.5 + 1.15);
+    const signSide = perp - toward * (Math.min(w, d) * 0.5 + 1.15);
     const sx = origin.x + c * along - s * signSide;
     const sz = origin.z + s * along + c * signSide;
     const board = boxAt(group, sx, sz, 0.12, 1.1, 0.7, dark, false);
@@ -265,8 +271,14 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0)
   return st;
 }
 
-/** Height of a storefront plinth, and of the boardwalk deck that meets it. */
-const BOARDWALK_LIFT = 0.45;
+/**
+ * Height of a storefront plinth, and of the boardwalk deck that meets it.
+ * The lot floor is seated on the lot's *lowest* corner, while the deck stands
+ * on the terrain in front, which runs up to 0.20 m higher along this street —
+ * so the plinth has to cover that rise before any of it reads as a step up.
+ * 0.45 left blacksmith with exactly nothing to spare.
+ */
+const BOARDWALK_LIFT = 0.55;
 
 /**
  * Streets are identified by a counter, not by yaw: Silver Creek runs three
@@ -283,8 +295,17 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   // doorways; with it, floor and walking surface are one plane.
   const hasWalk = lots.some((l) => l.falseFront);
   const lift = hasWalk ? BOARDWALK_LIFT : 0;
+  const side0 = lots[0]?.side || 10;
+  const toward0 = Math.sign(side0) || 1;
+  // The frontage line: the deepest lot keeps its seat, shallower lots come
+  // forward to meet it, so every front wall lands on one line.
+  const maxD = Math.max(...lots.map((l) => l.d || 7));
+  // Only the boardwalk street needs its frontage squared up, and only it is
+  // worth moving: shifting the side streets forward walks their lots into the
+  // cross street, where the footprint guard drops them without a word.
+  const facade = hasWalk ? side0 - toward0 * (maxD / 2) : null;
   const built = lots.map((lot, i) =>
-    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof, lift)
+    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof, lift, facade)
   );
   for (const st of built) {
     if (st) {
@@ -295,14 +316,14 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   if (!hasWalk) {
     return;
   }
-  const side = lots[0]?.side || 10;
-  const toward = Math.sign(side) || 1;
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
-  // One offset for the whole run, clear of the deepest facade, so the walk is
-  // straight rather than stepping in and out with each lot's depth.
-  const maxD = Math.max(...lots.map((l) => l.d || 7));
-  const perp = side - toward * (maxD / 2 + 2.2);
+  const DECK_W = 4.0;
+  // The deck's inner edge lands on the frontage line, so it meets every
+  // threshold with no gap to step over. This only works because the facades
+  // are aligned above — against a ragged frontage the gap would vary with
+  // each lot's depth (0.2 m to 1.2 m across this street).
+  const perp = facade - toward0 * (DECK_W / 2);
 
   // One segment per lot, each seated on that lot's own floor. A single slab
   // spanning the row cannot be right at both ends: the floors it serves vary
@@ -315,7 +336,7 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
     const x = origin.x + c * along - s * perp;
     const z = origin.z + s * along + c * perp;
     const bw = new THREE.Group();
-    bw.add(boardwalk({ length: 14, width: 4.0, height: BOARDWALK_LIFT, material: wood }));
+    bw.add(boardwalk({ length: 14, width: DECK_W, height: BOARDWALK_LIFT, material: wood }));
     // boardwalk() puts its walking surface at height + 0.2 above the group
     // origin, so seat the group that far below the floor to land flush.
     bw.position.set(x, st.userData.placementY - (BOARDWALK_LIFT + 0.2), z);
