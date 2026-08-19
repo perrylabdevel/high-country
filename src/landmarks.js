@@ -44,6 +44,14 @@ function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
 
 export const ENTERABLE_LOTS = [];
 
+/**
+ * One entry per street built, recording how many lots it was configured with
+ * against how many actually got placed. buildLot returns null when a footprint
+ * would land inside an existing one, which is how a cross street quietly loses
+ * buildings; without this the loss is invisible.
+ */
+export const STREETS = [];
+
 function seeded(n) {
   const x = Math.sin(n * 999) * 43758.5453;
   return x - Math.floor(x);
@@ -312,6 +320,14 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
       st.userData.streetId = streetId;
     }
   }
+  STREETS.push({
+    id: streetId,
+    origin: { x: origin.x, z: origin.z },
+    yaw,
+    configured: lots.length,
+    built: built.filter(Boolean).length,
+    dropped: lots.map((l, i) => (built[i] ? null : l.name || `lot ${i}`)).filter(Boolean)
+  });
 
   if (!hasWalk) {
     return;
@@ -360,6 +376,8 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
 
 export function createLandmarks(scene) {
   ENTERABLE_LOTS.length = 0;
+  STREETS.length = 0;
+  streetSeq = 0;
   const group = new THREE.Group();
   const wood = mat(0xc4a574);
   const dark = mat(0x6b4226);
@@ -397,7 +415,16 @@ export function createLandmarks(scene) {
     { w: 7, h: 3.9, d: 6 },
     { w: 9, h: 5.2, d: 7, stone: true }
   ], wood, dark, stone, roof);
-  street(group, { x: town.x + 16, z: town.z - 2 }, 0.15 + Math.PI / 2, [
+  // The cross street meets the main row at its west end, not across the middle
+  // of town. Planted at town.x + 16 it ran straight through the storefront row
+  // and both side rows, and the footprint guard dropped 3 of its 5 lots without
+  // a word — the town simply came out thinner than it was written. Swept along
+  // the main axis, -56 is the position nearest the centre where all five stand.
+  const crossAlong = -56;
+  street(group, {
+    x: town.x + Math.cos(townYaw) * crossAlong,
+    z: town.z + Math.sin(townYaw) * crossAlong
+  }, townYaw + Math.PI / 2, [
     { w: 7, h: 4.3, d: 6 },
     { w: 8, h: 5, d: 7 },
     { w: 7, h: 4, d: 6 },

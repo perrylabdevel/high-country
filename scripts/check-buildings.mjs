@@ -33,7 +33,7 @@ const {
 } = await import("../src/buildings/kit.js");
 const { clearColliders, listBoxColliders } = await import("../src/collision.js");
 const { createRanch } = await import("../src/buildings.js");
-const { createLandmarks } = await import("../src/landmarks.js");
+const { createLandmarks, STREETS } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
@@ -256,7 +256,11 @@ const EXPECTED_STRUCTURE_COUNTS = {
   church: 1,
   saloon: 1,
   livery: 1,
-  streetLot: 11,
+  // 5 + 4 + 5 across the three unnamed rows. This read 11 while the cross
+  // street was planted mid-town and the footprint guard ate 3 of its lots:
+  // the constant had been fitted to the broken build. Invariant 14 now holds
+  // built == configured, and this agrees with it.
+  streetLot: 14,
   timberCabin: 3,
   stampMill: 1,
   elPasoCasa: 1,
@@ -609,6 +613,18 @@ for (const deck of decks) {
       `boardwalk at ${label(lot)} stands only ${(top - heightAt(pos.x, pos.z)).toFixed(2)} m above the street — not a raised walk`
     );
   }
+}
+
+// 14. Every street builds the lots it was given. buildLot returns null when a
+// footprint would land inside one already standing — the guard that stops a
+// cross street from planting a building inside a facade. Silently, though: the
+// cross street had been losing 3 of its 5 lots, and the only symptom was a
+// thin-looking town.
+for (const st of STREETS) {
+  check(
+    st.built === st.configured,
+    `street ${st.id} at (${st.origin.x.toFixed(0)},${st.origin.z.toFixed(0)}) built ${st.built} of ${st.configured} lots — dropped: ${st.dropped.join(", ")}`
+  );
 }
 
 if (failures.length) {
