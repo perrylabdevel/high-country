@@ -3,6 +3,7 @@ import { heightAt, normalAt } from "./world.js";
 import { moveAndSlide, cameraClearance } from "./collision.js";
 import { POS, clampWorld, headingVector } from "./map.js";
 import { tune } from "./debug.js";
+import { interiorCeilingAt } from "./buildings/kit.js";
 
 const PLAYER_RADIUS = 0.42;
 const EYE = 1.62;
@@ -325,7 +326,14 @@ export function createPlayer(camera) {
         ignore
       );
       const minY = heightAt(cleared.x, cleared.z) + 0.55;
-      desiredCam.set(cleared.x, Math.max(cleared.y, minY), cleared.z);
+      // cameraClearance only resolves x/z, so nothing stopped the boom rising
+      // through a room's ceiling. Duck under it when the camera is indoors.
+      const ceiling = interiorCeilingAt(cleared.x, cleared.z);
+      let camY = Math.max(cleared.y, minY);
+      if (Number.isFinite(ceiling)) {
+        camY = Math.min(camY, ceiling - 0.28);
+      }
+      desiredCam.set(cleared.x, camY, cleared.z);
       if (state.snapCam) {
         camera.position.copy(desiredCam);
         state.snapCam = false;
@@ -335,6 +343,12 @@ export function createPlayer(camera) {
         camera.position.x += (desiredCam.x - camera.position.x) * aXZ;
         camera.position.z += (desiredCam.z - camera.position.z) * aXZ;
         camera.position.y += (desiredCam.y - camera.position.y) * aY;
+        // The smoothing lerps toward a clamped target but can still sit above
+        // the ceiling on the way there, which is exactly when it pops through.
+        const settledCeiling = interiorCeilingAt(camera.position.x, camera.position.z);
+        if (Number.isFinite(settledCeiling)) {
+          camera.position.y = Math.min(camera.position.y, settledCeiling - 0.28);
+        }
       }
       camera.lookAt(aimPoint(originX, eyeY, originZ));
     }

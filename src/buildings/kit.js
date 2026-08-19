@@ -73,6 +73,43 @@ export function footing(x, z, w, d, yaw) {
 }
 
 /**
+ * World Y of the interior ceiling above (x, z), or Infinity when the point is
+ * not inside a habitable structure.
+ *
+ * The third-person boom only ever tested collision in x/z, so indoors it rose
+ * straight through the ceiling and left the room. Interiors put their ceiling
+ * at min(2.7, eave - 0.35) above the floor (interiors.js addShell), and only
+ * habitable lots get a shell at all.
+ *
+ * The local frame here matches the rendered one: rotation.y = yaw maps local
+ * to world as (lx*cos + lz*sin, -lx*sin + lz*cos), so world to local inverts
+ * to (dx*cos - dz*sin, dx*sin + dz*cos).
+ */
+export function interiorCeilingAt(x, z) {
+  let lowest = Infinity;
+  for (const group of STRUCTURES) {
+    const u = group.userData;
+    if (!u.habitable || !u.w) {
+      continue;
+    }
+    const cos = Math.cos(u.yaw);
+    const sin = Math.sin(u.yaw);
+    const dx = x - u.x;
+    const dz = z - u.z;
+    const lx = dx * cos - dz * sin;
+    const lz = dx * sin + dz * cos;
+    if (Math.abs(lx) > u.w / 2 || Math.abs(lz) > u.d / 2) {
+      continue;
+    }
+    const ceiling = u.placementY + Math.min(2.7, u.eave - 0.35);
+    if (ceiling < lowest) {
+      lowest = ceiling;
+    }
+  }
+  return lowest;
+}
+
+/**
  * True if two yawed footprints overlap in plan, or come closer than
  * `clearance` metres. Used so a cross street cannot plant a lot inside an
  * already-built facade.
