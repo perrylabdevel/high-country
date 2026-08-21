@@ -13,6 +13,12 @@ const W = 400;
 const H = 500;
 const DISPLAY = 400;
 const ZOOM = 3.25;
+// Wheel-adjustable chart magnification. Bounds keep the view sane in both
+// directions: below ~1.6 the whole-world view turns landmarks into specks,
+// above ~6 the visible slice is smaller than a town lot.
+const MIN_ZOOM = 1.6;
+const MAX_ZOOM = 6;
+let zoomLevel = ZOOM;
 const INK = "#3d2918";
 const GOLD = "#a67c42";
 
@@ -59,7 +65,18 @@ export function screenNeedleAngle(yaw) {
 }
 
 export function chartScale() {
-  return DISPLAY * ZOOM / W;
+  return DISPLAY * zoomLevel / W;
+}
+
+/**
+ * Set the chart magnification. Returns true when the level actually changed,
+ * so callers can skip repaints that would draw identical frames.
+ */
+export function setChartZoom(level) {
+  const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, level));
+  const changed = Math.abs(clamped - zoomLevel) > 1e-9;
+  zoomLevel = clamped;
+  return changed;
 }
 
 export function displayPoint(worldX, worldZ, playerX, playerZ) {
@@ -73,7 +90,7 @@ export function displayPoint(worldX, worldZ, playerX, playerZ) {
 
 export function viewWindow(x, z) {
   const p = worldToCanvas(x, z);
-  const side = W / ZOOM;
+  const side = W / zoomLevel;
   return {
     sx: p.x - side / 2,
     sy: p.y - side / 2,
@@ -378,6 +395,9 @@ export function createMinimap() {
   chart.height = H;
   paintChart(chart);
   const ctx = canvas.getContext("2d");
+  // Last known player state so a wheel zoom can repaint immediately instead
+  // of waiting for the next frame's update().
+  const last = { x: 0, z: 0, yaw: 0 };
 
   function show() {
     root.classList.remove("hidden");
@@ -388,6 +408,9 @@ export function createMinimap() {
   }
 
   function update(x, z, yaw) {
+    last.x = x;
+    last.z = z;
+    last.yaw = yaw;
     const view = viewWindow(x, z);
     ctx.fillStyle = "#e2d0a4";
     ctx.fillRect(0, 0, DISPLAY, DISPLAY);
@@ -399,6 +422,24 @@ export function createMinimap() {
     ctx.restore();
     paintFrame(ctx);
   }
+
+  // Scroll anywhere zooms the chart inside its fixed frame. Listening on
+  // window (not the canvas) keeps this working while the pointer is locked to
+  // the game canvas, since locked wheel events retarget there and bubble. The
+  // UI element itself never changes size — only the drawn chart does.
+  window.addEventListener("wheel", (e) => {
+    if (root.classList.contains("hidden")) {
+      return;
+    }
+    if (e.target instanceof Element && e.target.closest(".lil-gui")) {
+      return;
+    }
+    e.preventDefault();
+    // Wheel up = zoom in (tighter view), wheel down = zoom out (wider view).
+    if (setChartZoom(zoomLevel * Math.pow(1.15, e.deltaY > 0 ? -1 : 1))) {
+      update(last.x, last.z, last.yaw);
+    }
+  }, { passive: false });
 
   return { show, toggleSize, update };
 }

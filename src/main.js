@@ -538,12 +538,12 @@ async function boot() {
       );
     }
     hintEl.textContent = player.state.mode === "fly"
-      ? "Fly · WASD · Space up · Ctrl/Q down · Shift fast · F land · [ ] speed · M map"
+      ? "Fly · WASD · Space up · Ctrl/Q down · Shift fast · F land · [ ] speed · M map · wheel map zoom"
       : player.state.mounted
-        ? "Horseback · WASD ride · Shift gallop · C camera · E dismount · M map"
+        ? "Horseback · WASD ride · Shift gallop · C camera · E dismount · M map · wheel map zoom"
         : player.state.mode === "first"
-          ? "First person · WASD · Shift sprint · C third person · E interact · M map · F fly"
-          : "Third person · WASD · Shift sprint · C first person · E interact · M map · F fly";
+          ? "First person · WASD · Shift sprint · C third person · E interact · M map · F fly · wheel map zoom"
+          : "Third person · WASD · Shift sprint · C first person · E interact · M map · F fly · wheel map zoom";
 
     const target = nearestInteract();
     setPrompt(talking || player.state.mode === "fly" ? "" : (target ? target.label : ""));
