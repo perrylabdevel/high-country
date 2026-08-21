@@ -1,9 +1,95 @@
 const boxes = [];
 const cylinders = [];
 
+const CELL_SIZE = 24;
+const CELL_OFFSET = 4096;
+const CELLS_PER_AXIS = 8192;
+let boxGrid = null;
+let cylinderGrid = null;
+let visitStamp = 0;
+
+function markDirty() {
+  boxGrid = null;
+  cylinderGrid = null;
+}
+
+function cellKey(cx, cz) {
+  return (cx + CELL_OFFSET) * CELLS_PER_AXIS + (cz + CELL_OFFSET);
+}
+
+function insertRange(grid, item, minX, maxX, minZ, maxZ) {
+  const cx0 = Math.floor(minX / CELL_SIZE);
+  const cx1 = Math.floor(maxX / CELL_SIZE);
+  const cz0 = Math.floor(minZ / CELL_SIZE);
+  const cz1 = Math.floor(maxZ / CELL_SIZE);
+  for (let cx = cx0; cx <= cx1; cx += 1) {
+    for (let cz = cz0; cz <= cz1; cz += 1) {
+      const key = cellKey(cx, cz);
+      const bucket = grid.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grid.set(key, [item]);
+      }
+    }
+  }
+}
+
+function buildGrids() {
+  boxGrid = new Map();
+  cylinderGrid = new Map();
+  for (const box of boxes) {
+    let hx = (box.maxX - box.minX) / 2;
+    let hz = (box.maxZ - box.minZ) / 2;
+    const cx = (box.minX + box.maxX) / 2;
+    const cz = (box.minZ + box.maxZ) / 2;
+    if (box.yaw) {
+      const cos = Math.abs(Math.cos(box.yaw));
+      const sin = Math.abs(Math.sin(box.yaw));
+      const rx = hx * cos + hz * sin;
+      hz = hx * sin + hz * cos;
+      hx = rx;
+    }
+    insertRange(boxGrid, box, cx - hx, cx + hx, cz - hz, cz + hz);
+  }
+  for (const cyl of cylinders) {
+    insertRange(cylinderGrid, cyl, cyl.x - cyl.radius, cyl.x + cyl.radius, cyl.z - cyl.radius, cyl.z + cyl.radius);
+  }
+}
+
+function ensureGrids() {
+  if (!boxGrid || !cylinderGrid) {
+    buildGrids();
+  }
+}
+
+function forCollidersNear(grid, x, z, radius, visit) {
+  visitStamp += 1;
+  const cx0 = Math.floor((x - radius) / CELL_SIZE);
+  const cx1 = Math.floor((x + radius) / CELL_SIZE);
+  const cz0 = Math.floor((z - radius) / CELL_SIZE);
+  const cz1 = Math.floor((z + radius) / CELL_SIZE);
+  for (let cx = cx0; cx <= cx1; cx += 1) {
+    for (let cz = cz0; cz <= cz1; cz += 1) {
+      const bucket = grid.get(cellKey(cx, cz));
+      if (!bucket) {
+        continue;
+      }
+      for (const item of bucket) {
+        if (item._stamp === visitStamp) {
+          continue;
+        }
+        item._stamp = visitStamp;
+        visit(item);
+      }
+    }
+  }
+}
+
 export function clearColliders() {
   boxes.length = 0;
   cylinders.length = 0;
+  markDirty();
 }
 
 export function addBoxCollider(x, z, halfX, halfZ) {
@@ -14,6 +100,7 @@ export function addBoxCollider(x, z, halfX, halfZ) {
     maxZ: z + halfZ,
     yaw: 0
   });
+  markDirty();
 }
 
 /**
@@ -31,11 +118,13 @@ export function addOrientedBoxCollider(x, z, halfX, halfZ, yaw) {
     halfZ,
     yaw
   });
+  markDirty();
 }
 
 export function addCylinderCollider(x, z, radius) {
   const cyl = { x, z, radius };
   cylinders.push(cyl);
+  markDirty();
   return cyl;
 }
 
@@ -100,22 +189,31 @@ function resolveCircleCylinder(px, pz, radius, cyl) {
 }
 
 export function resolvePosition(x, z, radius, ignore = null) {
+  ensureGrids();
   let px = x;
   let pz = z;
   for (let pass = 0; pass < 3; pass += 1) {
-    for (const box of boxes) {
-      const next = resolveCircleBox(px, pz, radius, box);
-      px = next.x;
-      pz = next.z;
-    }
-    for (const cyl of cylinders) {
+    let nextX = px;
+    let nextZ = pz;
+    forCollidersNear(boxGrid, px, pz, radius, (box) => {
+      const r = resolveCircleBox(nextX, nextZ, radius, box);
+      nextX = r.x;
+      nextZ = r.z;
+    });
+    px = nextX;
+    pz = nextZ;
+    let cylX = px;
+    let cylZ = pz;
+    forCollidersNear(cylinderGrid, px, pz, radius, (cyl) => {
       if (cyl === ignore) {
-        continue;
+        return;
       }
-      const next = resolveCircleCylinder(px, pz, radius, cyl);
-      px = next.x;
-      pz = next.z;
-    }
+      const r = resolveCircleCylinder(cylX, cylZ, radius, cyl);
+      cylX = r.x;
+      cylZ = r.z;
+    });
+    px = cylX;
+    pz = cylZ;
   }
   return { x: px, z: pz };
 }
@@ -142,17 +240,30 @@ export function listBoxColliders() {
 }
 
 export function hasColliderNear(x, z, radius) {
-  for (const box of boxes) {
+  ensureGrids();
+  let found = false;
+  forCollidersNear(boxGrid, x, z, radius, (box) => {
+    if (found) {
+      return;
+    }
     if (x >= box.minX - radius && x <= box.maxX + radius && z >= box.minZ - radius && z <= box.maxZ + radius) {
-      return true;
+      found = true;
     }
+  });
+  if (found) {
+    return true;
   }
-  for (const cyl of cylinders) {
-    if (Math.hypot(x - cyl.x, z - cyl.z) <= cyl.radius + radius) {
-      return true;
+  forCollidersNear(cylinderGrid, x, z, radius, (cyl) => {
+    if (found) {
+      return;
     }
-  }
-  return false;
+    const dx = x - cyl.x;
+    const dz = z - cyl.z;
+    if (dx * dx + dz * dz <= (cyl.radius + radius) * (cyl.radius + radius)) {
+      found = true;
+    }
+  });
+  return found;
 }
 
 export function movementBlocked(x, z, dx, dz, radius, ignore = null) {
