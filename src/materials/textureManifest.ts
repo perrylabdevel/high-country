@@ -48,9 +48,6 @@ export const BARK_SET = {
   orm: "/textures/bark_2k_orm.ktx2"
 } as const;
 
-/** Pine twig card with alpha (Poly Haven pine_tree_01 twig maps, CC0). */
-export const LEAF_ATLAS = "/textures/pine_twig_2k.png";
-
 export const HDRI_PATHS = {
   midday: "/textures/env/midday_2k.hdr",
   golden: "/textures/env/golden_2k.hdr"

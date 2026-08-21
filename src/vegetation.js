@@ -35,7 +35,7 @@ import { addCylinderCollider } from "./collision.js";
 import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, smoothstep as ramp } from "./map.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
-import { BARK_SET, LEAF_ATLAS } from "./materials/textureManifest.ts";
+import { BARK_SET } from "./materials/textureManifest.ts";
 
 function seeded(n) {
   const x = Math.sin(n * 999) * 43758.5453;
@@ -197,62 +197,107 @@ function leafTexture() {
 }
 
 /**
- * A conifer canopy: whorls of branch cards on tiers of shrinking radius, each
- * card tilted down at the tip. Produces a conical silhouette rather than the
- * sphere a star of vertical planes gives.
+ * A conifer canopy: whorls of branch cards on tiers of shrinking radius. Lower
+ * tiers droop away from the trunk, upper tiers sit nearly flat, so adjacent
+ * tiers interlock into one conical mass instead of stacking as separate
+ * shelves. Each branch is a tent of two folded planes plus a flat skirt, so
+ * some face is presented to the viewer from any angle — a single horizontal
+ * card foreshortens to an invisible sliver at eye level.
  *
  * Vertex colors bake ambient occlusion: darker toward the trunk (the card's
- * inner edge) and darker on the lower tiers, which sit under the canopy above.
+ * inner edge), darker on lower tiers which sit under the canopy above, and
+ * darker on the folded faces than the flat skirt.
+ *
+ * Returns { leaves, limbs } as merged geometries (separate materials).
  */
 function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
-  const planes = [];
+  const leaves = [];
+  const limbs = [];
   const span = topY - baseY;
+  const FOLD = [
+    { tilt: 0, ao: 1 },
+    { tilt: 0.85, ao: 0.82 },
+    { tilt: -0.85, ao: 0.82 }
+  ];
   for (let t = 0; t < tiers; t += 1) {
     const f = t / (tiers - 1 || 1);
-    const y = baseY + span * f;
-    const radius = baseRadius * Math.pow(1 - f, 0.78) + 0.22;
+    // Ease the tier height so upper whorls bunch together: constant spacing
+    // plus shrinking radius opened a band of sky under the tip.
+    const y = baseY + span * Math.pow(f, 0.8);
+    const radius = baseRadius * Math.pow(1 - f, 0.55) + 0.55;
     const tierAo = 0.46 + 0.54 * Math.pow(f, 0.6);
-    const cards = Math.max(3, Math.round(cardsPerTier * (1 - f * 0.45)));
-    for (let i = 0; i < cards; i += 1) {
-      const a = (i / cards) * Math.PI * 2 + f * 1.7;
+    const count = Math.max(3, Math.round(cardsPerTier * (1 - f * 0.45)));
+    for (let i = 0; i < count; i += 1) {
+      const a = (i / count) * Math.PI * 2 + f * 1.7;
       const cardLen = radius * 1.5;
-      const cardW = radius * 0.85;
-      const geo = new THREE.PlaneGeometry(cardLen, cardW);
-      const pos = geo.attributes.position;
-      const colors = new Float32Array(pos.count * 3);
-      for (let v = 0; v < pos.count; v += 1) {
-        // Card local +X runs outward from the trunk once rotated, so the inner
-        // edge is the occluded one.
-        const outward = (pos.getX(v) + cardLen / 2) / cardLen;
-        const ao = tierAo * (0.55 + 0.45 * outward);
-        colors[v * 3] = ao;
-        colors[v * 3 + 1] = ao;
-        colors[v * 3 + 2] = ao;
+      const cardW = radius * 1.05;
+      const droop = -(0.36 - 0.34 * f + seeded(i + t * 31) * 0.14);
+      for (const fold of FOLD) {
+        const w = fold.tilt === 0 ? cardW : cardW * 0.72;
+        const geo = new THREE.PlaneGeometry(cardLen, w);
+        const pos = geo.attributes.position;
+        const colors = new Float32Array(pos.count * 3);
+        for (let v = 0; v < pos.count; v += 1) {
+          // Card local +X runs outward from the trunk once rotated, so the
+          // inner edge is the occluded one.
+          const outward = (pos.getX(v) + cardLen / 2) / cardLen;
+          const ao = tierAo * (0.55 + 0.45 * outward) * fold.ao;
+          colors[v * 3] = ao;
+          colors[v * 3 + 1] = ao;
+          colors[v * 3 + 2] = ao;
+        }
+        geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+        // Lay the card flat, fold it around the branch axis, droop the tip,
+        // then swing it out around the trunk.
+        geo.rotateX(-Math.PI / 2);
+        if (fold.tilt !== 0) {
+          geo.translate(0, -w * 0.18 * Math.sign(fold.tilt), 0);
+          geo.rotateX(fold.tilt);
+        }
+        geo.rotateZ(droop);
+        geo.translate(cardLen * 0.42, 0, 0);
+        geo.rotateY(a);
+        geo.translate(0, y, 0);
+        leaves.push(geo);
       }
-      geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-      // Lay the card flat, droop the tip, then swing it out around the trunk.
-      geo.rotateX(-Math.PI / 2);
-      geo.rotateZ(-0.28);
-      geo.translate(cardLen * 0.42, 0, 0);
-      geo.rotateY(a);
-      geo.translate(0, y, 0);
-      planes.push(geo);
+
+      const limbLen = cardLen * 0.8;
+      const limb = new THREE.CylinderGeometry(0.026, 0.065, limbLen, 5);
+      limb.rotateZ(-Math.PI / 2);
+      limb.translate(limbLen * 0.55, 0, 0);
+      limb.rotateZ(droop * 0.8);
+      limb.rotateY(a);
+      limb.translate(0, y - 0.03, 0);
+      limbs.push(limb);
     }
   }
-  return mergeGeometries(planes);
+  // Apex leader: a short needle-wrapped cone continuing the top whorl into a
+  // solid tip, so the crown doesn't read as a detached tuft.
+  {
+    const h = span * 0.24 + 0.7;
+    const geo = new THREE.CylinderGeometry(0.03, 0.72, h, 7, 1);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    for (let v = 0; v < pos.count; v += 1) {
+      const t = (pos.getY(v) + h / 2) / h;
+      const ao = 0.48 + 0.44 * t;
+      colors[v * 3] = ao;
+      colors[v * 3 + 1] = ao;
+      colors[v * 3 + 2] = ao;
+    }
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    geo.translate(0, topY + h * 0.42, 0);
+    leaves.push(geo);
+  }
+  return { leaves: mergeGeometries(leaves), limbs: mergeGeometries(limbs) };
 }
 
 export async function loadVegetationMaps() {
-  const [barkAlbedo, barkNormal, leafAlbedo] = await Promise.all([
+  const [barkAlbedo, barkNormal] = await Promise.all([
     tryLoadTexture(BARK_SET.albedo, "albedo"),
-    tryLoadTexture(BARK_SET.normal, "linear"),
-    tryLoadTexture(LEAF_ATLAS, "albedo")
+    tryLoadTexture(BARK_SET.normal, "linear")
   ]);
-  if (leafAlbedo) {
-    leafAlbedo.wrapS = THREE.ClampToEdgeWrapping;
-    leafAlbedo.wrapT = THREE.ClampToEdgeWrapping;
-  }
-  return { barkAlbedo, barkNormal, leafAlbedo };
+  return { barkAlbedo, barkNormal };
 }
 
 export function createVegetation(scene, maps = {}) {
@@ -266,6 +311,11 @@ export function createVegetation(scene, maps = {}) {
     bark.normalMap = maps.barkNormal;
   }
   const char = new THREE.MeshStandardNodeMaterial({ color: 0x2a2420, roughness: 0.96 });
+  const limbMat = new THREE.MeshStandardNodeMaterial({
+    map: barkMap,
+    roughness: 0.94,
+    color: maps.barkAlbedo ? 0x9a8871 : 0x3a2c20
+  });
 
   const sunDir = uniform(new THREE.Vector3(0, 1, 0));
   const windFreq = uniform(1.3);
@@ -280,7 +330,7 @@ export function createVegetation(scene, maps = {}) {
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.34, 4.2, 8);
   trunkGeo.translate(0, 2.1, 0);
 
-  const leafTex = maps.leafAlbedo || leafTexture();
+  const leafTex = leafTexture();
   const leafSample = texture(leafTex, uv());
   const back = (viewDir) => max(float(0), dot(viewDir, sunDir).negate());
 
@@ -290,16 +340,14 @@ export function createVegetation(scene, maps = {}) {
     return windDir.mul(sway.mul(windStrength).add(gust.mul(gustStrength)).mul(profile));
   };
 
-  const canopyNearGeo = makePineCanopy(6, 7, 2.5, 2.4, 8.4);
-  const canopyFarGeo = makePineCanopy(3, 4, 2.5, 2.4, 8.4);
+  const canopyNear = makePineCanopy(6, 7, 2.5, 2.4, 7.7);
+  const canopyFar = makePineCanopy(3, 4, 2.5, 2.4, 7.7);
 
   const makeLeafMat = () => {
     const m = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.4, vertexColors: true });
     const viewDir = normalize(cameraPosition.sub(positionWorld));
     const vcol = attribute("color", "vec3");
-    const albedo = maps.leafAlbedo
-      ? leafSample.rgb.mul(vcol)
-      : leafSample.rgb.mul(vec3(0.9, 1.15, 0.7)).mul(vcol);
+    const albedo = leafSample.rgb.mul(vec3(0.9, 1.15, 0.7)).mul(vcol);
     m.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.6).add(1)), leafSample.a);
     m.positionNode = positionLocal.add(windBend(smoothstep(2.8, 8.2, positionGeometry.y).pow(2)));
     return m;
@@ -311,9 +359,11 @@ export function createVegetation(scene, maps = {}) {
   // and, each frame, bucket each tree into near or far by camera distance and
   // rewrite the instance matrices of the two pairs.
   const trunkNear = new THREE.InstancedMesh(trunkGeo, bark, MAX);
-  const crownNear = new THREE.InstancedMesh(canopyNearGeo, makeLeafMat(), MAX);
+  const crownNear = new THREE.InstancedMesh(canopyNear.leaves, makeLeafMat(), MAX);
+  const limbNear = new THREE.InstancedMesh(canopyNear.limbs, limbMat, MAX);
   const trunkFar = new THREE.InstancedMesh(trunkGeo, bark, MAX);
-  const crownFar = new THREE.InstancedMesh(canopyFarGeo, makeLeafMat(), MAX);
+  const crownFar = new THREE.InstancedMesh(canopyFar.leaves, makeLeafMat(), MAX);
+  const limbFar = new THREE.InstancedMesh(canopyFar.limbs, limbMat, MAX);
   const treePos = new Float32Array(MAX * 3);
   const treeScale = new Float32Array(MAX);
   const treeRot = new Float32Array(MAX);
@@ -323,6 +373,7 @@ export function createVegetation(scene, maps = {}) {
 
   trunkNear.castShadow = true;
   crownNear.castShadow = true;
+  limbNear.castShadow = true;
 
   const dummy = new THREE.Object3D();
   let placed = 0;
@@ -361,6 +412,7 @@ export function createVegetation(scene, maps = {}) {
     dummy.updateMatrix();
     trunkNear.setMatrixAt(placed, dummy.matrix);
     crownNear.setMatrixAt(placed, dummy.matrix);
+    limbNear.setMatrixAt(placed, dummy.matrix);
     treePos[placed * 3] = x;
     treePos[placed * 3 + 1] = y;
     treePos[placed * 3 + 2] = z;
@@ -369,13 +421,14 @@ export function createVegetation(scene, maps = {}) {
     addCylinderCollider(x, z, 0.45 * scale);
     placed += 1;
   }
-  for (const mesh of [trunkNear, crownNear]) {
+  for (const mesh of [trunkNear, crownNear, limbNear]) {
     mesh.count = placed;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
   }
   trunkFar.count = 0;
   crownFar.count = 0;
+  limbFar.count = 0;
   burnt.count = burned;
   burnt.instanceMatrix.needsUpdate = true;
   burnt.computeBoundingSphere();
@@ -497,7 +550,7 @@ export function createVegetation(scene, maps = {}) {
     addCylinderCollider(x, z, rockRadius * 0.55);
   }
 
-  scene.add(trunkNear, crownNear, trunkFar, crownFar, burnt, grass, rocks);
+  scene.add(trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, burnt, grass, rocks);
 
   const LOD_DIST = 120;
   const LOD_DIST_SQ = LOD_DIST * LOD_DIST;
@@ -516,21 +569,27 @@ export function createVegetation(scene, maps = {}) {
       if (isNear) {
         trunkNear.setMatrixAt(nearCount, lodDummy.matrix);
         crownNear.setMatrixAt(nearCount, lodDummy.matrix);
+        limbNear.setMatrixAt(nearCount, lodDummy.matrix);
         nearCount += 1;
       } else {
         trunkFar.setMatrixAt(farCount, lodDummy.matrix);
         crownFar.setMatrixAt(farCount, lodDummy.matrix);
+        limbFar.setMatrixAt(farCount, lodDummy.matrix);
         farCount += 1;
       }
     }
     trunkNear.count = nearCount;
     crownNear.count = nearCount;
+    limbNear.count = nearCount;
     trunkFar.count = farCount;
     crownFar.count = farCount;
+    limbFar.count = farCount;
     trunkNear.instanceMatrix.needsUpdate = true;
     crownNear.instanceMatrix.needsUpdate = true;
+    limbNear.instanceMatrix.needsUpdate = true;
     trunkFar.instanceMatrix.needsUpdate = true;
     crownFar.instanceMatrix.needsUpdate = true;
+    limbFar.instanceMatrix.needsUpdate = true;
   }
 
   return {
