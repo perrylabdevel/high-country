@@ -26,3 +26,5 @@ assets-dist/
 
 # Agent transcripts do not belong in the repo
 .specstory/
+package-lock.json
+package-lock.json
