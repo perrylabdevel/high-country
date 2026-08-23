@@ -25,6 +25,8 @@ export const WATER_PLACED = [];
 export function clearStructures() {
   STRUCTURES.length = 0;
   WATER_PLACED.length = 0;
+  fpGrid = null;
+  fpBuiltFor = -1;
 }
 
 export function registerWaterPlacement(name, x, z, y) {
@@ -107,6 +109,102 @@ export function interiorCeilingAt(x, z) {
     }
   }
   return lowest;
+}
+
+/**
+ * Broad-phase index of every structure footprint, for the vegetation scatter.
+ *
+ * interiorCeilingAt scans STRUCTURES linearly, which is fine for one player
+ * position per frame. The grass scatter tests ~60k candidate points per
+ * rebuild, so a linear scan over every building on the map would cost more
+ * than the placement itself. Buildings never move after the world is built, so
+ * bucket them once into a uniform grid keyed by cell and re-use it.
+ *
+ * The index is rebuilt automatically when STRUCTURES grows (createVegetation
+ * runs after the settlements are placed, but the dev reloader can re-run both).
+ */
+const FP_CELL = 24;
+let fpGrid = null;
+let fpBuiltFor = -1;
+
+function fpKey(ix, iz) {
+  return ix * 73856093 ^ iz * 19349663;
+}
+
+/**
+ * Bucket each footprint into every grid cell its padded bounding box touches.
+ * `pad` here is the largest margin any caller will ask for, so a lookup only
+ * has to visit its own cell.
+ */
+const FP_MAX_PAD = 4;
+
+export function buildFootprintIndex() {
+  fpGrid = new Map();
+  for (const group of STRUCTURES) {
+    const u = group.userData;
+    if (!u.w || !u.d) {
+      continue;
+    }
+    // Rotating a w x d box by yaw grows its axis-aligned extent to
+    // (|w cos| + |d sin|) x (|w sin| + |d cos|). Pad on top of that.
+    const c = Math.abs(Math.cos(u.yaw));
+    const s = Math.abs(Math.sin(u.yaw));
+    const ex = (u.w * c + u.d * s) / 2 + FP_MAX_PAD;
+    const ez = (u.w * s + u.d * c) / 2 + FP_MAX_PAD;
+    const i0 = Math.floor((u.x - ex) / FP_CELL);
+    const i1 = Math.floor((u.x + ex) / FP_CELL);
+    const j0 = Math.floor((u.z - ez) / FP_CELL);
+    const j1 = Math.floor((u.z + ez) / FP_CELL);
+    for (let i = i0; i <= i1; i += 1) {
+      for (let j = j0; j <= j1; j += 1) {
+        const k = fpKey(i, j);
+        let bucket = fpGrid.get(k);
+        if (!bucket) {
+          bucket = [];
+          fpGrid.set(k, bucket);
+        }
+        bucket.push(u);
+      }
+    }
+  }
+  fpBuiltFor = STRUCTURES.length;
+  return fpGrid;
+}
+
+/**
+ * True if (x, z) falls inside a building footprint, grown by `pad` metres.
+ *
+ * Without this the scatter planted grass and pines through barn floors, house
+ * interiors and shop rooms: the only settlement guard was inClearing(), which
+ * covers the ranch and Silver Creek discs and nothing else on the map.
+ *
+ * `pad` is clamped to FP_MAX_PAD because the broad-phase buckets are built for
+ * that margin; a larger request would miss buildings in neighbouring cells.
+ */
+export function insideStructure(x, z, pad = 0.75) {
+  if (!fpGrid || fpBuiltFor !== STRUCTURES.length) {
+    buildFootprintIndex();
+  }
+  const bucket = fpGrid.get(fpKey(Math.floor(x / FP_CELL), Math.floor(z / FP_CELL)));
+  if (!bucket) {
+    return false;
+  }
+  const m = pad > FP_MAX_PAD ? FP_MAX_PAD : pad;
+  for (let n = 0; n < bucket.length; n += 1) {
+    const u = bucket[n];
+    // World to local: rotation.y = yaw maps local to world as
+    // (lx*cos + lz*sin, -lx*sin + lz*cos), matching interiorCeilingAt.
+    const cos = Math.cos(u.yaw);
+    const sin = Math.sin(u.yaw);
+    const dx = x - u.x;
+    const dz = z - u.z;
+    const lx = dx * cos - dz * sin;
+    const lz = dx * sin + dz * cos;
+    if (Math.abs(lx) <= u.w / 2 + m && Math.abs(lz) <= u.d / 2 + m) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
