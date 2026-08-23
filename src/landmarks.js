@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
-import { addBoxCollider } from "./collision.js";
+import { addBoxCollider, addDeckPlatform } from "./collision.js";
 import { POS, WATER, mapToWorld, CREEKS, lakeFactor, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
   makeWaterNormalTexture,
@@ -371,6 +371,13 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
     bw.userData.streetYaw = yaw;
     bw.userData.streetId = streetId;
     group.add(bw);
+    // The boardwalk is a raised deck, so it needs a surface to stand on for the
+    // same reason the bridge did — grounding is terrain height, and without
+    // this you walk through the storefront walk at street level. The group is
+    // seated so its walking surface lands at the lot floor. Collider yaw is the
+    // inverse of three's rotation.y (see resolveCircleBox), and the group is
+    // rotated by -yaw, so the collision frame is +yaw.
+    addDeckPlatform(x, z, 14 / 2, DECK_W / 2, yaw, st.userData.placementY);
   });
 }
 

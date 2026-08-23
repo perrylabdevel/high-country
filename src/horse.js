@@ -1,5 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt, normalAt } from "./world.js";
+import { deckHeightAt } from "./collision.js";
 import { moveAndSlide, addCylinderCollider } from "./collision.js";
 import { POS, clampWorld, headingVector } from "./map.js";
 import { tune } from "./debug.js";
@@ -79,7 +80,12 @@ export function createHorse() {
         object.position.x = held.x;
         object.position.z = held.z;
       }
-      object.position.y += (heightAt(object.position.x, object.position.z) - object.position.y) * Math.min(1, 14 * dt);
+      // Same walkable surface as the player: a horse should cross a bridge too.
+      const surface = Math.max(
+        heightAt(object.position.x, object.position.z),
+        deckHeightAt(object.position.x, object.position.z, object.position.y, 1.4)
+      );
+      object.position.y += (surface - object.position.y) * Math.min(1, 14 * dt);
       collider.x = object.position.x;
       collider.z = object.position.z;
       collider.radius = this.mounted ? 0.05 : HORSE_RADIUS;
