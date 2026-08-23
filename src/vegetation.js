@@ -704,7 +704,17 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
         const geo = new THREE.PlaneGeometry(cardLen, w);
         paintAo(geo, (pos, v) => {
           const outward = (pos.getX(v) + cardLen / 2) / cardLen;
-          return tierAo * (0.55 + 0.45 * outward) * fold.ao;
+          // Three AO signals — tier height, distance out along the branch, and
+          // which fold of the card this is — each sane on its own, but they
+          // were multiplied together: 0.46 * 0.55 * 0.82 bottoms out at 0.21.
+          // Stacked on a needle albedo that is only 0.29 green to begin with,
+          // that put the shaded side of a canopy at 0.06 reflectance, which is
+          // why conifers read as black cut-outs from every angle rather than
+          // only when backlit. The broadleaf canopy, which reads correctly,
+          // floors its AO at 0.5 — so compress this product into the same
+          // depth instead of letting it run to near-zero.
+          const raw = tierAo * (0.55 + 0.45 * outward) * fold.ao;
+          return 0.5 + 0.5 * raw;
         });
         geo.rotateX(-Math.PI / 2);
         if (fold.tilt !== 0) {
@@ -1423,6 +1433,14 @@ export function createVegetation(scene, maps = {}) {
     }
     // Seed instanceColor on every mesh that shares a tinted foliage material:
     // an unset attribute leaves vInstanceColor at zero and the canopy goes black.
+    //
+    // crownDist belongs in here too. Its colours are written by bucketTrees,
+    // but setColorAt is what allocates the attribute in the first place, and
+    // bucketTrees only reaches that call for a tree type that actually has an
+    // instance in the 520-2600 m band. Stand anywhere a type has none — a
+    // forest interior, the map edge — and the unconditional
+    // crownDist.instanceColor.needsUpdate below it threw a TypeError, taking
+    // the render loop with it. Seeding here makes the attribute exist always.
     let c = 0;
     for (let i = 0; i < placed; i += 1) {
       if (treeType[i] !== t) {
@@ -1431,10 +1449,12 @@ export function createVegetation(scene, maps = {}) {
       tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
       pines[t].crownNear.setColorAt(c, tintColor);
       pines[t].crownFar.setColorAt(c, tintColor);
+      pines[t].crownDist.setColorAt(c, tintColor);
       c += 1;
     }
     pines[t].crownNear.instanceColor.needsUpdate = true;
     pines[t].crownFar.instanceColor.needsUpdate = true;
+    pines[t].crownDist.instanceColor.needsUpdate = true;
   }
   for (let t = 0; t < broads.length; t += 1) {
     let n = 0;
@@ -1452,6 +1472,7 @@ export function createVegetation(scene, maps = {}) {
       tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
       broads[t].crownNear.setColorAt(n, tintColor);
       broads[t].crownFar.setColorAt(n, tintColor);
+      broads[t].crownDist.setColorAt(n, tintColor);
       n += 1;
     }
     for (const mesh of [broads[t].trunkNear, broads[t].crownNear]) {
@@ -1461,6 +1482,7 @@ export function createVegetation(scene, maps = {}) {
     }
     broads[t].crownNear.instanceColor.needsUpdate = true;
     broads[t].crownFar.instanceColor.needsUpdate = true;
+    broads[t].crownDist.instanceColor.needsUpdate = true;
     broads[t].trunkFar.count = 0;
     broads[t].crownFar.count = 0;
   }
