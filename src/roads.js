@@ -415,48 +415,24 @@ function addBridges(group) {
       }
     }
 
-    // --- abutments: a battered crib closing the last of the drop ---
-    // These were a single near-black slab hung under the deck end, which is the
-    // dark box that read as part of the floating. An abutment is a retaining
-    // wall: widest at its footing, stepped back as it rises, carrying the deck
-    // end onto the bank and holding the bank back.
+    // --- abutments: a bulkhead wall closing the last of the drop ---
+    // This was three battered courses plus splayed wing walls, sized for the
+    // ~2.7 m gap the short deck used to leave. Growing the deck cut that gap to
+    // about 1.2 m, and the courses collapsed with it: 8.5 m wide by 0.39 m tall
+    // is a 22:1 slab lying flat, which is why the ends looked like planks
+    // dropped on the dirt. A gap that shallow wants one wall, not a staircase.
     for (const [lz, sgn] of [[zA, -1], [zB, 1]]) {
       const g = heightAt(worldX(0, lz), worldZ(0, lz));
-      const top = stringerBase;
-      const total = top - (g - 0.5);
-      if (total <= 0.3) {
+      const base = g - 1.1;
+      const h = stringerBase - base;
+      if (h <= 0.3) {
         continue;
       }
-      const courses = 3;
-      const courseH = total / courses;
-      for (let c = 0; c < courses; c += 1) {
-        const t = c / (courses - 1 || 1);
-        beam(
-          0,
-          g - 0.5 + c * courseH,
-          lz + sgn * (0.75 - t * 0.2),
-          br.width * (1.18 - t * 0.14),
-          courseH * 1.02,
-          1.9 - t * 0.5,
-          c === 0 ? footingMat : cribMat
-        );
-      }
-      // Wing walls, angled back into the bank on each side.
-      for (const side of [-1, 1]) {
-        const wing = new THREE.Mesh(
-          new THREE.BoxGeometry(0.4, Math.max(0.6, total * 0.72), 3.2),
-          cribMat
-        );
-        wing.position.set(
-          side * br.width * 0.58,
-          g - 0.4 + Math.max(0.6, total * 0.72) / 2,
-          lz + sgn * 1.5
-        );
-        wing.rotation.y = -side * sgn * 0.28;
-        wing.castShadow = true;
-        wing.receiveShadow = true;
-        bridge.add(wing);
-      }
+      // Vertical bulkhead: deck-width, thin in plan, carrying the deck end and
+      // holding the bank. Buried a metre so it never floats off a slope.
+      beam(0, base, lz + sgn * 0.34, br.width * 1.02, h, 0.68, cribMat);
+      // Footing, wider but almost entirely below grade.
+      beam(0, base - 0.4, lz + sgn * 0.34, br.width * 1.12, 0.55, 0.98, footingMat);
     }
 
     // --- railings: posts with a top and mid rail, not one floating bar ---
