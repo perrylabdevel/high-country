@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt, normalAt } from "./world.js";
-import { moveAndSlide, cameraClearance } from "./collision.js";
+import { moveAndSlide, cameraClearance, deckHeightAt } from "./collision.js";
 import { POS, clampWorld, headingVector } from "./map.js";
 import { tune } from "./debug.js";
 import { interiorCeilingAt } from "./buildings/kit.js";
@@ -11,6 +11,19 @@ const MOUNT_EYE = 1.35;
 const LOOK_SENS = 0.0024;
 const AIM_DIST = 14;
 const STEP_DOWN = 1.4;
+
+/**
+ * The surface the player stands on: terrain, or a raised deck when one is
+ * within stepping range overhead.
+ *
+ * Grounding was straight heightAt(), so bridges and boardwalks were scenery you
+ * walked through at terrain level. STEP_DOWN doubles as the climb limit, so you
+ * can step up onto a deck you could step down off, and walking the creek bed
+ * under a bridge keeps you on the creek bed.
+ */
+function walkSurface(x, z, fromY) {
+  return Math.max(heightAt(x, z), deckHeightAt(x, z, fromY, STEP_DOWN));
+}
 const CAM_Y_FOOT = 5.2;
 const CAM_Y_MOUNT = 3.6;
 const CAM_XZ = 11;
@@ -76,7 +89,7 @@ export function createPlayer(camera) {
   const flyLook = new THREE.Vector3();
 
   function groundPlayer() {
-    object.position.y = heightAt(object.position.x, object.position.z);
+    object.position.y = walkSurface(object.position.x, object.position.z, object.position.y);
   }
 
   function setFacing(yaw) {
@@ -247,12 +260,14 @@ export function createPlayer(camera) {
           held.z,
           wish.x * step * slice,
           wish.z * step * slice,
-          PLAYER_RADIUS
+          PLAYER_RADIUS,
+          null,
+          object.position.y
         );
         held = clampWorld(next.x, next.z);
       }
 
-      const ground = heightAt(held.x, held.z);
+      const ground = walkSurface(held.x, held.z, object.position.y);
       const slope = normalAt(held.x, held.z);
       const tooSteep = slope.y < 0.52 && ground > object.position.y + 0.45;
       if (!tooSteep) {
@@ -264,7 +279,7 @@ export function createPlayer(camera) {
         state.vy = 5.4;
         state.grounded = false;
       }
-      const floor = heightAt(object.position.x, object.position.z);
+      const floor = walkSurface(object.position.x, object.position.z, object.position.y);
       if (state.grounded) {
         if (object.position.y - floor <= STEP_DOWN) {
           object.position.y = floor;
@@ -325,7 +340,9 @@ export function createPlayer(camera) {
         0.35,
         ignore
       );
-      const minY = heightAt(cleared.x, cleared.z) + 0.55;
+      // Clear the deck, not just the terrain, or the third-person boom drops
+      // through a bridge you are standing on and frames it from under the creek.
+      const minY = walkSurface(cleared.x, cleared.z, feetY) + 0.55;
       // cameraClearance only resolves x/z, so nothing stopped the boom rising
       // through a room's ceiling. Duck under it when the camera is indoors.
       const ceiling = interiorCeilingAt(cleared.x, cleared.z);

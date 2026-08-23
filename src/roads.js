@@ -3,6 +3,7 @@
  */
 import * as THREE from "three/webgpu";
 import { heightAt, dirtTexture } from "./world.js";
+import { addDeckPlatform, addOrientedBoxCollider, addCylinderCollider } from "./collision.js";
 import {
   ROADS,
   BRIDGES,
@@ -269,21 +270,20 @@ function addRail(group, road, map) {
  */
 const BENT_SPACING = 4.4;
 const POST_EMBED = 0.45;
-/** Grow the deck per end until the ground is within this of it, then abut. */
-const LAND_DROP = 1.1;
-const MAX_HALF_SPAN = 22;
+/** Approach grade. The deck holds level over the channel, then descends at
+ * this slope until it meets the ground exactly. 8% is a wagon-road grade. */
+const DECK_GRADE = 0.08;
+const RAMP_STEP = 0.25;
 
 function addBridges(group) {
   const deckMat = new THREE.MeshStandardNodeMaterial({ color: 0x6b4a2c, roughness: 0.88 });
   const railMat = new THREE.MeshStandardNodeMaterial({ color: 0x4a3020, roughness: 0.9 });
   const beamMat = new THREE.MeshStandardNodeMaterial({ color: 0x51371f, roughness: 0.92 });
   const postMat = new THREE.MeshStandardNodeMaterial({ color: 0x412c19, roughness: 0.94 });
-  const cribMat = new THREE.MeshStandardNodeMaterial({ color: 0x6a5334, roughness: 0.95 });
-  const footingMat = new THREE.MeshStandardNodeMaterial({ color: 0x6d6555, roughness: 0.97 });
 
   for (const br of BRIDGES) {
     const p = mapToWorld(br.u, br.v);
-    const y = heightAt(p.x, p.z) + bridgeLift(p.x, p.z) + 0.22;
+    const crown = heightAt(p.x, p.z) + bridgeLift(p.x, p.z) + 0.22 + 0.16;
     const spin = headingRotationY(br.yaw);
     const cos = Math.cos(spin);
     const sin = Math.sin(spin);
@@ -294,73 +294,125 @@ function addBridges(group) {
     bridge.rotation.y = spin;
     group.add(bridge);
 
-    // Local (across, along) -> world, for sampling terrain under a member.
+    // Collider yaw is not three's rotation.y. resolveCircleBox builds its local
+    // frame as dx = lx*cos - lz*sin, whereas rotation.y = spin gives
+    // dx = lx*cos + lz*sin — the inverse rotation. So the collision frame for
+    // this bridge is -spin. With yaw 0 (the ranch crossing) sin is 0 and both
+    // agree, which is exactly why only the yawed tribal crossing was wrong.
+    const colliderYaw = -spin;
+
     const worldX = (lx, lz) => p.x + lx * cos + lz * sin;
     const worldZ = (lx, lz) => p.z - lx * sin + lz * cos;
+    const groundAlong = (lz) => heightAt(worldX(0, lz), worldZ(0, lz));
+
+    /**
+     * Where the deck lands, solved rather than tolerated.
+     *
+     * The span used to stop when the ground came within LAND_DROP of a flat
+     * deck — an arbitrary metre of slack that left the walking surface a step
+     * above grade at every end, with a bulkhead wall hiding the gap. A bridge
+     * approach is not flat: it ramps. Holding the deck level over the channel
+     * and then descending at a fixed grade, the deck meets the terrain at an
+     * exact crossing, so there is nothing left to tolerate.
+     *
+     * Marches out until the descending deck line crosses the ground, then
+     * interpolates the crossing within the last step.
+     */
+    const flatHalf = br.length / 2;
+    const landing = (dir) => {
+      let u = flatHalf;
+      let y = crown;
+      for (let i = 0; i < 4000; i += 1) {
+        const nu = u + RAMP_STEP;
+        const ny = y - DECK_GRADE * RAMP_STEP;
+        const g = groundAlong(nu * dir);
+        if (ny <= g) {
+          // Deck falls at DECK_GRADE, ground rises at (g - gPrev)/step. Solve
+          // where the two lines meet inside this step.
+          const gPrev = groundAlong(u * dir);
+          const closing = (y - gPrev) - (ny - g);
+          const t = closing > 1e-6 ? (y - gPrev) / closing : 0;
+          return { u: u + RAMP_STEP * t, y: y - DECK_GRADE * RAMP_STEP * t };
+        }
+        u = nu;
+        y = ny;
+      }
+      return { u, y };
+    };
+    const endA = landing(-1);
+    const endB = landing(1);
+    const zA = -endA.u;
+    const zB = endB.u;
+
+    /** Deck surface height at a position along the span. */
+    const deckYAt = (lz) => {
+      const a = Math.abs(lz);
+      if (a <= flatHalf) {
+        return crown;
+      }
+      const floorY = lz < 0 ? endA.y : endB.y;
+      return Math.max(floorY, crown - DECK_GRADE * (a - flatHalf));
+    };
+    /** Pitch of the deck at lz, as a rotation about the local X axis. */
+    const pitchAt = (lz) => {
+      const a = Math.abs(lz);
+      if (a <= flatHalf || a >= (lz < 0 ? endA.u : endB.u)) {
+        return 0;
+      }
+      return Math.sign(lz) * Math.atan(DECK_GRADE);
+    };
+
+    const PLANK = 0.14;
+    const STRINGER = 0.36;
+    const CAP = 0.24;
 
     /** Box with its base at `baseY`, in the bridge's local frame. */
-    const beam = (lx, baseY, lz, w, h, d, mat) => {
+    const beam = (lx, baseY, lz, w, h, d, mat, pitch = 0) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
       mesh.position.set(lx, baseY + h / 2, lz);
+      mesh.rotation.x = pitch;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       bridge.add(mesh);
       return mesh;
     };
 
-    // How long the bridge actually has to be.
-    //
-    // The authored span (18 m / 16 m) stopped with the deck still 2.4-2.8 m
-    // above the ground at both ends, so the trestle finished in mid-air. The
-    // crossing is not a channel with banks — creekFactor is still 0.42 fifty
-    // metres out — it is a broad shallow wash, and the ground only climbs back
-    // to deck level around 37 m from the centre.
-    //
-    // The other way to close that gap is to raise the ground instead, which is
-    // what bridgeLift was authored for. It cannot work here: the heightfield
-    // bakes on a 12.5 m grid, so an abutment 9 m from the centre is barely one
-    // cell and any embankment smears across it. The deck is authored geometry
-    // and lands exactly where it is put, so the deck goes to the ground: the
-    // trestle grows until the drop is small enough for an abutment to close,
-    // per end, since the banks are not symmetric.
-    const deckTop = y + 0.16;
-    const reachEnd = (dir) => {
-      let d = br.length / 2;
-      for (; d <= MAX_HALF_SPAN; d += 0.5) {
-        if (deckTop - heightAt(p.x + sin * d * dir, p.z + cos * d * dir) <= LAND_DROP) {
-          break;
-        }
-      }
-      return Math.min(d, MAX_HALF_SPAN);
-    };
-    const halfA = reachEnd(-1);
-    const halfB = reachEnd(1);
-    const zA = -halfA;
-    const zB = halfB;
-    const span = halfA + halfB;
-    const mid = (zA + zB) / 2;
-    const PLANK = 0.14;
-    const STRINGER = 0.36;
-    const CAP = 0.24;
-    const plankBase = deckTop - PLANK;
-    const stringerBase = plankBase - STRINGER;
-    const capBase = stringerBase - CAP;
+    /** The three runs of the deck: down-ramp, level over the channel, up-ramp. */
+    const runs = [
+      { z0: zA, z1: -flatHalf },
+      { z0: -flatHalf, z1: flatHalf },
+      { z0: flatHalf, z1: zB }
+    ].filter((r) => r.z1 - r.z0 > 0.05);
 
-    // --- transverse decking: individual planks with gaps, not one slab ---
-    const step = 0.46;
-    const plankCount = Math.max(2, Math.floor(span / step));
+    /** A member following one run, e.g. a stringer or a rail. */
+    const runBeam = (lx, drop, w, h, mat) => {
+      for (const r of runs) {
+        const y0 = deckYAt(r.z0) - drop;
+        const y1 = deckYAt(r.z1) - drop;
+        const dz = r.z1 - r.z0;
+        const len = Math.hypot(dz, y1 - y0);
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, len), mat);
+        mesh.position.set(lx, (y0 + y1) / 2 + h / 2, (r.z0 + r.z1) / 2);
+        mesh.rotation.x = Math.atan2(y0 - y1, dz);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        bridge.add(mesh);
+      }
+    };
+
+    // --- transverse decking, following the profile ---
+    const span = zB - zA;
+    const plankCount = Math.max(2, Math.floor(span / 0.46));
     const planks = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(br.width, PLANK, step * 0.82),
+      new THREE.BoxGeometry(br.width, PLANK, (span / plankCount) * 0.82),
       deckMat,
       plankCount
     );
     const dummy = new THREE.Object3D();
     for (let i = 0; i < plankCount; i += 1) {
       const lz = zA + (i + 0.5) * (span / plankCount);
-      // A little sag and scuff so the deck is not a machined grid.
-      const wobble = Math.sin(i * 2.7) * 0.012;
-      dummy.position.set(Math.sin(i * 1.3) * 0.02, plankBase + PLANK / 2 + wobble, lz);
-      dummy.rotation.set(0, Math.sin(i * 0.9) * 0.006, 0);
+      dummy.position.set(Math.sin(i * 1.3) * 0.02, deckYAt(lz) - PLANK / 2, lz);
+      dummy.rotation.set(pitchAt(lz), Math.sin(i * 0.9) * 0.006, 0);
       dummy.updateMatrix();
       planks.setMatrixAt(i, dummy.matrix);
     }
@@ -369,25 +421,27 @@ function addBridges(group) {
     planks.receiveShadow = true;
     bridge.add(planks);
 
-    // --- stringers: what the decking actually rests on ---
-    const stringerAt = [-0.38, -0.13, 0.13, 0.38];
-    for (const f of stringerAt) {
-      beam(f * br.width, stringerBase, mid, 0.2, STRINGER, span, beamMat);
+    // --- stringers ---
+    for (const f of [-0.38, -0.13, 0.13, 0.38]) {
+      runBeam(f * br.width, PLANK + STRINGER, 0.2, STRINGER, beamMat);
     }
 
-    // --- bents: capped, braced post frames carrying the stringers down ---
+    // --- bents, each sized to the deck height above it ---
     const bents = Math.max(2, Math.round(span / BENT_SPACING) - 1);
     for (let b = 0; b < bents; b += 1) {
       const lz = zA + span * ((b + 1) / (bents + 1));
+      const capBase = deckYAt(lz) - PLANK - STRINGER - CAP;
+      const legTop = capBase;
+      if (capBase - groundAlong(lz) < 0.35) {
+        continue;
+      }
       beam(0, capBase, lz, br.width * 0.94, CAP, 0.3, beamMat);
 
-      const legs = [-0.36, 0, 0.36];
-      const legTop = capBase;
-      const groundAt = [];
-      for (const f of legs) {
+      const grounds = [];
+      for (const f of [-0.36, 0, 0.36]) {
         const lx = f * br.width;
         const g = heightAt(worldX(lx, lz), worldZ(lx, lz));
-        groundAt.push(g);
+        grounds.push(g);
         const h = legTop - (g - POST_EMBED);
         if (h <= 0.2) {
           continue;
@@ -397,10 +451,10 @@ function addBridges(group) {
         post.castShadow = true;
         post.receiveShadow = true;
         bridge.add(post);
+        addCylinderCollider(worldX(lx, lz), worldZ(lx, lz), 0.3, { minY: g - POST_EMBED, maxY: legTop });
       }
 
-      // Sway bracing between the outer legs: the X under a trestle.
-      const gOuter = Math.min(groundAt[0], groundAt[2]);
+      const gOuter = Math.min(grounds[0], grounds[2]);
       const braceSpan = br.width * 0.72;
       const braceRise = legTop - (gOuter + 0.3);
       if (braceRise > 0.8) {
@@ -415,36 +469,50 @@ function addBridges(group) {
       }
     }
 
-    // --- abutments: a bulkhead wall closing the last of the drop ---
-    // This was three battered courses plus splayed wing walls, sized for the
-    // ~2.7 m gap the short deck used to leave. Growing the deck cut that gap to
-    // about 1.2 m, and the courses collapsed with it: 8.5 m wide by 0.39 m tall
-    // is a 22:1 slab lying flat, which is why the ends looked like planks
-    // dropped on the dirt. A gap that shallow wants one wall, not a staircase.
+    // --- sill beam at each landing, where the deck runs onto the bank ---
     for (const [lz, sgn] of [[zA, -1], [zB, 1]]) {
-      const g = heightAt(worldX(0, lz), worldZ(0, lz));
-      const base = g - 1.1;
-      const h = stringerBase - base;
-      if (h <= 0.3) {
-        continue;
-      }
-      // Vertical bulkhead: deck-width, thin in plan, carrying the deck end and
-      // holding the bank. Buried a metre so it never floats off a slope.
-      beam(0, base, lz + sgn * 0.34, br.width * 1.02, h, 0.68, cribMat);
-      // Footing, wider but almost entirely below grade.
-      beam(0, base - 0.4, lz + sgn * 0.34, br.width * 1.12, 0.55, 0.98, footingMat);
+      const y = deckYAt(lz);
+      beam(0, y - PLANK - 0.5, lz + sgn * 0.3, br.width * 1.02, 0.5, 0.6, postMat);
     }
 
-    // --- railings: posts with a top and mid rail, not one floating bar ---
+    // --- railings, following the profile ---
     const railPosts = Math.max(3, Math.round(span / 2.1));
     for (const side of [-1, 1]) {
       const lx = side * br.width * 0.45;
       for (let i = 0; i <= railPosts; i += 1) {
         const lz = zA + (span * i) / railPosts;
-        beam(lx, deckTop - 0.1, lz, 0.16, 1.02, 0.16, railMat);
+        beam(lx, deckYAt(lz) - 0.1, lz, 0.16, 1.02, 0.16, railMat, pitchAt(lz));
       }
-      beam(lx, deckTop + 0.78, mid, 0.13, 0.14, span, railMat);
-      beam(lx, deckTop + 0.4, mid, 0.1, 0.11, span, railMat);
+      runBeam(lx, -0.78, 0.13, 0.14, railMat);
+      runBeam(lx, -0.4, 0.1, 0.11, railMat);
+
+      // Rails are solid at deck height only: a plain collider would also wall
+      // off the creek bed you can walk underneath.
+      for (const r of runs) {
+        const mz = (r.z0 + r.z1) / 2;
+        addOrientedBoxCollider(
+          worldX(lx, mz),
+          worldZ(lx, mz),
+          0.16,
+          (r.z1 - r.z0) / 2,
+          colliderYaw,
+          { minY: Math.min(deckYAt(r.z0), deckYAt(r.z1)), maxY: Math.max(deckYAt(r.z0), deckYAt(r.z1)) + 1.05 }
+        );
+      }
+    }
+
+    // --- the walking surface, one platform per run so the ramps slope ---
+    for (const r of runs) {
+      const mz = (r.z0 + r.z1) / 2;
+      addDeckPlatform(
+        worldX(0, mz),
+        worldZ(0, mz),
+        br.width / 2,
+        (r.z1 - r.z0) / 2,
+        colliderYaw,
+        deckYAt(r.z0),
+        deckYAt(r.z1)
+      );
     }
   }
 }

@@ -86,19 +86,97 @@ function forCollidersNear(grid, x, z, radius, visit) {
   }
 }
 
+/**
+ * Walkable platforms: horizontal surfaces you stand on, as opposed to boxes and
+ * cylinders which are things you cannot walk through.
+ *
+ * The collision system is otherwise purely 2D and grounding is straight
+ * heightAt(), so anything raised off the terrain — a bridge deck, a boardwalk —
+ * had nothing to stand on and you walked through it at ground level. A blocking
+ * collider cannot express this: it would stop you crossing the bridge rather
+ * than carry you over it.
+ */
+const decks = [];
+
 export function clearColliders() {
   boxes.length = 0;
   cylinders.length = 0;
+  decks.length = 0;
   markDirty();
 }
 
-export function addBoxCollider(x, z, halfX, halfZ) {
+/**
+ * Register a walkable rectangle at world height `y`, rotated by `yaw` about +Y
+ * (same convention as addOrientedBoxCollider).
+ */
+export function addDeckPlatform(x, z, halfX, halfZ, yaw, y, yFar = null) {
+  const deck = {
+    x, z, halfX, halfZ, yaw,
+    y,
+    // Height at the local +Z edge. A bridge approach ramps, so a platform has
+    // to be able to slope rather than sit at one height.
+    yFar: yFar === null ? y : yFar,
+    reach: Math.hypot(halfX, halfZ)
+  };
+  decks.push(deck);
+  return deck;
+}
+
+/**
+ * Highest deck surface standing at (x, z), or -Infinity if none applies.
+ *
+ * A deck only counts if it is not more than `climb` above the mover's feet, so
+ * walking the creek bed under a bridge keeps you on the terrain instead of
+ * snapping you onto the deck overhead, while stepping up from the bank works.
+ */
+export function deckHeightAt(x, z, fromY, climb = 1.4) {
+  let best = -Infinity;
+  for (let i = 0; i < decks.length; i += 1) {
+    const d = decks[i];
+    if (Math.max(d.y, d.yFar) <= best) {
+      continue;
+    }
+    const dx = x - d.x;
+    const dz = z - d.z;
+    if (dx * dx + dz * dz > d.reach * d.reach) {
+      continue;
+    }
+    const cos = Math.cos(-d.yaw);
+    const sin = Math.sin(-d.yaw);
+    const lx = dx * cos - dz * sin;
+    const lz = dx * sin + dz * cos;
+    if (Math.abs(lx) > d.halfX || Math.abs(lz) > d.halfZ) {
+      continue;
+    }
+    const t = d.halfZ > 0 ? (lz + d.halfZ) / (2 * d.halfZ) : 0;
+    const surface = d.y + (d.yFar - d.y) * t;
+    if (surface > best && surface <= fromY + climb) {
+      best = surface;
+    }
+  }
+  return best;
+}
+
+export function deckCount() {
+  return decks.length;
+}
+
+/**
+ * `span` is an optional { minY, maxY } world-height range over which the
+ * collider is solid. Colliders are otherwise flat in Y and block at every
+ * height, which is wrong for anything you can walk under: give a bridge rail a
+ * plain collider and it walls off the creek bed three metres below it too.
+ * Omitting `span` keeps the original always-solid behaviour.
+ */
+export function addBoxCollider(x, z, halfX, halfZ, span = null) {
   boxes.push({
     minX: x - halfX,
     maxX: x + halfX,
     minZ: z - halfZ,
     maxZ: z + halfZ,
-    yaw: 0
+    yaw: 0,
+    minY: span ? span.minY : null,
+    maxY: span ? span.maxY : null
   });
   markDirty();
 }
@@ -108,7 +186,7 @@ export function addBoxCollider(x, z, halfX, halfZ) {
  * The resolve rotates the player into the box's local frame, runs the AABB
  * resolve, and rotates back — so a rotated building's walls collide correctly.
  */
-export function addOrientedBoxCollider(x, z, halfX, halfZ, yaw) {
+export function addOrientedBoxCollider(x, z, halfX, halfZ, yaw, span = null) {
   boxes.push({
     minX: x - halfX,
     maxX: x + halfX,
@@ -116,16 +194,32 @@ export function addOrientedBoxCollider(x, z, halfX, halfZ, yaw) {
     maxZ: z + halfZ,
     halfX,
     halfZ,
-    yaw
+    yaw,
+    minY: span ? span.minY : null,
+    maxY: span ? span.maxY : null
   });
   markDirty();
 }
 
-export function addCylinderCollider(x, z, radius) {
-  const cyl = { x, z, radius };
+export function addCylinderCollider(x, z, radius, span = null) {
+  const cyl = { x, z, radius, minY: span ? span.minY : null, maxY: span ? span.maxY : null };
   cylinders.push(cyl);
   markDirty();
   return cyl;
+}
+
+/** Body height used to test whether a mover overlaps a collider's span. */
+const BODY_HEIGHT = 1.8;
+
+/**
+ * Does a mover whose feet are at `y` overlap this collider vertically?
+ * `y` of null means the caller does not track height, so everything is solid.
+ */
+function spanApplies(item, y) {
+  if (y === null || item.minY === null || item.minY === undefined) {
+    return true;
+  }
+  return y + BODY_HEIGHT > item.minY && y < item.maxY;
 }
 
 function clamp(value, min, max) {
@@ -188,7 +282,7 @@ function resolveCircleCylinder(px, pz, radius, cyl) {
   return { x: cyl.x + dx * push, z: cyl.z + dz * push };
 }
 
-export function resolvePosition(x, z, radius, ignore = null) {
+export function resolvePosition(x, z, radius, ignore = null, y = null) {
   ensureGrids();
   let px = x;
   let pz = z;
@@ -196,6 +290,9 @@ export function resolvePosition(x, z, radius, ignore = null) {
     let nextX = px;
     let nextZ = pz;
     forCollidersNear(boxGrid, px, pz, radius, (box) => {
+      if (!spanApplies(box, y)) {
+        return;
+      }
       const r = resolveCircleBox(nextX, nextZ, radius, box);
       nextX = r.x;
       nextZ = r.z;
@@ -205,7 +302,7 @@ export function resolvePosition(x, z, radius, ignore = null) {
     let cylX = px;
     let cylZ = pz;
     forCollidersNear(cylinderGrid, px, pz, radius, (cyl) => {
-      if (cyl === ignore) {
+      if (cyl === ignore || !spanApplies(cyl, y)) {
         return;
       }
       const r = resolveCircleCylinder(cylX, cylZ, radius, cyl);
@@ -218,9 +315,9 @@ export function resolvePosition(x, z, radius, ignore = null) {
   return { x: px, z: pz };
 }
 
-export function moveAndSlide(x, z, dx, dz, radius, ignore = null) {
-  const alongX = resolvePosition(x + dx, z, radius, ignore);
-  const alongZ = resolvePosition(alongX.x, alongX.z + dz, radius, ignore);
+export function moveAndSlide(x, z, dx, dz, radius, ignore = null, y = null) {
+  const alongX = resolvePosition(x + dx, z, radius, ignore, y);
+  const alongZ = resolvePosition(alongX.x, alongX.z + dz, radius, ignore, y);
   return alongZ;
 }
 
@@ -266,8 +363,8 @@ export function hasColliderNear(x, z, radius) {
   return found;
 }
 
-export function movementBlocked(x, z, dx, dz, radius, ignore = null) {
-  const next = moveAndSlide(x, z, dx, dz, radius, ignore);
+export function movementBlocked(x, z, dx, dz, radius, ignore = null, y = null) {
+  const next = moveAndSlide(x, z, dx, dz, radius, ignore, y);
   return Math.hypot(next.x - (x + dx), next.z - (z + dz)) > 0.05;
 }
 
