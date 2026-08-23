@@ -1,13 +1,11 @@
 import * as THREE from "three/webgpu";
-import { POS, WATER } from "./map.js";
+import { POS, WATER, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addCylinderCollider } from "./collision.js";
 import { boxOnPlane, coneOnPlane, registerWaterPlacement } from "./buildings/kit.js";
 
-const LAKE_RX = 310;
-const LAKE_RZ = 242;
 const BEACH_ANGLES = [0.12, 0.82, 1.68, 2.48, 3.32, 5.92];
-const BEACH_RIMS = [1.05, 1.03, 1.07, 1.04, 1.08, 1.02];
+const BEACH_RIMS = [1.0, 0.99, 1.02, 1.0, 1.03, 0.98];
 const BEACH_SCALES = [22, 28, 18, 32, 24, 26];
 const BEACH_COLORS = [0xc2a070, 0xb89a6a];
 const REED_BAYS = [0.9, 2.58, 6.02];
@@ -18,11 +16,35 @@ function seeded(n) {
   return x - Math.floor(x);
 }
 
-function ellipsePoint(cx, cz, angle, rim) {
-  return {
-    x: cx + LAKE_RX * Math.cos(angle) * rim,
-    z: cz + LAKE_RZ * Math.sin(angle) * rim
-  };
+/**
+ * The point on a bearing where the ground actually crosses the waterline.
+ *
+ * Every shore feature — beaches, reeds, rocks — used to be placed on a
+ * hardcoded 310 x 242 ellipse that only ever matched the old circular water
+ * mesh, never the terrain. With the shoreline now irregular, marching out to
+ * the real crossing is both correct and self-maintaining: the beaches follow
+ * the bays wherever lakeShoreRadius puts them.
+ *
+ * Marches along the ray in normalised ellipse space and returns the first
+ * sample standing above WATER, so `rim` 1.0 is the water's edge, below 1 wades
+ * in, above 1 steps up the bank.
+ */
+function shorePoint(cx, cz, angle, rim = 1) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const at = (d) => ({
+    x: cx + cos * d * LAKE_NOMINAL_RX,
+    z: cz + sin * d * LAKE_NOMINAL_RZ
+  });
+  let cross = lakeShoreRadius(angle) * 1.12;
+  for (let d = 0.55; d <= 1.3; d += 0.004) {
+    const p = at(d);
+    if (heightAt(p.x, p.z) > WATER) {
+      cross = d;
+      break;
+    }
+  }
+  return at(cross * rim);
 }
 
 function nearDock(angle) {
@@ -41,15 +63,57 @@ export function createShore(scene) {
 
   const sandA = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[0], roughness: 0.95 });
   const sandB = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[1], roughness: 0.95 });
-  const discGeo = new THREE.CircleGeometry(1, 24);
+
+  /**
+   * A beach patch: an irregular fan, elongated along the shore and draped over
+   * the terrain it covers.
+   *
+   * These were flat CircleGeometry discs floating at a single height, which is
+   * why they read as tan coins scattered round the rim. Now the outline is
+   * noise-perturbed per vertex, the patch is stretched tangentially so it lies
+   * along the bank rather than bulging into the water, and every vertex is
+   * lifted to its own ground height so sand follows the slope.
+   */
+  function beachPatch(x, z, radius, tangent, seed, lift = 0.05) {
+    const SEG = 28;
+    const positions = [x, Math.max(heightAt(x, z), WATER) + lift, z];
+    const cosT = Math.cos(tangent);
+    const sinT = Math.sin(tangent);
+    for (let i = 0; i <= SEG; i += 1) {
+      const a = (i / SEG) * Math.PI * 2;
+      const wobble = 1
+        + Math.sin(a * 2 + seed) * 0.22
+        + Math.sin(a * 3 - seed * 1.7) * 0.14
+        + Math.sin(a * 5 + seed * 0.6) * 0.08;
+      // Local ellipse: long along the shore, shallow across it.
+      const lx = Math.cos(a) * radius * wobble * 1.45;
+      const lz = Math.sin(a) * radius * wobble * 0.55;
+      const px = x + lx * cosT - lz * sinT;
+      const pz = z + lx * sinT + lz * cosT;
+      positions.push(px, Math.max(heightAt(px, pz), WATER) + lift, pz);
+    }
+    const indices = [];
+    for (let i = 1; i <= SEG; i += 1) {
+      indices.push(0, i, i + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
 
   for (let i = 0; i < BEACH_ANGLES.length; i += 1) {
-    const { x, z } = ellipsePoint(cx, cz, BEACH_ANGLES[i], BEACH_RIMS[i]);
-    const y = Math.max(heightAt(x, z), WATER) + 0.04;
-    const beach = new THREE.Mesh(discGeo, i % 2 === 0 ? sandA : sandB);
-    beach.rotation.x = -Math.PI / 2;
-    beach.scale.set(BEACH_SCALES[i], BEACH_SCALES[i], 1);
-    beach.position.set(x, y, z);
+    const a = BEACH_ANGLES[i];
+    const { x, z } = shorePoint(cx, cz, a, BEACH_RIMS[i]);
+    // Shore tangent, so the patch runs along the water rather than across it.
+    const ahead = shorePoint(cx, cz, a + 0.05, BEACH_RIMS[i]);
+    const behind = shorePoint(cx, cz, a - 0.05, BEACH_RIMS[i]);
+    const tangent = Math.atan2(ahead.z - behind.z, ahead.x - behind.x);
+    const beach = new THREE.Mesh(
+      beachPatch(x, z, BEACH_SCALES[i], tangent, a * 3.7),
+      i % 2 === 0 ? sandA : sandB
+    );
     beach.receiveShadow = true;
     group.add(beach);
   }
@@ -57,10 +121,9 @@ export function createShore(scene) {
   const islandX = cx - 40;
   const islandZ = cz + 30;
   const islandMat = new THREE.MeshStandardNodeMaterial({ color: 0xb89a6a, roughness: 0.95 });
-  const island = new THREE.Mesh(discGeo, islandMat);
-  island.rotation.x = -Math.PI / 2;
-  island.scale.set(8, 8, 1);
-  island.position.set(islandX, WATER + 0.18, islandZ);
+  // The island shared the beaches' CircleGeometry, so it was a tan coin on the
+  // water. Same irregular patch, flat at the waterline since it sits offshore.
+  const island = new THREE.Mesh(beachPatch(islandX, islandZ, 7, 0.6, 2.3, 0.18), islandMat);
   island.receiveShadow = true;
   group.add(island);
 
@@ -105,8 +168,8 @@ export function createShore(scene) {
   for (let i = 0; i < 40; i += 1) {
     const bay = REED_BAYS[i % REED_BAYS.length];
     const a = bay + (seeded(i) - 0.5) * 0.38;
-    const rim = 0.97 + seeded(i + 4) * 0.08;
-    const { x, z } = ellipsePoint(cx, cz, a, rim);
+    const rim = 0.94 + seeded(i + 4) * 0.07;
+    const { x, z } = shorePoint(cx, cz, a, rim);
     dummy.position.set(x, WATER + 0.4, z);
     dummy.rotation.set(0, seeded(i + 7) * Math.PI * 2, (seeded(i + 11) - 0.5) * 0.2);
     dummy.scale.set(1, 0.65 + seeded(i + 3) * 0.7, 1);
@@ -122,8 +185,8 @@ export function createShore(scene) {
     if (nearDock(a)) {
       continue;
     }
-    const rim = 1.02 + seeded(i + 30) * 0.08;
-    const { x, z } = ellipsePoint(cx, cz, a, rim);
+    const rim = 0.98 + seeded(i + 30) * 0.07;
+    const { x, z } = shorePoint(cx, cz, a, rim);
     const ground = heightAt(x, z);
     if (ground > WATER + 4) {
       continue;
