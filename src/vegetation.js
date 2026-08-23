@@ -114,8 +114,11 @@ const BROADLEAF_CHANCE = {
 /**
  * Ground-cover species.
  *
- * `spread` is width as a multiple of the tuft's OWN height, not an absolute
- * card scale. When the heights were first cut to life size the width multiplier
+ * `spread` is clump width as a multiple of blade height, and `fill` is the
+ * fraction of its atlas panel the painted blades actually occupy. Both matter
+ * because the instance scale sets the CARD size, not the plant: blades filling
+ * 40% of a panel on a card scaled to 0.26 m render 0.10 m tall. Blue grama is
+ * 68% of the ranch mix, so getting that wrong left the yard looking bare. When the heights were first cut to life size the width multiplier
  * was left alone, so a 0.15 m mat tuft still rendered 0.45 m across — grass
  * came out a median 2.6x wider than tall and read as flat green splats lying on
  * the dirt. Tying width to height keeps every species in proportion whatever
@@ -134,11 +137,14 @@ const BROADLEAF_CHANCE = {
  * only the wet-ground bluestem comes past the knee.
  */
 const GRASS_SPECIES = [
-  { name: "blueGrama", hMin: 0.14, hMax: 0.26, spread: 1.25, uv: [0.0, 0.0] },
-  { name: "bunchgrass", hMin: 0.24, hMax: 0.46, spread: 0.95, uv: [0.5, 0.0] },
-  { name: "bluestem", hMin: 0.48, hMax: 0.86, spread: 0.7, uv: [0.0, 0.5] },
-  { name: "cheatgrass", hMin: 0.14, hMax: 0.30, spread: 1.0, uv: [0.5, 0.5] }
+  { name: "blueGrama", hMin: 0.16, hMax: 0.3, spread: 1.5, fill: 0.4, uv: [0.0, 0.0] },
+  { name: "bunchgrass", hMin: 0.26, hMax: 0.5, spread: 1.15, fill: 0.72, uv: [0.5, 0.0] },
+  { name: "bluestem", hMin: 0.5, hMax: 0.9, spread: 0.85, fill: 0.93, uv: [0.0, 0.5] },
+  { name: "cheatgrass", hMin: 0.18, hMax: 0.34, spread: 1.15, fill: 0.5, uv: [0.5, 0.5] }
 ];
+
+/** Fraction of a panel's width the painted clump spans (paintBladePanel). */
+const BLADE_PANEL_W = 0.8;
 
 /** Chance a candidate cell carries grass at all. This is the density dial. */
 const GRASS_DENSITY = {
@@ -401,7 +407,7 @@ function leafTexture() {
     };
 
     // Fascicles spaced along the stem, with gaps between them.
-    const clusters = 13;
+    const clusters = 22;
     for (let c = 0; c < clusters; c += 1) {
       const t = (c + 0.4) / clusters;
       const cx = t * tipX;
@@ -409,8 +415,8 @@ function leafTexture() {
       // Taper: long near the trunk, short at the tip, so the card silhouettes
       // as a branch instead of a slab.
       const taper = Math.pow(1 - t, 0.62);
-      const spread = size * 0.4 * taper;
-      const perCluster = 18 + ((c * 5) % 8);
+      const spread = size * 0.26 * taper;
+      const perCluster = 20 + ((c * 5) % 8);
       for (let k = 0; k < perCluster; k += 1) {
         const up = k % 2 === 0 ? -1 : 1;
         const g = 74 + Math.random() * 46;
@@ -422,10 +428,10 @@ function leafTexture() {
         needle(
           cx + (Math.random() - 0.5) * size * 0.02,
           cy,
-          spread * (0.45 + Math.random() * 0.75),
+          spread * (0.5 + Math.random() * 0.7),
           ang,
           `rgba(${r | 0},${g | 0},${bl | 0},${alpha})`,
-          1.15 + Math.random() * 1.7
+          1.0 + Math.random() * 1.35
         );
       }
     }
@@ -687,7 +693,11 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
         leaves.push(geo);
       }
 
-      const limbLen = cardLen * 0.8;
+      // Kept well inside the needle mass. The old sprig texture filled its card
+      // edge to edge so a full-length limb was always covered; the new one
+      // tapers to nothing at the tip, which left bare brown poles sticking out
+      // past the foliage.
+      const limbLen = cardLen * 0.5;
       const limb = new THREE.CylinderGeometry(0.026, 0.065, limbLen, 5);
       limb.rotateZ(-Math.PI / 2);
       limb.translate(limbLen * 0.55, 0, 0);
@@ -740,7 +750,7 @@ function makeGrassTuft() {
     geo.rotateY((i / 3) * Math.PI);
     geos.push(geo);
   }
-  return skywardNormals(mergeGeometries(geos), 1.3, 0.5);
+  return skywardNormals(mergeGeometries(geos), 1.0, 0.38);
 }
 
 /**
@@ -915,16 +925,25 @@ export function createVegetation(scene, maps = {}) {
   const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
     near: makePineCanopy(tiers, cards, radius, baseY, topY),
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
-    distant: makePineCanopy(2, 3, radius, baseY, topY),
+    distant: makePineCanopy(3, 4, radius, baseY, topY),
     trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
   });
+  // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
+  // it is tall; these were 0.66 and a full 1.00, which is why they read as tree
+  // ferns rather than pines. Branch cards are cut from the radius, so an
+  // over-wide crown also gave the "broad" pine 6.8 m fronds and, since the
+  // needle sprig is painted across the card, needles a foot long.
+  // Tier counts carry the crown's continuity. Narrowing the radius shortened
+  // every branch card, which opened gaps between tiers and left the near trees
+  // looking like stacked shelves with the trunk showing through; the far band
+  // was sparse enough that mid-distance trees read as poles with tufts on.
   const PINE = [
     // Tall spire: high crown on a long clear stem.
-    pineForm(8, 8, 1.85, 4.2, 12.4, 0.3, 3, 5),
-    pineForm(6, 7, 2.55, 2.4, 7.7, 0.34, 3, 4),
-    pineForm(5, 9, 3.2, 1.9, 6.4, 0.4, 3, 5),
+    pineForm(10, 8, 1.85, 4.2, 12.4, 0.3, 4, 6),
+    pineForm(8, 8, 1.65, 2.4, 7.7, 0.34, 4, 6),
+    pineForm(7, 10, 1.75, 1.9, 6.4, 0.4, 4, 7),
     // Juniper: wide, low, almost no clear trunk.
-    pineForm(4, 10, 3.05, 0.6, 4.1, 0.46, 2, 6)
+    pineForm(5, 11, 1.9, 0.6, 4.1, 0.46, 3, 7)
   ];
 
   const MAX = 3200;
@@ -1504,12 +1523,13 @@ export function createVegetation(scene, maps = {}) {
     // Was 1 + t * 1.6. Growing width nearly twice as fast as height stretched
     // far tufts sideways into mush; keep the two closer so proportion holds.
     const wGrow = 1 + t * 0.7;
-    const widthM = hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow;
+    // Size the CARD so the painted plant lands at the metric size we asked for.
+    const cardH = (hMet * hGrow) / sp.fill;
+    const cardW = (hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow) / BLADE_PANEL_W;
 
     dummy.position.set(x, heightAt(x, z), z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
-    // Cards are GRASS_CARD_W x GRASS_CARD_H, so scale to the metres we want.
-    dummy.scale.set(widthM / GRASS_CARD_W, (hMet * hGrow) / GRASS_CARD_H, widthM / GRASS_CARD_W);
+    dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
     grass.setMatrixAt(slot, dummy.matrix);
     speciesUV[slot * 2] = sp.uv[0];
