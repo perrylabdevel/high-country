@@ -95,6 +95,19 @@ const GRASS_CLEARANCE = 0.9;
 const SHRUB_CLEARANCE = 1.8;
 const TREE_CLEARANCE = 4;
 
+/**
+ * How readily broadleaf trees take ground away from the creeks. Conifer
+ * country stays conifer; the soft, watered biomes get real groves.
+ */
+const BROADLEAF_CHANCE = {
+  valley: 0.5,
+  ranch: 0.42,
+  foothills: 0.3,
+  tribal: 0.26,
+  range: 0.12,
+  pines: 0.08
+};
+
 const GRASSINESS = {
   lake: 0.45,
   ranch: 0.9,
@@ -636,23 +649,43 @@ export function createVegetation(scene, maps = {}) {
   let placed = 0;
   let burned = 0;
 
-  const MAX_COTTON = 260;
+  // 260 was never the binding constraint (only 22 were reaching the ground),
+  // but with placement fixed the broadleaf population needs real headroom.
+  const MAX_COTTON = 1100;
   const cottonTint = new Float32Array(MAX_COTTON * 3);
-  const cottonTrunkGeo = makePineTrunk(6.2, 0.36, 0.14);
-  const cottonNearGeo = makeBroadCanopy(32, 3.6, 2.4, 7.6);
-  const cottonFarGeo = makeBroadCanopy(12, 3.6, 2.4, 7.6);
-  const cottonTrunkNear = new THREE.InstancedMesh(cottonTrunkGeo, cottonBark, MAX_COTTON);
-  const cottonCrownNear = new THREE.InstancedMesh(cottonNearGeo, cottonLeafMat, MAX_COTTON);
-  const cottonTrunkFar = new THREE.InstancedMesh(cottonTrunkGeo, cottonBark, MAX_COTTON);
-  const cottonCrownFar = new THREE.InstancedMesh(cottonFarGeo, cottonLeafMat, MAX_COTTON);
-  cottonTrunkNear.castShadow = true;
-  cottonCrownNear.castShadow = true;
-  for (const mesh of [cottonTrunkNear, cottonCrownNear, cottonTrunkFar, cottonCrownFar, burnt]) {
+  // Two broadleaf forms, not one. Every broadleaf on the map shared a single
+  // canopy, so once they were common enough to notice they were obviously a
+  // repeated asset: a wide round cottonwood, and a narrow upright aspen that
+  // reads completely differently on a ridge.
+  const BROAD = [
+    {
+      trunk: makePineTrunk(6.2, 0.36, 0.14),
+      near: makeBroadCanopy(32, 3.6, 2.4, 7.6),
+      far: makeBroadCanopy(12, 3.6, 2.4, 7.6)
+    },
+    {
+      trunk: makePineTrunk(7.4, 0.22, 0.1),
+      near: makeBroadCanopy(24, 1.9, 3.4, 9.2),
+      far: makeBroadCanopy(9, 1.9, 3.4, 9.2)
+    }
+  ];
+  const broads = BROAD.map((proto) => {
+    const trunkNear = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
+    const crownNear = new THREE.InstancedMesh(proto.near, cottonLeafMat, MAX_COTTON);
+    const trunkFar = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
+    const crownFar = new THREE.InstancedMesh(proto.far, cottonLeafMat, MAX_COTTON);
+    trunkNear.castShadow = true;
+    crownNear.castShadow = true;
+    return { trunkNear, crownNear, trunkFar, crownFar };
+  });
+  const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar]);
+  for (const mesh of [...broadMeshes, burnt]) {
     mesh.frustumCulled = false;
   }
   const cottonPos = new Float32Array(MAX_COTTON * 3);
   const cottonScale = new Float32Array(MAX_COTTON);
   const cottonRot = new Float32Array(MAX_COTTON);
+  const cottonType = new Uint8Array(MAX_COTTON);
   let cottons = 0;
 
   /**
@@ -673,7 +706,11 @@ export function createVegetation(scene, maps = {}) {
     return n < 0.16 ? 0 : n < 0.48 ? 1 : n < 0.78 ? 2 : 3;
   }
 
-  for (let i = 0; i < 16000 && placed < MAX; i += 1) {
+  // Ran while `placed < MAX` — the conifer budget. Pines fill 3200 slots long
+  // before i reaches 16000, so the loop exited with only 22 of 260 cottonwoods
+  // ever placed and the map came out 99.3% conifer. Broadleaf has its own
+  // budget, so keep going while either has room.
+  for (let i = 0; i < 26000 && (placed < MAX || cottons < MAX_COTTON); i += 1) {
     const x = (seeded(i + 2) - 0.5) * WORLD.width * 0.96;
     const z = (seeded(i + 9) - 0.5) * WORLD.depth * 0.96;
     const ranchDist = Math.hypot(x - POS.ranch.x, z - POS.ranch.z);
@@ -697,15 +734,21 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
 
-    const riparian = creek > 0.06 && creek < 0.42 && biome !== "burn" && biome !== "badlands" && biome !== "iron";
-    if (riparian && cottons < MAX_COTTON && seeded(i + 33) < 0.22) {
+    // Broadleaf was riparian-only: a band a few metres wide along the creeks,
+    // which is why the whole territory read as pine. Cottonwoods still favour
+    // water, but aspen-style groves also take the valley, foothills, ranch and
+    // tribal ground where conifers are not dominant.
+    const bare = biome === "burn" || biome === "badlands" || biome === "iron";
+    const riparian = creek > 0.06 && creek < 0.42 && !bare;
+    const grove = !bare && BROADLEAF_CHANCE[biome] !== undefined
+      && seeded(i + 37) < BROADLEAF_CHANCE[biome];
+    if ((riparian || grove) && cottons < MAX_COTTON && seeded(i + 33) < (riparian ? 0.34 : 0.62)) {
       const scale = 0.85 + seeded(i + 4) * 1.15;
       dummy.position.set(x, y, z);
       dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
       dummy.scale.set(scale * (0.85 + seeded(i + 12) * 0.3), scale, scale * (0.85 + seeded(i + 12) * 0.3));
       dummy.updateMatrix();
-      cottonTrunkNear.setMatrixAt(cottons, dummy.matrix);
-      cottonCrownNear.setMatrixAt(cottons, dummy.matrix);
+      cottonType[cottons] = riparian ? (seeded(i + 71) < 0.72 ? 0 : 1) : (seeded(i + 71) < 0.35 ? 0 : 1);
       cottonPos[cottons * 3] = x;
       cottonPos[cottons * 3 + 1] = y;
       cottonPos[cottons * 3 + 2] = z;
@@ -717,7 +760,7 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
 
-    if (seeded(i + 21) > plantChance(biome)) {
+    if (placed >= MAX || seeded(i + 21) > plantChance(biome)) {
       continue;
     }
     // Widened from 0.72-1.27 / 0.78-1.93: near-uniform scale was as much of
@@ -782,8 +825,7 @@ export function createVegetation(scene, maps = {}) {
       dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
       dummy.scale.set(scale, scale, scale);
       dummy.updateMatrix();
-      cottonTrunkNear.setMatrixAt(cottons, dummy.matrix);
-      cottonCrownNear.setMatrixAt(cottons, dummy.matrix);
+      cottonType[cottons] = seeded(i + 71) < 0.6 ? 0 : 1;
       cottonPos[cottons * 3] = x;
       cottonPos[cottons * 3 + 1] = y;
       cottonPos[cottons * 3 + 2] = z;
@@ -888,20 +930,34 @@ export function createVegetation(scene, maps = {}) {
     pines[t].crownNear.instanceColor.needsUpdate = true;
     pines[t].crownFar.instanceColor.needsUpdate = true;
   }
-  for (const mesh of [cottonTrunkNear, cottonCrownNear]) {
-    mesh.count = cottons;
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
+  for (let t = 0; t < broads.length; t += 1) {
+    let n = 0;
+    for (let i = 0; i < cottons; i += 1) {
+      if (cottonType[i] !== t) {
+        continue;
+      }
+      dummy.position.set(cottonPos[i * 3], cottonPos[i * 3 + 1], cottonPos[i * 3 + 2]);
+      dummy.rotation.set(0, cottonRot[i], 0);
+      const sc = cottonScale[i];
+      dummy.scale.set(sc, sc, sc);
+      dummy.updateMatrix();
+      broads[t].trunkNear.setMatrixAt(n, dummy.matrix);
+      broads[t].crownNear.setMatrixAt(n, dummy.matrix);
+      tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
+      broads[t].crownNear.setColorAt(n, tintColor);
+      broads[t].crownFar.setColorAt(n, tintColor);
+      n += 1;
+    }
+    for (const mesh of [broads[t].trunkNear, broads[t].crownNear]) {
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    }
+    broads[t].crownNear.instanceColor.needsUpdate = true;
+    broads[t].crownFar.instanceColor.needsUpdate = true;
+    broads[t].trunkFar.count = 0;
+    broads[t].crownFar.count = 0;
   }
-  for (let i = 0; i < cottons; i += 1) {
-    tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
-    cottonCrownNear.setColorAt(i, tintColor);
-    cottonCrownFar.setColorAt(i, tintColor);
-  }
-  cottonCrownNear.instanceColor.needsUpdate = true;
-  cottonCrownFar.instanceColor.needsUpdate = true;
-  cottonTrunkFar.count = 0;
-  cottonCrownFar.count = 0;
   burnt.count = burned;
   burnt.instanceMatrix.needsUpdate = true;
   burnt.computeBoundingSphere();
@@ -1175,7 +1231,7 @@ export function createVegetation(scene, maps = {}) {
   for (const p of pines) {
     scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar);
   }
-  scene.add(cottonTrunkNear, cottonCrownNear, cottonTrunkFar, cottonCrownFar, burnt, sage, grass, rocks);
+  scene.add(...broadMeshes, burnt, sage, grass, rocks);
 
   const LOD_DIST = 120;
   const LOD_DIST_SQ = LOD_DIST * LOD_DIST;
@@ -1258,9 +1314,10 @@ export function createVegetation(scene, maps = {}) {
       pines[t].crownFar.instanceColor.needsUpdate = true;
     }
 
-    let cottonNearN = 0;
-    let cottonFarN = 0;
+    const broadNear = new Array(broads.length).fill(0);
+    const broadFar = new Array(broads.length).fill(0);
     for (let i = 0; i < cottons; i += 1) {
+      const t = cottonType[i];
       const dx = cottonPos[i * 3] - cameraPos.x;
       const dz = cottonPos[i * 3 + 2] - cameraPos.z;
       lodDummy.position.set(cottonPos[i * 3], cottonPos[i * 3 + 1], cottonPos[i * 3 + 2]);
@@ -1270,27 +1327,31 @@ export function createVegetation(scene, maps = {}) {
       lodDummy.updateMatrix();
       tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
       if (dx * dx + dz * dz < LOD_DIST_SQ) {
-        cottonTrunkNear.setMatrixAt(cottonNearN, lodDummy.matrix);
-        cottonCrownNear.setMatrixAt(cottonNearN, lodDummy.matrix);
-        cottonCrownNear.setColorAt(cottonNearN, tintColor);
-        cottonNearN += 1;
+        const n = broadNear[t];
+        broads[t].trunkNear.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownNear.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownNear.setColorAt(n, tintColor);
+        broadNear[t] = n + 1;
       } else {
-        cottonTrunkFar.setMatrixAt(cottonFarN, lodDummy.matrix);
-        cottonCrownFar.setMatrixAt(cottonFarN, lodDummy.matrix);
-        cottonCrownFar.setColorAt(cottonFarN, tintColor);
-        cottonFarN += 1;
+        const n = broadFar[t];
+        broads[t].trunkFar.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownFar.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownFar.setColorAt(n, tintColor);
+        broadFar[t] = n + 1;
       }
     }
-    cottonTrunkNear.count = cottonNearN;
-    cottonCrownNear.count = cottonNearN;
-    cottonTrunkFar.count = cottonFarN;
-    cottonCrownFar.count = cottonFarN;
-    cottonTrunkNear.instanceMatrix.needsUpdate = true;
-    cottonCrownNear.instanceMatrix.needsUpdate = true;
-    cottonTrunkFar.instanceMatrix.needsUpdate = true;
-    cottonCrownFar.instanceMatrix.needsUpdate = true;
-    cottonCrownNear.instanceColor.needsUpdate = true;
-    cottonCrownFar.instanceColor.needsUpdate = true;
+    for (let t = 0; t < broads.length; t += 1) {
+      broads[t].trunkNear.count = broadNear[t];
+      broads[t].crownNear.count = broadNear[t];
+      broads[t].trunkFar.count = broadFar[t];
+      broads[t].crownFar.count = broadFar[t];
+      broads[t].trunkNear.instanceMatrix.needsUpdate = true;
+      broads[t].crownNear.instanceMatrix.needsUpdate = true;
+      broads[t].trunkFar.instanceMatrix.needsUpdate = true;
+      broads[t].crownFar.instanceMatrix.needsUpdate = true;
+      broads[t].crownNear.instanceColor.needsUpdate = true;
+      broads[t].crownFar.instanceColor.needsUpdate = true;
+    }
   }
 
   return {
