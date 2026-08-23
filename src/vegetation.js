@@ -33,6 +33,7 @@ import {
 import { heightAt, normalAt } from "./heightfield.js";
 import { barkTexture, makeTexture } from "./world.js";
 import { addCylinderCollider } from "./collision.js";
+import { insideStructure } from "./buildings/kit.js";
 import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, smoothstep as ramp } from "./map.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
@@ -69,6 +70,30 @@ function shrubChance(biome) {
   return 0;
 }
 
+/**
+ * Ground-cover draw range.
+ *
+ * Grass used to stop at 210 m and start dissolving at 150, so the middle
+ * distance was bare terrain in every direction. The ring scatter below spends
+ * its instances by distance instead of uniformly, which buys the extra range
+ * back without adding blades.
+ */
+const GRASS_RADIUS = 330;
+const GRASS_FADE_IN = 265;
+const GRASS_FADE_OUT = 326;
+const SAGE_RADIUS = 280;
+const SAGE_FADE_IN = 215;
+const SAGE_FADE_OUT = 276;
+
+/**
+ * How far outside a building footprint vegetation is held back. Grass gets a
+ * small skirt so tufts do not clip through a sill; shrubs and trees need more
+ * because their canopies are wider than their base.
+ */
+const GRASS_CLEARANCE = 0.9;
+const SHRUB_CLEARANCE = 1.8;
+const TREE_CLEARANCE = 4;
+
 const GRASSINESS = {
   lake: 0.45,
   ranch: 0.9,
@@ -83,39 +108,54 @@ const GRASSINESS = {
   valley: 0.92
 };
 
-function grassWeight(x, z, creek, road) {
-  const biome = biomeAt(x, z);
-  const base = GRASSINESS[biome] ?? 0;
+/**
+ * One combined ground sample for the grass scatter.
+ *
+ * grassWeight() and skipGrass() used to be called back to back, and between
+ * them re-evaluated biomeAt, lakeFactor and normalAt twice each per candidate.
+ * At ~60k candidates a rebuild that duplication was most of the scatter cost.
+ * This returns 0 for "no grass here" and otherwise the placement weight, doing
+ * every noise lookup exactly once and bailing on the cheapest test first.
+ */
+function grassSample(x, z) {
+  const road = roadFactor(x, z);
+  if (road > 0.3) {
+    return 0;
+  }
+  const creek = creekFactor(x, z);
+  if (creek > 0.35) {
+    return 0;
+  }
+  const lake = lakeFactor(x, z);
+  const inRanch = Math.hypot(x - POS.ranch.x, z - POS.ranch.z) < 95;
+  if (!inRanch) {
+    if (lake > 0.35) {
+      return 0;
+    }
+    if (Math.hypot(x - POS.silverCreek.x, z - POS.silverCreek.z) < 80) {
+      return 0;
+    }
+  }
+  if (Math.hypot(x - POS.ranch.x, z - (POS.ranch.z - 8)) < 14) {
+    return 0;
+  }
+  if (Math.hypot(x - (POS.ranch.x - 28), z - (POS.ranch.z + 18)) < 10) {
+    return 0;
+  }
+  const base = GRASSINESS[biomeAt(x, z)] ?? 0;
+  if (base <= 0) {
+    return 0;
+  }
+  // Buildings last: it is the only test that touches the structure index, and
+  // by here most rejected candidates are already gone.
+  if (insideStructure(x, z, GRASS_CLEARANCE)) {
+    return 0;
+  }
   const slope = 1 - normalAt(x, z).y;
   const slopeFactor = 1 - ramp(0.18, 0.5, slope);
-  const lake = lakeFactor(x, z);
   return base * slopeFactor * (1 - creek * 0.8) * (1 - road) * (1 - lake * 0.5);
 }
 
-function skipGrass(x, z, creek, road) {
-  const inRanch = Math.hypot(x - POS.ranch.x, z - POS.ranch.z) < 95;
-  if (!inRanch) {
-    if (lakeFactor(x, z) > 0.35) {
-      return true;
-    }
-    if (Math.hypot(x - POS.silverCreek.x, z - POS.silverCreek.z) < 80) {
-      return true;
-    }
-  }
-  if (creek > 0.35) {
-    return true;
-  }
-  if (road > 0.3) {
-    return true;
-  }
-  if (Math.hypot(x - POS.ranch.x, z - (POS.ranch.z - 8)) < 14) {
-    return true;
-  }
-  if (Math.hypot(x - (POS.ranch.x - 28), z - (POS.ranch.z + 18)) < 10) {
-    return true;
-  }
-  return false;
-}
 
 function asCardMap(tex) {
   tex.wrapS = THREE.ClampToEdgeWrapping;
@@ -590,6 +630,12 @@ export function createVegetation(scene, maps = {}) {
     if (normalAt(x, z).y < 0.62) {
       continue;
     }
+    // inClearing() only knows the ranch and Silver Creek discs, so without this
+    // every other settlement on the map grew pines and cottonwoods up through
+    // its roofs and shop floors.
+    if (insideStructure(x, z, TREE_CLEARANCE)) {
+      continue;
+    }
 
     const riparian = creek > 0.06 && creek < 0.42 && biome !== "burn" && biome !== "badlands" && biome !== "iron";
     if (riparian && cottons < MAX_COTTON && seeded(i + 33) < 0.22) {
@@ -658,6 +704,11 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
     if (normalAt(x, z).y < 0.62) {
+      continue;
+    }
+    // The windbreak ring sweeps 46-86 m out from the ranch centre, which is
+    // exactly where the barn, bunkhouse and blacksmith stand.
+    if (insideStructure(x, z, TREE_CLEARANCE)) {
       continue;
     }
     const y = heightAt(x, z);
@@ -768,52 +819,122 @@ export function createVegetation(scene, maps = {}) {
   burnt.computeBoundingSphere();
 
   const grassTex = bladeTexture();
-  const MAX_GRASS = 100000;
   const grassGeo = makeGrassTuft();
+
+  // ---------------------------------------------------------------------
+  // Ground-cover scatter
+  //
+  // The old scheme drew MAX_GRASS fixed polar offsets once and planted them at
+  // `camera + offset`. Because the offsets were camera-relative, every blade
+  // teleported the moment the disc re-centred: walk REBUILD_STEP metres and the
+  // whole field jumped, which is what read as grass "swimming" underfoot. It
+  // also spent uniform density all the way out to the horizon, so it paid full
+  // price for blades a pixel wide and still ran out of disc at 210 m.
+  //
+  // Instead: a jittered grid, anchored in world space. A blade's position comes
+  // from its integer cell index hashed, never from the camera, so a tuft stays
+  // exactly where it is as you walk past it. Density is banded into rings that
+  // coarsen with distance while per-tuft scale grows to match, which keeps the
+  // cover visually continuous much further out for far fewer instances.
+  // ---------------------------------------------------------------------
+  // How far the player walks before the disc re-centres, and how much of the
+  // rebuild each frame absorbs. The old 2500-blade chunk measured ~9.6 ms on
+  // its own — most of a 60 fps frame — which is what made walking feel like it
+  // stuttered. Smaller chunks with the cheaper sampler keep each frame's share
+  // well inside budget; the rebuild simply spans a few more frames, and the old
+  // field stays on screen while it does.
+  const REBUILD_STEP = 42;
+  const GRASS_CHUNK = 1200;
+  const SAGE_CHUNK = 400;
+
+  const RINGS = [
+    { cell: 0.62, outer: 34 },
+    { cell: 1.05, outer: 82 },
+    { cell: 1.9, outer: 168 },
+    { cell: 3.4, outer: GRASS_RADIUS }
+  ];
+
+  /**
+   * Deterministic hash of a cell index. Must depend only on the absolute cell
+   * coordinates — that is what makes a tuft world-anchored rather than
+   * camera-anchored.
+   */
+  function hash2(i, j, salt) {
+    let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(salt, 2246822519);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  /**
+   * Flatten every ring's candidate cells into one list of (di, dj, ring) so the
+   * amortised rebuild is a single linear cursor. Built once: the offsets are
+   * relative to the ring's own snapped base cell, so they stay valid wherever
+   * the player walks.
+   */
+  function buildCandidates(rings, radius) {
+    const di = [];
+    const dj = [];
+    const ring = [];
+    let inner = 0;
+    for (let r = 0; r < rings.length; r += 1) {
+      const { cell, outer } = rings[r];
+      const span = Math.ceil(outer / cell);
+      const innerSq = inner * inner;
+      const outerSq = Math.min(outer, radius) * Math.min(outer, radius);
+      for (let i = -span; i <= span; i += 1) {
+        for (let j = -span; j <= span; j += 1) {
+          const dx = (i + 0.5) * cell;
+          const dz = (j + 0.5) * cell;
+          const dsq = dx * dx + dz * dz;
+          if (dsq < innerSq || dsq >= outerSq) {
+            continue;
+          }
+          di.push(i);
+          dj.push(j);
+          ring.push(r);
+        }
+      }
+      inner = outer;
+    }
+    return {
+      di: Int16Array.from(di),
+      dj: Int16Array.from(dj),
+      ring: Uint8Array.from(ring),
+      length: di.length
+    };
+  }
+
+  const CAND = buildCandidates(RINGS, GRASS_RADIUS);
+  // Size the pool to the candidate list rather than a round number. A cap below
+  // it would be hit first by the outermost ring (candidates are ordered near to
+  // far), so in the greenest biomes the far cover would drop out and reappear
+  // between rebuilds. ~66k matrices is 4 MB — cheaper than that artefact.
+  const MAX_GRASS = CAND.length;
 
   const tints = new Float32Array(MAX_GRASS * 3);
   const grassMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
   const tintAttr = instancedBufferAttribute(tints, "vec3", 3, 0);
-  const grassSample = texture(grassTex, uv());
+  const grassSampleTex = texture(grassTex, uv());
   const grassView = normalize(cameraPosition.sub(positionWorld));
-  const grassCol = grassSample.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
-  grassMat.colorNode = vec4(grassCol.mul(back(grassView).mul(warmGreen).add(1)), grassSample.a);
-  grassMat.opacityNode = float(1).sub(smoothstep(150, 205, cameraPosition.sub(positionWorld).length()));
-  sageMat.opacityNode = float(1).sub(smoothstep(140, 185, cameraPosition.sub(positionWorld).length()));
+  const grassCol = grassSampleTex.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
+  grassMat.colorNode = vec4(grassCol.mul(back(grassView).mul(warmGreen).add(1)), grassSampleTex.a);
+  // Hold full cover almost to the edge of the disc, then dissolve over the last
+  // stretch. The old 150 -> 205 fade started eroding grass at two thirds of the
+  // draw distance, so the world went bald well before the disc actually ended.
+  grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
+  sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
   grass.frustumCulled = false;
 
-  const MAX_SAGE = 14000;
-  const SAGE_RADIUS = 190;
   const sageGeo = makeSageBush();
+  const SAGE_CAND = buildCandidates([{ cell: 3.1, outer: 90 }, { cell: 5.2, outer: SAGE_RADIUS }], SAGE_RADIUS);
+  const MAX_SAGE = SAGE_CAND.length;
   const sage = new THREE.InstancedMesh(sageGeo, sageMat, MAX_SAGE);
   sage.castShadow = false;
   sage.frustumCulled = false;
-
-  const GRASS_RADIUS = 210;
-  const GRASS_INNER = 130;
-  const REBUILD_STEP = 42;
-  const INNER_COUNT = Math.floor(MAX_GRASS * 0.88);
-  const offsets = new Float32Array(MAX_GRASS * 2);
-  for (let i = 0; i < MAX_GRASS; i += 1) {
-    const a = seeded(i * 2 + 2) * Math.PI * 2;
-    const u = Math.sqrt(seeded(i * 2 + 1));
-    const r = i < INNER_COUNT
-      ? GRASS_INNER * u
-      : GRASS_INNER + (GRASS_RADIUS - GRASS_INNER) * u;
-    offsets[i * 2] = Math.cos(a) * r;
-    offsets[i * 2 + 1] = Math.sin(a) * r;
-  }
-  const sageOffsets = new Float32Array(MAX_SAGE * 2);
-  for (let i = 0; i < MAX_SAGE; i += 1) {
-    const a = seeded(i * 2 + 80) * Math.PI * 2;
-    const r = SAGE_RADIUS * Math.sqrt(seeded(i * 2 + 81));
-    sageOffsets[i * 2] = Math.cos(a) * r;
-    sageOffsets[i * 2 + 1] = Math.sin(a) * r;
-  }
 
   const lastCenter = new THREE.Vector3(POS.ranch.x, 0, POS.ranch.z);
   grass.boundingSphere = new THREE.Sphere(new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z), GRASS_RADIUS + 40);
@@ -822,39 +943,56 @@ export function createVegetation(scene, maps = {}) {
   let g = 0;
   let shrubs = 0;
 
+  /**
+   * Plant candidate `i` around (cx, cz). Returns true when the slot was used.
+   *
+   * Tuft scale grows with distance: a far tuft covers the ground a denser ring
+   * would have, so the coarser rings do not read as thinning out. Growth is
+   * continuous in distance rather than stepped per ring, so the ring seams do
+   * not show as bands.
+   */
   function plantBlade(cx, cz, i, slot) {
-    const x = cx + offsets[i * 2];
-    const z = cz + offsets[i * 2 + 1];
-    const creek = creekFactor(x, z);
-    const road = roadFactor(x, z);
-    if (skipGrass(x, z, creek, road)) {
-      return false;
-    }
-    const weight = grassWeight(x, z, creek, road);
+    const r = CAND.ring[i];
+    const cell = RINGS[r].cell;
+    const ix = Math.floor(cx / cell) + CAND.di[i];
+    const jz = Math.floor(cz / cell) + CAND.dj[i];
+    const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
+    const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
+    const weight = grassSample(x, z);
     if (weight < 0.22) {
       return false;
     }
     const biome = biomeAt(x, z);
     const t = GRASSINESS[biome] ?? 0;
+    const dx = x - cx;
+    const dz = z - cz;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const grow = 1 + Math.min(dist / GRASS_RADIUS, 1) * 2.1;
+    const r1 = hash2(ix, jz, 3);
+    const r2 = hash2(ix, jz, 4);
+    const r3 = hash2(ix, jz, 5);
     dummy.position.set(x, heightAt(x, z), z);
-    dummy.rotation.set(0, seeded(i + 40) * Math.PI * 2, 0);
-    const h = (0.9 + seeded(i + 3) * 0.7) * (0.75 + weight * 0.45);
-    const w = 0.85 + seeded(i + 5) * 0.55;
+    dummy.rotation.set(0, r1 * Math.PI * 2, 0);
+    const h = (0.9 + r2 * 0.7) * (0.75 + weight * 0.45) * grow;
+    const w = (0.85 + r3 * 0.55) * grow;
     dummy.scale.set(w, h, w);
     dummy.updateMatrix();
     grass.setMatrixAt(slot, dummy.matrix);
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
-    tints[slot * 3] = 0.32 + t * 0.22 + seeded(i + 9) * 0.12 + dry;
-    tints[slot * 3 + 1] = 0.42 + t * 0.28 + seeded(i + 11) * 0.12 - dry * 0.15;
-    tints[slot * 3 + 2] = 0.2 + t * 0.1 + seeded(i + 13) * 0.08 - dry * 0.05;
+    tints[slot * 3] = 0.32 + t * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
+    tints[slot * 3 + 1] = 0.42 + t * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
+    tints[slot * 3 + 2] = 0.2 + t * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
     return true;
   }
 
   function plantSage(cx, cz, i, slot) {
-    const x = cx + sageOffsets[i * 2];
-    const z = cz + sageOffsets[i * 2 + 1];
+    const cell = SAGE_CAND.ring[i] === 0 ? 3.1 : 5.2;
+    const ix = Math.floor(cx / cell) + SAGE_CAND.di[i];
+    const jz = Math.floor(cz / cell) + SAGE_CAND.dj[i];
+    const x = (ix + 0.5 + (hash2(ix, jz, 11) - 0.5) * 0.9) * cell;
+    const z = (jz + 0.5 + (hash2(ix, jz, 12) - 0.5) * 0.9) * cell;
     const biome = biomeAt(x, z);
-    if (seeded(i + 411) > shrubChance(biome)) {
+    if (hash2(ix, jz, 13) > shrubChance(biome)) {
       return false;
     }
     const creek = creekFactor(x, z);
@@ -868,6 +1006,9 @@ export function createVegetation(scene, maps = {}) {
     if (Math.hypot(x - (POS.ranch.x - 28), z - (POS.ranch.z + 18)) < 10) {
       return false;
     }
+    if (insideStructure(x, z, SHRUB_CLEARANCE)) {
+      return false;
+    }
     if (normalAt(x, z).y < 0.58) {
       return false;
     }
@@ -875,10 +1016,10 @@ export function createVegetation(scene, maps = {}) {
     if (y > 78 || y < 9) {
       return false;
     }
-    const s = 0.85 + seeded(i + 419) * 1.05;
+    const s = 0.85 + hash2(ix, jz, 14) * 1.05;
     dummy.position.set(x, y, z);
-    dummy.rotation.set(0, seeded(i + 421) * Math.PI * 2, 0);
-    dummy.scale.set(s * (0.85 + seeded(i + 424) * 0.35), s * (0.75 + seeded(i + 427) * 0.5), s);
+    dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
+    dummy.scale.set(s * (0.85 + hash2(ix, jz, 16) * 0.35), s * (0.75 + hash2(ix, jz, 17) * 0.5), s);
     dummy.updateMatrix();
     sage.setMatrixAt(slot, dummy.matrix);
     return true;
@@ -901,18 +1042,19 @@ export function createVegetation(scene, maps = {}) {
   function scatterGrass(cx, cz) {
     let grassSlot = 0;
     let sageSlot = 0;
-    for (let i = 0; i < MAX_GRASS; i += 1) {
+    for (let i = 0; i < CAND.length && grassSlot < MAX_GRASS; i += 1) {
       if (plantBlade(cx, cz, i, grassSlot)) {
         grassSlot += 1;
       }
     }
-    for (let i = 0; i < MAX_SAGE; i += 1) {
+    for (let i = 0; i < SAGE_CAND.length && sageSlot < MAX_SAGE; i += 1) {
       if (plantSage(cx, cz, i, sageSlot)) {
         sageSlot += 1;
       }
     }
     finishScatter(cx, cz, grassSlot, sageSlot);
   }
+
 
   scatterGrass(POS.ranch.x, POS.ranch.z);
 
@@ -950,6 +1092,34 @@ export function createVegetation(scene, maps = {}) {
   const LOD_DIST = 120;
   const LOD_DIST_SQ = LOD_DIST * LOD_DIST;
   const lodDummy = new THREE.Object3D();
+
+  /**
+   * bucketTrees ran every frame: 3200 pines plus 260 cottonwoods re-composed
+   * into matrices, then 22 instanceMatrix buffers flagged dirty and re-uploaded
+   * — roughly 2.5 MB of GPU traffic per frame to produce, almost always, the
+   * exact same buckets. Nothing about the split changes until the camera moves
+   * relative to the 120 m LOD shell, so gate it on distance travelled.
+   *
+   * A tree only sits in the wrong bucket while the camera is within
+   * LOD_HYSTERESIS of the shell, and the two LODs are near-identical at 120 m,
+   * so the swap is not visible.
+   */
+  const LOD_HYSTERESIS = 14;
+  const lastLodCenter = new THREE.Vector3(Infinity, 0, Infinity);
+
+  /**
+   * Horizontal distance only.
+   *
+   * Both re-centre tests used Vector3.distanceTo against centres stored with
+   * y = 0 while the camera rides ~16 m above them, so a third of the threshold
+   * was spent on a constant vertical offset — and riding up a slope moved the
+   * camera in Y alone, tripping full disc rebuilds that changed nothing.
+   */
+  function flatDist(center, pos) {
+    const dx = center.x - pos.x;
+    const dz = center.z - pos.z;
+    return Math.sqrt(dx * dx + dz * dz);
+  }
 
   function bucketTrees(cameraPos) {
     const nearCounts = [0, 0, 0];
@@ -1030,8 +1200,11 @@ export function createVegetation(scene, maps = {}) {
     gustStrength,
     grassInstances: g,
     update(cameraPos) {
-      bucketTrees(cameraPos);
-      if (!scatterJob && lastCenter.distanceTo(cameraPos) < REBUILD_STEP) {
+      if (flatDist(lastLodCenter, cameraPos) >= LOD_HYSTERESIS) {
+        lastLodCenter.copy(cameraPos);
+        bucketTrees(cameraPos);
+      }
+      if (!scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
         return;
       }
       if (!scatterJob) {
@@ -1039,19 +1212,21 @@ export function createVegetation(scene, maps = {}) {
         scatterJob = { cx: cameraPos.x, cz: cameraPos.z, i: 0, slot: 0, si: 0, sslot: 0 };
       }
       const { cx, cz } = scatterJob;
-      const end = Math.min(MAX_GRASS, scatterJob.i + 2500);
-      for (; scatterJob.i < end; scatterJob.i += 1) {
+      const end = Math.min(CAND.length, scatterJob.i + GRASS_CHUNK);
+      for (; scatterJob.i < end && scatterJob.slot < MAX_GRASS; scatterJob.i += 1) {
         if (plantBlade(cx, cz, scatterJob.i, scatterJob.slot)) {
           scatterJob.slot += 1;
         }
       }
-      const send = Math.min(MAX_SAGE, scatterJob.si + 800);
-      for (; scatterJob.si < send; scatterJob.si += 1) {
+      const send = Math.min(SAGE_CAND.length, scatterJob.si + SAGE_CHUNK);
+      for (; scatterJob.si < send && scatterJob.sslot < MAX_SAGE; scatterJob.si += 1) {
         if (plantSage(cx, cz, scatterJob.si, scatterJob.sslot)) {
           scatterJob.sslot += 1;
         }
       }
-      if (scatterJob.i >= MAX_GRASS && scatterJob.si >= MAX_SAGE) {
+      const grassDone = scatterJob.i >= CAND.length || scatterJob.slot >= MAX_GRASS;
+      const sageDone = scatterJob.si >= SAGE_CAND.length || scatterJob.sslot >= MAX_SAGE;
+      if (grassDone && sageDone) {
         finishScatter(cx, cz, scatterJob.slot, scatterJob.sslot);
         scatterJob = null;
       }
