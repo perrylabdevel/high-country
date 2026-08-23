@@ -1015,7 +1015,7 @@ export function createVegetation(scene, maps = {}) {
   const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
     near: makePineCanopy(tiers, cards, radius, baseY, topY),
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
-    distant: makePineCanopy(5, 6, radius, baseY, topY),
+    distant: makePineCanopy(7, 9, radius, baseY, topY),
     trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
   });
   // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
@@ -1049,10 +1049,12 @@ export function createVegetation(scene, maps = {}) {
     const trunkFar = new THREE.InstancedMesh(proto.trunk, bark, MAX);
     const crownFar = new THREE.InstancedMesh(proto.far.leaves, pineLeafMat, MAX);
     const limbFar = new THREE.InstancedMesh(proto.far.limbs, limbMat, MAX);
-    // Distant band: trunk and crown only, no limbs — you cannot see them.
-    const trunkDist = new THREE.InstancedMesh(proto.trunk, bark, MAX);
+    // Distant band: crown only. At 520 m a trunk is 1.2 px wide and by 900 m
+    // it is under one — it renders nothing but the bare pole that shows through
+    // a thin crown. Dropping it removes that artefact and returns ~245k
+    // triangles, which buys the crown density that actually reads at range.
     const crownDist = new THREE.InstancedMesh(proto.distant.leaves, pineLeafMat, MAX);
-    for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, trunkDist, crownDist]) {
+    for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist]) {
       mesh.count = 0;
       mesh.frustumCulled = false;
     }
@@ -1064,7 +1066,7 @@ export function createVegetation(scene, maps = {}) {
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
     limbNear.castShadow = false;
-    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, trunkDist, crownDist };
+    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist };
   });
 
   const treePos = new Float32Array(MAX * 3);
@@ -1113,18 +1115,23 @@ export function createVegetation(scene, maps = {}) {
   // canopy, so once they were common enough to notice they were obviously a
   // repeated asset: a wide round cottonwood, and a narrow upright aspen that
   // reads completely differently on a ridge.
+  // Broadleaf canopies were 5-8x sparser than the conifers' — a pine near crown
+  // is 130-190 cards, a cottonwood was 32 — so you could see straight through
+  // one to its own trunk, the same defect the far conifers had. A leaf card is
+  // one quad against the conifer's three folds, so matching them costs less
+  // than the numbers suggest.
   const BROAD = [
     {
       trunk: makePineTrunk(6.2, 0.36, 0.14),
-      near: makeBroadCanopy(32, 3.6, 2.4, 7.6),
-      far: makeBroadCanopy(12, 3.6, 2.4, 7.6),
-      distant: makeBroadCanopy(10, 3.6, 2.4, 7.6)
+      near: makeBroadCanopy(96, 3.6, 2.4, 7.6),
+      far: makeBroadCanopy(40, 3.6, 2.4, 7.6),
+      distant: makeBroadCanopy(24, 3.6, 2.4, 7.6)
     },
     {
       trunk: makePineTrunk(7.4, 0.22, 0.1),
-      near: makeBroadCanopy(24, 1.9, 3.4, 9.2),
-      far: makeBroadCanopy(9, 1.9, 3.4, 9.2),
-      distant: makeBroadCanopy(8, 1.9, 3.4, 9.2)
+      near: makeBroadCanopy(76, 1.9, 3.4, 9.2),
+      far: makeBroadCanopy(32, 1.9, 3.4, 9.2),
+      distant: makeBroadCanopy(20, 1.9, 3.4, 9.2)
     }
   ];
   const broads = BROAD.map((proto) => {
@@ -1132,13 +1139,12 @@ export function createVegetation(scene, maps = {}) {
     const crownNear = new THREE.InstancedMesh(proto.near, cottonLeafMat, MAX_COTTON);
     const trunkFar = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
     const crownFar = new THREE.InstancedMesh(proto.far, cottonLeafMat, MAX_COTTON);
-    const trunkDist = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
     const crownDist = new THREE.InstancedMesh(proto.distant, cottonLeafMat, MAX_COTTON);
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
-    return { trunkNear, crownNear, trunkFar, crownFar, trunkDist, crownDist };
+    return { trunkNear, crownNear, trunkFar, crownFar, crownDist };
   });
-  const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar, b.trunkDist, b.crownDist]);
+  const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar, b.crownDist]);
   for (const mesh of [...broadMeshes, burnt]) {
     mesh.frustumCulled = false;
   }
@@ -1748,7 +1754,7 @@ export function createVegetation(scene, maps = {}) {
   }
 
   for (const p of pines) {
-    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.trunkDist, p.crownDist);
+    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.crownDist);
   }
   scene.add(...broadMeshes, burnt, sage, grass, rocks);
 
@@ -1814,7 +1820,6 @@ export function createVegetation(scene, maps = {}) {
       lodDummy.updateMatrix();
       if (dSq > MID_DIST_SQ) {
         const n = distCounts[t];
-        pines[t].trunkDist.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownDist.setMatrixAt(n, lodDummy.matrix);
         tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
         pines[t].crownDist.setColorAt(n, tintColor);
@@ -1855,9 +1860,7 @@ export function createVegetation(scene, maps = {}) {
       pines[t].trunkFar.instanceMatrix.needsUpdate = true;
       pines[t].crownFar.instanceMatrix.needsUpdate = true;
       pines[t].limbFar.instanceMatrix.needsUpdate = true;
-      pines[t].trunkDist.count = distCounts[t];
       pines[t].crownDist.count = distCounts[t];
-      pines[t].trunkDist.instanceMatrix.needsUpdate = true;
       pines[t].crownDist.instanceMatrix.needsUpdate = true;
       pines[t].crownNear.instanceColor.needsUpdate = true;
       pines[t].crownFar.instanceColor.needsUpdate = true;
@@ -1883,7 +1886,6 @@ export function createVegetation(scene, maps = {}) {
       tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
       if (bSq > MID_DIST_SQ) {
         const n = broadDist[t];
-        broads[t].trunkDist.setMatrixAt(n, lodDummy.matrix);
         broads[t].crownDist.setMatrixAt(n, lodDummy.matrix);
         broads[t].crownDist.setColorAt(n, tintColor);
         broadDist[t] = n + 1;
@@ -1912,9 +1914,7 @@ export function createVegetation(scene, maps = {}) {
       broads[t].crownNear.instanceMatrix.needsUpdate = true;
       broads[t].trunkFar.instanceMatrix.needsUpdate = true;
       broads[t].crownFar.instanceMatrix.needsUpdate = true;
-      broads[t].trunkDist.count = broadDist[t];
       broads[t].crownDist.count = broadDist[t];
-      broads[t].trunkDist.instanceMatrix.needsUpdate = true;
       broads[t].crownDist.instanceMatrix.needsUpdate = true;
       broads[t].crownNear.instanceColor.needsUpdate = true;
       broads[t].crownFar.instanceColor.needsUpdate = true;
