@@ -65,21 +65,25 @@ export function mergeStatic(root, name = "static-merge") {
     if (isMoving(o, moving, root)) {
       return;
     }
-    // mergeGeometries needs an identical attribute set, and a few kit shapes
-    // carry no uv, so key on the attribute signature as well as the material.
-    const sig = Object.keys(o.geometry.attributes).sort().join(",");
+    // mergeGeometries refuses a mix of indexed and non-indexed inputs, and the
+    // kit produces both, so flatten everything to non-indexed first. Building
+    // geometry is ~0.01M triangles, so the extra vertices cost nothing next to
+    // the draw calls this saves.
+    const geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    geo.applyMatrix4(o.matrixWorld);
+    // Merge also needs an identical attribute set, and a few kit shapes carry
+    // no uv, so the bucket key is material plus attribute signature.
+    const sig = Object.keys(geo.attributes).sort().join(",");
     const key = `${o.material.uuid}|${sig}`;
     let bucket = groups.get(key);
     if (!bucket) {
-      bucket = { material: o.material, geos: [], cast: false, receive: false };
+      bucket = { material: o.material, geos: [], cast: false, receive: false, failed: false };
       groups.set(key, bucket);
     }
-    const geo = o.geometry.clone();
-    geo.applyMatrix4(o.matrixWorld);
     bucket.geos.push(geo);
     bucket.cast = bucket.cast || o.castShadow;
     bucket.receive = bucket.receive || o.receiveShadow;
-    originals.push(o);
+    originals.push({ mesh: o, key });
   });
 
   const merged = new THREE.Group();
@@ -103,17 +107,12 @@ export function mergeStatic(root, name = "static-merge") {
     drawn += 1;
   }
 
-  const failed = new Set();
-  for (const bucket of groups.values()) {
-    if (bucket.failed) {
-      failed.add(bucket.material.uuid);
+  // Hide only the meshes whose bucket actually merged. A refused bucket keeps
+  // its originals on screen rather than dropping geometry from the world.
+  for (const { mesh, key } of originals) {
+    if (!groups.get(key).failed) {
+      mesh.visible = false;
     }
-  }
-  for (const o of originals) {
-    if (failed.has(o.material.uuid)) {
-      continue;
-    }
-    o.visible = false;
   }
 
   merged.userData.mergedFrom = originals.length;

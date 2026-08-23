@@ -15,7 +15,10 @@ globalThis.document = {
       width: 256,
       height: 256,
       getContext() {
-        const noop = () => {};
+        // Every 2D call returns a gradient-like object rather than undefined,
+        // so painters that build CanvasGradients work against the stub too.
+        const gradient = { addColorStop() {} };
+        const noop = () => gradient;
         return new Proxy({}, { get: () => noop });
       }
     };
