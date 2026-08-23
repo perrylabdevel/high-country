@@ -27,6 +27,11 @@ const GRASSINESS = {
   lake: 0.45, ranch: 0.9, town: 0.3, pines: 0.92, burn: 0.04, range: 0.85,
   iron: 0.25, badlands: 0.04, tribal: 0.75, foothills: 0.82, valley: 0.92
 };
+// Density is what actually gates placement now; keep in step with vegetation.js.
+const GRASS_DENSITY = {
+  valley: 0.92, ranch: 0.88, pines: 0.78, foothills: 0.68, tribal: 0.5,
+  range: 0.42, lake: 0.35, town: 0.28, iron: 0.14, burn: 0.05, badlands: 0.04
+};
 
 function hash2(i, j, salt) {
   let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(salt, 2246822519);
@@ -47,10 +52,19 @@ function grassSample(x, z) {
   }
   if (Math.hypot(x - POS.ranch.x, z - (POS.ranch.z - 8)) < 14) return 0;
   if (Math.hypot(x - (POS.ranch.x - 28), z - (POS.ranch.z + 18)) < 10) return 0;
-  const base = GRASSINESS[biomeAt(x, z)] ?? 0;
+  const biome = biomeAt(x, z);
+  const base = GRASSINESS[biome] ?? 0;
   if (base <= 0) return 0;
   const slope = 1 - normalAt(x, z).y;
   return base * (1 - ramp(0.18, 0.5, slope)) * (1 - creek * 0.8) * (1 - road) * (1 - lake * 0.5);
+}
+
+/** The density gate, as plantBlade applies it. */
+function placed(x, z, ix, jz) {
+  const w = grassSample(x, z);
+  if (w <= 0) return false;
+  const density = (GRASS_DENSITY[biomeAt(x, z)] ?? 0) * (0.55 + w * 0.5);
+  return hash2(ix, jz, 21) <= density;
 }
 
 bakeHeightfield();
@@ -58,6 +72,7 @@ bakeHeightfield();
 const cx = POS.ranch.x;
 const cz = POS.ranch.z;
 const pts = [];
+const cells = [];
 let inner = 0;
 for (const { cell, outer } of RINGS) {
   const span = Math.ceil(outer / cell);
@@ -77,6 +92,7 @@ for (const { cell, outer } of RINGS) {
         (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell,
         (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell
       ]);
+      cells.push([ix, jz]);
     }
   }
   inner = outer;
@@ -92,7 +108,7 @@ const t0 = performance.now();
 let kept = 0;
 for (let i = 0; i < pts.length; i += 1) {
   const [x, z] = pts[i];
-  if (grassSample(x, z) >= 0.22) {
+  if (placed(x, z, cells[i][0], cells[i][1])) {
     heightAt(x, z);
     kept += 1;
   }
