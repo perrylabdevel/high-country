@@ -14,7 +14,6 @@ import {
 } from "./map.js";
 import { TEXTURE_SETS } from "./materials/textureManifest.ts";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
-import { boxOnPlane } from "./buildings/kit.js";
 
 const KIND_LOOK = {
   stage: { color: [0.38, 0.25, 0.14], rut: [0.24, 0.14, 0.08], lift: 0.22, slices: 5 },
@@ -248,30 +247,160 @@ function addRail(group, road, map) {
   }
 }
 
+/**
+ * Timber trestle bridges.
+ *
+ * A bridge used to be three boxes: one deck slab and two continuous rails,
+ * hovering 2.4-4.2 m over the creek along their whole length with nothing
+ * reaching the ground anywhere, not even at the abutments. They read as
+ * floating planks because structurally that is all they were.
+ *
+ * A real timber crossing carries its deck on stringers, the stringers on
+ * bents, and the bents on posts driven into the bank. That load path is what
+ * the eye reads as "bridge", so it is built here: transverse decking, four
+ * longitudinal stringers, bents at intervals with capped and cross-braced
+ * posts that run down to wherever the terrain actually is, timber abutment
+ * cribs at both banks, and railings made of posts with top and mid rails
+ * instead of one floating bar.
+ *
+ * Everything is built inside a group positioned at the crossing and rotated by
+ * the bridge yaw, so local x is across the deck, local z runs along it, and
+ * local y stays world height (the group has no Y offset and no other rotation).
+ */
+const BENT_SPACING = 4.4;
+const POST_EMBED = 0.45;
+
 function addBridges(group) {
   const deckMat = new THREE.MeshStandardNodeMaterial({ color: 0x6b4a2c, roughness: 0.88 });
   const railMat = new THREE.MeshStandardNodeMaterial({ color: 0x4a3020, roughness: 0.9 });
+  const beamMat = new THREE.MeshStandardNodeMaterial({ color: 0x51371f, roughness: 0.92 });
+  const postMat = new THREE.MeshStandardNodeMaterial({ color: 0x412c19, roughness: 0.94 });
+
   for (const br of BRIDGES) {
     const p = mapToWorld(br.u, br.v);
     const y = heightAt(p.x, p.z) + bridgeLift(p.x, p.z) + 0.22;
-    const deck = boxOnPlane(group, p.x, y - 0.16, p.z, br.width, 0.32, br.length, deckMat, false);
-    deck.rotation.y = headingRotationY(br.yaw);
     const spin = headingRotationY(br.yaw);
-    const cx = Math.cos(spin);
-    const sx = Math.sin(spin);
+    const cos = Math.cos(spin);
+    const sin = Math.sin(spin);
+
+    const bridge = new THREE.Group();
+    bridge.name = `bridge-${br.name}`;
+    bridge.position.set(p.x, 0, p.z);
+    bridge.rotation.y = spin;
+    group.add(bridge);
+
+    // Local (across, along) -> world, for sampling terrain under a member.
+    const worldX = (lx, lz) => p.x + lx * cos + lz * sin;
+    const worldZ = (lx, lz) => p.z - lx * sin + lz * cos;
+
+    /** Box with its base at `baseY`, in the bridge's local frame. */
+    const beam = (lx, baseY, lz, w, h, d, mat) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      mesh.position.set(lx, baseY + h / 2, lz);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      bridge.add(mesh);
+      return mesh;
+    };
+
+    const half = br.length / 2;
+    const deckTop = y + 0.16;
+    const PLANK = 0.14;
+    const STRINGER = 0.36;
+    const CAP = 0.24;
+    const plankBase = deckTop - PLANK;
+    const stringerBase = plankBase - STRINGER;
+    const capBase = stringerBase - CAP;
+
+    // --- transverse decking: individual planks with gaps, not one slab ---
+    const step = 0.46;
+    const plankCount = Math.max(2, Math.floor(br.length / step));
+    const planks = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(br.width, PLANK, step * 0.82),
+      deckMat,
+      plankCount
+    );
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < plankCount; i += 1) {
+      const lz = -half + (i + 0.5) * (br.length / plankCount);
+      // A little sag and scuff so the deck is not a machined grid.
+      const wobble = Math.sin(i * 2.7) * 0.012;
+      dummy.position.set(Math.sin(i * 1.3) * 0.02, plankBase + PLANK / 2 + wobble, lz);
+      dummy.rotation.set(0, Math.sin(i * 0.9) * 0.006, 0);
+      dummy.updateMatrix();
+      planks.setMatrixAt(i, dummy.matrix);
+    }
+    planks.instanceMatrix.needsUpdate = true;
+    planks.castShadow = true;
+    planks.receiveShadow = true;
+    bridge.add(planks);
+
+    // --- stringers: what the decking actually rests on ---
+    const stringerAt = [-0.38, -0.13, 0.13, 0.38];
+    for (const f of stringerAt) {
+      beam(f * br.width, stringerBase, 0, 0.2, STRINGER, br.length, beamMat);
+    }
+
+    // --- bents: capped, braced post frames carrying the stringers down ---
+    const bents = Math.max(2, Math.round(br.length / BENT_SPACING) - 1);
+    for (let b = 0; b < bents; b += 1) {
+      const lz = -half + br.length * ((b + 1) / (bents + 1));
+      beam(0, capBase, lz, br.width * 0.94, CAP, 0.3, beamMat);
+
+      const legs = [-0.36, 0, 0.36];
+      const legTop = capBase;
+      const groundAt = [];
+      for (const f of legs) {
+        const lx = f * br.width;
+        const g = heightAt(worldX(lx, lz), worldZ(lx, lz));
+        groundAt.push(g);
+        const h = legTop - (g - POST_EMBED);
+        if (h <= 0.2) {
+          continue;
+        }
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.22, h, 8), postMat);
+        post.position.set(lx, g - POST_EMBED + h / 2, lz);
+        post.castShadow = true;
+        post.receiveShadow = true;
+        bridge.add(post);
+      }
+
+      // Sway bracing between the outer legs: the X under a trestle.
+      const gOuter = Math.min(groundAt[0], groundAt[2]);
+      const braceSpan = br.width * 0.72;
+      const braceRise = legTop - (gOuter + 0.3);
+      if (braceRise > 0.8) {
+        const len = Math.hypot(braceSpan, braceRise);
+        for (const dir of [1, -1]) {
+          const brace = new THREE.Mesh(new THREE.BoxGeometry(0.14, len, 0.14), beamMat);
+          brace.position.set(0, gOuter + 0.3 + braceRise / 2, lz);
+          brace.rotation.z = dir * Math.atan2(braceSpan, braceRise);
+          brace.castShadow = true;
+          bridge.add(brace);
+        }
+      }
+    }
+
+    // --- abutments: timber cribs where the deck lands on each bank ---
+    for (const end of [-1, 1]) {
+      const lz = end * (half - 0.5);
+      const g = heightAt(worldX(0, lz), worldZ(0, lz));
+      const h = capBase - g + 0.4;
+      if (h > 0.3) {
+        beam(0, g - 0.35, lz, br.width * 1.04, h, 1.5, postMat);
+      }
+    }
+
+    // --- railings: posts with a top and mid rail, not one floating bar ---
+    const railPosts = Math.max(3, Math.round(br.length / 2.1));
     for (const side of [-1, 1]) {
-      const rail = boxOnPlane(
-        group,
-        p.x + cx * side * (br.width * 0.45),
-        y + 0.1,
-        p.z - sx * side * (br.width * 0.45),
-        0.16,
-        0.7,
-        br.length,
-        railMat,
-        false
-      );
-      rail.rotation.y = spin;
+      const lx = side * br.width * 0.45;
+      for (let i = 0; i <= railPosts; i += 1) {
+        const lz = -half + (br.length * i) / railPosts;
+        beam(lx, deckTop - 0.1, lz, 0.16, 1.02, 0.16, railMat);
+      }
+      beam(lx, deckTop + 0.78, 0, 0.13, 0.14, br.length, railMat);
+      beam(lx, deckTop + 0.4, 0, 0.1, 0.11, br.length, railMat);
     }
   }
 }
