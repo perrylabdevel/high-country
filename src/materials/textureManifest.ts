@@ -13,17 +13,20 @@ export type TextureSet = {
 /**
  * Foliage atlases baked by scripts/bake-foliage.mjs. Unlike the terrain sets
  * these are alpha-cut cards, not tiling surfaces, so they clamp rather than
- * repeat and carry no ORM — roughness is uniform across a leaf.
+ * repeat and carry no ORM — roughness is uniform across a leaf. Normals ship as
+ * UASTC KTX2, which keeps them compressed in GPU memory; albedo stays PNG
+ * because block compression quantises the alpha channel and a grass blade is
+ * almost all thin tapering tip — compressing it turns fine blades into blocks.
  */
 export const FOLIAGE_SET = {
   grassAlbedo: "/textures/foliage/grass_albedo.png",
-  grassNormal: "/textures/foliage/grass_normal.png",
+  grassNormal: "/textures/foliage/grass_normal.ktx2",
   needleAlbedo: "/textures/foliage/needle_albedo.png",
-  needleNormal: "/textures/foliage/needle_normal.png",
+  needleNormal: "/textures/foliage/needle_normal.ktx2",
   sageAlbedo: "/textures/foliage/sage_albedo.png",
-  sageNormal: "/textures/foliage/sage_normal.png",
+  sageNormal: "/textures/foliage/sage_normal.ktx2",
   broadAlbedo: "/textures/foliage/broad_albedo.png",
-  broadNormal: "/textures/foliage/broad_normal.png"
+  broadNormal: "/textures/foliage/broad_normal.ktx2"
 };
 
 export const TEXTURE_SETS = {

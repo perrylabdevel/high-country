@@ -93,6 +93,15 @@ async function main() {
       // malformed manifest; start fresh
     }
   }
+  // The bundle filename carries the content hash, so a rebuild always renames
+  // it. Carrying the old url forward verbatim would commit a manifest that
+  // downloads the previous bundle and then fails its own hash check — the
+  // failure looks like a corrupt download rather than a missed upload. The
+  // release tag is stable, so swap just the filename and keep the rest.
+  const prevBundle = url.split("/").pop();
+  if (prevBundle && /^textures-[0-9a-f]{12}\.tar\.gz$/.test(prevBundle)) {
+    url = url.slice(0, -prevBundle.length) + bundleName;
+  }
 
   await writeFile(
     MANIFEST,

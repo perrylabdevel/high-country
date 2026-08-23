@@ -757,6 +757,38 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
   return { leaves: crown, limbs: mergeGeometries(limbs) };
 }
 
+/**
+ * A fire-killed snag: a broken trunk with the stubs of its branches still on it.
+ *
+ * The burn was scattered with plain tapered cylinders — the same geometry a
+ * living trunk uses — so a burnt stand read as a row of fence posts rather than
+ * a dead forest. What identifies a snag at a glance is the ragged silhouette:
+ * limbs burn back to short stubs and the top usually snaps off.
+ */
+function makeBurntSnag(height, baseR, topR) {
+  const parts = [makePineTrunk(height, baseR, topR)];
+  const stubs = 9;
+  for (let i = 0; i < stubs; i += 1) {
+    const f = 0.28 + (i / stubs) * 0.66;
+    const y = height * f;
+    // Shorter and thinner toward the top, as the fire took more of them.
+    const len = (0.85 - f * 0.45) * (0.7 + seeded(i * 31) * 0.7);
+    const r = (0.07 - f * 0.035) * (0.75 + seeded(i * 17) * 0.6);
+    if (len < 0.12 || r < 0.012) {
+      continue;
+    }
+    const stub = new THREE.CylinderGeometry(r * 0.55, r, len, 5);
+    stub.rotateZ(-Math.PI / 2);
+    stub.translate(len * 0.5, 0, 0);
+    // Burnt limbs droop; angle them down a little off horizontal.
+    stub.rotateZ(-0.25 - seeded(i * 13) * 0.45);
+    stub.rotateY(seeded(i * 7) * Math.PI * 2);
+    stub.translate(0, y, 0);
+    parts.push(stub);
+  }
+  return mergeGeometries(parts);
+}
+
 function makePineTrunk(height, baseR, topR) {
   const shaft = new THREE.CylinderGeometry(topR, baseR, height, 8);
   shaft.translate(0, height / 2 + 0.08, 0);
@@ -1101,7 +1133,7 @@ export function createVegetation(scene, maps = {}) {
     out[slot * 3 + 2] = (0.58 + blue * 0.3) * value;
   }
 
-  const burnt = new THREE.InstancedMesh(makePineTrunk(5.2, 0.26, 0.1), char, 400);
+  const burnt = new THREE.InstancedMesh(makeBurntSnag(5.2, 0.26, 0.1), char, 400);
 
   const dummy = new THREE.Object3D();
   let placed = 0;
@@ -1681,7 +1713,11 @@ export function createVegetation(scene, maps = {}) {
       return false;
     }
     const y = heightAt(x, z);
-    if (y > 78 || y < 9) {
+    // The upper cap used to be 78 m, which threw away 39% of the range biome —
+    // the one place sage is meant to dominate, at 0.78 shrub chance. High desert
+    // is exactly sagebrush country, so the ceiling now sits above the range's
+    // own high ground and only keeps it off genuine peaks.
+    if (y > 112 || y < 9) {
       return false;
     }
     const s = 0.8 + hash2(ix, jz, 14) * 0.7;
@@ -1929,6 +1965,13 @@ export function createVegetation(scene, maps = {}) {
     gustFreq,
     gustStrength,
     grassInstances: g,
+    // Capture tooling needs to know when the amortised scatter has caught up
+    // with the camera. Without it a screenshot taken after a jump across the
+    // map shows ground cover still centred on the previous position, which
+    // reads as an empty biome rather than as a half-finished rebuild.
+    scatterSettled(cameraPos) {
+      return !scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP;
+    },
     update(cameraPos) {
       if (flatDist(lastLodCenter, cameraPos) >= LOD_HYSTERESIS) {
         lastLodCenter.copy(cameraPos);

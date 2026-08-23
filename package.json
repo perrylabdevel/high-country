@@ -8,6 +8,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 8765",
     "postinstall": "node scripts/copy-basis.mjs && node scripts/fetch-assets.mjs",
     "pack-textures": "node scripts/pack-textures.mjs",
+    "bake:foliage": "node scripts/bake-foliage.mjs",
     "check": "npm run check:grounding && npm run check:collision && npm run check:handedness && npm run check:debug && npm run check:settlements-dry && npm run check:needle && npm run check:interiors && npm run check:map-layout && npm run check:roads && npm run check:buildings && npm run check:anchors && npm run check:vegetation",
     "check:grounding": "tsx scripts/check-grounding.mjs",
     "check:collision": "tsx scripts/check-collision.mjs",

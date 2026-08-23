@@ -198,43 +198,67 @@ const images = await page.evaluate(() => {
   }
 
   // ---- sage: small oval leaves on woody branchlets --------------------------
+  // Two things to get right. The bush has to fill its panel: the instance scale
+  // sets the CARD, so content that occupies two thirds of it renders a bush two
+  // thirds the size asked for. And sage leaves are small rounded ovals — reusing
+  // the blade shape gave angular wedges, because a blade tapers to a point.
   const SAGE = 1024;
   const sp2 = pair(SAGE);
   sp2.ca.lineCap = "round";
+  const oval = (cx, cy, r, ang, shade) => {
+    const px = -Math.sin(ang);
+    const py = Math.cos(ang);
+    sp2.ca.save();
+    sp2.ca.translate(cx, cy);
+    sp2.ca.rotate(ang);
+    sp2.ca.fillStyle = `rgb(${shade[0] | 0},${shade[1] | 0},${shade[2] | 0})`;
+    sp2.ca.beginPath();
+    sp2.ca.ellipse(0, 0, r, r * 0.5, 0, 0, Math.PI * 2);
+    sp2.ca.fill();
+    sp2.ca.restore();
+    // Same half-cylinder curl across the leaf's short axis.
+    const g = sp2.cn.createLinearGradient(cx - px * r * 0.5, cy - py * r * 0.5, cx + px * r * 0.5, cy + py * r * 0.5);
+    const sN = Math.sin(0.9);
+    const zN = Math.cos(0.9);
+    g.addColorStop(0, enc(-px * sN, -py * sN, zN));
+    g.addColorStop(0.5, enc(0, 0, 1));
+    g.addColorStop(1, enc(px * sN, py * sN, zN));
+    sp2.cn.save();
+    sp2.cn.translate(cx, cy);
+    sp2.cn.rotate(ang);
+    sp2.cn.translate(-cx, -cy);
+    sp2.cn.fillStyle = g;
+    sp2.cn.beginPath();
+    sp2.cn.ellipse(cx, cy, r, r * 0.5, 0, 0, Math.PI * 2);
+    sp2.cn.fill();
+    sp2.cn.restore();
+  };
   const branchTips = [];
-  for (let i = 0; i < 7; i += 1) {
-    const x0 = SAGE * (0.38 + (i / 7 - 0.5) * 0.3);
-    const tx = SAGE * (0.16 + (i + 0.5) / 7 * 0.68) + (Math.random() - 0.5) * SAGE * 0.05;
-    const ty = SAGE * (0.2 + Math.random() * 0.3);
+  for (let i = 0; i < 9; i += 1) {
+    const x0 = SAGE * (0.5 + (i / 9 - 0.5) * 0.22);
+    const tx = SAGE * (0.08 + (i + 0.5) / 9 * 0.84) + (Math.random() - 0.5) * SAGE * 0.04;
+    const ty = SAGE * (0.06 + Math.random() * 0.16);
     sp2.ca.strokeStyle = `rgb(${76 + Math.random() * 16 | 0},${62 + Math.random() * 14 | 0},${44 + Math.random() * 12 | 0})`;
-    sp2.ca.lineWidth = 9 - i * 0.7;
+    sp2.ca.lineWidth = 10 - i * 0.6;
     sp2.ca.beginPath();
     sp2.ca.moveTo(x0, SAGE * 0.99);
-    sp2.ca.quadraticCurveTo(x0 + (tx - x0) * 0.3, SAGE * 0.62, tx, ty);
+    sp2.ca.quadraticCurveTo(x0 + (tx - x0) * 0.3, SAGE * 0.58, tx, ty);
     sp2.ca.stroke();
     branchTips.push({ x: tx, y: ty, x0 });
   }
-  // A leaf is a short wide blade: same half-cylinder curl across its width, so
-  // it catches light along one edge instead of reading as a flat sticker.
-  const sageLeaf = (cx, cy, r, ang, shade) => {
-    const dx = Math.cos(ang) * r;
-    const dy = Math.sin(ang) * r;
-    blade(sp2.ca, sp2.cn, cx - dx * 0.5, cy - dy * 0.5, r, dx * 0.9 + dy * 0.1, r * 0.42,
-      { root: shade.map((v) => v * 0.72), mid: shade, tip: shade.map((v) => v * 1.12) }, 4);
-  };
   for (const t of branchTips) {
-    for (let i = 0; i < 18; i += 1) {
-      const f = 0.18 + (i / 18) * 0.82;
+    for (let i = 0; i < 26; i += 1) {
+      const f = 0.1 + (i / 26) * 0.9;
       const bx = t.x0 + (t.x - t.x0) * f + (Math.random() - 0.5) * SAGE * 0.05;
       const by = SAGE * 0.99 + (t.y - SAGE * 0.99) * f + (Math.random() - 0.5) * SAGE * 0.04;
-      for (let k = 0; k < 3 + ((i * 3) % 3); k += 1) {
-        const g = 104 + Math.random() * 34;
-        sageLeaf(
-          bx + (Math.random() - 0.5) * SAGE * 0.055,
-          by + (Math.random() - 0.5) * SAGE * 0.055,
-          SAGE * (0.026 + Math.random() * 0.03),
+      for (let k = 0; k < 4; k += 1) {
+        const g = 108 + Math.random() * 36;
+        oval(
+          bx + (Math.random() - 0.5) * SAGE * 0.06,
+          by + (Math.random() - 0.5) * SAGE * 0.06,
+          SAGE * (0.02 + Math.random() * 0.022),
           Math.random() * Math.PI * 2,
-          [g - 18 + Math.random() * 20, g, g - 34 + Math.random() * 18]
+          [g - 14 + Math.random() * 18, g, g - 30 + Math.random() * 16]
         );
       }
     }
@@ -274,3 +298,33 @@ for (const [name, data] of Object.entries(images)) {
   console.log(`${OUT}/${name}.png  ${(buf.length / 1024).toFixed(0)} KB`);
 }
 await browser.close();
+
+// ---- compress to KTX2 -------------------------------------------------------
+// Foliage was the only texture class shipping as raw PNG. Uncompressed, the
+// four atlases cost ~64 MB of VRAM (the HUD's texture memory went 134 -> 198 MB
+// when they landed); UASTC keeps them compressed on the GPU for roughly a
+// quarter of that, and matches how every other texture in the project ships.
+const { encodeToKTX2 } = await import("ktx2-encoder");
+const sharp = (await import("sharp")).default;
+const { readFileSync } = await import("node:fs");
+
+const imageDecoder = async (buffer) => {
+  const { data, info } = await sharp(Buffer.from(buffer)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return { data: new Uint8Array(data), width: info.width, height: info.height };
+};
+
+// Normal maps only. Block compression quantises the alpha channel, and a grass
+// blade's value is almost entirely in its thin tapering tip — compressing the
+// albedo turned fine blades into chunky blocks. Normals are low-frequency and
+// carry no cutout, so they take UASTC without a visible cost, and they are the
+// larger half of the set.
+for (const name of Object.keys(images).filter((n) => n.endsWith("_normal"))) {
+  const src = `${OUT}/${name}.png`;
+  const out = await encodeToKTX2(new Uint8Array(readFileSync(src)), {
+    isUASTC: true, generateMipmap: true, imageDecoder
+  });
+  writeFileSync(`${OUT}/${name}.ktx2`, out);
+  const { unlinkSync } = await import("node:fs");
+  unlinkSync(src);
+  console.log(`  -> ${name}.ktx2  ${(out.length / 1024 / 1024).toFixed(1)} MB (png removed)`);
+}
