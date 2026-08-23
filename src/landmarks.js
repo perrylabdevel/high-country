@@ -1,7 +1,7 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
-import { POS, WATER, mapToWorld, CREEKS, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
+import { POS, WATER, mapToWorld, CREEKS, lakeFactor, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
   makeWaterNormalTexture,
   createWaterFallbackMaterial,
@@ -671,6 +671,9 @@ export function createLandmarks(scene) {
   return group;
 }
 
+/** How deep a flowing creek sits below its own water surface. */
+const CREEK_DEPTH = 0.45;
+
 function buildCreekRibbon(creek) {
   const samples = [];
   for (let i = 0; i < creek.pts.length - 1; i += 1) {
@@ -687,15 +690,38 @@ function buildCreekRibbon(creek) {
   const end = mapToWorld(last[0], last[1]);
   samples.push({ x: end.x, z: end.z });
 
+  // Trim the run to the part outside Lake Mercy. highCountry ends at the lake's
+  // centre and silver starts beside it, so both used to lay a ribbon across the
+  // open water at exactly the lake's own height — coplanar with it, and shaded
+  // as depth 0, which is the bright streak running out over the water.
+  const dry = [];
+  let run = [];
+  for (const p of samples) {
+    if (lakeFactor(p.x, p.z) > 0.5) {
+      if (run.length > dry.length) {
+        dry.length = 0;
+        dry.push(...run);
+      }
+      run = [];
+    } else {
+      run.push(p);
+    }
+  }
+  if (run.length > dry.length) {
+    dry.length = 0;
+    dry.push(...run);
+  }
+  const kept = dry.length > 1 ? dry : samples;
+
   const halfW = creek.width * (creek.dry ? 0.5 : 0.38);
   const positions = [];
   const depths = [];
   const flows = [];
   const slopes = [];
-  for (let i = 0; i < samples.length; i += 1) {
-    const p = samples[i];
-    const prev = samples[Math.max(0, i - 1)];
-    const next = samples[Math.min(samples.length - 1, i + 1)];
+  for (let i = 0; i < kept.length; i += 1) {
+    const p = kept[i];
+    const prev = kept[Math.max(0, i - 1)];
+    const next = kept[Math.min(kept.length - 1, i + 1)];
     let tx = next.x - prev.x;
     let tz = next.z - prev.z;
     const tl = Math.hypot(tx, tz) || 1;
@@ -704,12 +730,27 @@ function buildCreekRibbon(creek) {
     const px = -tz;
     const pz = tx;
     const bed = heightAt(p.x, p.z);
-    const depth = Math.max(0, WATER - bed);
     const e = 3;
     const slope = Math.hypot(heightAt(p.x + e, p.z) - bed, heightAt(p.x, p.z + e) - bed) / (2 * e);
+
+    // A creek's surface sits on its own bed. This used to be the constant
+    // WATER — the lake's plane — for every creek on the map, so granite (bed
+    // 55-80 m) and toxic (30-56 m) had their water drawn 40-65 m underground,
+    // and the only places a ribbon showed were where terrain happened to dip
+    // to y=13. Those emergent slivers, a flat sheet clipped by hillside, are
+    // the hard-edged bright shapes: not creeks at all, just the parts of a
+    // buried plane that poked out. Near the lake the surface eases to WATER so
+    // a creek still meets it flush.
+    const lake = lakeFactor(p.x, p.z);
+    const surface = (bed + CREEK_DEPTH) * (1 - lake) + WATER * lake;
+
     for (const s of [1, -1]) {
-      positions.push(p.x + px * halfW * s, creek.dry ? bed + 0.06 : WATER, p.z + pz * halfW * s);
-      depths.push(depth);
+      const vx = p.x + px * halfW * s;
+      const vz = p.z + pz * halfW * s;
+      positions.push(vx, creek.dry ? bed + 0.06 : surface, vz);
+      // Depth per vertex against the real bed under it, so the channel shades
+      // deep mid-stream and shallows out where the banks rise into it.
+      depths.push(creek.dry ? 0 : Math.max(0, surface - heightAt(vx, vz)));
       flows.push(tx, tz);
       slopes.push(slope);
     }
@@ -720,7 +761,7 @@ function buildCreekRibbon(creek) {
   geo.setAttribute("aFlow", new THREE.Float32BufferAttribute(flows, 2));
   geo.setAttribute("aSlope", new THREE.Float32BufferAttribute(slopes, 1));
   const indices = [];
-  for (let i = 0; i < samples.length - 1; i += 1) {
+  for (let i = 0; i < kept.length - 1; i += 1) {
     const l = i * 2;
     const r = l + 1;
     indices.push(l, r, l + 2, l + 2, r, r + 2);
