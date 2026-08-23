@@ -108,8 +108,51 @@ const fadeIn = Number(/const GRASS_FADE_IN = (\d+)/.exec(veg)?.[1]);
 assert(radius >= 300, `grass draw radius regressed to ${radius} m`);
 assert(fadeIn / radius > 0.7, `grass starts dissolving at ${fadeIn}/${radius} — too early, leaves bare mid-ground`);
 
+// Every mesh sharing a tinted foliage material must carry instanceColor.
+// three fills vInstanceColor from that attribute; a mesh without it leaves the
+// varying at its zero default and the canopy renders pure black. Nothing throws
+// and nothing logs — the trees just turn into silhouettes — so this is checked
+// rather than trusted. It is also what makes the unconditional
+// crownDist.instanceColor.needsUpdate in bucketTrees safe to call.
+const { createVegetation } = await import("../src/vegetation.js");
+const vegAdded = [];
+createVegetation({ add: (...o) => vegAdded.push(...o) }, {});
+const instanced = [];
+for (const root of vegAdded) {
+  if (root.traverse) {
+    root.traverse((o) => o.isInstancedMesh && instanced.push(o));
+  } else if (root.isInstancedMesh) {
+    instanced.push(root);
+  }
+}
+const byMaterial = new Map();
+for (const mesh of instanced) {
+  const key = mesh.material.uuid;
+  if (!byMaterial.has(key)) {
+    byMaterial.set(key, []);
+  }
+  byMaterial.get(key).push(mesh);
+}
+const blackCanopies = [];
+for (const [, group] of byMaterial) {
+  const tinted = group.some((m) => m.instanceColor);
+  if (tinted) {
+    for (const m of group) {
+      if (!m.instanceColor) {
+        blackCanopies.push(`${m.material.uuid.slice(0, 6)} cap=${m.instanceMatrix.count}`);
+      }
+    }
+  }
+}
+assert(
+  blackCanopies.length === 0,
+  `meshes share a tinted foliage material but have no instanceColor, so they render black: ${blackCanopies.join(", ")}`
+);
+
 console.log(JSON.stringify({
   footprints: footprints.length,
+  instancedFoliageMeshes: instanced.length,
+  tintedMaterialsChecked: [...byMaterial.values()].filter((g) => g.some((m) => m.instanceColor)).length,
   interiorProbes: probes,
   interiorLeaks: missed.length,
   openGroundPlantable: `${openGround}/4000`,
