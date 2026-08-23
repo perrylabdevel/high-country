@@ -32,6 +32,7 @@ import {
   texture,
   instancedBufferAttribute,
   attribute,
+  cross,
   varyingProperty
 } from "three/tsl";
 import { heightAt, normalAt } from "./heightfield.js";
@@ -41,7 +42,7 @@ import { insideStructure } from "./buildings/kit.js";
 import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, smoothstep as ramp } from "./map.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
-import { BARK_SET } from "./materials/textureManifest.ts";
+import { BARK_SET, FOLIAGE_SET } from "./materials/textureManifest.ts";
 
 function seeded(n) {
   const x = Math.sin(n * 999) * 43758.5453;
@@ -747,7 +748,20 @@ function makeGrassTuft() {
   for (let i = 0; i < 3; i += 1) {
     const geo = new THREE.PlaneGeometry(w, h, 1, 2);
     geo.translate((seeded(i + 3) - 0.5) * 0.06, h * 0.5, (seeded(i + 9) - 0.5) * 0.06);
-    geo.rotateY((i / 3) * Math.PI);
+    const a = (i / 3) * Math.PI;
+    geo.rotateY(a);
+    // The card's own +X after rotation. A tangent-space normal map needs to
+    // know which way "across the blade" points in object space, and each of the
+    // three crossed cards faces differently, so it cannot be a constant.
+    const tx = Math.cos(a);
+    const tz = -Math.sin(a);
+    const n = geo.attributes.position.count;
+    const tan = new Float32Array(n * 3);
+    for (let v = 0; v < n; v += 1) {
+      tan[v * 3] = tx;
+      tan[v * 3 + 2] = tz;
+    }
+    geo.setAttribute("aTangent", new THREE.Float32BufferAttribute(tan, 3));
     geos.push(geo);
   }
   return skywardNormals(mergeGeometries(geos), 1.0, 0.38);
@@ -799,11 +813,22 @@ function makeBroadCanopy(cardCount, radius, baseY, topY) {
 }
 
 export async function loadVegetationMaps() {
-  const [barkAlbedo, barkNormal] = await Promise.all([
+  const [barkAlbedo, barkNormal, grassAlbedo, grassNormal] = await Promise.all([
     tryLoadTexture(BARK_SET.albedo, "albedo"),
-    tryLoadTexture(BARK_SET.normal, "linear")
+    tryLoadTexture(BARK_SET.normal, "linear"),
+    tryLoadTexture(FOLIAGE_SET.grassAlbedo, "albedo"),
+    tryLoadTexture(FOLIAGE_SET.grassNormal, "linear")
   ]);
-  return { barkAlbedo, barkNormal };
+  // Atlas panels, not tiling surfaces: repeat would bleed one species into the
+  // next across the guard band.
+  for (const t of [grassAlbedo, grassNormal]) {
+    if (t) {
+      t.wrapS = THREE.ClampToEdgeWrapping;
+      t.wrapT = THREE.ClampToEdgeWrapping;
+      t.needsUpdate = true;
+    }
+  }
+  return { barkAlbedo, barkNormal, grassAlbedo, grassNormal };
 }
 
 export function createVegetation(scene, maps = {}) {
@@ -1364,15 +1389,16 @@ export function createVegetation(scene, maps = {}) {
   const GRASS_CHUNK = 1200;
   const SAGE_CHUNK = 400;
 
-  // Ring cell sizes set the instance budget. The outer two rings were carrying
-  // 60% of all grass at ranges where a tuft is a few pixels, and grass is the
-  // scene's fill-rate cost: alpha-tested and double-sided, so no early-z and
-  // every card shades both faces wherever it overlaps. Coarsening them trades
-  // instances the eye cannot resolve for headroom; the per-tuft distance
-  // growth already holds the coverage.
+  // Ring cell sizes set the instance budget, and they turned out to matter more
+  // to how the ground reads than any material work did. Spend the budget where
+  // the eye is: the near rings are dense enough that grass closes over the dirt
+  // instead of sitting on it as separate clumps, while the outer two stay
+  // coarse, since at those ranges a tuft is a few pixels and grass is the
+  // scene's fill-rate cost — alpha-tested and double-sided, so no early-z and
+  // both faces shade wherever cards overlap.
   const RINGS = [
-    { cell: 0.62, outer: 34 },
-    { cell: 1.15, outer: 82 },
+    { cell: 0.34, outer: 34 },
+    { cell: 0.7, outer: 82 },
     { cell: 2.6, outer: 168 },
     { cell: 5.2, outer: GRASS_RADIUS }
   ];
@@ -1443,17 +1469,39 @@ export function createVegetation(scene, maps = {}) {
   const speciesAttr = instancedBufferAttribute(speciesUV, "vec2", 2, 0);
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
   const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
-  const grassSampleTex = texture(grassTex, atlasUV);
+  const grassSampleTex = texture(maps.grassAlbedo || grassTex, atlasUV);
   const grassView = normalize(cameraPosition.sub(positionWorld));
-  const grassCol = grassSampleTex.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
-  grassMat.colorNode = vec4(grassCol.mul(back(grassView).mul(warmGreen).add(1)), grassSampleTex.a);
+  // The canvas texture was flat, so the material supplied all of its shading:
+  // a per-instance tint darkening the root and a hard green push at the tip.
+  // The baked albedo already carries that gradient, so applying the ramp again
+  // double-counts it and drives the tips to a saturated green. With real maps,
+  // keep only a gentle per-instance variation around unity.
+  const grassCol = maps.grassAlbedo
+    ? grassSampleTex.rgb.mul(tintAttr.mul(0.7).add(0.72))
+    : grassSampleTex.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
+  const grassBack = maps.grassAlbedo ? back(grassView).mul(warmGreen).mul(0.45) : back(grassView).mul(warmGreen);
+  grassMat.colorNode = vec4(grassCol.mul(grassBack.add(1)), grassSampleTex.a);
   // Hold full cover almost to the edge of the disc, then dissolve over the last
   // stretch. The old 150 -> 205 fade started eroding grass at two thirds of the
   // draw distance, so the world went bald well before the disc actually ended.
   grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
-  grassMat.normalNode = bentNormal;
+  if (maps.grassNormal) {
+    // Perturb the bent normal by the baked tangent-space map. Built by hand
+    // rather than via material.normalMap because normalNode replaces three's
+    // whole normal path, so the volumetric bend and the per-pixel detail have
+    // to be combined here: T from the card's own axis, N the bent normal, and
+    // B their cross product.
+    const T = normalize(transformNormalToView(attribute("aTangent", "vec3")));
+    const B = normalize(cross(bentNormal, T));
+    const nm = texture(maps.grassNormal, atlasUV).xyz.mul(2).sub(1);
+    grassMat.normalNode = normalize(
+      T.mul(nm.x).add(B.mul(nm.y)).add(bentNormal.mul(nm.z))
+    );
+  } else {
+    grassMat.normalNode = bentNormal;
+  }
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
