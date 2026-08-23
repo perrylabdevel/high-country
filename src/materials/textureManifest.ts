@@ -10,6 +10,18 @@ export type TextureSet = {
   heightBias: number;
 };
 
+/**
+ * Foliage atlases baked by scripts/bake-foliage.mjs. Unlike the terrain sets
+ * these are alpha-cut cards, not tiling surfaces, so they clamp rather than
+ * repeat and carry no ORM — roughness is uniform across a leaf.
+ */
+export const FOLIAGE_SET = {
+  grassAlbedo: "/textures/foliage/grass_albedo.png",
+  grassNormal: "/textures/foliage/grass_normal.png",
+  needleAlbedo: "/textures/foliage/needle_albedo.png",
+  needleNormal: "/textures/foliage/needle_normal.png"
+};
+
 export const TEXTURE_SETS = {
   grass: {
     albedo: "/textures/grass_2k_albedo.ktx2",
