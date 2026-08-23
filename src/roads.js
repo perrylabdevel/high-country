@@ -269,12 +269,17 @@ function addRail(group, road, map) {
  */
 const BENT_SPACING = 4.4;
 const POST_EMBED = 0.45;
+/** Grow the deck per end until the ground is within this of it, then abut. */
+const LAND_DROP = 1.1;
+const MAX_HALF_SPAN = 22;
 
 function addBridges(group) {
   const deckMat = new THREE.MeshStandardNodeMaterial({ color: 0x6b4a2c, roughness: 0.88 });
   const railMat = new THREE.MeshStandardNodeMaterial({ color: 0x4a3020, roughness: 0.9 });
   const beamMat = new THREE.MeshStandardNodeMaterial({ color: 0x51371f, roughness: 0.92 });
   const postMat = new THREE.MeshStandardNodeMaterial({ color: 0x412c19, roughness: 0.94 });
+  const cribMat = new THREE.MeshStandardNodeMaterial({ color: 0x6a5334, roughness: 0.95 });
+  const footingMat = new THREE.MeshStandardNodeMaterial({ color: 0x6d6555, roughness: 0.97 });
 
   for (const br of BRIDGES) {
     const p = mapToWorld(br.u, br.v);
@@ -303,8 +308,37 @@ function addBridges(group) {
       return mesh;
     };
 
-    const half = br.length / 2;
+    // How long the bridge actually has to be.
+    //
+    // The authored span (18 m / 16 m) stopped with the deck still 2.4-2.8 m
+    // above the ground at both ends, so the trestle finished in mid-air. The
+    // crossing is not a channel with banks — creekFactor is still 0.42 fifty
+    // metres out — it is a broad shallow wash, and the ground only climbs back
+    // to deck level around 37 m from the centre.
+    //
+    // The other way to close that gap is to raise the ground instead, which is
+    // what bridgeLift was authored for. It cannot work here: the heightfield
+    // bakes on a 12.5 m grid, so an abutment 9 m from the centre is barely one
+    // cell and any embankment smears across it. The deck is authored geometry
+    // and lands exactly where it is put, so the deck goes to the ground: the
+    // trestle grows until the drop is small enough for an abutment to close,
+    // per end, since the banks are not symmetric.
     const deckTop = y + 0.16;
+    const reachEnd = (dir) => {
+      let d = br.length / 2;
+      for (; d <= MAX_HALF_SPAN; d += 0.5) {
+        if (deckTop - heightAt(p.x + sin * d * dir, p.z + cos * d * dir) <= LAND_DROP) {
+          break;
+        }
+      }
+      return Math.min(d, MAX_HALF_SPAN);
+    };
+    const halfA = reachEnd(-1);
+    const halfB = reachEnd(1);
+    const zA = -halfA;
+    const zB = halfB;
+    const span = halfA + halfB;
+    const mid = (zA + zB) / 2;
     const PLANK = 0.14;
     const STRINGER = 0.36;
     const CAP = 0.24;
@@ -314,7 +348,7 @@ function addBridges(group) {
 
     // --- transverse decking: individual planks with gaps, not one slab ---
     const step = 0.46;
-    const plankCount = Math.max(2, Math.floor(br.length / step));
+    const plankCount = Math.max(2, Math.floor(span / step));
     const planks = new THREE.InstancedMesh(
       new THREE.BoxGeometry(br.width, PLANK, step * 0.82),
       deckMat,
@@ -322,7 +356,7 @@ function addBridges(group) {
     );
     const dummy = new THREE.Object3D();
     for (let i = 0; i < plankCount; i += 1) {
-      const lz = -half + (i + 0.5) * (br.length / plankCount);
+      const lz = zA + (i + 0.5) * (span / plankCount);
       // A little sag and scuff so the deck is not a machined grid.
       const wobble = Math.sin(i * 2.7) * 0.012;
       dummy.position.set(Math.sin(i * 1.3) * 0.02, plankBase + PLANK / 2 + wobble, lz);
@@ -338,13 +372,13 @@ function addBridges(group) {
     // --- stringers: what the decking actually rests on ---
     const stringerAt = [-0.38, -0.13, 0.13, 0.38];
     for (const f of stringerAt) {
-      beam(f * br.width, stringerBase, 0, 0.2, STRINGER, br.length, beamMat);
+      beam(f * br.width, stringerBase, mid, 0.2, STRINGER, span, beamMat);
     }
 
     // --- bents: capped, braced post frames carrying the stringers down ---
-    const bents = Math.max(2, Math.round(br.length / BENT_SPACING) - 1);
+    const bents = Math.max(2, Math.round(span / BENT_SPACING) - 1);
     for (let b = 0; b < bents; b += 1) {
-      const lz = -half + br.length * ((b + 1) / (bents + 1));
+      const lz = zA + span * ((b + 1) / (bents + 1));
       beam(0, capBase, lz, br.width * 0.94, CAP, 0.3, beamMat);
 
       const legs = [-0.36, 0, 0.36];
@@ -381,26 +415,60 @@ function addBridges(group) {
       }
     }
 
-    // --- abutments: timber cribs where the deck lands on each bank ---
-    for (const end of [-1, 1]) {
-      const lz = end * (half - 0.5);
+    // --- abutments: a battered crib closing the last of the drop ---
+    // These were a single near-black slab hung under the deck end, which is the
+    // dark box that read as part of the floating. An abutment is a retaining
+    // wall: widest at its footing, stepped back as it rises, carrying the deck
+    // end onto the bank and holding the bank back.
+    for (const [lz, sgn] of [[zA, -1], [zB, 1]]) {
       const g = heightAt(worldX(0, lz), worldZ(0, lz));
-      const h = capBase - g + 0.4;
-      if (h > 0.3) {
-        beam(0, g - 0.35, lz, br.width * 1.04, h, 1.5, postMat);
+      const top = stringerBase;
+      const total = top - (g - 0.5);
+      if (total <= 0.3) {
+        continue;
+      }
+      const courses = 3;
+      const courseH = total / courses;
+      for (let c = 0; c < courses; c += 1) {
+        const t = c / (courses - 1 || 1);
+        beam(
+          0,
+          g - 0.5 + c * courseH,
+          lz + sgn * (0.75 - t * 0.2),
+          br.width * (1.18 - t * 0.14),
+          courseH * 1.02,
+          1.9 - t * 0.5,
+          c === 0 ? footingMat : cribMat
+        );
+      }
+      // Wing walls, angled back into the bank on each side.
+      for (const side of [-1, 1]) {
+        const wing = new THREE.Mesh(
+          new THREE.BoxGeometry(0.4, Math.max(0.6, total * 0.72), 3.2),
+          cribMat
+        );
+        wing.position.set(
+          side * br.width * 0.58,
+          g - 0.4 + Math.max(0.6, total * 0.72) / 2,
+          lz + sgn * 1.5
+        );
+        wing.rotation.y = -side * sgn * 0.28;
+        wing.castShadow = true;
+        wing.receiveShadow = true;
+        bridge.add(wing);
       }
     }
 
     // --- railings: posts with a top and mid rail, not one floating bar ---
-    const railPosts = Math.max(3, Math.round(br.length / 2.1));
+    const railPosts = Math.max(3, Math.round(span / 2.1));
     for (const side of [-1, 1]) {
       const lx = side * br.width * 0.45;
       for (let i = 0; i <= railPosts; i += 1) {
-        const lz = -half + (br.length * i) / railPosts;
+        const lz = zA + (span * i) / railPosts;
         beam(lx, deckTop - 0.1, lz, 0.16, 1.02, 0.16, railMat);
       }
-      beam(lx, deckTop + 0.78, 0, 0.13, 0.14, br.length, railMat);
-      beam(lx, deckTop + 0.4, 0, 0.1, 0.11, br.length, railMat);
+      beam(lx, deckTop + 0.78, mid, 0.13, 0.14, span, railMat);
+      beam(lx, deckTop + 0.4, mid, 0.1, 0.11, span, railMat);
     }
   }
 }
