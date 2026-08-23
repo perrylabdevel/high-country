@@ -197,7 +197,70 @@ const images = await page.evaluate(() => {
     }
   }
 
+  // ---- sage: small oval leaves on woody branchlets --------------------------
+  const SAGE = 1024;
+  const sp2 = pair(SAGE);
+  sp2.ca.lineCap = "round";
+  const branchTips = [];
+  for (let i = 0; i < 7; i += 1) {
+    const x0 = SAGE * (0.38 + (i / 7 - 0.5) * 0.3);
+    const tx = SAGE * (0.16 + (i + 0.5) / 7 * 0.68) + (Math.random() - 0.5) * SAGE * 0.05;
+    const ty = SAGE * (0.2 + Math.random() * 0.3);
+    sp2.ca.strokeStyle = `rgb(${76 + Math.random() * 16 | 0},${62 + Math.random() * 14 | 0},${44 + Math.random() * 12 | 0})`;
+    sp2.ca.lineWidth = 9 - i * 0.7;
+    sp2.ca.beginPath();
+    sp2.ca.moveTo(x0, SAGE * 0.99);
+    sp2.ca.quadraticCurveTo(x0 + (tx - x0) * 0.3, SAGE * 0.62, tx, ty);
+    sp2.ca.stroke();
+    branchTips.push({ x: tx, y: ty, x0 });
+  }
+  // A leaf is a short wide blade: same half-cylinder curl across its width, so
+  // it catches light along one edge instead of reading as a flat sticker.
+  const sageLeaf = (cx, cy, r, ang, shade) => {
+    const dx = Math.cos(ang) * r;
+    const dy = Math.sin(ang) * r;
+    blade(sp2.ca, sp2.cn, cx - dx * 0.5, cy - dy * 0.5, r, dx * 0.9 + dy * 0.1, r * 0.42,
+      { root: shade.map((v) => v * 0.72), mid: shade, tip: shade.map((v) => v * 1.12) }, 4);
+  };
+  for (const t of branchTips) {
+    for (let i = 0; i < 18; i += 1) {
+      const f = 0.18 + (i / 18) * 0.82;
+      const bx = t.x0 + (t.x - t.x0) * f + (Math.random() - 0.5) * SAGE * 0.05;
+      const by = SAGE * 0.99 + (t.y - SAGE * 0.99) * f + (Math.random() - 0.5) * SAGE * 0.04;
+      for (let k = 0; k < 3 + ((i * 3) % 3); k += 1) {
+        const g = 104 + Math.random() * 34;
+        sageLeaf(
+          bx + (Math.random() - 0.5) * SAGE * 0.055,
+          by + (Math.random() - 0.5) * SAGE * 0.055,
+          SAGE * (0.026 + Math.random() * 0.03),
+          Math.random() * Math.PI * 2,
+          [g - 18 + Math.random() * 20, g, g - 34 + Math.random() * 18]
+        );
+      }
+    }
+  }
+
+  // ---- broadleaf: cottonwood / aspen foliage --------------------------------
+  const BROAD = 1024;
+  const bp = pair(BROAD);
+  for (let i = 0; i < 150; i += 1) {
+    const cx = BROAD * (0.1 + Math.random() * 0.8);
+    const cy = BROAD * (0.1 + Math.random() * 0.8);
+    const r = BROAD * (0.05 + Math.random() * 0.075);
+    const ang = Math.random() * Math.PI * 2;
+    const g = 92 + Math.random() * 60;
+    const shade = [46 + Math.random() * 30, g, 34 + Math.random() * 24];
+    const dx = Math.cos(ang) * r;
+    const dy = Math.sin(ang) * r;
+    blade(bp.ca, bp.cn, cx - dx * 0.5, cy - dy * 0.5, r, dx * 0.9 + dy * 0.1, r * 0.46,
+      { root: shade.map((v) => v * 0.7), mid: shade, tip: shade.map((v) => v * 1.14) }, 4);
+  }
+
   return {
+    "sage_albedo": sp2.a.toDataURL("image/png"),
+    "sage_normal": sp2.n.toDataURL("image/png"),
+    "broad_albedo": bp.a.toDataURL("image/png"),
+    "broad_normal": bp.n.toDataURL("image/png"),
     "grass_albedo": gp.a.toDataURL("image/png"),
     "grass_normal": gp.n.toDataURL("image/png"),
     "needle_albedo": cp.a.toDataURL("image/png"),

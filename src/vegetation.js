@@ -533,6 +533,30 @@ function broadleafTexture() {
   }, 256));
 }
 
+/**
+ * Stamp a card's own "across the blade" axis onto every one of its vertices.
+ *
+ * A tangent-space normal map has to know which way its X axis points in object
+ * space, and each card in a tuft or canopy is rotated differently, so it cannot
+ * be a constant or read off the geometry after merging. Pass the card's local
+ * +X after whatever rotations built it.
+ */
+function setTangent(geo, tx, ty, tz) {
+  const n = geo.attributes.position.count;
+  const t = new Float32Array(n * 3);
+  for (let v = 0; v < n; v += 1) {
+    t[v * 3] = tx;
+    t[v * 3 + 1] = ty;
+    t[v * 3 + 2] = tz;
+  }
+  geo.setAttribute("aTangent", new THREE.Float32BufferAttribute(t, 3));
+  return geo;
+}
+
+const TAN_X = new THREE.Vector3();
+const AXIS_Y = new THREE.Vector3(0, 1, 0);
+const AXIS_Z = new THREE.Vector3(0, 0, 1);
+
 function paintAo(geo, aoAt) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
@@ -691,6 +715,10 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
         geo.translate(cardLen * 0.42, 0, 0);
         geo.rotateY(a);
         geo.translate(0, y, 0);
+        // rotateX leaves the +X axis untouched, so only the droop and the yaw
+        // move this card's across-axis.
+        TAN_X.set(1, 0, 0).applyAxisAngle(AXIS_Z, droop).applyAxisAngle(AXIS_Y, a);
+        setTangent(geo, TAN_X.x, TAN_X.y, TAN_X.z);
         leaves.push(geo);
       }
 
@@ -716,6 +744,10 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
       return 0.48 + 0.44 * t;
     });
     geo.translate(0, topY + h * 0.42, 0);
+    // Merge needs one attribute set across the whole crown, and every card now
+    // carries a tangent, so the leader cone needs one too. A constant is an
+    // approximation on a cone, but this is the spire tip: a few dozen pixels.
+    setTangent(geo, 1, 0, 0);
     leaves.push(geo);
   }
   const crown = mergeGeometries(leaves);
@@ -782,6 +814,7 @@ function makeSageBush() {
     const geo = new THREE.PlaneGeometry(w, h);
     geo.translate((seeded(i + 8) - 0.5) * 0.18, h * 0.42, (seeded(i + 11) - 0.5) * 0.18);
     geo.rotateY(angles[i]);
+    setTangent(geo, Math.cos(angles[i]), 0, -Math.sin(angles[i]));
     geos.push(geo);
   }
   return skywardNormals(mergeGeometries(geos), 0.9, 0.45);
@@ -803,32 +836,49 @@ function makeBroadCanopy(cardCount, radius, baseY, topY) {
       const outward = (pos.getX(v) + w / 2) / w;
       return 0.5 + 0.5 * outward * (0.55 + 0.45 * ((y - baseY) / span));
     });
+    const rz = (seeded(i + 25) - 0.5) * 0.7;
+    const rx = (seeded(i + 28) - 0.5) * 0.55;
     geo.rotateY(a);
-    geo.rotateZ((seeded(i + 25) - 0.5) * 0.7);
-    geo.rotateX((seeded(i + 28) - 0.5) * 0.55);
+    geo.rotateZ(rz);
+    geo.rotateX(rx);
     geo.translate(Math.cos(a) * r, y, Math.sin(a) * r);
+    TAN_X.set(1, 0, 0).applyAxisAngle(AXIS_Y, a).applyAxisAngle(AXIS_Z, rz)
+      .applyAxisAngle(new THREE.Vector3(1, 0, 0), rx);
+    setTangent(geo, TAN_X.x, TAN_X.y, TAN_X.z);
     leaves.push(geo);
   }
   return sphericalNormals(mergeGeometries(leaves), mid, 0.55);
 }
 
 export async function loadVegetationMaps() {
-  const [barkAlbedo, barkNormal, grassAlbedo, grassNormal] = await Promise.all([
+  const [
+    barkAlbedo, barkNormal, grassAlbedo, grassNormal,
+    needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal
+  ] = await Promise.all([
     tryLoadTexture(BARK_SET.albedo, "albedo"),
     tryLoadTexture(BARK_SET.normal, "linear"),
     tryLoadTexture(FOLIAGE_SET.grassAlbedo, "albedo"),
-    tryLoadTexture(FOLIAGE_SET.grassNormal, "linear")
+    tryLoadTexture(FOLIAGE_SET.grassNormal, "linear"),
+    tryLoadTexture(FOLIAGE_SET.needleAlbedo, "albedo"),
+    tryLoadTexture(FOLIAGE_SET.needleNormal, "linear"),
+    tryLoadTexture(FOLIAGE_SET.sageAlbedo, "albedo"),
+    tryLoadTexture(FOLIAGE_SET.sageNormal, "linear"),
+    tryLoadTexture(FOLIAGE_SET.broadAlbedo, "albedo"),
+    tryLoadTexture(FOLIAGE_SET.broadNormal, "linear")
   ]);
   // Atlas panels, not tiling surfaces: repeat would bleed one species into the
   // next across the guard band.
-  for (const t of [grassAlbedo, grassNormal]) {
+  for (const t of [grassAlbedo, grassNormal, needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal]) {
     if (t) {
       t.wrapS = THREE.ClampToEdgeWrapping;
       t.wrapT = THREE.ClampToEdgeWrapping;
       t.needsUpdate = true;
     }
   }
-  return { barkAlbedo, barkNormal, grassAlbedo, grassNormal };
+  return {
+    barkAlbedo, barkNormal, grassAlbedo, grassNormal,
+    needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal
+  };
 }
 
 export function createVegetation(scene, maps = {}) {
@@ -861,11 +911,11 @@ export function createVegetation(scene, maps = {}) {
   const warmGreen = uniform(new THREE.Vector3(0.35, 0.55, 0.25));
   const windDir = normalize(vec3(1.0, 0.0, 0.6));
 
-  const leafTex = leafTexture();
+  const leafTex = maps.needleAlbedo || leafTexture();
   const leafSample = texture(leafTex, uv());
-  const sageTex = sageTexture();
+  const sageTex = maps.sageAlbedo || sageTexture();
   const sageSample = texture(sageTex, uv());
-  const broadTex = broadleafTexture();
+  const broadTex = maps.broadAlbedo || broadleafTexture();
   const broadSample = texture(broadTex, uv());
   const back = (viewDir) => max(float(0), dot(viewDir, sunDir).negate());
 
@@ -902,7 +952,22 @@ export function createVegetation(scene, maps = {}) {
    */
   const bentNormal = transformNormalToView(normalLocal);
 
-  const makeFoliageMat = (sample, tint, windLo, windHi, alphaTest) => {
+  /**
+   * Combine the volumetric bend with a tangent-space normal map.
+   *
+   * Built by hand because normalNode replaces three's entire normal path: set
+   * it and material.normalMap is never consulted, so the two have to be mixed
+   * here. T is the card's own across-axis (stamped per card by setTangent), N
+   * is the bent normal, B their cross product.
+   */
+  const mappedNormal = (normalTex, sampleUV) => {
+    const T = normalize(transformNormalToView(attribute("aTangent", "vec3")));
+    const B = normalize(cross(bentNormal, T));
+    const nm = texture(normalTex, sampleUV).xyz.mul(2).sub(1);
+    return normalize(T.mul(nm.x).add(B.mul(nm.y)).add(bentNormal.mul(nm.z)));
+  };
+
+  const makeFoliageMat = (sample, tint, windLo, windHi, alphaTest, normalTex) => {
     const m = new THREE.MeshStandardNodeMaterial({
       side: THREE.DoubleSide,
       alphaTest,
@@ -913,20 +978,20 @@ export function createVegetation(scene, maps = {}) {
     const albedo = sample.rgb.mul(tint).mul(vcol).mul(instanceTint);
     m.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.6).add(1)), sample.a);
     m.positionNode = positionLocal.add(windBend(smoothstep(windLo, windHi, positionGeometry.y).pow(2)));
-    m.normalNode = bentNormal;
+    m.normalNode = normalTex ? mappedNormal(normalTex, uv()) : bentNormal;
     return m;
   };
 
-  const pineLeafMat = makeFoliageMat(leafSample, vec3(0.9, 1.15, 0.7), 2.8, 8.2, 0.4);
+  const pineLeafMat = makeFoliageMat(leafSample, vec3(0.9, 1.15, 0.7), 2.8, 8.2, 0.4, maps.needleNormal);
   const sageMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
   {
     const viewDir = normalize(cameraPosition.sub(positionWorld));
     const albedo = sageSample.rgb.mul(vec3(0.95, 1.05, 0.82));
     sageMat.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.35).add(1)), sageSample.a);
     sageMat.positionNode = positionLocal.add(windBend(uv().y.pow(2).mul(0.45)));
-    sageMat.normalNode = bentNormal;
+    sageMat.normalNode = maps.sageNormal ? mappedNormal(maps.sageNormal, uv()) : bentNormal;
   }
-  const cottonLeafMat = makeFoliageMat(broadSample, vec3(1.05, 1.12, 0.72), 2.0, 7.4, 0.38);
+  const cottonLeafMat = makeFoliageMat(broadSample, vec3(1.05, 1.12, 0.72), 2.0, 7.4, 0.38, maps.broadNormal);
 
   // Four silhouettes, not three, and spread further apart in proportion: a bare
   // -legged spire, the standard conifer, a broad mid-height tree, and a squat
@@ -950,7 +1015,7 @@ export function createVegetation(scene, maps = {}) {
   const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
     near: makePineCanopy(tiers, cards, radius, baseY, topY),
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
-    distant: makePineCanopy(3, 4, radius, baseY, topY),
+    distant: makePineCanopy(5, 6, radius, baseY, topY),
     trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
   });
   // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
@@ -962,13 +1027,18 @@ export function createVegetation(scene, maps = {}) {
   // every branch card, which opened gaps between tiers and left the near trees
   // looking like stacked shelves with the trunk showing through; the far band
   // was sparse enough that mid-distance trees read as poles with tufts on.
+  // The far and distant bands were sparse enough that a mid-ground tree showed
+  // as a bare pole with a few spokes — the crown could not cover its own trunk.
+  // Making trunks run the full height to the leader, which is correct, made
+  // that far more obvious: there is now a full-length stem behind every gap.
+  // Grass taught the same lesson: density is what makes foliage read as mass.
   const PINE = [
     // Tall spire: high crown on a long clear stem.
-    pineForm(10, 8, 1.85, 4.2, 12.4, 0.3, 4, 6),
-    pineForm(8, 8, 1.65, 2.4, 7.7, 0.34, 4, 6),
-    pineForm(7, 10, 1.75, 1.9, 6.4, 0.4, 4, 7),
+    pineForm(10, 8, 1.85, 4.2, 12.4, 0.3, 6, 8),
+    pineForm(8, 8, 1.65, 2.4, 7.7, 0.34, 6, 8),
+    pineForm(7, 10, 1.75, 1.9, 6.4, 0.4, 6, 9),
     // Juniper: wide, low, almost no clear trunk.
-    pineForm(5, 11, 1.9, 0.6, 4.1, 0.46, 3, 7)
+    pineForm(5, 11, 1.9, 0.6, 4.1, 0.46, 4, 9)
   ];
 
   const MAX = 3200;
@@ -1048,13 +1118,13 @@ export function createVegetation(scene, maps = {}) {
       trunk: makePineTrunk(6.2, 0.36, 0.14),
       near: makeBroadCanopy(32, 3.6, 2.4, 7.6),
       far: makeBroadCanopy(12, 3.6, 2.4, 7.6),
-      distant: makeBroadCanopy(4, 3.6, 2.4, 7.6)
+      distant: makeBroadCanopy(10, 3.6, 2.4, 7.6)
     },
     {
       trunk: makePineTrunk(7.4, 0.22, 0.1),
       near: makeBroadCanopy(24, 1.9, 3.4, 9.2),
       far: makeBroadCanopy(9, 1.9, 3.4, 9.2),
-      distant: makeBroadCanopy(4, 1.9, 3.4, 9.2)
+      distant: makeBroadCanopy(8, 1.9, 3.4, 9.2)
     }
   ];
   const broads = BROAD.map((proto) => {
@@ -1487,21 +1557,7 @@ export function createVegetation(scene, maps = {}) {
   grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
-  if (maps.grassNormal) {
-    // Perturb the bent normal by the baked tangent-space map. Built by hand
-    // rather than via material.normalMap because normalNode replaces three's
-    // whole normal path, so the volumetric bend and the per-pixel detail have
-    // to be combined here: T from the card's own axis, N the bent normal, and
-    // B their cross product.
-    const T = normalize(transformNormalToView(attribute("aTangent", "vec3")));
-    const B = normalize(cross(bentNormal, T));
-    const nm = texture(maps.grassNormal, atlasUV).xyz.mul(2).sub(1);
-    grassMat.normalNode = normalize(
-      T.mul(nm.x).add(B.mul(nm.y)).add(bentNormal.mul(nm.z))
-    );
-  } else {
-    grassMat.normalNode = bentNormal;
-  }
+  grassMat.normalNode = maps.grassNormal ? mappedNormal(maps.grassNormal, atlasUV) : bentNormal;
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
