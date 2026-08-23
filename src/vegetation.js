@@ -250,37 +250,82 @@ function asCardMap(tex) {
  * render from a single instanced draw. Each instance picks its panel with a
  * per-instance UV offset.
  *
+ * The blades used to be near-straight triangles in vivid primary green, evenly
+ * spaced and few — which is most of why the ground cover read as toy plastic.
+ * Real grass arcs over under its own weight, grows in crowded clumps, tapers to
+ * a hair, and is nowhere near that saturated: it sits in olive, khaki and straw.
+ * So blades are built along a curved spine with a width that tapers to nothing,
+ * drawn many and clustered, and coloured from a muted palette that runs dark at
+ * the root to dry at the tip.
+ *
  * Panels are sampled with a guard band inset, and blades are rooted just above
  * each panel's bottom edge, so filtering cannot bleed one species into another.
  */
+function bladeShape(ctx, x0, y0, len, lean, wBase, segs) {
+  const tipX = x0 + lean;
+  const tipY = y0 - len;
+  // Control point low and near the root: the blade leaves the ground upright
+  // and only falls away toward the tip, which is what makes it read as grass
+  // rather than a spike.
+  const cx = x0 + lean * 0.16;
+  const cy = y0 - len * 0.62;
+  const at = (t) => {
+    const mt = 1 - t;
+    return {
+      x: mt * mt * x0 + 2 * mt * t * cx + t * t * tipX,
+      y: mt * mt * y0 + 2 * mt * t * cy + t * t * tipY
+    };
+  };
+  const left = [];
+  const right = [];
+  for (let i = 0; i <= segs; i += 1) {
+    const t = i / segs;
+    const p = at(t);
+    const q = at(Math.min(1, t + 0.02));
+    const dx = q.x - p.x;
+    const dy = q.y - p.y;
+    const l = Math.hypot(dx, dy) || 1;
+    const w = wBase * Math.pow(1 - t, 0.7);
+    left.push([p.x - (dy / l) * w, p.y + (dx / l) * w]);
+    right.push([p.x + (dy / l) * w, p.y - (dx / l) * w]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(left[0][0], left[0][1]);
+  for (const [x, y] of left) {
+    ctx.lineTo(x, y);
+  }
+  for (let i = right.length - 1; i >= 0; i -= 1) {
+    ctx.lineTo(right[i][0], right[i][1]);
+  }
+  ctx.closePath();
+}
+
 function paintBladePanel(ctx, ox, oy, panel, sp) {
-  const root = oy + panel * 0.97;
-  for (let i = 0; i < sp.blades; i += 1) {
-    const t = (i + 0.5) / sp.blades;
-    const x = ox + panel * (0.1 + t * 0.8) + (Math.random() - 0.5) * panel * 0.06;
-    const h = panel * sp.tall * (0.62 + Math.random() * 0.38);
-    const lean = (Math.random() - 0.5) * panel * sp.lean;
-    const w = panel * sp.wide * (0.7 + Math.random() * 0.6);
-    const tipX = x + lean;
-    const midX = x + lean * 0.45;
-    const dry = Math.random() * sp.dry;
-    const g = sp.g0 + Math.random() * sp.gv;
-    const r = sp.r0 + dry * 70 + Math.random() * 22;
-    const b = sp.b0 + Math.random() * 22;
-    ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},1)`;
-    ctx.beginPath();
-    ctx.moveTo(x - w, root);
-    ctx.quadraticCurveTo(midX - w * 1.15, root - h * 0.52, tipX, root - h);
-    ctx.quadraticCurveTo(midX + w * 0.95, root - h * 0.5, x + w, root);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = `rgba(${Math.min(255, r + 36) | 0},${Math.min(255, g + 40) | 0},${(b + 18) | 0},0.5)`;
-    ctx.beginPath();
-    ctx.moveTo(x - w * 0.15, root);
-    ctx.quadraticCurveTo(midX, root - h * 0.58, tipX + w * 0.1, root - h * 0.92);
-    ctx.quadraticCurveTo(midX + w * 0.25, root - h * 0.5, x + w * 0.2, root);
-    ctx.closePath();
-    ctx.fill();
+  const root = oy + panel * 0.98;
+  // Clumps, not an even comb: real tufts crowd around a few crowns.
+  const clumps = sp.clumps;
+  for (let c = 0; c < clumps; c += 1) {
+    const cxp = ox + panel * (0.12 + (c + 0.5) / clumps * 0.76 + (Math.random() - 0.5) * 0.06);
+    const per = Math.round(sp.blades / clumps);
+    for (let i = 0; i < per; i += 1) {
+      const spreadX = (Math.random() - 0.5) * panel * sp.clumpW;
+      const x = cxp + spreadX;
+      const len = panel * sp.tall * (0.5 + Math.random() * 0.5);
+      // Blades on the outside of a clump lean further out.
+      const lean = (spreadX * 2.2 + (Math.random() - 0.5) * panel * sp.lean) * (0.4 + Math.random() * 0.9);
+      const w = panel * sp.wide * (0.65 + Math.random() * 0.7);
+      const dry = Math.random();
+      const tone = sp.tones[(Math.random() * sp.tones.length) | 0];
+      const grad = ctx.createLinearGradient(x, root, x + lean, root - len);
+      grad.addColorStop(0, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
+      grad.addColorStop(0.55, `rgb(${tone[3]},${tone[4]},${tone[5]})`);
+      // Tips dry out; a fraction of blades are dead straw all the way down.
+      const tipDry = dry > sp.deadAt ? sp.straw : [tone[3] + 26, tone[4] + 16, tone[5] + 8];
+      grad.addColorStop(1, `rgb(${tipDry[0] | 0},${tipDry[1] | 0},${tipDry[2] | 0})`);
+      ctx.fillStyle = grad;
+      bladeShape(ctx, x, root, len, lean, w, 9);
+      ctx.fill();
+    }
   }
 }
 
@@ -288,38 +333,55 @@ function bladeTexture() {
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     const panel = size / 2;
+    // Muted palettes: [rootR,G,B, midR,G,B]. Nothing here is a primary green.
+    const MEADOW = [[38, 56, 26, 82, 104, 44], [44, 62, 28, 96, 116, 52], [34, 50, 24, 74, 96, 40]];
+    const DRYISH = [[52, 58, 30, 112, 116, 56], [46, 54, 28, 100, 106, 50], [58, 62, 32, 124, 124, 62]];
+    const STRAW = [[96, 92, 46, 158, 148, 84], [88, 84, 44, 146, 136, 76]];
     // Canvas y runs down and texture v runs up, so a species whose atlas offset
     // is v=0 lives in the LOWER half of the canvas.
     const panels = [
       // blue grama: a dense low mat of fine blades
-      { ox: 0, oy: panel, blades: 16, tall: 0.42, wide: 0.018, lean: 0.1, dry: 0.25, r0: 44, g0: 112, gv: 58, b0: 30 },
-      // bunchgrass: fewer, taller, clumped
-      { ox: panel, oy: panel, blades: 9, tall: 0.78, wide: 0.03, lean: 0.16, dry: 0.35, r0: 48, g0: 118, gv: 66, b0: 28 },
-      // bluestem: tall and wispy, wet ground
-      { ox: 0, oy: 0, blades: 7, tall: 0.95, wide: 0.026, lean: 0.24, dry: 0.2, r0: 40, g0: 126, gv: 70, b0: 34 },
-      // cheatgrass: sparse pale straw
-      { ox: panel, oy: 0, blades: 8, tall: 0.5, wide: 0.024, lean: 0.2, dry: 0.85, r0: 96, g0: 126, gv: 52, b0: 44 }
+      { ox: 0, oy: panel, blades: 62, clumps: 7, clumpW: 0.115, tall: 0.4, wide: 0.0092, lean: 0.1,
+        tones: MEADOW, deadAt: 0.78, straw: [150, 140, 78] },
+      // bunchgrass: fewer, taller, strongly clumped
+      { ox: panel, oy: panel, blades: 46, clumps: 4, clumpW: 0.085, tall: 0.72, wide: 0.0115, lean: 0.16,
+        tones: MEADOW, deadAt: 0.7, straw: [156, 144, 80] },
+      // bluestem: tall and arcing, wet ground
+      { ox: 0, oy: 0, blades: 36, clumps: 4, clumpW: 0.08, tall: 0.93, wide: 0.0105, lean: 0.3,
+        tones: MEADOW, deadAt: 0.82, straw: [148, 142, 82] },
+      // cheatgrass: sparse pale straw, falling away
+      { ox: panel, oy: 0, blades: 40, clumps: 5, clumpW: 0.105, tall: 0.5, wide: 0.0098, lean: 0.28,
+        tones: DRYISH.concat(STRAW), deadAt: 0.35, straw: [168, 156, 92] }
     ];
     for (const sp of panels) {
       paintBladePanel(ctx, sp.ox, sp.oy, panel, sp);
     }
-  }, 512));
+  }, 1024));
 }
 
+/**
+ * Conifer sprig. The card runs trunk-end (u=0) to branch tip (u=1).
+ *
+ * This was a solid rectangle of bright needles filling the card edge to edge,
+ * which is why crowns rendered as dark green streaks: with no silhouette of its
+ * own, every card showed as an overlapping block. A real branch is a tapering
+ * stem carrying separated needle fascicles, so the outline is ragged and light
+ * passes between the clusters. Colour is a muted blue-green, dark at the stem.
+ */
 function leafTexture() {
-  // Conifer sprig drawn edge-to-edge so alpha-cut cards read as foliage mass,
-  // not scattered blobs. Swap for a scanned atlas when one is packed.
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
-    const stemY = size * 0.52;
-
-    ctx.strokeStyle = "rgba(58,42,26,1)";
+    const stemY = size * 0.5;
+    const tipX = size * 0.94;
     ctx.lineCap = "round";
-    for (let i = 0; i < 6; i += 1) {
-      ctx.lineWidth = 8 - i;
+
+    // Woody stem, thinning toward the tip.
+    for (let i = 0; i < 5; i += 1) {
+      ctx.strokeStyle = `rgba(${52 + i * 4},${38 + i * 3},${24 + i * 2},1)`;
+      ctx.lineWidth = 7 - i * 1.2;
       ctx.beginPath();
-      ctx.moveTo(0, stemY + Math.sin(i) * 2);
-      ctx.quadraticCurveTo(size * 0.5, stemY - size * 0.04, size * (0.74 + i * 0.04), stemY + size * 0.012);
+      ctx.moveTo(0, stemY);
+      ctx.quadraticCurveTo(size * 0.5, stemY - size * 0.02, tipX, stemY + size * 0.008);
       ctx.stroke();
     }
 
@@ -328,68 +390,109 @@ function leafTexture() {
       ctx.lineWidth = width;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
-      ctx.lineTo(x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len);
+      // Needles bow slightly rather than running dead straight.
+      ctx.quadraticCurveTo(
+        x0 + Math.cos(ang) * len * 0.55,
+        y0 + Math.sin(ang) * len * 0.5,
+        x0 + Math.cos(ang) * len * 0.92 + len * 0.16,
+        y0 + Math.sin(ang) * len
+      );
       ctx.stroke();
     };
-    for (let x = 1; x < size * 0.96; x += 1.55) {
-      const t = x / (size * 0.96);
-      const taper = 1 - t * 0.58;
-      const spread = size * 0.34 * taper;
-      const jitter = Math.sin(x * 0.55) * 4;
-      for (let k = 0; k < 6; k += 1) {
+
+    // Fascicles spaced along the stem, with gaps between them.
+    const clusters = 13;
+    for (let c = 0; c < clusters; c += 1) {
+      const t = (c + 0.4) / clusters;
+      const cx = t * tipX;
+      const cy = stemY + Math.sin(c * 1.7) * size * 0.012;
+      // Taper: long near the trunk, short at the tip, so the card silhouettes
+      // as a branch instead of a slab.
+      const taper = Math.pow(1 - t, 0.62);
+      const spread = size * 0.4 * taper;
+      const perCluster = 18 + ((c * 5) % 8);
+      for (let k = 0; k < perCluster; k += 1) {
         const up = k % 2 === 0 ? -1 : 1;
-        const g = 88 + Math.random() * 82;
-        const r = 30 + Math.random() * 32;
-        const bl = 26 + Math.random() * 28;
-        const shade = `rgba(${r | 0},${g | 0},${bl | 0},${0.78 + Math.random() * 0.22})`;
-        const ang = up * (Math.PI / 2) + (Math.random() - 0.5) * 1.2 - 0.2;
-        needle(x, stemY + jitter * 0.3, spread * (0.5 + Math.random() * 0.85), ang, shade, 1.15 + Math.random() * 1.7);
+        const g = 74 + Math.random() * 46;
+        const r = 34 + Math.random() * 20;
+        const bl = 44 + Math.random() * 26;
+        const alpha = 0.72 + Math.random() * 0.28;
+        // Angle sweeps back toward the tip, as needles do.
+        const ang = up * (Math.PI * 0.42) + (Math.random() - 0.5) * 0.7 - 0.16;
+        needle(
+          cx + (Math.random() - 0.5) * size * 0.02,
+          cy,
+          spread * (0.45 + Math.random() * 0.75),
+          ang,
+          `rgba(${r | 0},${g | 0},${bl | 0},${alpha})`,
+          1.15 + Math.random() * 1.7
+        );
       }
-    }
-    for (let i = 0; i < 120; i += 1) {
-      const x = Math.random() * size * 0.96;
-      const t = x / (size * 0.96);
-      const up = Math.random() < 0.5 ? -1 : 1;
-      const g = 100 + Math.random() * 68;
-      needle(
-        x,
-        stemY + (Math.random() - 0.5) * 8,
-        size * 0.38 * (1 - t * 0.55) * (0.85 + Math.random() * 0.55),
-        up * (Math.PI / 2) + (Math.random() - 0.5) * 0.95 - 0.18,
-        `rgba(${(28 + Math.random() * 28) | 0},${g | 0},${(24 + Math.random() * 24) | 0},0.92)`,
-        1.05 + Math.random()
-      );
     }
   }, 512));
 }
 
+/**
+ * Sagebrush. Was a stack of translucent ellipses that ran to the card edges, so
+ * every bush showed as a pale rectangular slab with sticks over it. Sage is a
+ * mass of small oval leaves on woody branchlets, silver-grey-green, with an
+ * irregular outline that has to stay clear of the card border.
+ */
 function sageTexture() {
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
-    for (let i = 0; i < 28; i += 1) {
-      const cx = size * (0.18 + Math.random() * 0.64);
-      const cy = size * (0.22 + Math.random() * 0.55);
-      const rx = size * (0.1 + Math.random() * 0.18);
-      const ry = size * (0.09 + Math.random() * 0.16);
-      const g = 92 + Math.random() * 50;
-      const r = 68 + Math.random() * 36;
-      const b = 48 + Math.random() * 28;
-      ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},${0.55 + Math.random() * 0.4})`;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, (Math.random() - 0.5) * 0.8, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.strokeStyle = "rgba(72,52,32,0.85)";
     ctx.lineCap = "round";
-    for (let i = 0; i < 9; i += 1) {
-      ctx.lineWidth = 2 + Math.random() * 3;
-      const x = size * (0.28 + Math.random() * 0.44);
+
+    // Woody branchlets fanning up from the base.
+    const stems = 7;
+    const tips = [];
+    for (let i = 0; i < stems; i += 1) {
+      const x0 = size * (0.38 + (i / stems - 0.5) * 0.3);
+      const tx = size * (0.16 + (i + 0.5) / stems * 0.68) + (Math.random() - 0.5) * size * 0.05;
+      const ty = size * (0.2 + Math.random() * 0.3);
+      ctx.strokeStyle = `rgba(${76 + Math.random() * 16},${62 + Math.random() * 14},${44 + Math.random() * 12},0.95)`;
+      ctx.lineWidth = 4.5 - i * 0.35;
       ctx.beginPath();
-      ctx.moveTo(x, size);
-      ctx.quadraticCurveTo(x + (Math.random() - 0.5) * 18, size * 0.55, x + (Math.random() - 0.5) * 28, size * (0.18 + Math.random() * 0.25));
+      ctx.moveTo(x0, size * 0.99);
+      ctx.quadraticCurveTo(x0 + (tx - x0) * 0.3, size * 0.62, tx, ty);
       ctx.stroke();
+      tips.push({ x: tx, y: ty, x0 });
     }
-  }, 256));
+
+    // Leaf clusters along each branchlet.
+    const leaf = (cx, cy, r, ang, shade) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(ang);
+      ctx.fillStyle = shade;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+    for (const s of tips) {
+      const along = 18;
+      for (let i = 0; i < along; i += 1) {
+        const t = 0.18 + (i / along) * 0.82;
+        const bx = s.x0 + (s.x - s.x0) * t + (Math.random() - 0.5) * size * 0.05;
+        const by = size * 0.99 + (s.y - size * 0.99) * t + (Math.random() - 0.5) * size * 0.04;
+        const cluster = 3 + ((i * 3) % 3);
+        for (let k = 0; k < cluster; k += 1) {
+          // Sage green is grey and desaturated: R and B stay close to G.
+          const g = 104 + Math.random() * 34;
+          const r = g - 18 + Math.random() * 20;
+          const b = g - 34 + Math.random() * 18;
+          leaf(
+            bx + (Math.random() - 0.5) * size * 0.055,
+            by + (Math.random() - 0.5) * size * 0.055,
+            size * (0.018 + Math.random() * 0.02),
+            Math.random() * Math.PI,
+            `rgba(${r | 0},${g | 0},${b | 0},${0.82 + Math.random() * 0.18})`
+          );
+        }
+      }
+    }
+  }, 512));
 }
 
 function broadleafTexture() {
