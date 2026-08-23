@@ -474,12 +474,55 @@ export function bridgeLift(x, z) {
   return add;
 }
 
-export function lakeFactor(x, z) {
+/**
+ * Lake Mercy's nominal rim (where lakeCoords d = 1) in metres. The lake lives
+ * at u 0.52 +/- 0.125 and v 0.66 +/- 0.095 of a 4000 x 5000 m world.
+ */
+export const LAKE_NOMINAL_RX = 0.125 * WORLD.width;
+export const LAKE_NOMINAL_RZ = 0.095 * WORLD.depth;
+
+/**
+ * Shoreline radius multiplier for Lake Mercy at a given bearing.
+ *
+ * Lake Mercy was a perfect ellipse at every layer that described it — the
+ * terrain carve here, the water surface (a CircleGeometry), the mud band (a
+ * RingGeometry) and the beaches (flat circles) — so it read as a stamped disc
+ * dropped on the plain rather than a body of water.
+ *
+ * This is the single shoreline all of them now share: a sum of harmonics in
+ * the bearing, which gives bays and headlands at several scales. Every term is
+ * an integer multiple of the angle, so the curve closes seamlessly at 0/2pi,
+ * and it is a pure function of angle, so terrain, water mesh and beaches agree
+ * on where the water's edge is without passing state around.
+ *
+ * Amplitudes stay under ~0.2 combined: enough to break the ellipse, not enough
+ * to pinch the lake shut or push it over the shore road.
+ */
+export function lakeShoreRadius(angle) {
+  return 1
+    + Math.sin(angle * 2 + 0.6) * 0.075
+    + Math.sin(angle * 3 - 1.9) * 0.055
+    + Math.sin(angle * 5 + 2.4) * 0.036
+    + Math.sin(angle * 8 + 0.3) * 0.022
+    + Math.sin(angle * 13 - 2.7) * 0.012;
+}
+
+/**
+ * Normalised ellipse coordinates for Lake Mercy. d = 1 is the nominal rim;
+ * the bearing is taken in this normalised space so the shoreline noise rides
+ * the ellipse rather than fighting its aspect ratio.
+ */
+export function lakeCoords(x, z) {
   const { u, v } = worldToMap(x, z);
   const dx = (u - 0.52) / 0.125;
   const dz = (v - 0.66) / 0.095;
-  const d = Math.sqrt(dx * dx + dz * dz);
-  return 1 - smoothstep(0.72, 1.12, d);
+  return { dx, dz, d: Math.sqrt(dx * dx + dz * dz), angle: Math.atan2(dz, dx) };
+}
+
+export function lakeFactor(x, z) {
+  const { d, angle } = lakeCoords(x, z);
+  const rim = lakeShoreRadius(angle);
+  return 1 - smoothstep(0.72 * rim, 1.12 * rim, d);
 }
 
 export function roadFactor(x, z) {

@@ -28,7 +28,8 @@ import {
   sin,
   texture,
   instancedBufferAttribute,
-  attribute
+  attribute,
+  varyingProperty
 } from "three/tsl";
 import { heightAt, normalAt } from "./heightfield.js";
 import { barkTexture, makeTexture } from "./world.js";
@@ -511,6 +512,21 @@ export function createVegetation(scene, maps = {}) {
     return windDir.mul(sway.mul(windStrength).add(gust.mul(gustStrength)).mul(profile));
   };
 
+  /**
+   * Per-instance foliage tint.
+   *
+   * Every pine on the map was the same green: the canopy material had one
+   * uniform tint and nothing varied it per tree, so a hillside of them read as
+   * one cloned sprite repeated a few thousand times. three populates the
+   * vInstanceColor varying from an InstancedMesh's instanceColor attribute, but
+   * does not re-export the accessor from three/tsl — this is the same
+   * varyingProperty it builds internally (see nodes/accessors/Instance.js).
+   *
+   * Every mesh sharing a material that reads this MUST have instanceColor set,
+   * or the varying stays at its zero default and the foliage renders black.
+   */
+  const instanceTint = varyingProperty("vec3", "vInstanceColor");
+
   const makeFoliageMat = (sample, tint, windLo, windHi, alphaTest) => {
     const m = new THREE.MeshStandardNodeMaterial({
       side: THREE.DoubleSide,
@@ -519,7 +535,7 @@ export function createVegetation(scene, maps = {}) {
     });
     const viewDir = normalize(cameraPosition.sub(positionWorld));
     const vcol = attribute("color", "vec3");
-    const albedo = sample.rgb.mul(tint).mul(vcol);
+    const albedo = sample.rgb.mul(tint).mul(vcol).mul(instanceTint);
     m.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.6).add(1)), sample.a);
     m.positionNode = positionLocal.add(windBend(smoothstep(windLo, windHi, positionGeometry.y).pow(2)));
     return m;
@@ -535,11 +551,16 @@ export function createVegetation(scene, maps = {}) {
   }
   const cottonLeafMat = makeFoliageMat(broadSample, vec3(1.05, 1.12, 0.72), 2.0, 7.4, 0.38);
 
+  // Four silhouettes, not three, and spread further apart in proportion: a bare
+  // -legged spire, the standard conifer, a broad mid-height tree, and a squat
+  // scrubby juniper for the dry biomes. Three near-identical cones gave the
+  // forest one repeated outline however many instances it drew.
   const PINE = [
     {
-      near: makePineCanopy(7, 8, 2.15, 3.1, 10.2),
-      far: makePineCanopy(3, 5, 2.15, 3.1, 10.2),
-      trunk: makePineTrunk(5.4, 0.32, 0.13)
+      // Tall spire, high crown, thin trunk.
+      near: makePineCanopy(8, 8, 1.85, 4.2, 12.4),
+      far: makePineCanopy(3, 5, 1.85, 4.2, 12.4),
+      trunk: makePineTrunk(6.4, 0.3, 0.11)
     },
     {
       near: makePineCanopy(6, 7, 2.55, 2.4, 7.7),
@@ -550,6 +571,12 @@ export function createVegetation(scene, maps = {}) {
       near: makePineCanopy(5, 9, 3.2, 1.9, 6.4),
       far: makePineCanopy(3, 5, 3.2, 1.9, 6.4),
       trunk: makePineTrunk(3.5, 0.4, 0.18)
+    },
+    {
+      // Juniper: wide, low, almost no clear trunk.
+      near: makePineCanopy(4, 10, 3.05, 0.6, 4.1),
+      far: makePineCanopy(2, 6, 3.05, 0.6, 4.1),
+      trunk: makePineTrunk(1.9, 0.46, 0.26)
     }
   ];
 
@@ -578,6 +605,30 @@ export function createVegetation(scene, maps = {}) {
   const treeLeanX = new Float32Array(MAX);
   const treeLeanZ = new Float32Array(MAX);
   const treeType = new Uint8Array(MAX);
+  const treeTint = new Float32Array(MAX * 3);
+  const tintColor = new THREE.Color();
+
+  /**
+   * A foliage colour for one tree.
+   *
+   * Spread runs along two axes that real stands vary on: how blue-green versus
+   * yellow-green the needles are, and how dark the individual tree is. Biome
+   * shifts the centre of that spread — high conifer forest cool and deep, dry
+   * country pale and yellow — so neighbouring trees differ without the hillside
+   * turning into confetti.
+   */
+  function foliageTint(biome, n1, n2, out, slot) {
+    const dry = biome === "range" || biome === "badlands" || biome === "iron" || biome === "tribal";
+    const cool = biome === "pines" ? 0.62 : dry ? 0.16 : 0.4;
+    const blue = n1 * 0.75 + cool * 0.25;
+    const value = (dry ? 0.84 : 0.74) + n2 * 0.38;
+    // Green stays the dominant channel across the whole range: pushed further,
+    // the warm end went brown and the cool end went blue, and neither reads as
+    // needles. This spans olive to blue-spruce and stops there.
+    out[slot * 3] = (0.99 - blue * 0.29) * value;
+    out[slot * 3 + 1] = (1.0 + blue * 0.06) * value;
+    out[slot * 3 + 2] = (0.58 + blue * 0.3) * value;
+  }
 
   const burnt = new THREE.InstancedMesh(makePineTrunk(5.2, 0.26, 0.1), char, 400);
 
@@ -586,6 +637,7 @@ export function createVegetation(scene, maps = {}) {
   let burned = 0;
 
   const MAX_COTTON = 260;
+  const cottonTint = new Float32Array(MAX_COTTON * 3);
   const cottonTrunkGeo = makePineTrunk(6.2, 0.36, 0.14);
   const cottonNearGeo = makeBroadCanopy(32, 3.6, 2.4, 7.6);
   const cottonFarGeo = makeBroadCanopy(12, 3.6, 2.4, 7.6);
@@ -603,14 +655,22 @@ export function createVegetation(scene, maps = {}) {
   const cottonRot = new Float32Array(MAX_COTTON);
   let cottons = 0;
 
+  /**
+   * Which silhouette grows where. Dense conifer forest leans on the spires,
+   * the dry and open biomes on the low juniper, so the stands read differently
+   * from each other rather than being one mix everywhere.
+   */
   function pickPineType(biome, n) {
     if (biome === "pines") {
-      return n < 0.42 ? 0 : n < 0.78 ? 1 : 2;
+      return n < 0.4 ? 0 : n < 0.72 ? 1 : n < 0.94 ? 2 : 3;
     }
     if (biome === "foothills") {
-      return n < 0.22 ? 0 : n < 0.62 ? 1 : 2;
+      return n < 0.2 ? 0 : n < 0.52 ? 1 : n < 0.8 ? 2 : 3;
     }
-    return n < 0.18 ? 0 : n < 0.55 ? 1 : 2;
+    if (biome === "range" || biome === "badlands" || biome === "iron" || biome === "tribal") {
+      return n < 0.06 ? 0 : n < 0.26 ? 1 : n < 0.55 ? 2 : 3;
+    }
+    return n < 0.16 ? 0 : n < 0.48 ? 1 : n < 0.78 ? 2 : 3;
   }
 
   for (let i = 0; i < 16000 && placed < MAX; i += 1) {
@@ -651,6 +711,7 @@ export function createVegetation(scene, maps = {}) {
       cottonPos[cottons * 3 + 2] = z;
       cottonScale[cottons] = scale;
       cottonRot[cottons] = dummy.rotation.y;
+      foliageTint("valley", seeded(i + 61), seeded(i + 63), cottonTint, cottons);
       addCylinderCollider(x, z, 0.5 * scale);
       cottons += 1;
       continue;
@@ -659,8 +720,10 @@ export function createVegetation(scene, maps = {}) {
     if (seeded(i + 21) > plantChance(biome)) {
       continue;
     }
-    const girth = 0.72 + seeded(i + 4) * 0.55;
-    const height = 0.78 + seeded(i + 15) * 1.15;
+    // Widened from 0.72-1.27 / 0.78-1.93: near-uniform scale was as much of
+    // the sameness as the colour was.
+    const girth = 0.6 + seeded(i + 4) * 0.85;
+    const height = 0.62 + seeded(i + 15) * 1.6;
     if (biome === "burn" && burned < 400) {
       dummy.position.set(x, y, z);
       dummy.rotation.set((seeded(i + 41) - 0.5) * 0.12, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.12);
@@ -685,6 +748,7 @@ export function createVegetation(scene, maps = {}) {
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = type;
+    foliageTint(biome, seeded(i + 51), seeded(i + 53), treeTint, placed);
     addCylinderCollider(x, z, 0.45 * girth);
     placed += 1;
   }
@@ -725,12 +789,13 @@ export function createVegetation(scene, maps = {}) {
       cottonPos[cottons * 3 + 2] = z;
       cottonScale[cottons] = scale;
       cottonRot[cottons] = dummy.rotation.y;
+      foliageTint("valley", seeded(i + 61), seeded(i + 63), cottonTint, cottons);
       addCylinderCollider(x, z, 0.5 * scale);
       cottons += 1;
       continue;
     }
-    const girth = 0.8 + seeded(i + 4) * 0.4;
-    const height = 0.9 + seeded(i + 15) * 0.85;
+    const girth = 0.72 + seeded(i + 4) * 0.62;
+    const height = 0.78 + seeded(i + 15) * 1.2;
     dummy.position.set(x, y, z);
     dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
     dummy.scale.set(girth, height, girth);
@@ -744,6 +809,7 @@ export function createVegetation(scene, maps = {}) {
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = seeded(i + 19) < 0.45 ? 1 : 2;
+    foliageTint(biomeAt(x, z), seeded(i + 51), seeded(i + 53), treeTint, placed);
     addCylinderCollider(x, z, 0.45 * girth);
     placed += 1;
   }
@@ -777,6 +843,7 @@ export function createVegetation(scene, maps = {}) {
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = i % 3 === 0 ? 0 : i % 3 === 1 ? 1 : 2;
+    foliageTint(biomeAt(x, z), seeded(i + 951), seeded(i + 953), treeTint, placed);
     addCylinderCollider(x, z, 0.5 * girth);
     placed += 1;
   }
@@ -806,12 +873,33 @@ export function createVegetation(scene, maps = {}) {
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
     }
+    // Seed instanceColor on every mesh that shares a tinted foliage material:
+    // an unset attribute leaves vInstanceColor at zero and the canopy goes black.
+    let c = 0;
+    for (let i = 0; i < placed; i += 1) {
+      if (treeType[i] !== t) {
+        continue;
+      }
+      tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
+      pines[t].crownNear.setColorAt(c, tintColor);
+      pines[t].crownFar.setColorAt(c, tintColor);
+      c += 1;
+    }
+    pines[t].crownNear.instanceColor.needsUpdate = true;
+    pines[t].crownFar.instanceColor.needsUpdate = true;
   }
   for (const mesh of [cottonTrunkNear, cottonCrownNear]) {
     mesh.count = cottons;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
   }
+  for (let i = 0; i < cottons; i += 1) {
+    tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
+    cottonCrownNear.setColorAt(i, tintColor);
+    cottonCrownFar.setColorAt(i, tintColor);
+  }
+  cottonCrownNear.instanceColor.needsUpdate = true;
+  cottonCrownFar.instanceColor.needsUpdate = true;
   cottonTrunkFar.count = 0;
   cottonCrownFar.count = 0;
   burnt.count = burned;
@@ -1122,8 +1210,8 @@ export function createVegetation(scene, maps = {}) {
   }
 
   function bucketTrees(cameraPos) {
-    const nearCounts = [0, 0, 0];
-    const farCounts = [0, 0, 0];
+    const nearCounts = new Array(pines.length).fill(0);
+    const farCounts = new Array(pines.length).fill(0);
     for (let i = 0; i < placed; i += 1) {
       const t = treeType[i];
       const dx = treePos[i * 3] - cameraPos.x;
@@ -1133,17 +1221,23 @@ export function createVegetation(scene, maps = {}) {
       lodDummy.rotation.set(treeLeanX[i], treeRot[i], treeLeanZ[i]);
       lodDummy.scale.set(treeGirth[i], treeHeight[i], treeGirth[i]);
       lodDummy.updateMatrix();
+      // An instance's slot changes when it crosses the LOD shell, so its tint
+      // has to be rewritten into the new slot or trees would swap colours as
+      // the camera moves.
+      tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
       if (isNear) {
         const n = nearCounts[t];
         pines[t].trunkNear.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownNear.setMatrixAt(n, lodDummy.matrix);
         pines[t].limbNear.setMatrixAt(n, lodDummy.matrix);
+        pines[t].crownNear.setColorAt(n, tintColor);
         nearCounts[t] = n + 1;
       } else {
         const n = farCounts[t];
         pines[t].trunkFar.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownFar.setMatrixAt(n, lodDummy.matrix);
         pines[t].limbFar.setMatrixAt(n, lodDummy.matrix);
+        pines[t].crownFar.setColorAt(n, tintColor);
         farCounts[t] = n + 1;
       }
     }
@@ -1160,6 +1254,8 @@ export function createVegetation(scene, maps = {}) {
       pines[t].trunkFar.instanceMatrix.needsUpdate = true;
       pines[t].crownFar.instanceMatrix.needsUpdate = true;
       pines[t].limbFar.instanceMatrix.needsUpdate = true;
+      pines[t].crownNear.instanceColor.needsUpdate = true;
+      pines[t].crownFar.instanceColor.needsUpdate = true;
     }
 
     let cottonNearN = 0;
@@ -1172,13 +1268,16 @@ export function createVegetation(scene, maps = {}) {
       const s = cottonScale[i];
       lodDummy.scale.set(s, s, s);
       lodDummy.updateMatrix();
+      tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
       if (dx * dx + dz * dz < LOD_DIST_SQ) {
         cottonTrunkNear.setMatrixAt(cottonNearN, lodDummy.matrix);
         cottonCrownNear.setMatrixAt(cottonNearN, lodDummy.matrix);
+        cottonCrownNear.setColorAt(cottonNearN, tintColor);
         cottonNearN += 1;
       } else {
         cottonTrunkFar.setMatrixAt(cottonFarN, lodDummy.matrix);
         cottonCrownFar.setMatrixAt(cottonFarN, lodDummy.matrix);
+        cottonCrownFar.setColorAt(cottonFarN, tintColor);
         cottonFarN += 1;
       }
     }
@@ -1190,6 +1289,8 @@ export function createVegetation(scene, maps = {}) {
     cottonCrownNear.instanceMatrix.needsUpdate = true;
     cottonTrunkFar.instanceMatrix.needsUpdate = true;
     cottonCrownFar.instanceMatrix.needsUpdate = true;
+    cottonCrownNear.instanceColor.needsUpdate = true;
+    cottonCrownFar.instanceColor.needsUpdate = true;
   }
 
   return {

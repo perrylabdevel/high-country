@@ -1,7 +1,7 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
-import { POS, WATER, mapToWorld, CREEKS } from "./map.js";
+import { POS, WATER, mapToWorld, CREEKS, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
   makeWaterNormalTexture,
   createWaterFallbackMaterial,
@@ -729,17 +729,70 @@ function buildCreekRibbon(creek) {
   return geo;
 }
 
+/**
+ * Lake Mercy's water surface.
+ *
+ * Was a CircleGeometry, so however good the water shader looked the lake was
+ * unmistakably a stamped ellipse. It is now a fan whose rim follows
+ * lakeShoreRadius — the same shoreline the terrain carve uses — so the water
+ * plane and the ground it floods agree on where the bays are.
+ *
+ * The rim is pushed out past the fully-flooded ellipse (lakeFactor reaches
+ * open water at 0.72 of the nominal rim) so the plane runs into rising ground
+ * instead of stopping short of it. That is what removes the mud band: the
+ * visible waterline becomes plane-meets-terrain, which is irregular for free,
+ * rather than the edge of the disc itself.
+ */
+const LAKE_RIM_SEGMENTS = 192;
+const LAKE_MESH_RIM = 1.02;
+
 function buildLakeGeometry() {
-  const geo = new THREE.CircleGeometry(1, 96);
-  const position = geo.getAttribute("position");
-  const depths = new Float32Array(position.count);
-  for (let i = 0; i < position.count; i += 1) {
-    const radius = Math.min(1, Math.hypot(position.getX(i), position.getY(i)));
+  const positions = [0, 0, 0];
+  const depths = [7];
+  for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
+    const a = (i / LAKE_RIM_SEGMENTS) * Math.PI * 2;
+    const r = lakeShoreRadius(a) * LAKE_MESH_RIM;
+    positions.push(Math.cos(a) * r, Math.sin(a) * r, 0);
     // The visual lake basin is intentionally deeper at its centre than the
-    // collision terrain, which stays shallow for gameplay.
-    depths[i] = 7 * Math.pow(1 - radius, 0.8);
+    // collision terrain, which stays shallow for gameplay. Shallow out well
+    // before the rim so the shallows read as shallows where they meet land.
+    depths.push(0);
   }
+  // A single fan would make every triangle meet at the centre, so the depth
+  // gradient would be linear from the middle out. Two intermediate rings give
+  // the shader a basin profile to shade against.
+  const rings = [0.42, 0.76];
+  const ringStart = [];
+  for (const t of rings) {
+    ringStart.push(positions.length / 3);
+    for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
+      const a = (i / LAKE_RIM_SEGMENTS) * Math.PI * 2;
+      const r = lakeShoreRadius(a) * LAKE_MESH_RIM * t;
+      positions.push(Math.cos(a) * r, Math.sin(a) * r, 0);
+      depths.push(7 * Math.pow(1 - t, 0.8));
+    }
+  }
+
+  const indices = [];
+  const inner = ringStart[0];
+  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
+    indices.push(0, inner + i, inner + i + 1);
+  }
+  const bands = [ringStart[0], ringStart[1], 1];
+  for (let b = 0; b < bands.length - 1; b += 1) {
+    const a0 = bands[b];
+    const a1 = bands[b + 1];
+    for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
+      indices.push(a0 + i, a1 + i, a0 + i + 1);
+      indices.push(a0 + i + 1, a1 + i, a1 + i + 1);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute("aDepth", new THREE.Float32BufferAttribute(depths, 1));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
   return geo;
 }
 
@@ -756,20 +809,13 @@ export function createWater(scene, {
     : createWaterMaterial(normalMap, { depthSource: lakeDepthSource, screenRefraction });
   const lake = new THREE.Mesh(buildLakeGeometry(), lakeMat);
   lake.rotation.x = -Math.PI / 2;
-  lake.scale.set(310, 242, 1);
+  lake.scale.set(LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ, 1);
   lake.position.set(POS.lakeMercy.x, WATER, POS.lakeMercy.z);
   group.add(lake);
 
-  const shoreMat = new THREE.MeshStandardNodeMaterial({
-    color: 0x6a5a3a,
-    roughness: 0.95
-  });
-  const shore = new THREE.Mesh(new THREE.RingGeometry(0.92, 1.1, 48), shoreMat);
-  shore.rotation.x = -Math.PI / 2;
-  shore.scale.set(310, 242, 1);
-  shore.position.set(POS.lakeMercy.x, WATER - 0.05, POS.lakeMercy.z);
-  shore.receiveShadow = true;
-  group.add(shore);
+  // The mud band used to be a RingGeometry(0.92, 1.1) — a perfect annulus, and
+  // the hardest edge in the whole scene. The water plane now runs up into
+  // rising ground, so there is no exposed lake bed left for it to cover.
 
   const creekMat = fallback
     ? createWaterFallbackMaterial()
