@@ -2,6 +2,7 @@
  * Stage / road / trail ribbons are retired — those are the terrain gravel splat.
  */
 import * as THREE from "three/webgpu";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { heightAt, dirtTexture } from "./world.js";
 import { addDeckPlatform, addOrientedBoxCollider, addCylinderCollider } from "./collision.js";
 import {
@@ -366,15 +367,31 @@ function addBridges(group) {
     const STRINGER = 0.36;
     const CAP = 0.24;
 
+    // Every member used to be its own Mesh, so one bridge cost a draw call per
+    // plank brace and rail post — the two crossings together were 256 of the
+    // scene's ~1049 draws. They are static and share four materials, so bank
+    // each member's geometry by material and merge once at the end.
+    const banks = new Map();
+    const bank = (geo, mat) => {
+      let list = banks.get(mat);
+      if (!list) {
+        list = [];
+        banks.set(mat, list);
+      }
+      list.push(geo);
+    };
+    const place = new THREE.Object3D();
+    const shape = (geo, mat, x, y, z, rotX = 0, rotZ = 0) => {
+      place.position.set(x, y, z);
+      place.rotation.set(rotX, 0, rotZ);
+      place.updateMatrix();
+      geo.applyMatrix4(place.matrix);
+      bank(geo, mat);
+    };
+
     /** Box with its base at `baseY`, in the bridge's local frame. */
     const beam = (lx, baseY, lz, w, h, d, mat, pitch = 0) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-      mesh.position.set(lx, baseY + h / 2, lz);
-      mesh.rotation.x = pitch;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      bridge.add(mesh);
-      return mesh;
+      shape(new THREE.BoxGeometry(w, h, d), mat, lx, baseY + h / 2, lz, pitch);
     };
 
     /** The three runs of the deck: down-ramp, level over the channel, up-ramp. */
@@ -391,12 +408,11 @@ function addBridges(group) {
         const y1 = deckYAt(r.z1) - drop;
         const dz = r.z1 - r.z0;
         const len = Math.hypot(dz, y1 - y0);
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, len), mat);
-        mesh.position.set(lx, (y0 + y1) / 2 + h / 2, (r.z0 + r.z1) / 2);
-        mesh.rotation.x = Math.atan2(y0 - y1, dz);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        bridge.add(mesh);
+        shape(
+          new THREE.BoxGeometry(w, h, len), mat,
+          lx, (y0 + y1) / 2 + h / 2, (r.z0 + r.z1) / 2,
+          Math.atan2(y0 - y1, dz)
+        );
       }
     };
 
@@ -446,11 +462,7 @@ function addBridges(group) {
         if (h <= 0.2) {
           continue;
         }
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.22, h, 8), postMat);
-        post.position.set(lx, g - POST_EMBED + h / 2, lz);
-        post.castShadow = true;
-        post.receiveShadow = true;
-        bridge.add(post);
+        shape(new THREE.CylinderGeometry(0.17, 0.22, h, 8), postMat, lx, g - POST_EMBED + h / 2, lz);
         addCylinderCollider(worldX(lx, lz), worldZ(lx, lz), 0.3, { minY: g - POST_EMBED, maxY: legTop });
       }
 
@@ -460,11 +472,11 @@ function addBridges(group) {
       if (braceRise > 0.8) {
         const len = Math.hypot(braceSpan, braceRise);
         for (const dir of [1, -1]) {
-          const brace = new THREE.Mesh(new THREE.BoxGeometry(0.14, len, 0.14), beamMat);
-          brace.position.set(0, gOuter + 0.3 + braceRise / 2, lz);
-          brace.rotation.z = dir * Math.atan2(braceSpan, braceRise);
-          brace.castShadow = true;
-          bridge.add(brace);
+          shape(
+            new THREE.BoxGeometry(0.14, len, 0.14), beamMat,
+            0, gOuter + 0.3 + braceRise / 2, lz, 0,
+            dir * Math.atan2(braceSpan, braceRise)
+          );
         }
       }
     }
@@ -499,6 +511,17 @@ function addBridges(group) {
           { minY: Math.min(deckYAt(r.z0), deckYAt(r.z1)), maxY: Math.max(deckYAt(r.z0), deckYAt(r.z1)) + 1.05 }
         );
       }
+    }
+
+    // One merged mesh per material: 4 draws a bridge instead of ~130.
+    for (const [mat, geos] of banks) {
+      if (!geos.length) {
+        continue;
+      }
+      const merged = new THREE.Mesh(mergeGeometries(geos), mat);
+      merged.castShadow = true;
+      merged.receiveShadow = true;
+      bridge.add(merged);
     }
 
     // --- the walking surface, one platform per run so the ramps slope ---

@@ -114,6 +114,13 @@ const BROADLEAF_CHANCE = {
 /**
  * Ground-cover species.
  *
+ * `spread` is width as a multiple of the tuft's OWN height, not an absolute
+ * card scale. When the heights were first cut to life size the width multiplier
+ * was left alone, so a 0.15 m mat tuft still rendered 0.45 m across — grass
+ * came out a median 2.6x wider than tall and read as flat green splats lying on
+ * the dirt. Tying width to height keeps every species in proportion whatever
+ * its size.
+ *
  * There was one grass on the whole map, and its height came from GRASSINESS —
  * which is a biome's *lushness*, not a plant's size. So every biome above the
  * placement floor came out 94-99% covered and the only thing that changed was
@@ -127,10 +134,10 @@ const BROADLEAF_CHANCE = {
  * only the wet-ground bluestem comes past the knee.
  */
 const GRASS_SPECIES = [
-  { name: "blueGrama", hMin: 0.10, hMax: 0.22, wMin: 0.62, wMax: 0.92, uv: [0.0, 0.0] },
-  { name: "bunchgrass", hMin: 0.22, hMax: 0.44, wMin: 0.72, wMax: 1.08, uv: [0.5, 0.0] },
-  { name: "bluestem", hMin: 0.48, hMax: 0.86, wMin: 0.55, wMax: 0.9, uv: [0.0, 0.5] },
-  { name: "cheatgrass", hMin: 0.12, hMax: 0.28, wMin: 0.68, wMax: 1.0, uv: [0.5, 0.5] }
+  { name: "blueGrama", hMin: 0.14, hMax: 0.26, spread: 1.25, uv: [0.0, 0.0] },
+  { name: "bunchgrass", hMin: 0.24, hMax: 0.46, spread: 0.95, uv: [0.5, 0.0] },
+  { name: "bluestem", hMin: 0.48, hMax: 0.86, spread: 0.7, uv: [0.0, 0.5] },
+  { name: "cheatgrass", hMin: 0.14, hMax: 0.30, spread: 1.0, uv: [0.5, 0.5] }
 ];
 
 /** Chance a candidate cell carries grass at all. This is the density dial. */
@@ -443,9 +450,15 @@ function paintAo(geo, aoAt) {
  * horizontally: a field lit as thousands of tiny vertical walls instead of as
  * ground. That flat shading, not the use of cards, is what read as 2D.
  *
- * The fix is to replace the geometric normal with one describing the shape the
+ * The fix is to blend the geometric normal toward one describing the shape the
  * cards collectively stand for — outward from the crown's centre for a canopy,
- * skyward for grass — so lighting follows the volume, not the polygon.
+ * skyward for grass — so lighting follows the volume as well as the polygon.
+ *
+ * Blend, not replace. Driven all the way (0.9 on grass, 0.85 on canopies) every
+ * blade took a near-identical normal and the sun lit the whole field to one
+ * flat value: no form at all, which is worse than the tilted cards it replaced.
+ * Around half keeps the volume read while leaving shading variation between
+ * cards.
  *
  * Baked into the geometry rather than computed in the shader because the crown
  * centre differs per prototype while the material is shared across all of them.
@@ -594,7 +607,7 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
   const crown = mergeGeometries(leaves);
   // groundClamp recomputes normals, so bend after it, not before.
   groundClamp(crown, 0.06);
-  sphericalNormals(crown, baseY + (topY - baseY) * 0.52, 0.85);
+  sphericalNormals(crown, baseY + (topY - baseY) * 0.52, 0.55);
   return { leaves: crown, limbs: mergeGeometries(limbs) };
 }
 
@@ -609,13 +622,14 @@ function makePineTrunk(height, baseR, topR) {
   return mergeGeometries([shaft, flare]);
 }
 
-/** Height of the blade card in makeGrassTuft, in metres. */
+/** Blade card size in makeGrassTuft, in metres. */
 const GRASS_CARD_H = 0.5;
+const GRASS_CARD_W = 0.56;
 
 function makeGrassTuft() {
   // Three planes at 60° — not 90° — so DoubleSide does not draw coplanar pairs.
   const geos = [];
-  const w = 0.56;
+  const w = GRASS_CARD_W;
   const h = GRASS_CARD_H;
   for (let i = 0; i < 3; i += 1) {
     const geo = new THREE.PlaneGeometry(w, h, 1, 2);
@@ -623,7 +637,7 @@ function makeGrassTuft() {
     geo.rotateY((i / 3) * Math.PI);
     geos.push(geo);
   }
-  return skywardNormals(mergeGeometries(geos), 2.2, 0.9);
+  return skywardNormals(mergeGeometries(geos), 1.3, 0.5);
 }
 
 /**
@@ -636,14 +650,14 @@ function makeSageBush() {
   const geos = [];
   const angles = [0.15, 1.05, 2.05, 2.85];
   for (let i = 0; i < angles.length; i += 1) {
-    const w = 0.72 + seeded(i + 2) * 0.26;
-    const h = 0.44 + seeded(i + 5) * 0.22;
+    const w = 0.6 + seeded(i + 2) * 0.22;
+    const h = 0.58 + seeded(i + 5) * 0.26;
     const geo = new THREE.PlaneGeometry(w, h);
     geo.translate((seeded(i + 8) - 0.5) * 0.18, h * 0.42, (seeded(i + 11) - 0.5) * 0.18);
     geo.rotateY(angles[i]);
     geos.push(geo);
   }
-  return skywardNormals(mergeGeometries(geos), 1.1, 0.75);
+  return skywardNormals(mergeGeometries(geos), 0.9, 0.45);
 }
 
 function makeBroadCanopy(cardCount, radius, baseY, topY) {
@@ -668,7 +682,7 @@ function makeBroadCanopy(cardCount, radius, baseY, topY) {
     geo.translate(Math.cos(a) * r, y, Math.sin(a) * r);
     leaves.push(geo);
   }
-  return sphericalNormals(mergeGeometries(leaves), mid, 0.85);
+  return sphericalNormals(mergeGeometries(leaves), mid, 0.55);
 }
 
 export async function loadVegetationMaps() {
@@ -1356,13 +1370,15 @@ export function createVegetation(scene, maps = {}) {
     // the rings coarsen, while a distance ramp on height was what produced
     // 2.9 m grass at the edge of the disc.
     const hGrow = 1 + t * 0.5;
-    const wGrow = 1 + t * 1.6;
-    const wMul = (sp.wMin + (sp.wMax - sp.wMin) * hash2(ix, jz, 5)) * wGrow;
+    // Was 1 + t * 1.6. Growing width nearly twice as fast as height stretched
+    // far tufts sideways into mush; keep the two closer so proportion holds.
+    const wGrow = 1 + t * 0.7;
+    const widthM = hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow;
 
     dummy.position.set(x, heightAt(x, z), z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
-    // The card is GRASS_CARD_H tall, so scale to the metric height we want.
-    dummy.scale.set(wMul, (hMet * hGrow) / GRASS_CARD_H, wMul);
+    // Cards are GRASS_CARD_W x GRASS_CARD_H, so scale to the metres we want.
+    dummy.scale.set(widthM / GRASS_CARD_W, (hMet * hGrow) / GRASS_CARD_H, widthM / GRASS_CARD_W);
     dummy.updateMatrix();
     grass.setMatrixAt(slot, dummy.matrix);
     speciesUV[slot * 2] = sp.uv[0];
