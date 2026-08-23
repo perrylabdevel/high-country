@@ -431,6 +431,28 @@ function paintAo(geo, aoAt) {
  * tiers sit flatter, so the mass reads conical instead of stacked shelves.
  * Vertex colors bake AO toward the trunk and under upper tiers.
  */
+/**
+ * Push any vertex that ended up below `minY` back up to it.
+ *
+ * Branch droop is clamped so a tip cannot swing through the ground, but each
+ * card is also folded about its own axis, and on the wide low tiers that fold
+ * alone dipped a card edge more than a metre under — the far LOD crowns were
+ * buried 0.56 m and 1.16 m. Solving four chained rotations for a true lowest
+ * point is not worth it; flattening the few vertices that break through reads
+ * as a skirt resting on the ground, which is what a low conifer actually does.
+ */
+function groundClamp(geo, minY) {
+  const pos = geo.attributes.position;
+  for (let v = 0; v < pos.count; v += 1) {
+    if (pos.getY(v) < minY) {
+      pos.setY(v, minY);
+    }
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
   const leaves = [];
   const limbs = [];
@@ -452,7 +474,19 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
       const radius = (baseRadius * Math.pow(1 - f, 0.55) + 0.55) * (0.82 + seeded(i + t * 17) * 0.38);
       const cardLen = radius * 1.5;
       const cardW = radius * 1.05;
-      const droop = -(0.36 - 0.34 * f + seeded(i + t * 31) * 0.18);
+      // A branch can only droop until its tip reaches the ground. Unclamped,
+      // the low wide tiers pushed foliage below y=0 — 1.43 m of buried crown on
+      // the juniper, 0.22 m on the broad pine — which both wasted triangles and
+      // made the shrubby forms look sunk into the hill.
+      let droop = -(0.36 - 0.34 * f + seeded(i + t * 31) * 0.18);
+      const tipReach = cardLen * 0.92;
+      const room = Math.max(0, y - 0.12);
+      if (tipReach > 1e-4) {
+        const maxDroop = Math.asin(Math.min(1, room / tipReach));
+        if (-droop > maxDroop) {
+          droop = -maxDroop;
+        }
+      }
       const tierAo = 0.46 + 0.54 * Math.pow(f, 0.6);
       for (const fold of FOLD) {
         const w = fold.tilt === 0 ? cardW : cardW * 0.72;
@@ -493,13 +527,17 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
     geo.translate(0, topY + h * 0.42, 0);
     leaves.push(geo);
   }
-  return { leaves: mergeGeometries(leaves), limbs: mergeGeometries(limbs) };
+  const crown = mergeGeometries(leaves);
+  groundClamp(crown, 0.06);
+  return { leaves: crown, limbs: mergeGeometries(limbs) };
 }
 
 function makePineTrunk(height, baseR, topR) {
   const shaft = new THREE.CylinderGeometry(topR, baseR, height, 8);
   shaft.translate(0, height / 2 + 0.08, 0);
-  const flareH = Math.max(0.38, height * 0.11);
+  // Tied to trunk radius, not height: with the trunk now running the full
+  // height of the tree, a height-proportional flare became a 1.4 m buttress.
+  const flareH = Math.min(0.95, Math.max(0.38, baseR * 2.4));
   const flare = new THREE.CylinderGeometry(baseR, baseR * 1.7, flareH, 8);
   flare.translate(0, flareH / 2, 0);
   return mergeGeometries([shaft, flare]);
@@ -662,29 +700,24 @@ export function createVegetation(scene, maps = {}) {
   // -legged spire, the standard conifer, a broad mid-height tree, and a squat
   // scrubby juniper for the dry biomes. Three near-identical cones gave the
   // forest one repeated outline however many instances it drew.
+  // Trunk height is the canopy's own top, not a separately typed number.
+  // Every pine used to stop its trunk 2.15-5.95 m short of its crown — a spire
+  // at full instance scale carried about 13 m of crown with no stem inside it —
+  // because the two were authored independently and drifted apart. A conifer's
+  // leader runs to the tip, so the trunk is derived from the canopy it carries
+  // and tapers to a spire tip rather than ending in a blunt stump.
+  const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
+    near: makePineCanopy(tiers, cards, radius, baseY, topY),
+    far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
+    trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
+  });
   const PINE = [
-    {
-      // Tall spire, high crown, thin trunk.
-      near: makePineCanopy(8, 8, 1.85, 4.2, 12.4),
-      far: makePineCanopy(3, 5, 1.85, 4.2, 12.4),
-      trunk: makePineTrunk(6.4, 0.3, 0.11)
-    },
-    {
-      near: makePineCanopy(6, 7, 2.55, 2.4, 7.7),
-      far: makePineCanopy(3, 4, 2.55, 2.4, 7.7),
-      trunk: makePineTrunk(4.2, 0.34, 0.16)
-    },
-    {
-      near: makePineCanopy(5, 9, 3.2, 1.9, 6.4),
-      far: makePineCanopy(3, 5, 3.2, 1.9, 6.4),
-      trunk: makePineTrunk(3.5, 0.4, 0.18)
-    },
-    {
-      // Juniper: wide, low, almost no clear trunk.
-      near: makePineCanopy(4, 10, 3.05, 0.6, 4.1),
-      far: makePineCanopy(2, 6, 3.05, 0.6, 4.1),
-      trunk: makePineTrunk(1.9, 0.46, 0.26)
-    }
+    // Tall spire: high crown on a long clear stem.
+    pineForm(8, 8, 1.85, 4.2, 12.4, 0.3, 3, 5),
+    pineForm(6, 7, 2.55, 2.4, 7.7, 0.34, 3, 4),
+    pineForm(5, 9, 3.2, 1.9, 6.4, 0.4, 3, 5),
+    // Juniper: wide, low, almost no clear trunk.
+    pineForm(4, 10, 3.05, 0.6, 4.1, 0.46, 2, 6)
   ];
 
   const MAX = 3200;
@@ -857,10 +890,16 @@ export function createVegetation(scene, maps = {}) {
     if (placed >= MAX || seeded(i + 21) > plantChance(biome)) {
       continue;
     }
-    // Widened from 0.72-1.27 / 0.78-1.93: near-uniform scale was as much of
-    // the sameness as the colour was.
-    const girth = 0.6 + seeded(i + 4) * 0.85;
-    const height = 0.62 + seeded(i + 15) * 1.6;
+    // One size per tree, with a modest slenderness jitter on top.
+    //
+    // Height and girth were drawn independently over wide ranges, so the most
+    // stretched pine came out 9.2x more elongated than the squattest — a tree
+    // could be 2.2x tall and 0.6x wide at the same time. Real stands vary in
+    // size far more than in proportion. Scale is now uniform with a +/-13%
+    // aspect wobble, which keeps the variety without the caricatures.
+    const size = 0.62 + seeded(i + 15) * 1.4;
+    const height = size;
+    const girth = size * (0.87 + seeded(i + 4) * 0.26);
     if (biome === "burn" && burned < 400) {
       dummy.position.set(x, y, z);
       dummy.rotation.set((seeded(i + 41) - 0.5) * 0.12, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.12);
@@ -930,8 +969,9 @@ export function createVegetation(scene, maps = {}) {
       cottons += 1;
       continue;
     }
-    const girth = 0.72 + seeded(i + 4) * 0.62;
-    const height = 0.78 + seeded(i + 15) * 1.2;
+    const windSize = 0.78 + seeded(i + 15) * 1.05;
+    const girth = windSize * (0.87 + seeded(i + 4) * 0.26);
+    const height = windSize;
     dummy.position.set(x, y, z);
     dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
     dummy.scale.set(girth, height, girth);
@@ -964,8 +1004,9 @@ export function createVegetation(scene, maps = {}) {
     const x = POS.ranch.x + ranchHero[i][0];
     const z = POS.ranch.z + ranchHero[i][1];
     const y = heightAt(x, z);
-    const girth = 0.9 + seeded(i + 900) * 0.35;
-    const height = 1.05 + seeded(i + 905) * 0.45;
+    const heroSize = 1.05 + seeded(i + 905) * 0.45;
+    const girth = heroSize * (0.9 + seeded(i + 900) * 0.2);
+    const height = heroSize;
     dummy.position.set(x, y, z);
     dummy.rotation.set((seeded(i + 910) - 0.5) * 0.06, seeded(i + 912) * Math.PI * 2, (seeded(i + 914) - 0.5) * 0.06);
     dummy.scale.set(girth, height, girth);
