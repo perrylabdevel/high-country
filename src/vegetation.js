@@ -19,6 +19,8 @@ import {
   uv,
   positionLocal,
   positionGeometry,
+  normalLocal,
+  transformNormalToView,
   positionWorld,
   cameraPosition,
   mix,
@@ -432,6 +434,68 @@ function paintAo(geo, aoAt) {
  * Vertex colors bake AO toward the trunk and under upper tiers.
  */
 /**
+ * Normal bending.
+ *
+ * Foliage is built from flat alpha cards, which is standard, but every card was
+ * lit with its raw geometric normal — perpendicular to the plane. So a canopy
+ * lit as a pile of intersecting cardboard rather than a rounded mass, and grass,
+ * whose cards are only ever rotated about Y, had every normal pointing
+ * horizontally: a field lit as thousands of tiny vertical walls instead of as
+ * ground. That flat shading, not the use of cards, is what read as 2D.
+ *
+ * The fix is to replace the geometric normal with one describing the shape the
+ * cards collectively stand for — outward from the crown's centre for a canopy,
+ * skyward for grass — so lighting follows the volume, not the polygon.
+ *
+ * Baked into the geometry rather than computed in the shader because the crown
+ * centre differs per prototype while the material is shared across all of them.
+ */
+function sphericalNormals(geo, centerY, amount) {
+  const pos = geo.attributes.position;
+  const nrm = geo.attributes.normal;
+  for (let v = 0; v < pos.count; v += 1) {
+    const dx = pos.getX(v);
+    const dy = pos.getY(v) - centerY;
+    const dz = pos.getZ(v);
+    const len = Math.hypot(dx, dy, dz);
+    const ox = len > 1e-4 ? dx / len : 0;
+    const oy = len > 1e-4 ? dy / len : 1;
+    const oz = len > 1e-4 ? dz / len : 0;
+    const nx = nrm.getX(v) * (1 - amount) + ox * amount;
+    const ny = nrm.getY(v) * (1 - amount) + oy * amount;
+    const nz = nrm.getZ(v) * (1 - amount) + oz * amount;
+    const l = Math.hypot(nx, ny, nz) || 1;
+    nrm.setXYZ(v, nx / l, ny / l, nz / l);
+  }
+  nrm.needsUpdate = true;
+  return geo;
+}
+
+/**
+ * Ground cover reads as a lit surface, not a thicket of vertical sheets, so its
+ * normals point mostly at the sky with a little outward spread for shape.
+ */
+function skywardNormals(geo, upWeight, amount) {
+  const pos = geo.attributes.position;
+  const nrm = geo.attributes.normal;
+  for (let v = 0; v < pos.count; v += 1) {
+    const dx = pos.getX(v);
+    const dz = pos.getZ(v);
+    const len = Math.hypot(dx, upWeight, dz);
+    const ox = dx / len;
+    const oy = upWeight / len;
+    const oz = dz / len;
+    const nx = nrm.getX(v) * (1 - amount) + ox * amount;
+    const ny = nrm.getY(v) * (1 - amount) + oy * amount;
+    const nz = nrm.getZ(v) * (1 - amount) + oz * amount;
+    const l = Math.hypot(nx, ny, nz) || 1;
+    nrm.setXYZ(v, nx / l, ny / l, nz / l);
+  }
+  nrm.needsUpdate = true;
+  return geo;
+}
+
+/**
  * Push any vertex that ended up below `minY` back up to it.
  *
  * Branch droop is clamped so a tip cannot swing through the ground, but each
@@ -528,7 +592,9 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
     leaves.push(geo);
   }
   const crown = mergeGeometries(leaves);
+  // groundClamp recomputes normals, so bend after it, not before.
   groundClamp(crown, 0.06);
+  sphericalNormals(crown, baseY + (topY - baseY) * 0.52, 0.85);
   return { leaves: crown, limbs: mergeGeometries(limbs) };
 }
 
@@ -557,7 +623,7 @@ function makeGrassTuft() {
     geo.rotateY((i / 3) * Math.PI);
     geos.push(geo);
   }
-  return mergeGeometries(geos);
+  return skywardNormals(mergeGeometries(geos), 2.2, 0.9);
 }
 
 /**
@@ -577,7 +643,7 @@ function makeSageBush() {
     geo.rotateY(angles[i]);
     geos.push(geo);
   }
-  return mergeGeometries(geos);
+  return skywardNormals(mergeGeometries(geos), 1.1, 0.75);
 }
 
 function makeBroadCanopy(cardCount, radius, baseY, topY) {
@@ -602,7 +668,7 @@ function makeBroadCanopy(cardCount, radius, baseY, topY) {
     geo.translate(Math.cos(a) * r, y, Math.sin(a) * r);
     leaves.push(geo);
   }
-  return mergeGeometries(leaves);
+  return sphericalNormals(mergeGeometries(leaves), mid, 0.85);
 }
 
 export async function loadVegetationMaps() {
@@ -672,6 +738,18 @@ export function createVegetation(scene, maps = {}) {
    */
   const instanceTint = varyingProperty("vec3", "vInstanceColor");
 
+  /**
+   * Use the bent normals baked into the foliage geometry.
+   *
+   * This also removes the double-sided lighting flip. three only applies
+   * negateOnBackSide on its default normal path (see nodes/accessors/Normal.js
+   * normalView); when a material supplies its own normalNode that step is
+   * skipped. With DoubleSide cards the flip meant a card's shading inverted the
+   * instant it turned past edge-on, which is what made individual quads pop out
+   * of the mass instead of blending into it.
+   */
+  const bentNormal = transformNormalToView(normalLocal);
+
   const makeFoliageMat = (sample, tint, windLo, windHi, alphaTest) => {
     const m = new THREE.MeshStandardNodeMaterial({
       side: THREE.DoubleSide,
@@ -683,6 +761,7 @@ export function createVegetation(scene, maps = {}) {
     const albedo = sample.rgb.mul(tint).mul(vcol).mul(instanceTint);
     m.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.6).add(1)), sample.a);
     m.positionNode = positionLocal.add(windBend(smoothstep(windLo, windHi, positionGeometry.y).pow(2)));
+    m.normalNode = bentNormal;
     return m;
   };
 
@@ -693,6 +772,7 @@ export function createVegetation(scene, maps = {}) {
     const albedo = sageSample.rgb.mul(vec3(0.95, 1.05, 0.82));
     sageMat.colorNode = vec4(albedo.mul(back(viewDir).mul(warmGreen).mul(0.35).add(1)), sageSample.a);
     sageMat.positionNode = positionLocal.add(windBend(uv().y.pow(2).mul(0.45)));
+    sageMat.normalNode = bentNormal;
   }
   const cottonLeafMat = makeFoliageMat(broadSample, vec3(1.05, 1.12, 0.72), 2.0, 7.4, 0.38);
 
@@ -1209,6 +1289,7 @@ export function createVegetation(scene, maps = {}) {
   grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
+  grassMat.normalNode = bentNormal;
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
