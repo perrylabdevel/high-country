@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
-import { addBoxCollider, addDeckPlatform } from "./collision.js";
+import { addBoxCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
 import { POS, WATER, mapToWorld, CREEKS, lakeFactor, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
   makeWaterNormalTexture,
@@ -180,20 +180,27 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0,
   });
   st.userData.streetYaw = yaw;
 
-  // Walls. Front wall (local +Z) carries the door; the church gets a gable-end
-  // entry, so its door is on the +X gable end instead.
-  const frontOpenings = lot.steeple ? [] : [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
+  // Walls. The front wall (local +Z) carries the door on every lot.
+  //
+  // The church used to take a gable-end entry on +X instead, but only its
+  // exterior wall knew: interiors.js addShell always cuts its doorway in the
+  // front wall, the collider always cut its gap there, and check-interiors
+  // walks in from the street. So the exterior gable door opened onto a solid
+  // interior wall, the interior doorway sat behind a solid facade, and the
+  // building was enterable only because the collider had a hole where the
+  // facade is solid. The gable entry was a half-finished idea; the church now
+  // faces the street like its neighbours and keeps its steeple.
+  const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
   const front = wallX({ length: w, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
   mate(front, "wallSide", face(st, "front"));
   const back = wallX({ length: w, height: h, thickness: T, material: bodyMat });
   mate(back, "wallSide", face(st, "back"));
-  const eastOpenings = lot.steeple ? [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] : [];
-  const east = wallX({ length: d, height: h, thickness: T, material: bodyMat, openings: eastOpenings });
+  const east = wallX({ length: d, height: h, thickness: T, material: bodyMat });
   mate(east, "wallSide", face(st, "right"));
   const west = wallX({ length: d, height: h, thickness: T, material: bodyMat });
   mate(west, "wallSide", face(st, "left"));
 
-  const doorWall = lot.steeple ? east : front;
+  const doorWall = front;
   if (anchorsOf(doorWall).get("opening.0")) {
     mate(
       doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark }),
@@ -235,9 +242,12 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0,
     mate(steeple({ material: roof }), "gable", anchorsOf(roofGroup).get("gableEnd.front"));
   }
 
+  // The collider gap is cut in the wall that carries the door, which is now the
+  // front wall on every lot (see frontOpenings above).
+  const doorGap = [{ x: 0, w: 3.0 }];
   collide(st, x, z, lotYaw, [
     { x: 0, z: -d / 2, halfX: w / 2, halfZ: T / 2 },
-    { x: 0, z: d / 2, halfX: w / 2, halfZ: T / 2, openings: [{ x: 0, w: 3.0 }] },
+    { x: 0, z: d / 2, halfX: w / 2, halfZ: T / 2, openings: doorGap },
     { x: w / 2, z: 0, halfX: T / 2, halfZ: d / 2 },
     { x: -w / 2, z: 0, halfX: T / 2, halfZ: d / 2 }
   ]);
@@ -506,10 +516,10 @@ export function createLandmarks(scene) {
       { x: -3.5, z: 0, halfX: T / 2, halfZ: 2.5 }
     ]);
     group.add(cabin);
-    boxAt(group, cx + 6, cz, 3.2, 1.2, 1.2, wood, false);
+    boxAt(group, cx + 6, cz, 3.2, 1.2, 1.2, wood, true);
   }
   for (const [dx, dz] of [[-22, -10], [20, 12], [8, -18]]) {
-    boxAt(group, POS.timberCamp.x + dx, POS.timberCamp.z + dz, 4.8, 0.85, 1.5, wood, false, 0.45 - 0.425);
+    boxAt(group, POS.timberCamp.x + dx, POS.timberCamp.z + dz, 4.8, 0.85, 1.5, wood, true, 0.45 - 0.425);
   }
 
   for (let i = 0; i < 6; i += 1) {
@@ -558,7 +568,7 @@ export function createLandmarks(scene) {
   // the shaft. Big enough to read as an industrial silhouette at 62 m.
   const hfH = 16;
   for (const sgn of [-1, 1]) {
-    const leg = boxOnPlane(group, ivX + sgn * 5, ivY, ivZ - 6, 0.9, hfH, 0.9, iron, false);
+    const leg = boxOnPlane(group, ivX + sgn * 5, ivY, ivZ - 6, 0.9, hfH, 0.9, iron, true);
     leg.children[0].rotation.z = sgn * 0.22;
   }
   for (const y of [4, 8, 12]) {
@@ -587,6 +597,10 @@ export function createLandmarks(scene) {
   const camshaft = post({ rTop: 0.4, rBot: 0.4, h: 14, material: iron });
   mate(camshaft, "base", millFloor, { offset: { y: 1.4 - 7 } });
   camshaft.children[0].rotation.z = Math.PI / 2;
+  // A 14 m shaft lying at waist height across the mill floor. Solid only over
+  // its own height, so it blocks anyone on the floor without becoming a wall
+  // for anything passing above or below it.
+  addOrientedBoxCollider(smX, smZ, 7, 0.4, 0, { minY: smY + 1.0, maxY: smY + 1.8 });
   collide(smShed, smX, smZ, 0, [
     { x: 0, z: -6, halfX: 8, halfZ: T / 2 },
     { x: 0, z: 6, halfX: 8, halfZ: T / 2 },
@@ -596,7 +610,7 @@ export function createLandmarks(scene) {
   group.add(smShed);
 
   // Tailings: a broad conical waste pile, rust-colored, beside the mill.
-  coneOnPlane(group, smX + 14, smY, smZ + 8, 7, 5, rust, false, 0, undefined, 10);
+  coneOnPlane(group, smX + 14, smY, smZ + 8, 7, 5, rust, true, 0, 5.6, 10);
   coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, false, 0, undefined, 8);
 
   boxAt(group, POS.company.x, POS.company.z, 12, 6, 9, wood);

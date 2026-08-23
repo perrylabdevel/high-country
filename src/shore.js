@@ -149,9 +149,9 @@ export function createShore(scene) {
       mesh.receiveShadow = true;
       group.add(mesh);
     }
-    if (rock.r > 1.2) {
-      addCylinderCollider(x, z, rock.r * 0.55);
-    }
+    // Every island rock is a real obstacle; the old r > 1.2 cut-off let all
+    // but the largest be walked through.
+    addCylinderCollider(x, z, Math.max(rock.r * 0.62, 0.5));
   }
 
   const cabinMat = new THREE.MeshStandardNodeMaterial({ color: 0x3a2a1c, roughness: 0.9 });
@@ -198,9 +198,7 @@ export function createShore(scene) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
-    if (radius > 1.2) {
-      addCylinderCollider(x, z, radius * 0.55);
-    }
+    addCylinderCollider(x, z, Math.max(radius * 0.62, 0.5));
     rockCount += 1;
   }
 
