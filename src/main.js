@@ -7,6 +7,7 @@ import { createInput } from "./input.js";
 import { heightAt } from "./world.js";
 import { createTerrain, createSky, rebuildTerrainMaterial } from "./environment.js";
 import { createRanch } from "./buildings.js";
+import { mergeStatic } from "./buildings/mergeStatic.js";
 import { createLandmarks, createWater } from "./landmarks.js";
 import { createInteriors } from "./interiors.js";
 import { createShore } from "./shore.js";
@@ -245,15 +246,26 @@ async function boot() {
     fallback: forceWebGL
   });
   await createRoads(scene);
+  // Every structure builder takes a parent and calls .add() on it, so collect
+  // them under one group and collapse that to one mesh per material. The town,
+  // ranch and outposts are ~670 meshes sharing 16 materials, and 659 of them
+  // cast shadows, so they were drawn twice: roughly 1330 of the frame's ~1490
+  // draw calls, for about 0.01M triangles. See buildings/mergeStatic.js — the
+  // authored meshes are kept and hidden, not discarded, because colliders,
+  // anchors, interiors and the look-at overlay all read them.
+  const statics = new THREE.Group();
+  statics.name = "statics";
   const ranch = createRanch();
-  scene.add(ranch);
-  createLandmarks(scene);
-  createInteriors(scene);
-  createShore(scene);
-  createIndustry(scene);
-  createFort(scene);
-  createPines(scene);
-  createHomestead(scene);
+  statics.add(ranch);
+  createLandmarks(statics);
+  createInteriors(statics);
+  createShore(statics);
+  createIndustry(statics);
+  createFort(statics);
+  createPines(statics);
+  createHomestead(statics);
+  scene.add(statics);
+  scene.add(mergeStatic(statics, "statics-merged"));
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
   const smoke = createSmoke(scene);
