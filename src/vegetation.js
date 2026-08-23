@@ -12,6 +12,7 @@ import * as THREE from "three/webgpu";
 import {
   time,
   uniform,
+  vec2,
   vec3,
   vec4,
   float,
@@ -108,6 +109,63 @@ const BROADLEAF_CHANCE = {
   pines: 0.08
 };
 
+/**
+ * Ground-cover species.
+ *
+ * There was one grass on the whole map, and its height came from GRASSINESS —
+ * which is a biome's *lushness*, not a plant's size. So every biome above the
+ * placement floor came out 94-99% covered and the only thing that changed was
+ * how tall the carpet was: iron country, meant to be bare, measured 94.7%
+ * covered in shorter grass. Density and height are now separate. GRASS_DENSITY
+ * decides how much ground a biome carries; the species decides how tall it
+ * stands.
+ *
+ * `uv` is the species' panel in the 2x2 blade atlas, so all four render from
+ * one instanced draw. Heights are real: a shortgrass mat is ankle-high, and
+ * only the wet-ground bluestem comes past the knee.
+ */
+const GRASS_SPECIES = [
+  { name: "blueGrama", hMin: 0.10, hMax: 0.22, wMin: 0.62, wMax: 0.92, uv: [0.0, 0.0] },
+  { name: "bunchgrass", hMin: 0.22, hMax: 0.44, wMin: 0.72, wMax: 1.08, uv: [0.5, 0.0] },
+  { name: "bluestem", hMin: 0.48, hMax: 0.86, wMin: 0.55, wMax: 0.9, uv: [0.0, 0.5] },
+  { name: "cheatgrass", hMin: 0.12, hMax: 0.28, wMin: 0.68, wMax: 1.0, uv: [0.5, 0.5] }
+];
+
+/** Chance a candidate cell carries grass at all. This is the density dial. */
+const GRASS_DENSITY = {
+  valley: 0.92,
+  ranch: 0.88,
+  pines: 0.78,
+  foothills: 0.68,
+  tribal: 0.5,
+  range: 0.42,
+  lake: 0.35,
+  town: 0.28,
+  iron: 0.14,
+  burn: 0.05,
+  badlands: 0.04
+};
+
+/**
+ * Cumulative species thresholds per biome, over GRASS_SPECIES in order:
+ * blue grama (short mat), bunchgrass (tussock), bluestem (tall, wet ground),
+ * cheatgrass (dry straw). Wet biomes carry the tall grass; dry country is
+ * almost entirely cheatgrass and low mat.
+ */
+const SPECIES_MIX = {
+  valley: [0.30, 0.62, 0.95, 1.0],
+  lake: [0.30, 0.60, 0.95, 1.0],
+  pines: [0.52, 0.90, 0.97, 1.0],
+  foothills: [0.44, 0.82, 0.88, 1.0],
+  ranch: [0.68, 0.94, 0.99, 1.0],
+  town: [0.62, 0.92, 0.96, 1.0],
+  tribal: [0.34, 0.58, 0.62, 1.0],
+  range: [0.34, 0.54, 0.56, 1.0],
+  burn: [0.28, 0.48, 0.48, 1.0],
+  iron: [0.18, 0.32, 0.32, 1.0],
+  badlands: [0.10, 0.18, 0.18, 1.0]
+};
+
 const GRASSINESS = {
   lake: 0.45,
   ranch: 0.9,
@@ -178,38 +236,65 @@ function asCardMap(tex) {
   return tex;
 }
 
+/**
+ * Blade atlas: one 2x2 sheet, one painted species per panel, so four grasses
+ * render from a single instanced draw. Each instance picks its panel with a
+ * per-instance UV offset.
+ *
+ * Panels are sampled with a guard band inset, and blades are rooted just above
+ * each panel's bottom edge, so filtering cannot bleed one species into another.
+ */
+function paintBladePanel(ctx, ox, oy, panel, sp) {
+  const root = oy + panel * 0.97;
+  for (let i = 0; i < sp.blades; i += 1) {
+    const t = (i + 0.5) / sp.blades;
+    const x = ox + panel * (0.1 + t * 0.8) + (Math.random() - 0.5) * panel * 0.06;
+    const h = panel * sp.tall * (0.62 + Math.random() * 0.38);
+    const lean = (Math.random() - 0.5) * panel * sp.lean;
+    const w = panel * sp.wide * (0.7 + Math.random() * 0.6);
+    const tipX = x + lean;
+    const midX = x + lean * 0.45;
+    const dry = Math.random() * sp.dry;
+    const g = sp.g0 + Math.random() * sp.gv;
+    const r = sp.r0 + dry * 70 + Math.random() * 22;
+    const b = sp.b0 + Math.random() * 22;
+    ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},1)`;
+    ctx.beginPath();
+    ctx.moveTo(x - w, root);
+    ctx.quadraticCurveTo(midX - w * 1.15, root - h * 0.52, tipX, root - h);
+    ctx.quadraticCurveTo(midX + w * 0.95, root - h * 0.5, x + w, root);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = `rgba(${Math.min(255, r + 36) | 0},${Math.min(255, g + 40) | 0},${(b + 18) | 0},0.5)`;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.15, root);
+    ctx.quadraticCurveTo(midX, root - h * 0.58, tipX + w * 0.1, root - h * 0.92);
+    ctx.quadraticCurveTo(midX + w * 0.25, root - h * 0.5, x + w * 0.2, root);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 function bladeTexture() {
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
-    const blades = 7;
-    for (let i = 0; i < blades; i += 1) {
-      const t = (i + 0.5) / blades;
-      const x = size * (0.12 + t * 0.76) + (Math.random() - 0.5) * size * 0.06;
-      const h = size * (0.58 + Math.random() * 0.4);
-      const lean = (Math.random() - 0.5) * size * 0.18;
-      const w = size * (0.028 + Math.random() * 0.034);
-      const tipX = x + lean;
-      const midX = x + lean * 0.45;
-      const dry = Math.random() * 0.45;
-      const g = 118 + Math.random() * 70;
-      const r = 42 + dry * 70 + Math.random() * 22;
-      const b = 28 + Math.random() * 22;
-      ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},1)`;
-      ctx.beginPath();
-      ctx.moveTo(x - w, size);
-      ctx.quadraticCurveTo(midX - w * 1.15, size - h * 0.52, tipX, size - h);
-      ctx.quadraticCurveTo(midX + w * 0.95, size - h * 0.5, x + w, size);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = `rgba(${Math.min(255, r + 36) | 0},${Math.min(255, g + 40) | 0},${b + 18 | 0},0.55)`;
-      ctx.beginPath();
-      ctx.moveTo(x - w * 0.15, size);
-      ctx.quadraticCurveTo(midX, size - h * 0.58, tipX + w * 0.1, size - h * 0.92);
-      ctx.quadraticCurveTo(midX + w * 0.25, size - h * 0.5, x + w * 0.2, size);
-      ctx.closePath();
-      ctx.fill();
+    const panel = size / 2;
+    // Canvas y runs down and texture v runs up, so a species whose atlas offset
+    // is v=0 lives in the LOWER half of the canvas.
+    const panels = [
+      // blue grama: a dense low mat of fine blades
+      { ox: 0, oy: panel, blades: 16, tall: 0.42, wide: 0.018, lean: 0.1, dry: 0.25, r0: 44, g0: 112, gv: 58, b0: 30 },
+      // bunchgrass: fewer, taller, clumped
+      { ox: panel, oy: panel, blades: 9, tall: 0.78, wide: 0.03, lean: 0.16, dry: 0.35, r0: 48, g0: 118, gv: 66, b0: 28 },
+      // bluestem: tall and wispy, wet ground
+      { ox: 0, oy: 0, blades: 7, tall: 0.95, wide: 0.026, lean: 0.24, dry: 0.2, r0: 40, g0: 126, gv: 70, b0: 34 },
+      // cheatgrass: sparse pale straw
+      { ox: panel, oy: 0, blades: 8, tall: 0.5, wide: 0.024, lean: 0.2, dry: 0.85, r0: 96, g0: 126, gv: 52, b0: 44 }
+    ];
+    for (const sp of panels) {
+      paintBladePanel(ctx, sp.ox, sp.oy, panel, sp);
     }
-  }, 256));
+  }, 512));
 }
 
 function leafTexture() {
@@ -420,11 +505,14 @@ function makePineTrunk(height, baseR, topR) {
   return mergeGeometries([shaft, flare]);
 }
 
+/** Height of the blade card in makeGrassTuft, in metres. */
+const GRASS_CARD_H = 0.5;
+
 function makeGrassTuft() {
   // Three planes at 60° — not 90° — so DoubleSide does not draw coplanar pairs.
   const geos = [];
   const w = 0.56;
-  const h = 0.5;
+  const h = GRASS_CARD_H;
   for (let i = 0; i < 3; i += 1) {
     const geo = new THREE.PlaneGeometry(w, h, 1, 2);
     geo.translate((seeded(i + 3) - 0.5) * 0.06, h * 0.5, (seeded(i + 9) - 0.5) * 0.06);
@@ -434,12 +522,18 @@ function makeGrassTuft() {
   return mergeGeometries(geos);
 }
 
+/**
+ * Sagebrush. The cards used to be 0.85-1.25 m tall before per-instance scale,
+ * which took the tallest bushes to 2.87 m — roughly double life size, on a
+ * plant that covers 40-52% of the range, tribal, foothill and ranch country.
+ * Real sagebrush is knee to chest.
+ */
 function makeSageBush() {
   const geos = [];
   const angles = [0.15, 1.05, 2.05, 2.85];
   for (let i = 0; i < angles.length; i += 1) {
-    const w = 1.05 + seeded(i + 2) * 0.35;
-    const h = 0.85 + seeded(i + 5) * 0.4;
+    const w = 0.72 + seeded(i + 2) * 0.26;
+    const h = 0.44 + seeded(i + 5) * 0.22;
     const geo = new THREE.PlaneGeometry(w, h);
     geo.translate((seeded(i + 8) - 0.5) * 0.18, h * 0.42, (seeded(i + 11) - 0.5) * 0.18);
     geo.rotateY(angles[i]);
@@ -1056,9 +1150,15 @@ export function createVegetation(scene, maps = {}) {
   const MAX_GRASS = CAND.length;
 
   const tints = new Float32Array(MAX_GRASS * 3);
+  // Which panel of the blade atlas this instance draws from. Two floats per
+  // instance buys four species out of one instanced draw.
+  const speciesUV = new Float32Array(MAX_GRASS * 2);
   const grassMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
   const tintAttr = instancedBufferAttribute(tints, "vec3", 3, 0);
-  const grassSampleTex = texture(grassTex, uv());
+  const speciesAttr = instancedBufferAttribute(speciesUV, "vec2", 2, 0);
+  // Inset inside the panel so filtering cannot bleed a neighbouring species in.
+  const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
+  const grassSampleTex = texture(grassTex, atlasUV);
   const grassView = normalize(cameraPosition.sub(positionWorld));
   const grassCol = grassSampleTex.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
   grassMat.colorNode = vec4(grassCol.mul(back(grassView).mul(warmGreen).add(1)), grassSampleTex.a);
@@ -1103,29 +1203,54 @@ export function createVegetation(scene, maps = {}) {
     const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
     const weight = grassSample(x, z);
-    if (weight < 0.22) {
+    if (weight <= 0) {
       return false;
     }
     const biome = biomeAt(x, z);
-    const t = GRASSINESS[biome] ?? 0;
+
+    // Density gate. This used to be `weight >= 0.22`, which nearly everything
+    // cleared, so biome lushness only ever changed the height of a carpet that
+    // covered the ground regardless. Now a biome's density decides whether the
+    // cell carries anything, and bare country is actually bare.
+    const density = (GRASS_DENSITY[biome] ?? 0) * (0.55 + weight * 0.5);
+    if (hash2(ix, jz, 21) > density) {
+      return false;
+    }
+
+    const mix = SPECIES_MIX[biome] ?? SPECIES_MIX.range;
+    const pick = hash2(ix, jz, 23);
+    let si = 0;
+    while (si < mix.length - 1 && pick > mix[si]) {
+      si += 1;
+    }
+    const sp = GRASS_SPECIES[si];
+
+    // Height comes from the species, nudged by how wet the ground is.
+    const hMet = (sp.hMin + (sp.hMax - sp.hMin) * hash2(ix, jz, 4)) * (0.86 + weight * 0.24);
     const dx = x - cx;
     const dz = z - cz;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    const grow = 1 + Math.min(dist / GRASS_RADIUS, 1) * 2.1;
-    const r1 = hash2(ix, jz, 3);
-    const r2 = hash2(ix, jz, 4);
-    const r3 = hash2(ix, jz, 5);
+    const t = Math.min(Math.sqrt(dx * dx + dz * dz) / GRASS_RADIUS, 1);
+    // Far tufts grow mostly WIDER, not taller: width is what holds coverage as
+    // the rings coarsen, while a distance ramp on height was what produced
+    // 2.9 m grass at the edge of the disc.
+    const hGrow = 1 + t * 0.5;
+    const wGrow = 1 + t * 1.6;
+    const wMul = (sp.wMin + (sp.wMax - sp.wMin) * hash2(ix, jz, 5)) * wGrow;
+
     dummy.position.set(x, heightAt(x, z), z);
-    dummy.rotation.set(0, r1 * Math.PI * 2, 0);
-    const h = (0.9 + r2 * 0.7) * (0.75 + weight * 0.45) * grow;
-    const w = (0.85 + r3 * 0.55) * grow;
-    dummy.scale.set(w, h, w);
+    dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
+    // The card is GRASS_CARD_H tall, so scale to the metric height we want.
+    dummy.scale.set(wMul, (hMet * hGrow) / GRASS_CARD_H, wMul);
     dummy.updateMatrix();
     grass.setMatrixAt(slot, dummy.matrix);
+    speciesUV[slot * 2] = sp.uv[0];
+    speciesUV[slot * 2 + 1] = sp.uv[1];
+
+    const lush = GRASSINESS[biome] ?? 0;
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
-    tints[slot * 3] = 0.32 + t * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
-    tints[slot * 3 + 1] = 0.42 + t * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
-    tints[slot * 3 + 2] = 0.2 + t * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
+    tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
+    tints[slot * 3 + 1] = 0.42 + lush * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
+    tints[slot * 3 + 2] = 0.2 + lush * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
     return true;
   }
 
@@ -1160,10 +1285,10 @@ export function createVegetation(scene, maps = {}) {
     if (y > 78 || y < 9) {
       return false;
     }
-    const s = 0.85 + hash2(ix, jz, 14) * 1.05;
+    const s = 0.8 + hash2(ix, jz, 14) * 0.7;
     dummy.position.set(x, y, z);
     dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
-    dummy.scale.set(s * (0.85 + hash2(ix, jz, 16) * 0.35), s * (0.75 + hash2(ix, jz, 17) * 0.5), s);
+    dummy.scale.set(s * (0.85 + hash2(ix, jz, 16) * 0.35), s * (0.8 + hash2(ix, jz, 17) * 0.4), s);
     dummy.updateMatrix();
     sage.setMatrixAt(slot, dummy.matrix);
     return true;
@@ -1173,6 +1298,7 @@ export function createVegetation(scene, maps = {}) {
     grass.count = grassCount;
     grass.instanceMatrix.needsUpdate = true;
     tintAttr.needsUpdate = true;
+    speciesAttr.needsUpdate = true;
     grass.boundingSphere.center.set(cx, heightAt(cx, cz), cz);
     grass.boundingSphere.radius = GRASS_RADIUS + 40;
     sage.count = sageCount;
