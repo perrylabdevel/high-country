@@ -19,7 +19,11 @@ export const FOLIAGE_SET = {
   grassAlbedo: "/textures/foliage/grass_albedo.png",
   grassNormal: "/textures/foliage/grass_normal.png",
   needleAlbedo: "/textures/foliage/needle_albedo.png",
-  needleNormal: "/textures/foliage/needle_normal.png"
+  needleNormal: "/textures/foliage/needle_normal.png",
+  sageAlbedo: "/textures/foliage/sage_albedo.png",
+  sageNormal: "/textures/foliage/sage_normal.png",
+  broadAlbedo: "/textures/foliage/broad_albedo.png",
+  broadNormal: "/textures/foliage/broad_normal.png"
 };
 
 export const TEXTURE_SETS = {
