@@ -800,9 +800,19 @@ export function createVegetation(scene, maps = {}) {
   // because the two were authored independently and drifted apart. A conifer's
   // leader runs to the tip, so the trunk is derived from the canopy it carries
   // and tapers to a spire tip rather than ending in a blunt stump.
+  /**
+   * Three levels of detail, not two.
+   *
+   * Every tree on the map drew at full "far" detail at every range: 74% of all
+   * tree geometry sat beyond 1400 m. Culling that distance outright is not an
+   * option — the fog only removes 17% of an object's colour at 1150 m, so trees
+   * would visibly wink out and leave a bare horizon. A third, very cheap crown
+   * keeps them on the skyline for about a fiftieth of the triangles.
+   */
   const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
     near: makePineCanopy(tiers, cards, radius, baseY, topY),
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
+    distant: makePineCanopy(2, 3, radius, baseY, topY),
     trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
   });
   const PINE = [
@@ -822,14 +832,22 @@ export function createVegetation(scene, maps = {}) {
     const trunkFar = new THREE.InstancedMesh(proto.trunk, bark, MAX);
     const crownFar = new THREE.InstancedMesh(proto.far.leaves, pineLeafMat, MAX);
     const limbFar = new THREE.InstancedMesh(proto.far.limbs, limbMat, MAX);
-    for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar]) {
+    // Distant band: trunk and crown only, no limbs — you cannot see them.
+    const trunkDist = new THREE.InstancedMesh(proto.trunk, bark, MAX);
+    const crownDist = new THREE.InstancedMesh(proto.distant.leaves, pineLeafMat, MAX);
+    for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, trunkDist, crownDist]) {
       mesh.count = 0;
       mesh.frustumCulled = false;
     }
+    // Only the near crown casts. Every crown and limb casting meant 2.94M
+    // triangles drawn a second time into the shadow map, and alpha-tested
+    // shadows cannot use early-z so each one runs its fragment shader too.
+    // Near trees give the dappling you actually notice; a shadow from a tree
+    // 600 m off costs the same and reads as nothing.
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
-    limbNear.castShadow = true;
-    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar };
+    limbNear.castShadow = false;
+    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, trunkDist, crownDist };
   });
 
   const treePos = new Float32Array(MAX * 3);
@@ -882,12 +900,14 @@ export function createVegetation(scene, maps = {}) {
     {
       trunk: makePineTrunk(6.2, 0.36, 0.14),
       near: makeBroadCanopy(32, 3.6, 2.4, 7.6),
-      far: makeBroadCanopy(12, 3.6, 2.4, 7.6)
+      far: makeBroadCanopy(12, 3.6, 2.4, 7.6),
+      distant: makeBroadCanopy(4, 3.6, 2.4, 7.6)
     },
     {
       trunk: makePineTrunk(7.4, 0.22, 0.1),
       near: makeBroadCanopy(24, 1.9, 3.4, 9.2),
-      far: makeBroadCanopy(9, 1.9, 3.4, 9.2)
+      far: makeBroadCanopy(9, 1.9, 3.4, 9.2),
+      distant: makeBroadCanopy(4, 1.9, 3.4, 9.2)
     }
   ];
   const broads = BROAD.map((proto) => {
@@ -895,11 +915,13 @@ export function createVegetation(scene, maps = {}) {
     const crownNear = new THREE.InstancedMesh(proto.near, cottonLeafMat, MAX_COTTON);
     const trunkFar = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
     const crownFar = new THREE.InstancedMesh(proto.far, cottonLeafMat, MAX_COTTON);
+    const trunkDist = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
+    const crownDist = new THREE.InstancedMesh(proto.distant, cottonLeafMat, MAX_COTTON);
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
-    return { trunkNear, crownNear, trunkFar, crownFar };
+    return { trunkNear, crownNear, trunkFar, crownFar, trunkDist, crownDist };
   });
-  const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar]);
+  const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar, b.trunkDist, b.crownDist]);
   for (const mesh of [...broadMeshes, burnt]) {
     mesh.frustumCulled = false;
   }
@@ -1220,11 +1242,17 @@ export function createVegetation(scene, maps = {}) {
   const GRASS_CHUNK = 1200;
   const SAGE_CHUNK = 400;
 
+  // Ring cell sizes set the instance budget. The outer two rings were carrying
+  // 60% of all grass at ranges where a tuft is a few pixels, and grass is the
+  // scene's fill-rate cost: alpha-tested and double-sided, so no early-z and
+  // every card shades both faces wherever it overlaps. Coarsening them trades
+  // instances the eye cannot resolve for headroom; the per-tuft distance
+  // growth already holds the coverage.
   const RINGS = [
     { cell: 0.62, outer: 34 },
-    { cell: 1.05, outer: 82 },
-    { cell: 1.9, outer: 168 },
-    { cell: 3.4, outer: GRASS_RADIUS }
+    { cell: 1.15, outer: 82 },
+    { cell: 2.6, outer: 168 },
+    { cell: 5.2, outer: GRASS_RADIUS }
   ];
 
   /**
@@ -1493,7 +1521,7 @@ export function createVegetation(scene, maps = {}) {
   }
 
   for (const p of pines) {
-    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar);
+    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.trunkDist, p.crownDist);
   }
   scene.add(...broadMeshes, burnt, sage, grass, rocks);
 
@@ -1513,6 +1541,18 @@ export function createVegetation(scene, maps = {}) {
    * so the swap is not visible.
    */
   const LOD_HYSTERESIS = 14;
+  /**
+   * Beyond this, a tree is not submitted at all.
+   *
+   * Nothing culled trees by distance, so all 3374 of them drew every frame at
+   * every range: 7399 of 10122 instances sat beyond 1400 m on a 4000 x 5000 m
+   * map — 74% of all tree geometry, at a distance where a pine is a few pixels
+   * through haze. Distance is used rather than the view frustum because
+   * bucketTrees only re-runs when the camera moves, not when it turns.
+   */
+  const MID_DIST_SQ = 520 * 520;
+  const TREE_DRAW_DIST = 2600;
+  const TREE_DRAW_DIST_SQ = TREE_DRAW_DIST * TREE_DRAW_DIST;
   const lastLodCenter = new THREE.Vector3(Infinity, 0, Infinity);
 
   /**
@@ -1532,15 +1572,29 @@ export function createVegetation(scene, maps = {}) {
   function bucketTrees(cameraPos) {
     const nearCounts = new Array(pines.length).fill(0);
     const farCounts = new Array(pines.length).fill(0);
+    const distCounts = new Array(pines.length).fill(0);
     for (let i = 0; i < placed; i += 1) {
       const t = treeType[i];
       const dx = treePos[i * 3] - cameraPos.x;
       const dz = treePos[i * 3 + 2] - cameraPos.z;
-      const isNear = dx * dx + dz * dz < LOD_DIST_SQ;
+      const dSq = dx * dx + dz * dz;
+      if (dSq > TREE_DRAW_DIST_SQ) {
+        continue;
+      }
       lodDummy.position.set(treePos[i * 3], treePos[i * 3 + 1], treePos[i * 3 + 2]);
       lodDummy.rotation.set(treeLeanX[i], treeRot[i], treeLeanZ[i]);
       lodDummy.scale.set(treeGirth[i], treeHeight[i], treeGirth[i]);
       lodDummy.updateMatrix();
+      if (dSq > MID_DIST_SQ) {
+        const n = distCounts[t];
+        pines[t].trunkDist.setMatrixAt(n, lodDummy.matrix);
+        pines[t].crownDist.setMatrixAt(n, lodDummy.matrix);
+        tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
+        pines[t].crownDist.setColorAt(n, tintColor);
+        distCounts[t] = n + 1;
+        continue;
+      }
+      const isNear = dSq < LOD_DIST_SQ;
       // An instance's slot changes when it crosses the LOD shell, so its tint
       // has to be rewritten into the new slot or trees would swap colours as
       // the camera moves.
@@ -1574,23 +1628,41 @@ export function createVegetation(scene, maps = {}) {
       pines[t].trunkFar.instanceMatrix.needsUpdate = true;
       pines[t].crownFar.instanceMatrix.needsUpdate = true;
       pines[t].limbFar.instanceMatrix.needsUpdate = true;
+      pines[t].trunkDist.count = distCounts[t];
+      pines[t].crownDist.count = distCounts[t];
+      pines[t].trunkDist.instanceMatrix.needsUpdate = true;
+      pines[t].crownDist.instanceMatrix.needsUpdate = true;
       pines[t].crownNear.instanceColor.needsUpdate = true;
       pines[t].crownFar.instanceColor.needsUpdate = true;
+      pines[t].crownDist.instanceColor.needsUpdate = true;
     }
 
     const broadNear = new Array(broads.length).fill(0);
     const broadFar = new Array(broads.length).fill(0);
+    const broadDist = new Array(broads.length).fill(0);
     for (let i = 0; i < cottons; i += 1) {
       const t = cottonType[i];
       const dx = cottonPos[i * 3] - cameraPos.x;
       const dz = cottonPos[i * 3 + 2] - cameraPos.z;
+      const bSq = dx * dx + dz * dz;
+      if (bSq > TREE_DRAW_DIST_SQ) {
+        continue;
+      }
       lodDummy.position.set(cottonPos[i * 3], cottonPos[i * 3 + 1], cottonPos[i * 3 + 2]);
       lodDummy.rotation.set(0, cottonRot[i], 0);
       const s = cottonScale[i];
       lodDummy.scale.set(s, s, s);
       lodDummy.updateMatrix();
       tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
-      if (dx * dx + dz * dz < LOD_DIST_SQ) {
+      if (bSq > MID_DIST_SQ) {
+        const n = broadDist[t];
+        broads[t].trunkDist.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownDist.setMatrixAt(n, lodDummy.matrix);
+        broads[t].crownDist.setColorAt(n, tintColor);
+        broadDist[t] = n + 1;
+        continue;
+      }
+      if (bSq < LOD_DIST_SQ) {
         const n = broadNear[t];
         broads[t].trunkNear.setMatrixAt(n, lodDummy.matrix);
         broads[t].crownNear.setMatrixAt(n, lodDummy.matrix);
@@ -1613,8 +1685,13 @@ export function createVegetation(scene, maps = {}) {
       broads[t].crownNear.instanceMatrix.needsUpdate = true;
       broads[t].trunkFar.instanceMatrix.needsUpdate = true;
       broads[t].crownFar.instanceMatrix.needsUpdate = true;
+      broads[t].trunkDist.count = broadDist[t];
+      broads[t].crownDist.count = broadDist[t];
+      broads[t].trunkDist.instanceMatrix.needsUpdate = true;
+      broads[t].crownDist.instanceMatrix.needsUpdate = true;
       broads[t].crownNear.instanceColor.needsUpdate = true;
       broads[t].crownFar.instanceColor.needsUpdate = true;
+      broads[t].crownDist.instanceColor.needsUpdate = true;
     }
   }
 
