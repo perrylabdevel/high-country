@@ -176,8 +176,20 @@ async function main() {
       if (!ok) {
         throw new Error(`missing capture POI ${poi.id}`);
       }
-      // Let the grass disc re-scatter and shadows settle.
-      await page.waitForTimeout(4000);
+      // The ground-cover scatter is amortised over ~72 frames, and consecutive
+      // POIs are kilometres apart, so a fixed wait screenshots the PREVIOUS
+      // location's grass and sage — which reads as an empty biome rather than
+      // as a half-finished rebuild. Wait on the game's own settled predicate.
+      let settled = false;
+      for (let i = 0; i < 150 && !settled; i += 1) {
+        await page.waitForTimeout(2000);
+        settled = await page.evaluate(() => !!window.__vegSettled && window.__vegSettled());
+      }
+      if (!settled) {
+        throw new Error(`ground cover never settled at ${poi.id}; screenshot would be stale`);
+      }
+      // Shadows and the wind pass still need a beat after the scatter lands.
+      await page.waitForTimeout(1500);
       const file = `${poi.id}-${light.name}.png`;
       await page.screenshot({ path: `${OUT}/${file}` });
       writtenFiles.push(file);

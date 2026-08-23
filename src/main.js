@@ -211,6 +211,10 @@ async function boot() {
         window.__captureView = null;
       }
     };
+    // True once the amortised ground-cover scatter has caught up with the
+    // camera. Capture tooling waits on this: the scatter takes ~55 frames, so
+    // a screenshot straight after a jump shows the previous location's cover.
+    window.__vegSettled = () => vegetation.scatterSettled(camera.position);
     window.__captureInfo = () => {
       const backendName = renderer.backend?.constructor?.name || "";
       return {
