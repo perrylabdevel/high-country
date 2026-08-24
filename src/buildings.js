@@ -275,6 +275,7 @@ export function createRanch(maps = {}) {
   glazeWindows(mSouth);
   glazeWindows(mWest);
   glazeWindows(mEast);
+  glazeWindows(mNorth);
   glazeWindows(eEast);
   glazeWindows(eSouth);
 
