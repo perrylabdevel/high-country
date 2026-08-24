@@ -1,6 +1,6 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-24 · against `audit/reports/pass-65.json` (the latest
+**Updated:** 2026-08-24 · against `audit/reports/pass-81.json` (the latest
 double-checked pass).
 
 ## Objective
@@ -21,9 +21,10 @@ appropriate texture set, and make the world pleasant to look at and explore.
    adobe, wood, roof, and four 3072² terrain surfaces, packed to KTX2 and
    uploaded as the release bundle (`textures-7fa3ce367371.tar.gz`); the
    manifest URL is live and `npm run assets:fetch` verifies all 48 files.
-4. **Definitive fail count:** 46 sub-4 criteria of ~283 scored (≈84% at ≥4),
-   after a blind double-check removed ~30 grader-noise false fails. The
-   count has oscillated 44–60 across the last several passes.
+4. **Definitive fail count:** 53 sub-4 criteria of 279 scored (81.0% at ≥4),
+   after a blind double-check (pass-81: 32 confirmed, 16 overturned, 4 nulled,
+   17 worsened). The count has oscillated 44–60 across the last several
+   passes; 53 is inside that grader-noise band.
 
 5. **Needle foliage atlas shipped:** the pines now use the real baked needle
    atlas (denser sprig) while grass/sage/broad stay on the proven procedural
@@ -33,6 +34,11 @@ appropriate texture set, and make the world pleasant to look at and explore.
    Fort Grant (the walls sat on a 3 m slope — U4 wall gaps and detached
    shadows) and tightened the burn smoke puffs into a continuous anchored
    column (B2). Both verified 5/5 targeted and cleared from the fail list.
+7. **Ranch north-wall glazing (pass-81):** glazed the ranch's north-wall
+   second-floor windows (`glazeWindows(mNorth)`). The golden R1 read moved
+   3→4 in the double-checked pass — Luna confirms the two lit panes now read
+   on the camera-facing wall — with no regression to R2–R4; ranch U5/U6 also
+   recovered to 4 in the same pass.
 
 ## Completion audit (requirement by requirement)
 
@@ -40,20 +46,21 @@ appropriate texture set, and make the world pleasant to look at and explore.
 |---|---|---|
 | Finish the audit caveats | ✅ Done and verified | Lake water, mission M1/M2, cabin H1, pines P1–P5, camp T1/T2, ranch R1/R2/R4, fort F1, road G1 at main POIs, badlands D1/D2, burn B1/B2, cemetery C1, El Paso E1 all ≥4 in the double-checked passes |
 | Download appropriate textures and implement | ✅ Done and shipped | 7 CC0 Poly Haven surface sets (adobe, wood, roof, grass, dirt, rock, gravel at 3072² albedo) + 2 HDRIs, KTX2-packed, live release bundle (48 files, fetch-verified). Foliage atlases remain on the procedural fallback (baked versions measured regressive; documented) |
-| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | 49 verified fails of 278 scored (82.4% at ≥4) |
+| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | 53 verified fails of 279 scored (81.0% at ≥4) |
 | Pleasant to look at and explore | ✅ Substantially verified | 50–60 fps at every POI; all structural defects fixed; smooth loading (only the expected pointer-lock error) |
 | Contract checks | ✅ | 12/12 pass; production build green |
 
 ### Why the strict bar is not met
 
-The 49 remaining fails break down as:
+The 53 remaining fails break down as:
 
-- **~40 borderline universal criteria** (U2, G1, U3, U5, U6, U1) that
+- **~41 borderline universal criteria** (U2, G1, U3, U5, U6, U1) that
   oscillate 3↔4 between grader sessions — the double-check overturns 15–31
   nominal fails every pass, and the same captures score 3 in one session and
   4 in the next.
-- **~9 camera- or design-limited per-POI reads** (silverCreek S1/S2 and the
-  town street's bare near-field, fort courtyard, forest road clearing, etc.)
+- **~12 camera- or design-limited per-POI reads** (silverCreek S1/S2, the
+  town street's bare near-field, elPaso's repeated-box reads, ironValley
+  I1/G1/U3, westernRange W1/W2, badlands D2, northernPines P3, etc.)
   where the feature is either not visible from the fixed capture camera or is
   bare ground by design.
 
@@ -61,28 +68,30 @@ Every structural, distributable, and measurable requirement is complete; the
 strict "all ≥4" rubric verdict remains CONTINUE because of the borderline
 criteria and fixed-camera reads above.
 
-## Remaining 49, classified
+## Remaining 53, classified
 
-### Borderline universal criteria (40) — same frames score 3↔4 across
+### Borderline universal criteria (41) — same frames score 3↔4 across
 grader sessions; each has resisted targeted changes without collateral:
 
 - U2 ground texture scale (18)
-- G1 road edges / wheel-track (9) — mostly trails, the railroad bed, and
+- G1 road edges / wheel-track (7) — mostly trails, the railroad bed, and
   town streets where the track is inherently hard to read
 - U3 seams (4)
-- U5 lighting (3) — mostly golden frames where shadows fall outside the
+- U5 lighting (4) — mostly golden frames where shadows fall outside the
   camera view or the HDRI fill washes them
-- U6 distance silhouettes (3)
-- U1 ground cover (3) — silverCreek street, fort interior, lake shore (all
+- U6 distance silhouettes (2)
+- U1 ground cover (6) — silverCreek street, fort interior, lake shore (all
   bare ground by design)
 
-### Per-POI items (9) — mostly camera-angle or design-limited:
+### Per-POI items (12) — mostly camera-angle or design-limited:
 
 - silverCreek S2 (2) — false fronts exist but do not read from the fixed
   north camera; multiple geometry/material attempts had no effect
-- badlands D2 (1), elPaso E1 (1), ironValley I2 (1), northernPines P4 (1),
-  silverCreek S1 (1), westernRange W1 (1), fortGrant U4 (1) — all oscillate
-  at 2–3 and reappear sporadically after being cleared
+- badlands D2 (1), elPaso E1 (2), ironValley I1 (1) plus U3/G1 (2+2),
+  northernPines P3 (1), silverCreek S1 (1), westernRange W1/W2 (2),
+  fortGrant U1/U2 (3) — all oscillate at 2–3 and reappear sporadically
+  after being cleared; ranch R6 is nulled (windmill out of frame) rather
+  than failing
 
 ## Why the count plateaus
 
@@ -118,6 +127,11 @@ angle limits (the rubric itself allows "cannot assess" for those).
 - **Golden HDRI fill reduction:** read as flat/muted; reverted (sun boost kept).
 - **Bark normal scale 3.0 and taller stamp mill:** no targeted P3/I1 movement;
   reverted.
+- **Ranch north-wall glazing (kept, not reverted):** `glazeWindows(mNorth)`
+  added lit panes to the camera-facing second-floor wall. Targeted A/B via
+  Luna: windows invisible before, clearly readable after; R1 golden 3→4 in
+  the pass-81 double-check with no R2–R4 regression. North-wall detail is
+  camera-visible because the ranch capture camera sits NE of the building.
 - **Silver Creek U1 mechanism found:** the town grass-scatter exclusion (80 m)
   covered the audit near-field, and the terrain base was dirt-dominant.
   Narrowing the exclusion and raising the town grass splat did not move the
