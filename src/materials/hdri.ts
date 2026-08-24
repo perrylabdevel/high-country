@@ -13,7 +13,9 @@ export function syncEnvironmentIntensity(scene: Scene): void {
   const key = materialSettings.hdri as keyof typeof HDRI_PATHS;
   // Golden-hour direct light is intentionally warm and low, so its HDRI needs
   // enough ambient fill to preserve foreground detail instead of crushing the
-  // entire shadow side to black.
+  // entire shadow side to black (HARD_WON 1.4). The sun-intensity boost in
+  // main.js gives the directional shadows their weight; cutting the fill
+  // below 1.85 reads as flat and muted.
   const hdriScale = key === "golden" ? 1.85 : 1;
   scene.environmentIntensity = materialSettings.environmentIntensity * hdriScale;
 }

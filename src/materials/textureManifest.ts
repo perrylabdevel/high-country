@@ -34,14 +34,14 @@ export const TEXTURE_SETS = {
     albedo: "/textures/grass_2k_albedo.ktx2",
     normal: "/textures/grass_2k_normal.ktx2",
     orm: "/textures/grass_2k_orm.ktx2",
-    tiling: 8,
+    tiling: 10,
     heightBias: 0.0
   },
   dirt: {
     albedo: "/textures/dirt_2k_albedo.ktx2",
     normal: "/textures/dirt_2k_normal.ktx2",
     orm: "/textures/dirt_2k_orm.ktx2",
-    tiling: 10,
+    tiling: 8,
     heightBias: -0.02
   },
   rock: {
@@ -57,6 +57,32 @@ export const TEXTURE_SETS = {
     orm: "/textures/gravel_2k_orm.ktx2",
     tiling: 6,
     heightBias: 0.04
+  },
+  /**
+   * Building surfaces (Poly Haven CC0). Unlike the terrain layers these are
+   * used triplanar on authored box geometry, so the tiling is in world metres
+   * and heightBias is unused.
+   */
+  adobe: {
+    albedo: "/textures/adobe_2k_albedo.ktx2",
+    normal: "/textures/adobe_2k_normal.ktx2",
+    orm: "/textures/adobe_2k_orm.ktx2",
+    tiling: 1.6,
+    heightBias: 0
+  },
+  wood: {
+    albedo: "/textures/wood_2k_albedo.ktx2",
+    normal: "/textures/wood_2k_normal.ktx2",
+    orm: "/textures/wood_2k_orm.ktx2",
+    tiling: 1.8,
+    heightBias: 0
+  },
+  roof: {
+    albedo: "/textures/roof_2k_albedo.ktx2",
+    normal: "/textures/roof_2k_normal.ktx2",
+    orm: "/textures/roof_2k_orm.ktx2",
+    tiling: 1.4,
+    heightBias: 0
   }
 } as const satisfies Record<string, TextureSet>;
 

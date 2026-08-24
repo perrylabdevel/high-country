@@ -3,6 +3,7 @@ import { POS } from "./map.js";
 import { addBoxCollider } from "./collision.js";
 import { boxOnGround, cylOnGround, grounded, block, wheelOn } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -31,11 +32,18 @@ function brokenWagon(group, x, z, wood, rust) {
   addBoxCollider(x, z, 1.7, 1.05);
 }
 
-export function createFort(scene) {
+export function createFort(scene, maps = {}) {
   const group = new THREE.Group();
-  const wood = mat(0xc4a574);
-  const dark = mat(0x6b4226);
-  const stone = mat(0x8a8478);
+  const hasMaps = Boolean(maps?.wood && maps?.rock);
+  const wood = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
+    : mat(0xc4a574);
+  const dark = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : mat(0x6b4226);
+  const stone = hasMaps
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : mat(0xa89e90);
   const rust = mat(0x5a4030);
   const canvas = mat(0xd2c4a0);
 

@@ -28,3 +28,6 @@ assets-dist/
 .specstory/
 package-lock.json
 package-lock.json
+
+# Poly Haven source downloads are binary and regenerable; only the packed bundle ships
+assets-src/

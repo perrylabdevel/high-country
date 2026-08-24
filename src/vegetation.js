@@ -154,9 +154,9 @@ const GRASS_DENSITY = {
   pines: 0.78,
   foothills: 0.68,
   tribal: 0.5,
-  range: 0.42,
+  range: 0.62,
   lake: 0.35,
-  town: 0.28,
+  town: 0.48,
   iron: 0.14,
   burn: 0.05,
   badlands: 0.04
@@ -678,13 +678,13 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
     const y = baseY + span * Math.pow(f, 0.8);
     const count = Math.max(3, Math.round(cardsPerTier * (1 - f * 0.45)));
     for (let i = 0; i < count; i += 1) {
-      if (seeded(i * 17 + t * 91) < 0.08) {
+      if (seeded(i * 17 + t * 91) < 0.03) {
         continue;
       }
       const a = (i / count) * Math.PI * 2 + f * 1.7 + seeded(i + t * 13) * 0.35;
       const radius = (baseRadius * Math.pow(1 - f, 0.55) + 0.55) * (0.82 + seeded(i + t * 17) * 0.38);
-      const cardLen = radius * 1.5;
-      const cardW = radius * 1.05;
+      const cardLen = radius * 1.62;
+      const cardW = radius * 1.22;
       // A branch can only droop until its tip reaches the ground. Unclamped,
       // the low wide tiers pushed foliage below y=0 — 1.43 m of buried crown on
       // the juniper, 0.22 m on the broad pine — which both wasted triangles and
@@ -800,12 +800,12 @@ function makeBurntSnag(height, baseR, topR) {
 }
 
 function makePineTrunk(height, baseR, topR) {
-  const shaft = new THREE.CylinderGeometry(topR, baseR, height, 8);
+  const shaft = new THREE.CylinderGeometry(topR, baseR, height, 10);
   shaft.translate(0, height / 2 + 0.08, 0);
   // Tied to trunk radius, not height: with the trunk now running the full
   // height of the tree, a height-proportional flare became a 1.4 m buttress.
   const flareH = Math.min(0.95, Math.max(0.38, baseR * 2.4));
-  const flare = new THREE.CylinderGeometry(baseR, baseR * 1.7, flareH, 8);
+  const flare = new THREE.CylinderGeometry(baseR, baseR * 1.7, flareH, 10);
   flare.translate(0, flareH / 2, 0);
   return mergeGeometries([shaft, flare]);
 }
@@ -932,6 +932,10 @@ export function createVegetation(scene, maps = {}) {
   });
   if (maps.barkNormal) {
     bark.normalMap = maps.barkNormal;
+    // The bark albedo is dark and the normal map is subtle, so at the audit
+    // distances trunks read as flat dark poles (P3). Boost the relief only
+    // when the real map is present; the fallback texture keeps its old look.
+    bark.normalScale = new THREE.Vector2(2.0, 2.0);
   }
   const char = new THREE.MeshStandardNodeMaterial({ color: 0x2a2420, roughness: 0.96 });
   const limbMat = new THREE.MeshStandardNodeMaterial({
@@ -1057,7 +1061,9 @@ export function createVegetation(scene, maps = {}) {
   const pineForm = (tiers, cards, radius, baseY, topY, baseR, farTiers, farCards) => ({
     near: makePineCanopy(tiers, cards, radius, baseY, topY),
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
-    distant: makePineCanopy(7, 9, radius, baseY, topY),
+    // The distant band is crown-only and cheapest; fuller cards keep the
+    // horizon reading as tree silhouettes instead of smeared specks (U6).
+    distant: makePineCanopy(9, 13, radius, baseY, topY),
     trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
   });
   // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
@@ -1076,14 +1082,18 @@ export function createVegetation(scene, maps = {}) {
   // Grass taught the same lesson: density is what makes foliage read as mass.
   const PINE = [
     // Tall spire: high crown on a long clear stem.
-    pineForm(10, 8, 1.85, 4.2, 12.4, 0.3, 6, 8),
-    pineForm(8, 8, 1.65, 2.4, 7.7, 0.34, 6, 8),
-    pineForm(7, 10, 1.75, 1.9, 6.4, 0.4, 6, 9),
+    pineForm(10, 11, 2.1, 4.2, 12.4, 0.3, 7, 9),
+    pineForm(8, 11, 1.9, 2.4, 7.7, 0.34, 7, 9),
+    pineForm(7, 12, 2.0, 1.9, 6.4, 0.4, 7, 10),
     // Juniper: wide, low, almost no clear trunk.
-    pineForm(5, 11, 1.9, 0.6, 4.1, 0.46, 4, 9)
+    pineForm(5, 12, 2.1, 0.6, 4.1, 0.46, 6, 10)
   ];
 
-  const MAX = 3200;
+  // The world-wide scatter budget. Pines beyond this come only from the
+  // pines-biome forest-core pass below, so raising MAX cannot change any
+  // other biome's silhouette.
+  const MAIN_TREE_BUDGET = 3200;
+  const MAX = 7600;
   const pines = PINE.map((proto) => {
     const trunkNear = new THREE.InstancedMesh(proto.trunk, bark, MAX);
     const crownNear = new THREE.InstancedMesh(proto.near.leaves, pineLeafMat, MAX);
@@ -1214,11 +1224,11 @@ export function createVegetation(scene, maps = {}) {
     return n < 0.16 ? 0 : n < 0.48 ? 1 : n < 0.78 ? 2 : 3;
   }
 
-  // Ran while `placed < MAX` — the conifer budget. Pines fill 3200 slots long
-  // before i reaches 16000, so the loop exited with only 22 of 260 cottonwoods
-  // ever placed and the map came out 99.3% conifer. Broadleaf has its own
-  // budget, so keep going while either has room.
-  for (let i = 0; i < 26000 && (placed < MAX || cottons < MAX_COTTON); i += 1) {
+  // Ran while `placed < MAIN_TREE_BUDGET` — the conifer budget. Pines fill
+  // 3200 slots long before i reaches 16000, so the loop exited with only 22 of
+  // 260 cottonwoods ever placed and the map came out 99.3% conifer. Broadleaf
+  // has its own budget, so keep going while either has room.
+  for (let i = 0; i < 26000 && (placed < MAIN_TREE_BUDGET || cottons < MAX_COTTON); i += 1) {
     const x = (seeded(i + 2) - 0.5) * WORLD.width * 0.96;
     const z = (seeded(i + 9) - 0.5) * WORLD.depth * 0.96;
     const ranchDist = Math.hypot(x - POS.ranch.x, z - POS.ranch.z);
@@ -1268,7 +1278,7 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
 
-    if (placed >= MAX || seeded(i + 21) > plantChance(biome)) {
+    if (placed >= MAIN_TREE_BUDGET || seeded(i + 21) > plantChance(biome)) {
       continue;
     }
     // One size per tree, with a modest slenderness jitter on top.
@@ -1310,7 +1320,7 @@ export function createVegetation(scene, maps = {}) {
     placed += 1;
   }
 
-  for (let i = 0; i < 72 && placed < MAX; i += 1) {
+  for (let i = 0; i < 72 && placed < MAIN_TREE_BUDGET; i += 1) {
     const a = (i / 72) * Math.PI * 2 + seeded(i + 800) * 0.45;
     const r = 46 + seeded(i + 810) * 40;
     const x = POS.ranch.x + Math.cos(a) * r;
@@ -1381,7 +1391,7 @@ export function createVegetation(scene, maps = {}) {
     [22, -8],
     [-16, -12]
   ];
-  for (let i = 0; i < ranchHero.length && placed < MAX; i += 1) {
+  for (let i = 0; i < ranchHero.length && placed < MAIN_TREE_BUDGET; i += 1) {
     const x = POS.ranch.x + ranchHero[i][0];
     const z = POS.ranch.z + ranchHero[i][1];
     const y = heightAt(x, z);
@@ -1404,6 +1414,81 @@ export function createVegetation(scene, maps = {}) {
     foliageTint(biomeAt(x, z), seeded(i + 951), seeded(i + 953), treeTint, placed);
     addCylinderCollider(x, z, 0.5 * girth);
     placed += 1;
+  }
+
+  /**
+   * Northern Pines forest core — audit P4/P2.
+   *
+   * The world-wide scatter leaves tens of metres between stems even in the
+   * pines biome, which reads as scattered saplings on open ground. Real
+   * stands are clumped, so plant tight clusters inside the pines biome only.
+   * biomeAt() gates everything else out: no other biome's silhouette changes
+   * and the ranch windbreak/hero loops keep their exact old budgets.
+   */
+  const PINE_CORE_X = POS.northernPines.x;
+  const PINE_CORE_Z = POS.northernPines.z;
+  for (let c = 0; c < 120 && placed < MAX; c += 1) {
+    const cx = PINE_CORE_X + (seeded(c + 50000) - 0.5) * 1200;
+    const cz = PINE_CORE_Z + (seeded(c + 51000) - 0.5) * 1600;
+    if (biomeAt(cx, cz) !== "pines") {
+      continue;
+    }
+    for (let k = 0; k < 34 && placed < MAX; k += 1) {
+      const x = cx + (seeded(c * 97 + k + 52000) - 0.5) * 22;
+      const z = cz + (seeded(c * 101 + k + 53000) - 0.5) * 22;
+      if (biomeAt(x, z) !== "pines") {
+        continue;
+      }
+      if (inClearing(x, z)) {
+        continue;
+      }
+      if (insideStructure(x, z, TREE_CLEARANCE)) {
+        continue;
+      }
+      // Keep the fire watch and timber camp readable, and the trails and
+      // creeks rideable — dense forest must not swallow them. The camp's
+      // capture camera sits ~40 m out, so the exclusion has to cover the
+      // whole view corridor, not just the camp's footprint.
+      if (Math.hypot(x - POS.fireWatch.x, z - POS.fireWatch.z) < 60) {
+        continue;
+      }
+      if (Math.hypot(x - POS.timberCamp.x, z - POS.timberCamp.z) < 120) {
+        continue;
+      }
+      // Keep the road corridor narrow enough that the pines read as forest
+      // around it (audit P4): 0.55 lets trees grow almost to the track's edge
+      // without standing on it.
+      if (roadFactor(x, z) > 0.55 || creekFactor(x, z) > 0.3) {
+        continue;
+      }
+      const y = heightAt(x, z);
+      if (y > 92 || y < 8) {
+        continue;
+      }
+      if (normalAt(x, z).y < 0.62) {
+        continue;
+      }
+      const type = pickPineType("pines", seeded(k + c * 7 + 54000));
+      const size = 0.62 + seeded(k + c * 13 + 55000) * 1.4;
+      const height = size;
+      const girth = size * (0.87 + seeded(k + c * 3 + 56000) * 0.26);
+      dummy.position.set(x, y, z);
+      dummy.rotation.set((seeded(k + 41) - 0.5) * 0.1, seeded(k + 7) * Math.PI * 2, (seeded(k + 43) - 0.5) * 0.1);
+      dummy.scale.set(girth, height, girth);
+      dummy.updateMatrix();
+      treePos[placed * 3] = x;
+      treePos[placed * 3 + 1] = y;
+      treePos[placed * 3 + 2] = z;
+      treeGirth[placed] = girth;
+      treeHeight[placed] = height;
+      treeRot[placed] = dummy.rotation.y;
+      treeLeanX[placed] = dummy.rotation.x;
+      treeLeanZ[placed] = dummy.rotation.z;
+      treeType[placed] = type;
+      foliageTint("pines", seeded(k + 51), seeded(k + 53), treeTint, placed);
+      addCylinderCollider(x, z, 0.45 * girth);
+      placed += 1;
+    }
   }
 
   // First frame draws every pine on its near mesh; update() buckets by camera.
@@ -2036,16 +2121,39 @@ export function createVegetation(scene, maps = {}) {
 export function createSmoke(scene) {
   const group = new THREE.Group();
   const origin = { x: POS.burn.x - 22, z: POS.burn.z + 10 };
-  const baseY = heightAt(origin.x, origin.z) + 2.8;
-  for (let i = 0; i < 8; i += 1) {
-    const t = i / 7;
+  const baseY = heightAt(origin.x, origin.z) + 1.2;
+  // A grounded column: a continuous dark body rising from the fire, with
+  // dense base puffs that spread and fade with height. The earlier puff
+  // string floated detached in the sky (audit B2); the column body is what
+  // makes the plume read as anchored to the burn.
+  const columnMat = new THREE.MeshBasicNodeMaterial({
+    color: 0x4a4545,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.DoubleSide
+  });
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 3.0, 14, 8, 1, true), columnMat);
+  column.position.set(origin.x, baseY + 7.4, origin.z);
+  group.add(column);
+  const ember = new THREE.Mesh(
+    new THREE.SphereGeometry(1.1, 8, 8),
+    new THREE.MeshBasicNodeMaterial({ color: 0xff6a20, transparent: true, opacity: 0.55 })
+  );
+  ember.position.set(origin.x, baseY + 0.1, origin.z);
+  group.add(ember);
+  for (let i = 0; i < 12; i += 1) {
+    const t = i / 11;
     const mat = new THREE.MeshBasicNodeMaterial({
-      color: new THREE.Color().lerpColors(new THREE.Color(0x6a6a6a), new THREE.Color(0xc8c8c8), t),
+      color: new THREE.Color().lerpColors(new THREE.Color(0x4a4545), new THREE.Color(0xd8d8d8), t),
       transparent: true,
-      opacity: 0.5 * (1 - t * 0.5)
+      opacity: (0.72 - t * 0.45) * (1 - t * 0.4)
     });
-    const puff = new THREE.Mesh(new THREE.SphereGeometry(2.5 + i * 1.6, 10, 10), mat);
-    puff.position.set(origin.x + i * 0.3, baseY + 2 + i * 4.5, origin.z + i * 0.6);
+    const r = 2.2 + i * 1.1 + (i % 3) * 0.3;
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 10), mat);
+    // Tighten the sway so the puffs stay inside the column body instead of
+    // floating as disconnected blobs above it (audit B2).
+    const sway = Math.sin(i * 1.7) * (0.5 + i * 0.12);
+    puff.position.set(origin.x + sway, baseY + 1.0 + i * 2.0, origin.z + Math.cos(i * 1.3) * (0.5 + i * 0.1));
     puff.userData.phase = i;
     group.add(puff);
   }

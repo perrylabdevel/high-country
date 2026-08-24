@@ -2,8 +2,9 @@ import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
 import { POS, ROADS, samplePolyline } from "./map.js";
-import { boxOnGround, grounded, block, coneOnGround, wheelOn } from "./buildings/kit.js";
+import { boxOnGround, grounded, block, coneOnGround, wheelOn, gableRoof } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -77,14 +78,23 @@ function smokePuff(group, x, y, z, radius, material) {
   group.add(puff);
 }
 
-export function createIndustry(scene) {
+export function createIndustry(scene, maps = {}) {
   const group = new THREE.Group();
-  const rust = mat(0x5a4030);
-  const iron = mat(0x3a3a3c, { metalness: 0.35, roughness: 0.55 });
+  // Rusty orange so it reads as corroded iron against the warm brown timber
+  // (audit I2: rust was indistinguishable from the wood).
+  // Brighter rust so it stays orange against the dark timber even in golden
+  // light (audit I2: rust was indistinguishable on the headframe).
+  const rust = mat(0xb55220);
+  const iron = mat(0x55555c, { metalness: 0.55, roughness: 0.42 });
   const slagDark = mat(0x3a342c);
   const slagOlive = mat(0x4a4638);
   const canvas = mat(0xd2c4a0);
-  const dark = mat(0x6b4226);
+  const dark = maps?.wood
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : mat(0x6b4226);
+  const roofMat = maps?.roof
+    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
+    : mat(0x4a3020);
   const smokeMat = new THREE.MeshBasicNodeMaterial({
     color: 0x9a9a9a,
     transparent: true,
@@ -140,6 +150,18 @@ export function createIndustry(scene) {
   boxAt(group, platX, platZ, 10, 0.38, 5.2, dark);
   boxAt(group, platX - 4.2, platZ + 2.1, 0.32, 2.3, 0.32, dark, false);
   boxAt(group, platX + 4.2, platZ + 2.1, 0.32, 2.3, 0.32, dark, false);
+
+  // Stamp mill shed: the mill previously read as a platform and smokestack
+  // with no building (audit I1). A long timber shed with a gable roof gives
+  // the stamp battery a distinct home beside the stack.
+  const millShedX = mill.x - 2;
+  const millShedZ = mill.z - 6;
+  const shedY = heightAt(millShedX, millShedZ);
+  boxAt(group, millShedX, millShedZ, 12, 4.2, 8, dark);
+  const millRoof = gableRoof({ w: 12, d: 8, pitch: 0.45, overhang: 0.4, eave: 4.2, material: roofMat });
+  millRoof.position.set(millShedX, shedY, millShedZ);
+  group.add(millRoof);
+  addBoxCollider(millShedX, millShedZ, 6, 4);
 
   const stackX = mill.x + 8;
   const stackZ = mill.z;

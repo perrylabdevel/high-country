@@ -378,7 +378,7 @@ function distPointSeg(px, pz, ax, az, bx, bz) {
 /** World-space segment cache so road/creek queries do not remap every sample. */
 const POLYLINE_CACHE = new WeakMap();
 
-function polylineCache(pts) {
+export function polylineCache(pts) {
   let c = POLYLINE_CACHE.get(pts);
   if (!c) {
     const segs = [];

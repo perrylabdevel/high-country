@@ -116,16 +116,38 @@ export function makeWaterNormalTexture(): THREE.Texture {
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   const image = ctx.createImageData(512, 512);
   const data = image.data;
+  // Gradient noise with three octaves. The old sum-of-sines normal read as an
+  // obvious repeating grid across the lake foreground (audit U2 at lakeMercy);
+  // value noise at unrelated frequencies has no visible period.
+  const h = (x: number, y: number) => {
+    const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return n - Math.floor(n);
+  };
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  const noise2 = (x: number, y: number) => {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const fx = x - ix;
+    const fy = y - iy;
+    const a = h(ix, iy);
+    const b = h(ix + 1, iy);
+    const c = h(ix, iy + 1);
+    const d = h(ix + 1, iy + 1);
+    const u = smooth(fx);
+    const v = smooth(fy);
+    return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+  };
   for (let y = 0; y < 512; y += 1) {
     for (let x = 0; x < 512; x += 1) {
-      const nx = Math.sin(x * 0.55) * Math.cos(y * 0.6) * 0.9
-        + Math.sin((x + y) * 0.17) * 0.5
-        + Math.sin(x * 1.4 - y * 0.9) * 0.35;
-      const nz = Math.cos(x * 0.5) * Math.sin(y * 0.65) * 0.9
-        + Math.cos((x - y) * 0.19) * 0.5
-        + Math.cos(x * 1.1 + y * 1.3) * 0.35;
-      const nxN = nx / Math.sqrt(nx * nx + nz * nz + 1);
-      const nzN = nz / Math.sqrt(nx * nx + nz * nz + 1);
+      const u = x / 512;
+      const v = y / 512;
+      const n1 = noise2(u * 7, v * 7) * 1.0;
+      const n2 = noise2(u * 19 + 4.7, v * 19 + 9.1) * 0.45;
+      const n3 = noise2(u * 53 + 2.3, v * 53 + 6.8) * 0.22;
+      const nx = (n1 - 0.5) * 1.7 + (n2 - 0.5) * 0.9 + (n3 - 0.5) * 0.4;
+      const nz = (n1 - 0.5) * 1.4 + (n2 - 0.5) * 0.7 + (n3 - 0.5) * 0.3;
+      const nxN = nx / Math.sqrt(nx * nx + nz * nz + 1) * 1.6;
+      const nzN = nz / Math.sqrt(nx * nx + nz * nz + 1) * 1.6;
       const i = (y * 512 + x) * 4;
       data[i] = (nxN * 0.5 + 0.5) * 255;
       data[i + 1] = (nzN * 0.5 + 0.5) * 255;

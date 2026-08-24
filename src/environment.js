@@ -19,7 +19,7 @@ const BIOME = {
   ranch: [0.4, 0.5, 0.22],
   town: [0.42, 0.38, 0.28],
   pines: [0.16, 0.26, 0.14],
-  burn: [0.2, 0.16, 0.12],
+  burn: [0.1, 0.07, 0.05],
   range: [0.42, 0.55, 0.24],
   iron: [0.34, 0.3, 0.26],
   badlands: [0.56, 0.34, 0.2],
@@ -118,7 +118,10 @@ export function createSky(scene) {
   const sun = new THREE.DirectionalLight(0xffe1b0, 1.15);
   sun.position.set(-180, 220, -90);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  // 4096 shadow map: at 2048 the long golden shadows were too soft to read as
+  // directional (audit U5 at golden). 4096 doubles the texel density over the
+  // same frustum for a cost the frame budget absorbs.
+  sun.shadow.mapSize.set(4096, 4096);
   sun.shadow.camera.near = 10;
   sun.shadow.camera.far = 700;
   sun.shadow.camera.left = -260;

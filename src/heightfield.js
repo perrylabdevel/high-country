@@ -67,6 +67,16 @@ export function sourceHeightAt(x, z) {
   const mesa = Math.floor(fbm(x * 0.007, nz * 0.007) * 6) / 6;
   h += south * (6 + mesa * 20);
 
+  // Badlands buttes: steep mesa rims near the POI that expose the strata
+  // banding on their faces. The gentle southern mesas never showed a rock
+  // face (audit D1/D2). Kept west of the mission (u < 0.5) so the mission
+  // site stays flat.
+  const badland = smoothstep(0.44, 0.38, u) * smoothstep(0.5, 0.46, u) * smoothstep(0.22, 0.12, v);
+  const butteNoise = fbm(x * 0.005 + 17, nz * 0.005 + 11);
+  const buttePlate = Math.floor(butteNoise * 4) / 4;
+  const butteRim = smoothstep(0.64, 0.76, butteNoise - Math.floor(butteNoise));
+  h += badland * (10 + buttePlate * 40 + butteRim * 16);
+
   const foot = smoothstep(0.54, 0.64, u) * smoothstep(0.26, 0.36, v) * smoothstep(0.52, 0.4, v);
   h += foot * 9;
 
@@ -89,6 +99,15 @@ export function sourceHeightAt(x, z) {
   if (townD < 85) {
     const t = 1 - townD / 85;
     h = h * (1 - t) + 15.5 * t;
+  }
+
+  // Fort pad: the walls sat on a ~3 m slope, so the far corners floated and
+  // the walls cast detached shadows (audit U4 at fortGrant). Flatten the
+  // enclosure area to the lowest corner height.
+  const fortD = Math.hypot(x - POS.fortGrant.x, z - POS.fortGrant.z);
+  if (fortD < 50) {
+    const t = Math.max(0, 1 - fortD / 50);
+    h = h * (1 - t) + 94 * t;
   }
 
   if (lake > 0.92) {

@@ -1,0 +1,1874 @@
+{
+  "pass": 79,
+  "model": "gpt-5.6-luna",
+  "provider": "openai",
+  "generated": "2026-08-24T15:36:35.218Z",
+  "capture": {
+    "version": 1,
+    "backend": "webgpu",
+    "adapter": "WN",
+    "antialias": true,
+    "build": "production",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "poiCount": 16,
+    "lightCount": 2,
+    "expectedFiles": [
+      "ranch-midday.png",
+      "ranch-golden.png",
+      "silverCreek-midday.png",
+      "silverCreek-golden.png",
+      "lakeMercy-midday.png",
+      "lakeMercy-golden.png",
+      "northernPines-midday.png",
+      "northernPines-golden.png",
+      "timberCamp-midday.png",
+      "timberCamp-golden.png",
+      "burn-midday.png",
+      "burn-golden.png",
+      "westernRange-midday.png",
+      "westernRange-golden.png",
+      "ironValley-midday.png",
+      "ironValley-golden.png",
+      "tribal-midday.png",
+      "tribal-golden.png",
+      "badlands-midday.png",
+      "badlands-golden.png",
+      "mission-midday.png",
+      "mission-golden.png",
+      "fortGrant-midday.png",
+      "fortGrant-golden.png",
+      "cemetery-midday.png",
+      "cemetery-golden.png",
+      "huntingCabin-midday.png",
+      "huntingCabin-golden.png",
+      "overlook-midday.png",
+      "overlook-golden.png",
+      "elPaso-midday.png",
+      "elPaso-golden.png"
+    ],
+    "files": [
+      "ranch-midday.png",
+      "silverCreek-midday.png",
+      "lakeMercy-midday.png",
+      "northernPines-midday.png",
+      "timberCamp-midday.png",
+      "burn-midday.png",
+      "westernRange-midday.png",
+      "ironValley-midday.png",
+      "tribal-midday.png",
+      "badlands-midday.png",
+      "mission-midday.png",
+      "fortGrant-midday.png",
+      "cemetery-midday.png",
+      "huntingCabin-midday.png",
+      "overlook-midday.png",
+      "elPaso-midday.png",
+      "ranch-golden.png",
+      "silverCreek-golden.png",
+      "lakeMercy-golden.png",
+      "northernPines-golden.png",
+      "timberCamp-golden.png",
+      "burn-golden.png",
+      "westernRange-golden.png",
+      "ironValley-golden.png",
+      "tribal-golden.png",
+      "badlands-golden.png",
+      "mission-golden.png",
+      "fortGrant-golden.png",
+      "cemetery-golden.png",
+      "huntingCabin-golden.png",
+      "overlook-golden.png",
+      "elPaso-golden.png"
+    ],
+    "generated": "2026-08-24T15:27:29.393Z"
+  },
+  "results": [
+    {
+      "image": "badlands-golden.png",
+      "poi": "badlands",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Arid ground has substantial weathering and color variation, though the surface is somewhat overly mottled."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "The ground has broad smeared-looking color patches and dense noisy detail, making the texture scale only partially believable at human eye height."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "No obvious straight material seams or clean boundaries are visible."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Visible vegetation and terrain objects appear grounded with no obvious gaps or floating props."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "The warm low sun reads as golden hour with directional illumination, though shadows are weak at this distance."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The distant mesas, ridges, trees, and sun remain clearly readable by silhouette."
+        },
+        {
+          "id": "D1",
+          "score": 5,
+          "note": "The badlands show strong layered and striated rock coloration."
+        },
+        {
+          "id": "D2",
+          "score": 2,
+          "note": "Rocky material is visibly spread across nearly all terrain surfaces, including flatter areas, rather than clearly concentrating with slope."
+        },
+        {
+          "id": "D3",
+          "score": 5,
+          "note": "Vegetation is sparse and appropriate for the arid setting."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "badlands-midday.png",
+      "poi": "badlands",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground shows convincing arid rock, dirt, and weathered tonal variation with minor repetition."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally believable and shows no visible repeating tiling grid, though some broad mottled patches feel slightly low-frequency."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular and noise-broken without visible straight seams."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible vegetation and terrain objects appear grounded, with no obvious floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting is readable with directional contact shadows and no obvious blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant mesas, hills, and trees retain recognizable silhouettes with minor atmospheric flattening."
+        },
+        {
+          "id": "D1",
+          "score": 4,
+          "note": "Mesa and hillside surfaces visibly contain layered, striated rock variation."
+        },
+        {
+          "id": "D2",
+          "score": 4,
+          "note": "Rock material is concentrated across elevated and sloped terrain rather than appearing uniformly painted everywhere."
+        },
+        {
+          "id": "D3",
+          "score": 5,
+          "note": "Vegetation is sparse and appropriate for the arid badlands setting."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "burn-golden.png",
+      "poi": "burn",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground shows believable dark ash, exposed soil, rocks, and tonal variation, though some patches look repetitive."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Fine gravel and rock detail reads at human scale with no visible tiling grid."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular and noise-broken."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible trunks and block-like props appear to contact the ground."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm golden-hour lighting and directional shadows are visible without blown highlights."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Trees, trunks, smoke, and foreground props retain readable silhouettes at distance."
+        },
+        {
+          "id": "B1",
+          "score": 5,
+          "note": "Multiple charred canopyless trunks stand across visibly darkened burn ground."
+        },
+        {
+          "id": "B2",
+          "score": 5,
+          "note": "A prominent smoke plume is visible rising from a ground-level source near the center."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "burn-midday.png",
+      "poi": "burn",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground shows believable rocky, ashy, and weathered arid variation."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail reads at a believable scale without an obvious tiling grid."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions appear irregular and noise-broken."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible props and trunks appear to meet the ground."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday directional shadows are clearly present without severe clipping."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and trunks remain identifiable by silhouette."
+        },
+        {
+          "id": "B1",
+          "score": 5,
+          "note": "Numerous charred canopy-less trunks stand across visibly darkened ground."
+        },
+        {
+          "id": "B2",
+          "score": 4,
+          "note": "A visible smoke plume rises from an apparent ground-level source near the center."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "cemetery-golden.png",
+      "poi": "cemetery",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass provides continuous near-field cover and thins toward the distance, with minor sparse patches."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail reads at a believable scale, though the dense texture appears somewhat repetitive."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "No clean straight material seams are visible."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Fence, posts, and headstones visibly meet the ground without gaps or floating props."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm golden-hour lighting and directional shadows are visible without blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and terrain remain identifiable by silhouette with minor softness."
+        },
+        {
+          "id": "C1",
+          "score": 4,
+          "note": "Headstones vary in spacing and orientation, though their sizes are fairly similar."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "cemetery-midday.png",
+      "poi": "cemetery",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 5,
+          "note": "Grass reads as continuous ground cover across the near field and thins into the distance."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale, with minor visual repetition in the dense foreground grass."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "No clean straight material seams are visible between ground materials."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Fence posts, rails, and headstones visibly meet the ground without obvious gaps or floating."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Directional shadows are present and exposure is balanced, though the midday lighting appears somewhat flat."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Trees and cemetery elements remain identifiable by silhouette at distance with minor softness."
+        },
+        {
+          "id": "C1",
+          "score": 4,
+          "note": "The visible headstones show some variation in size, spacing, and orientation."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "elPaso-golden.png",
+      "poi": "elPaso",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Arid ground shows varied dirt, rock, gravel, and weathering rather than a flat wash."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale with no obvious repeating grid, though some areas appear mildly smeared."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions appear irregular and noise-broken with no obvious clean straight seams."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Buildings and visible vegetation appear to meet the ground with no obvious gaps or floating objects."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "The frame is visibly warm and directional with readable shading, though shadows are relatively subtle."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees, cacti, and buildings remain identifiable by silhouette, with minor loss of fine detail."
+        },
+        {
+          "id": "E1",
+          "score": 4,
+          "note": "The varied-height adobe building cluster reads as a small settlement, though the structures remain boxy and similar."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "Road edges are irregular and broken, with a darker smoother center, though the loose margins are only moderately distinct."
+        }
+      ]
+    },
+    {
+      "image": "elPaso-midday.png",
+      "poi": "elPaso",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground shows varied arid dirt, rock, gravel, and weathering."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale with no obvious tiling grid."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are mostly irregular and noise-broken."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Buildings and roofs visibly connect cleanly with the ground and walls."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting is directional and balanced, with readable shadows."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Buildings and distant trees retain identifiable silhouettes."
+        },
+        {
+          "id": "E1",
+          "score": 4,
+          "note": "The adobe cluster has varied building heights and reads as a small settlement."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "Road edges are ragged and blended into the terrain, but the wheel-track center is not visibly smoother and darker than the loose gravel margins."
+        }
+      ]
+    },
+    {
+      "image": "fortGrant-golden.png",
+      "poi": "fortGrant",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 2,
+          "note": "The near and middle ground are dominated by broad expanses of bare, smeared dirt with only sparse grass-like specks."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Ground detail appears heavily smeared and repetitive across large areas, making the texture scale feel implausibly low-frequency."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular and noise-broken, with minor blending imperfections."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible walls, structures, and props appear to meet the ground with no obvious floating gaps."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Warm golden-hour lighting is clearly visible, with strong directional and elongated shadows."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant mesas and trees retain recognizable silhouettes without major popping or collapse."
+        },
+        {
+          "id": "F1",
+          "score": 4,
+          "note": "Four walls visibly enclose the courtyard and a gate/opening appears near the center, though structures partially obscure it."
+        },
+        {
+          "id": "F2",
+          "score": 5,
+          "note": "Multiple structures are visibly placed inside the walls."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The road has ragged irregular edges and visibly darker, smoother central tracks."
+        }
+      ]
+    },
+    {
+      "image": "fortGrant-midday.png",
+      "poi": "fortGrant",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is broadly continuous in the near field and thins into the distance."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail reads at a believable scale with no obvious tiling grid."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions appear irregular and noise-broken."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Walls, interior structures, and props visibly meet the ground."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Directional midday shadows are present with balanced highlights and blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant mountains and trees remain identifiable by silhouette."
+        },
+        {
+          "id": "F1",
+          "score": 4,
+          "note": "Four walls visibly enclose the courtyard and a gate is present on the front wall."
+        },
+        {
+          "id": "F2",
+          "score": 5,
+          "note": "Multiple structures are clearly visible inside the enclosure."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The road has ragged edges and darker, smoother wheel-track areas through its center."
+        }
+      ]
+    },
+    {
+      "image": "huntingCabin-golden.png",
+      "poi": "huntingCabin",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous across the near field, though exposed soil is visible throughout the sparse vegetation."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "The ground is dominated by smeared, repetitive low-frequency grass noise with visibly implausible texture scale."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Grass-to-road transitions are generally irregular and noise-broken, with minor localized straight-looking patches."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "The cabin, chimney, door, trees, and scattered props visibly meet the ground without apparent gaps or floating objects."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm golden lighting and directional shadows are visible without obvious blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and mountain silhouettes remain identifiable, though the smallest vegetation is visually soft."
+        },
+        {
+          "id": "H1",
+          "score": 5,
+          "note": "The cabin visibly has one story, a pitched roof, a door, and a chimney."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "The road edges are ragged, but no distinct smoother, darker wheel-track center is visibly defined."
+        }
+      ]
+    },
+    {
+      "image": "huntingCabin-midday.png",
+      "poi": "huntingCabin",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous in the near field and thins with distance, with only expected dirt around the cabin and path."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale and believable, though some foreground texture appears slightly noisy."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Grass-to-dirt transitions are mostly irregular and noise-broken without obvious clean material seams."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "The cabin, chimney, roof, and nearby props visibly meet the ground with no obvious floating gaps."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Directional midday lighting and shadows are visible with balanced highlights and dark areas."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The cabin, trees, and distant mountain silhouettes remain identifiable at range."
+        },
+        {
+          "id": "H1",
+          "score": 5,
+          "note": "The cabin visibly has one story, a pitched roof, a door, and a chimney."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "The road edges are ragged, but the wheel-track center is not visibly much smoother or darker than the loose margins."
+        }
+      ]
+    },
+    {
+      "image": "ironValley-golden.png",
+      "poi": "ironValley",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Arid ground shows reddish soil, rock patches, weathering, and sparse vegetation with minor low-detail areas."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground detail is visible but includes broad smeared mottling and dense repetitive speckling that weakens believable human-scale texture."
+        },
+        {
+          "id": "U3",
+          "score": 2,
+          "note": "The pale road has long, clean straight boundaries against the surrounding dirt and grass."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "The visible structures, headframe, blocks, and cones appear grounded with only minor uncertainty from the low-poly geometry."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm light and directional shadows are visible without blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The headframe, structures, trees, and distant hills retain recognizable silhouettes at range."
+        },
+        {
+          "id": "I1",
+          "score": 4,
+          "note": "The headframe and tailings are clearly identifiable, while the stamp-mill form is somewhat ambiguous."
+        },
+        {
+          "id": "I2",
+          "score": 3,
+          "note": "Dark iron is distinct from brown timber, but no clearly visible rust material separates from the wood."
+        },
+        {
+          "id": "G1",
+          "score": 1,
+          "note": "The road edges are clean and straight, and there is no visibly smoother, darker wheel-track center."
+        }
+      ]
+    },
+    {
+      "image": "ironValley-midday.png",
+      "poi": "ironValley",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Arid ground shows varied tan, gray, rocky, and sparse vegetative detail rather than a flat wash."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale and crisp, with no obvious smeared texture or repeating grid."
+        },
+        {
+          "id": "U3",
+          "score": 2,
+          "note": "The gravel road forms clean, straight material boundaries against the surrounding dirt."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible structures, supports, rocks, and props appear to contact the ground with no obvious floating gaps."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting shows directional shadows, controlled highlights, and readable dark tones."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The headframe, roofed structure, trees, road, and distant mountains retain readable silhouettes."
+        },
+        {
+          "id": "I1",
+          "score": 3,
+          "note": "The headframe and tailings are identifiable, but the stamp mill is not clearly distinguishable."
+        },
+        {
+          "id": "I2",
+          "score": 4,
+          "note": "Dark iron framing and reddish bars are visibly distinct from the brown timber structures."
+        },
+        {
+          "id": "G1",
+          "score": 2,
+          "note": "The road edges are clean and straight, and the wheel-track center is not visibly smoother or darker than the margins."
+        }
+      ]
+    },
+    {
+      "image": "lakeMercy-golden.png",
+      "poi": "lakeMercy",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": null,
+          "note": "The camera is aimed mostly across the lake, so the near ground cover cannot be assessed; show a shoreline or land-facing camera position."
+        },
+        {
+          "id": "U2",
+          "score": null,
+          "note": "The camera does not show enough ground detail at a human-scale distance to assess texture scale."
+        },
+        {
+          "id": "U3",
+          "score": null,
+          "note": "Grass, dirt, rock, and gravel transitions are too distant and mostly out of frame to assess; show the shoreline or ground at closer range."
+        },
+        {
+          "id": "U4",
+          "score": null,
+          "note": "The distant objects are too small and the rocks are too ambiguous to verify ground contact."
+        },
+        {
+          "id": "U5",
+          "score": 3,
+          "note": "The warm golden-hour color is visible, but directional shadows are weak and difficult to read across the shoreline and water."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and foreground rocks have readable silhouettes, though some shoreline vegetation blends into noisy detail."
+        },
+        {
+          "id": "L1",
+          "score": 4,
+          "note": "Water shifts from pale pink near the shoreline to saturated dark blue in the foreground."
+        },
+        {
+          "id": "L2",
+          "score": 4,
+          "note": "The surface shows fine ripples over broader patches of changing wave detail."
+        },
+        {
+          "id": "L3",
+          "score": 4,
+          "note": "A thin pale foam-like band is visible along the shoreline."
+        },
+        {
+          "id": "L4",
+          "score": null,
+          "note": "No dock is visible in this frame."
+        },
+        {
+          "id": "L5",
+          "score": 5,
+          "note": "Distinct pink and orange sky-direction highlights are clearly visible across the water surface."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "lakeMercy-midday.png",
+      "poi": "lakeMercy",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 2,
+          "note": "The visible shoreline is dominated by broad bare sandy expanses with only sparse, discontinuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "The distant ground reads as a smeared, low-frequency mottled strip, so human-scale texture detail is not believable."
+        },
+        {
+          "id": "U3",
+          "score": 2,
+          "note": "The shoreline forms a notably clean, nearly straight horizontal boundary between the water and land."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible rocks and shoreline vegetation appear to meet the water or ground without obvious gaps."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting is clear with directional shading and no obvious blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Most distant vegetation collapses into a thin band of tiny dark blobs rather than clearly identifiable silhouettes."
+        },
+        {
+          "id": "L1",
+          "score": 5,
+          "note": "Water visibly shifts from pale near the shore to saturated dark blue in the foreground."
+        },
+        {
+          "id": "L2",
+          "score": 4,
+          "note": "The water shows fine ripples layered over larger-scale variation."
+        },
+        {
+          "id": "L3",
+          "score": 4,
+          "note": "A visible pale foam band runs along the shoreline."
+        },
+        {
+          "id": "L4",
+          "score": null,
+          "note": "The dock is not visible from this camera position."
+        },
+        {
+          "id": "L5",
+          "score": 4,
+          "note": "Bright sky-direction highlights and reflections are visible across the water surface."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "mission-golden.png",
+      "poi": "mission",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Arid ground shows varied rock, dirt, ash-like patches, and sparse vegetation."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "The ground texture forms oversized smeared patches that look too large and low-frequency for a 1.62 m eye height."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "No clean straight material boundaries are visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "The building, roof, tower, and door appear grounded without visible gaps."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm golden-hour color and directional shading are visible without blown highlights or crushed blacks, though long shadows are only weakly apparent."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The distant hills and trees retain recognizable silhouettes without obvious card-like collapse."
+        },
+        {
+          "id": "M1",
+          "score": 4,
+          "note": "The warm adobe walls read distinctly from the darker timber roof and trim."
+        },
+        {
+          "id": "M2",
+          "score": 5,
+          "note": "The bell tower is visibly attached to the building facade and rises from the front wall rather than sitting centered on the roof."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "The visible dirt/gravel track has ragged blended edges, but the wheel-track center is not clearly smoother and darker than the loose margins."
+        }
+      ]
+    },
+    {
+      "image": "mission-midday.png",
+      "poi": "mission",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground shows varied arid rock, dirt, ash-like patches, and adobe-colored weathering."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale with no obvious repeating grid, though some areas appear slightly smeared."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are irregular and noise-broken with no obvious straight seams."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "The visible building, roof, tower, and cross appear grounded and connected."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting is directional with restrained highlights and readable shadows."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The distant hills, trees, and mission silhouette remain identifiable."
+        },
+        {
+          "id": "M1",
+          "score": 4,
+          "note": "The tan adobe walls read distinctly from the darker reddish-brown roof timber."
+        },
+        {
+          "id": "M2",
+          "score": 5,
+          "note": "The bell tower is visibly attached to the mission facade and rises from the ground in front of the building."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "The road edges are irregular and diffuse, but the wheel-track center is not visibly smoother and darker than the loose margins."
+        }
+      ]
+    },
+    {
+      "image": "northernPines-golden.png",
+      "poi": "northernPines",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous in the near field and thins into the distance, with only the road forming broad bare areas."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Foreground ground texture is visibly noisy and repetitive, with dense mottling that reads more like a low-frequency tiled surface than consistently human-scale detail."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular and noise-broken without obvious straight seams."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible trees and vegetation appear to meet the ground with no obvious floating or sinking objects."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm golden-hour lighting and directional shadows are visible, with no obvious blown highlights or crushed blacks; shadows are somewhat soft."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Trees remain identifiable as conifers by their silhouettes at distance, though the smallest horizon trees lose substantial shape detail."
+        },
+        {
+          "id": "P1",
+          "score": 4,
+          "note": "Conifers have recognizable conical silhouettes with layered, tiered branches, though some foreground canopies are unusually broad."
+        },
+        {
+          "id": "P2",
+          "score": 4,
+          "note": "Foreground foliage is dense and substantially occludes the background."
+        },
+        {
+          "id": "P3",
+          "score": 2,
+          "note": "Visible trunks are mostly flat, low-detail brown forms without clear bark relief or recognizable bark texture."
+        },
+        {
+          "id": "P4",
+          "score": 5,
+          "note": "The scene clearly reads as a dense conifer forest rather than scattered saplings."
+        },
+        {
+          "id": "P5",
+          "score": 4,
+          "note": "Tree heights vary convincingly from large foreground trees to smaller distant growth."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The road has ragged irregular edges, and its center tracks read darker and smoother than the loose margins."
+        }
+      ]
+    },
+    {
+      "image": "northernPines-midday.png",
+      "poi": "northernPines",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Ground cover is continuous in the near field, with some sparse tan expanses visible farther out."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally believable, though the near-field vegetation texture appears somewhat noisy and coarse."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "Material transitions are irregular and noise-broken without visible straight seams."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Visible trees and vegetation meet the ground without apparent floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Directional midday shadows are present with balanced highlights and blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant conifers remain identifiable, though some smaller trees appear slightly soft."
+        },
+        {
+          "id": "P1",
+          "score": 5,
+          "note": "Conifers have clearly conical silhouettes with tiered, widening branches."
+        },
+        {
+          "id": "P2",
+          "score": 5,
+          "note": "Foreground canopies are dense enough to occlude the background."
+        },
+        {
+          "id": "P3",
+          "score": 4,
+          "note": "Trunks show dark, irregular bark-like surface variation rather than flat poles."
+        },
+        {
+          "id": "P4",
+          "score": 2,
+          "note": "Most of the landscape is open ground with widely spaced small trees and scattered saplings, so it reads as sparse woodland rather than a dense forest."
+        },
+        {
+          "id": "P5",
+          "score": null,
+          "note": "No player or buildings are visible for judging tree height against them."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The road has ragged grass edges and a visibly darker, smoother central track."
+        }
+      ]
+    },
+    {
+      "image": "overlook-golden.png",
+      "poi": "overlook",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Near-field grass is continuous, though broad sparsely covered dirt areas remain in the middle distance."
+        },
+        {
+          "id": "U2",
+          "score": 2,
+          "note": "Foreground ground detail is heavily smeared and noisy, with an implausibly repetitive texture scale."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are mostly irregular, with minor long bands visible along the shoreline."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible trees and the bench appear grounded, with no obvious floating or sinking objects."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "The frame reads warm and directional with controlled highlights, though shadows are relatively weak."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "The distant tree line mostly collapses into a dark smeared band, so individual silhouettes are not consistently identifiable."
+        },
+        {
+          "id": "O1",
+          "score": 5,
+          "note": "The foreground frames a broad, readable overlook vista with clear middle distance."
+        },
+        {
+          "id": "O2",
+          "score": 4,
+          "note": "Atmospheric haze is visible toward the horizon and softens distant forms."
+        },
+        {
+          "id": "G1",
+          "score": 3,
+          "note": "A road is visible, but the wheel-track center is not clearly smoother and darker than the loose margins."
+        }
+      ]
+    },
+    {
+      "image": "overlook-midday.png",
+      "poi": "overlook",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous in the foreground and thins toward the sandy shoreline."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Foreground grass and sandy shore show dense, repetitive texture patterning that reads as tiled/noisy rather than consistently believable human-scale ground detail."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular, though the shoreline transition is somewhat broad and visually uniform."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Visible trees and the bench appear to meet the ground without gaps or floating."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting reads correctly with directional shadows, though the shadows are weak and the sky is very bright."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and shoreline vegetation remain identifiable by silhouette, with some small forms becoming indistinct."
+        },
+        {
+          "id": "O1",
+          "score": 5,
+          "note": "The foreground frames a clear, readable vista across the beach and water."
+        },
+        {
+          "id": "O2",
+          "score": 4,
+          "note": "The horizon shows visible atmospheric haze that increases with distance."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "ranch-golden.png",
+      "poi": "ranch",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass and low vegetation cover the near field, with dirt concentrated around buildings and tracks."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "The ground is covered by dense, visibly repetitive speckled vegetation that reads smaller than believable human-scale detail."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular, though some road margins appear relatively straight in the distance."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible buildings, roofs, chimneys, trees, and fences appear grounded without obvious gaps or floating props."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Warm golden-hour light produces clear directional shadows without visibly blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and the ridgeline remain identifiable by silhouette, though fine detail is somewhat noisy."
+        },
+        {
+          "id": "R1",
+          "score": 3,
+          "note": "The house clearly has a projecting lower wing, but the main mass does not visibly read as a distinct two-story block."
+        },
+        {
+          "id": "R2",
+          "score": 4,
+          "note": "The visible roofs are predominantly hipped with consistent wall overhangs, with minor irregularity at intersecting roof sections."
+        },
+        {
+          "id": "R3",
+          "score": 5,
+          "note": "The visible porch posts clearly support the porch roof."
+        },
+        {
+          "id": "R4",
+          "score": null,
+          "note": "The chimney bases are obscured by the roof geometry; a lower side camera position would show continuity from wall to ridge."
+        },
+        {
+          "id": "R5",
+          "score": null,
+          "note": "No clearly visible front door allows reliable assessment of door scale."
+        },
+        {
+          "id": "R6",
+          "score": null,
+          "note": "The windmill is not visible and the fence and outbuilding details cannot all be verified from this angle."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "A gravel road is visible with generally ragged margins and darker smoother wheel-track areas."
+        }
+      ]
+    },
+    {
+      "image": "ranch-midday.png",
+      "poi": "ranch",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass and low vegetation cover the near field continuously, though some ranch areas are broadly dirt-covered."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground texture is visible but appears overly noisy and repetitive in broad patches, weakening believable human-scale detail."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular, with no prominent clean straight seam."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible buildings, roofs, fences, and chimneys appear to meet their supporting surfaces."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Directional shadows are clearly present under the midday sun without obvious blown highlights."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and mountain forms remain readable by silhouette, with minor softness at extreme distance."
+        },
+        {
+          "id": "R1",
+          "score": 4,
+          "note": "The ranch house visibly reads as a main block with a lower attached ell rather than a single box."
+        },
+        {
+          "id": "R2",
+          "score": 4,
+          "note": "The visible roofs are hip-like with substantial overhangs around the wall edges."
+        },
+        {
+          "id": "R3",
+          "score": 4,
+          "note": "The porch posts visibly support the attached porch roof."
+        },
+        {
+          "id": "R4",
+          "score": null,
+          "note": "The aerial angle does not show whether the chimneys continue continuously from the wall through the roof."
+        },
+        {
+          "id": "R5",
+          "score": null,
+          "note": "The distant aerial camera does not provide enough scale to judge the front door dimensions."
+        },
+        {
+          "id": "R6",
+          "score": null,
+          "note": "The windmill is out of frame; use a camera position showing the ranch outbuildings, fences, and windmill directly."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "Road margins are ragged and broken, and the central wheel-track areas appear somewhat smoother, though the tonal contrast is subtle."
+        }
+      ]
+    },
+    {
+      "image": "silverCreek-golden.png",
+      "poi": "silverCreek",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 1,
+          "note": "The near and middle ground are broad expanses of bare, mostly untextured dirt with no continuous grass cover."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground detail is visible but reads as a smeared, low-frequency wash across much of the near field."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious clean straight boundary between terrain materials is visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Buildings and visible structures appear to meet the ground without obvious floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 3,
+          "note": "Directional shadows are present, but the scene reads relatively flat and the golden-hour warmth and long shadows are weak."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "Buildings are identifiable, but distant trees and terrain appear thin and partially smeared against the horizon."
+        },
+        {
+          "id": "S1",
+          "score": 4,
+          "note": "Most buildings form a roughly aligned row facing the same street corridor, with minor angle variation."
+        },
+        {
+          "id": "S2",
+          "score": null,
+          "note": "False fronts are not clearly visible from this camera angle."
+        },
+        {
+          "id": "S3",
+          "score": null,
+          "note": "No church or steeple is visible from this camera angle."
+        },
+        {
+          "id": "S4",
+          "score": 4,
+          "note": "A raised boardwalk-like strip runs along the front of the visible storefront row."
+        },
+        {
+          "id": "S5",
+          "score": 4,
+          "note": "Buildings visibly vary in width, height, roof form, and facade material."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "silverCreek-midday.png",
+      "poi": "silverCreek",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 1,
+          "note": "The near and middle ground are dominated by wide expanses of bare dirt with only sparse grass-like patches."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground variation is visible, but the foreground detail reads as broad and blurry rather than consistently human-scale."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "No obvious straight material transition seam is visible."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Buildings and visible structures appear to meet the ground without obvious floating gaps."
+        },
+        {
+          "id": "U5",
+          "score": 3,
+          "note": "Directional shadows are present, but several building facades are crushed into very dark detail."
+        },
+        {
+          "id": "U6",
+          "score": 3,
+          "note": "The buildings retain readable silhouettes, but distant trees and background forms collapse into smeared specks."
+        },
+        {
+          "id": "S1",
+          "score": 2,
+          "note": "The visible buildings present mismatched orientations and do not form a consistently aligned street corridor."
+        },
+        {
+          "id": "S2",
+          "score": null,
+          "note": "A camera facing the street-side building facades is needed to assess false fronts."
+        },
+        {
+          "id": "S3",
+          "score": null,
+          "note": "A view showing the church and its gable end is needed to assess steeple placement."
+        },
+        {
+          "id": "S4",
+          "score": null,
+          "note": "A street-facing view showing storefronts is needed to assess whether a boardwalk runs along them."
+        },
+        {
+          "id": "S5",
+          "score": 4,
+          "note": "Buildings visibly vary in height, width, roof form, and material."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "timberCamp-golden.png",
+      "poi": "timberCamp",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass and low vegetation provide continuous near-field cover, thinning across the distant slope."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground detail is visible, but the foreground has a smeared, repetitive low-frequency texture that feels less than human-scale."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are generally irregular and noise-broken."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Buildings, logs, benches, tent, and other props visibly meet the terrain without obvious floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Warm directional golden-hour lighting and long shadows are clearly visible without major clipping."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and structures remain identifiable by their silhouettes."
+        },
+        {
+          "id": "T1",
+          "score": 5,
+          "note": "Numerous felled logs and cut stumps clearly establish a worked timber site."
+        },
+        {
+          "id": "T2",
+          "score": 5,
+          "note": "All visible buildings have pitched roofs and visible door openings."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The visible road has ragged vegetation-broken edges and darker, smoother central tracks."
+        }
+      ]
+    },
+    {
+      "image": "timberCamp-midday.png",
+      "poi": "timberCamp",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous across the near field, with appropriate thinning around the camp and roads."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground detail is visibly dominated by dense, repetitive mottled patches that read as texture tiling rather than consistently believable human-scale detail."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are mostly irregular and noise-broken, with no dominant straight seam."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible structures and props appear grounded with no obvious gaps or detached roofs."
+        },
+        {
+          "id": "U5",
+          "score": 5,
+          "note": "Midday lighting is clear and directional, with readable shadows and controlled highlights."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and structures remain identifiable by silhouette, though some vegetation loses detail."
+        },
+        {
+          "id": "T1",
+          "score": 5,
+          "note": "Felled logs and cut stumps visibly establish the camp as a worked timber site."
+        },
+        {
+          "id": "T2",
+          "score": 5,
+          "note": "The visible buildings have pitched roofs and readable door openings."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "The road has irregular grassy edges and visibly smoother, darker traveled areas through its center."
+        }
+      ]
+    },
+    {
+      "image": "tribal-golden.png",
+      "poi": "tribal",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "..."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail appears human-scale with no obvious smeared wash or repeating tiling grid, though it is somewhat noisy and repetitive."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "..."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "..."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "..."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "..."
+        },
+        {
+          "id": "N1",
+          "score": 5,
+          "note": "..."
+        },
+        {
+          "id": "N2",
+          "score": 5,
+          "note": "..."
+        },
+        {
+          "id": "G1",
+          "score": 2,
+          "note": "The road is visible, but its center does not show distinct smoother, darker wheel tracks than the loose margins, and parts of the edges appear fairly clean."
+        }
+      ]
+    },
+    {
+      "image": "tribal-midday.png",
+      "poi": "tribal",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass and vegetation provide continuous near-field cover, with some exposed soil and sparse patches."
+        },
+        {
+          "id": "U2",
+          "score": 4,
+          "note": "Ground detail is generally human-scale and varied, with no obvious repeating tiling grid."
+        },
+        {
+          "id": "U3",
+          "score": 4,
+          "note": "Material transitions are mostly irregular and noise-broken, though the road margins are somewhat uniform in places."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "All visible tipis and vegetation appear to meet the ground without visible gaps or floating objects."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Directional midday shadows are visible and exposure is generally balanced, though the pale tipis have slightly bright highlights."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "Distant trees and mountain silhouettes remain identifiable, with some small objects becoming indistinct."
+        },
+        {
+          "id": "N1",
+          "score": 4,
+          "note": "Tipis visibly vary in scale and show some rotation variation."
+        },
+        {
+          "id": "N2",
+          "score": 5,
+          "note": "The camp is arranged in an irregular clustered layout rather than a grid."
+        },
+        {
+          "id": "G1",
+          "score": 4,
+          "note": "Road edges are irregular and noise-broken, with a visibly smoother darker wheel-track center."
+        }
+      ]
+    },
+    {
+      "image": "westernRange-golden.png",
+      "poi": "westernRange",
+      "light": "golden",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 3,
+          "note": "Near-field ground cover is patchy, with broad expanses of exposed dirt where grass should be continuous."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "Ground detail appears as a dense, smeared mottled wash rather than distinct human-scale grass."
+        },
+        {
+          "id": "U3",
+          "score": 5,
+          "note": "No straight or clean material seams are visible."
+        },
+        {
+          "id": "U4",
+          "score": 5,
+          "note": "Visible trees, plants, and debris appear to meet the ground without obvious floating or sinking."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Directional shadows and low warm sunlight are visible, with no blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The distant tree and agave-like plant retain identifiable silhouettes, with only minor background softness."
+        },
+        {
+          "id": "W1",
+          "score": 2,
+          "note": "The terrain does not read as grassland to the horizon because the distant ground is predominantly bare and sparsely vegetated."
+        },
+        {
+          "id": "W2",
+          "score": null,
+          "note": "No cattle are visible; a camera view containing the herd is needed."
+        },
+        {
+          "id": "W3",
+          "score": null,
+          "note": "No fences are visible; a camera view showing fence lines is needed."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    },
+    {
+      "image": "westernRange-midday.png",
+      "poi": "westernRange",
+      "light": "midday",
+      "criteria": [
+        {
+          "id": "U1",
+          "score": 4,
+          "note": "Grass cover is continuous in the near field and thins toward the horizon, with some exposed dirt patches."
+        },
+        {
+          "id": "U2",
+          "score": 3,
+          "note": "The ground is dominated by extremely dense, fine repeating vegetation marks that read smaller and more uniform than believable human-scale detail."
+        },
+        {
+          "id": "U3",
+          "score": 3,
+          "note": "Visible broad, nearly straight horizontal bands separate the dense foreground vegetation from the sparser midground, creating an artificial material transition."
+        },
+        {
+          "id": "U4",
+          "score": 4,
+          "note": "Visible trees, shrubs, and logs appear to contact the ground, with minor uncertainty on distant vegetation."
+        },
+        {
+          "id": "U5",
+          "score": 4,
+          "note": "Midday lighting is readable with directional shadows and no obvious blown highlights or crushed blacks."
+        },
+        {
+          "id": "U6",
+          "score": 4,
+          "note": "The distant tree and evergreen-like shrub retain recognizable silhouettes without severe smearing."
+        },
+        {
+          "id": "W1",
+          "score": 4,
+          "note": "The scene reads as open grassland across the visible horizon, though coverage becomes sparse in the distance."
+        },
+        {
+          "id": "W2",
+          "score": null,
+          "note": "No cattle are visible; use a camera position that shows the herd."
+        },
+        {
+          "id": "W3",
+          "score": null,
+          "note": "No fences are visible; use a camera position that shows fence lines."
+        },
+        {
+          "id": "G1",
+          "score": null,
+          "note": "n/a"
+        }
+      ]
+    }
+  ]
+}
