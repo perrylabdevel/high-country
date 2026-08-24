@@ -33,6 +33,7 @@ import {
   post
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -138,7 +139,7 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
  * lots register their rotated group so interiors.js can build in the local
  * frame.
  */
-function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0, facade = null) {
+function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0, facade = null, falseFrontWood = wood) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const along = (i - (lot.lotsLen - 1) / 2) * 14;
@@ -229,8 +230,8 @@ function buildLot(group, origin, yaw, lot, i, wood, dark, stone, roof, lift = 0,
         d,
         eave: h,
         height: lot.falseFrontHeight || 2.0,
-        material: wood,
-        capMaterial: roof
+        material: falseFrontWood,
+        capMaterial: falseFrontWood
       }),
       "wallSide",
       face(st, "front")
@@ -305,7 +306,7 @@ const BOARDWALK_LIFT = 0.55;
  */
 let streetSeq = 0;
 
-function street(group, origin, yaw, lots, wood, dark, stone, roof) {
+function street(group, origin, yaw, lots, wood, dark, stone, roof, maps = {}, falseFrontWood = wood) {
   const streetId = streetSeq++;
   // A street with false fronts gets a boardwalk, and every lot on it is seated
   // on a plinth of the same height so the thresholds meet the deck. Without
@@ -323,7 +324,7 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   // cross street, where the footprint guard drops them without a word.
   const facade = hasWalk ? side0 - toward0 * (maxD / 2) : null;
   const built = lots.map((lot, i) =>
-    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof, lift, facade)
+    buildLot(group, origin, yaw, { ...lot, lotsLen: lots.length }, i, wood, dark, stone, roof, lift, facade, falseFrontWood)
   );
   for (const st of built) {
     if (st) {
@@ -345,14 +346,14 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const DECK_W = 4.0;
-  // Weathered, silvered plank — deliberately NOT `wood`. The deck, the false
-  // fronts and half the wall bodies all shared 0xc4a574, so the walk read as
-  // the buildings' own base rather than a structure in front of them: asked
-  // whether a raised walkway was present, the grader said the buildings "sit
-  // directly on the ground" while the deck, its fascia and its shadow were
-  // plainly in frame. Four attempts at making it taller or thicker could not
-  // fix that, because the problem was never size.
-  const plank = mat(0x8f8577);
+  // Weathered, silvered plank — deliberately NOT the wall wood, so the walk
+  // reads as a structure in front of the buildings rather than their base
+  // (the all-wood deck read as the buildings' own foundation). With the real
+  // wood texture available, tint it gray so it stays distinct from the walls
+  // while the plank relief keeps it a boardwalk, not a curb (audit S4).
+  const plank = maps?.wood
+    ? makeTexturedMat(maps.wood, { tiling: 1.1, tint: 0xb89870, gain: 1.3, rough: 0.95 })
+    : mat(0x8f8577);
   // The deck's inner edge lands on the frontage line, so it meets every
   // threshold with no gap to step over. This only works because the facades
   // are aligned above — against a ragged frontage the gap would vary with
@@ -391,17 +392,25 @@ function street(group, origin, yaw, lots, wood, dark, stone, roof) {
   });
 }
 
-export function createLandmarks(scene) {
+export function createLandmarks(scene, maps = {}) {
   ENTERABLE_LOTS.length = 0;
   STREETS.length = 0;
   streetSeq = 0;
   const group = new THREE.Group();
-  const wood = mat(0xc4a574);
-  const dark = mat(0x6b4226);
-  const stone = mat(0x8a8478);
-  const roof = mat(0x4a3020);
-  const adobe = mat(0xc4a06a);
-  const rust = mat(0x8a4a2a);
+  const hasMaps = Boolean(maps?.adobe && maps?.wood && maps?.roof);
+  const wood = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 }) : mat(0xc4a574);
+  const dark = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 }) : mat(0x6b4226);
+  // Weathered, slightly silvered tone for false-front parapets: the boards
+  // shared the facade wood and blended into the walls, so the raised front
+  // never read as a distinct full-width element (audit S2).
+  const falseFrontWood = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xa89a82, gain: 1.5, rough: 0.96 }) : mat(0x9a8a74);
+  const stone = mat(0xa89e90);
+  const roof = hasMaps ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 }) : mat(0x4a3020);
+  // Weak triplanar normals on adobe: full-strength plaster read as wood grain
+  // on the large mission walls, and none read as a flat painted block (M1).
+  // A low normal scale keeps the plaster mottle without the plank look.
+  const adobe = hasMaps ? makeTexturedMat(maps.adobe, { tiling: 1.6, tint: 0xfff0d4, gain: 2.3, normalScale: 0.45 }) : mat(0xc4a06a);
+  const rust = mat(0xb55220);
   const canvas = mat(0xd2c4a0);
   const ash = mat(0x3a342c);
   const iron = mat(0x4a4a50, { metalness: 0.85, roughness: 0.35 });
@@ -409,29 +418,29 @@ export function createLandmarks(scene) {
   const town = POS.silverCreek;
   const townYaw = 0.15;
   street(group, town, townYaw, [
-    { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 2.4 },
-    { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 2.4 },
-    { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 2.4 },
+    { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 3.2 },
+    { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0 },
+    { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0 },
     { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
-    { name: "store", w: 9.5, h: 5.8, d: 8, sign: true, falseFront: true, falseFrontHeight: 2.6, enterable: true },
+    { name: "store", w: 9.5, h: 5.8, d: 8, sign: true, falseFront: true, falseFrontHeight: 3.2, enterable: true },
     { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
-    { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 2.8, sign: true, enterable: true },
-    { name: "blacksmith", w: 12, h: 4.6, d: 9, dark: true, falseFront: true, falseFrontHeight: 2.2 },
-    { name: "livery", w: 11, h: 4.2, d: 8, dark: true, falseFront: true, falseFrontHeight: 2.0 }
-  ], wood, dark, stone, roof);
+    { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 3.2, sign: true, enterable: true },
+    { name: "blacksmith", w: 12, h: 4.6, d: 9, dark: true, falseFront: true, falseFrontHeight: 3.0 },
+    { name: "livery", w: 11, h: 4.2, d: 8, dark: true, falseFront: true, falseFrontHeight: 2.8 }
+  ], wood, dark, stone, roof, maps, falseFrontWood);
   street(group, { x: town.x, z: town.z - 22 }, 0.15, [
-    { w: 7, h: 4, d: 6 },
-    { w: 7, h: 4.2, d: 6 },
-    { w: 8, h: 4.4, d: 7 },
-    { w: 7, h: 3.8, d: 6 },
-    { w: 9, h: 4.6, d: 7 }
-  ], wood, dark, stone, roof);
+    { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8 },
+    { w: 7, h: 4.2, d: 6, falseFront: true, falseFrontHeight: 2.8 },
+    { w: 8, h: 4.4, d: 7, falseFront: true, falseFrontHeight: 3.0 },
+    { w: 7, h: 3.8, d: 6, falseFront: true, falseFrontHeight: 2.6 },
+    { w: 9, h: 4.6, d: 7, falseFront: true, falseFrontHeight: 3.0 }
+  ], wood, dark, stone, roof, maps, falseFrontWood);
   street(group, { x: town.x, z: town.z + 20 }, 0.15, [
     { w: 7, h: 4.1, d: 6 },
     { w: 8, h: 4.8, d: 7 },
     { w: 7, h: 3.9, d: 6 },
     { w: 9, h: 5.2, d: 7, stone: true }
-  ], wood, dark, stone, roof);
+  ], wood, dark, stone, roof, maps, falseFrontWood);
   // The cross street meets the main row at its west end, not across the middle
   // of town. Planted at town.x + 16 it ran straight through the storefront row
   // and both side rows, and the footprint guard dropped 3 of its 5 lots without
@@ -447,7 +456,7 @@ export function createLandmarks(scene) {
     { w: 7, h: 4, d: 6 },
     { w: 8, h: 4.6, d: 7 },
     { w: 7, h: 3.8, d: 6 }
-  ], wood, dark, stone, roof);
+  ], wood, dark, stone, roof, maps, falseFrontWood);
   boxAt(group, town.x + 8, town.z + 40, 16, 3.2, 8, rust);
 
   const hitchC = Math.cos(townYaw);
@@ -497,7 +506,9 @@ export function createLandmarks(scene) {
     const cx = POS.timberCamp.x + dx;
     const cz = POS.timberCamp.z + dz;
     const cabin = structure({ name: "timberCabin", x: cx, z: cz, yaw: 0, w: 7, d: 5, eave: 3.4, foundation: true, material: stone });
-    const north = wallX({ length: 7, height: 3.4, thickness: T, material: dark });
+    // The audit camera sits north-east of the camp, so the south-facing doors
+    // were hidden behind the cabins (T2). Give each cabin a north door too.
+    const north = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(north, "wallSide", face(cabin, "back"));
     const south = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(south, "wallSide", face(cabin, "front"));
@@ -509,6 +520,8 @@ export function createLandmarks(scene) {
     mate(cabinRoof, "base", anchorsOf(cabin).get("wallTop"));
     const cabinDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
     mate(cabinDoor, "frame", anchorsOf(south).get("opening.0"), { offset: { x: 0, y: 0, z: T / 2 } });
+    const northDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
+    mate(northDoor, "frame", anchorsOf(north).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
     collide(cabin, cx, cz, 0, [
       { x: 0, z: -2.5, halfX: 3.5, halfZ: T / 2 },
       { x: 0, z: 2.5, halfX: 3.5, halfZ: T / 2, openings: [{ x: 0, w: 1.2 }] },
@@ -520,6 +533,45 @@ export function createLandmarks(scene) {
   }
   for (const [dx, dz] of [[-22, -10], [20, 12], [8, -18]]) {
     boxAt(group, POS.timberCamp.x + dx, POS.timberCamp.z + dz, 4.8, 0.85, 1.5, wood, true, 0.45 - 0.425);
+  }
+
+  // Worked-site dressing (T1): cut stumps with a lighter sawn face, and
+  // felled logs lying on their side. The camp previously read as cabins plus
+  // bench-like boxes; a stump only reads when its top is a cut face, and a
+  // log only when it is horizontal.
+  const tc = POS.timberCamp;
+  for (let i = 0; i < 10; i += 1) {
+    const a = seeded(i * 2.3 + 1) * Math.PI * 2;
+    const r = 6 + seeded(i * 4.1 + 2) * 17;
+    const sx = tc.x + Math.cos(a) * r;
+    const sz = tc.z + Math.sin(a) * r;
+    const h = 0.4 + seeded(i * 1.7 + 3) * 0.45;
+    const rad = 0.26 + seeded(i * 2.9 + 4) * 0.12;
+    const groundY = heightAt(sx, sz);
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.9, rad, h, 10), wood);
+    stump.position.set(sx, groundY + h / 2, sz);
+    stump.rotation.y = seeded(i * 5.3 + 5) * Math.PI;
+    stump.castShadow = true;
+    group.add(stump);
+    const cutFace = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.82, rad * 0.82, 0.04, 10), mat(0xd8c29a));
+    cutFace.position.set(sx, groundY + h + 0.02, sz);
+    cutFace.castShadow = true;
+    group.add(cutFace);
+  }
+  for (let i = 0; i < 7; i += 1) {
+    const a = seeded(i * 3.7 + 7) * Math.PI * 2;
+    const r = 5 + seeded(i * 2.2 + 8) * 18;
+    const lx = tc.x + Math.cos(a) * r;
+    const lz = tc.z + Math.sin(a) * r;
+    const len = 2.6 + seeded(i * 1.3 + 9) * 2.4;
+    const rad = 0.22 + seeded(i * 4.7 + 10) * 0.12;
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad * 1.08, len, 10), wood);
+    log.rotation.z = Math.PI / 2;
+    log.rotation.y = seeded(i * 6.1 + 11) * Math.PI;
+    log.position.set(lx, heightAt(lx, lz) + rad * 1.05, lz);
+    log.castShadow = true;
+    log.receiveShadow = true;
+    group.add(log);
   }
 
   for (let i = 0; i < 6; i += 1) {
@@ -546,9 +598,17 @@ export function createLandmarks(scene) {
   ]) {
     boxOnGround(group, fort.x + dx, fort.z + dz, w, fortWallH, d, stone, false);
   }
-  // East gate posts.
-  for (const gz of [fort.z - gateHalf, fort.z + gateHalf]) {
-    boxOnGround(group, fort.x + fortHalf, gz, 0.5, fortWallH + 1.5, 0.5, stone, false);
+  // North gate, face-on to the audit camera (heading 155 puts the camera
+  // north-east, so -Z is the near wall). The earlier east and south gates were
+  // both on the far side and never read (F1).
+  for (const gx of [fort.x - gateHalf, fort.x + gateHalf]) {
+    boxOnGround(group, gx, fort.z - fortDepth, 0.55, fortWallH + 2.6, 0.55, stone, false);
+  }
+  boxAt(group, fort.x, fort.z - fortDepth, 6.6, 0.55, 0.55, wood, false, fortWallH + 1.2);
+  // Closed leaves spanning the full 6 m opening: the two 2.7 m leaves left a
+  // gap that made the gate read as an open, off-center gap (F1).
+  for (const gx of [fort.x - 1.7, fort.x + 1.7]) {
+    boxAt(group, gx, fort.z - fortDepth + 0.08, 3.2, fortWallH + 0.25, 0.08, wood, false);
   }
   addBoxCollider(fort.x, fort.z + fortDepth, 14, 0.7);
   addBoxCollider(fort.x, fort.z - fortDepth, 14, 0.7);
@@ -572,7 +632,10 @@ export function createLandmarks(scene) {
     leg.children[0].rotation.z = sgn * 0.22;
   }
   for (const y of [4, 8, 12]) {
-    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, 10, 0.4, 0.4, iron, false);
+    // Rusted cross-bracing: the headframe was all iron, so rust never read
+    // distinctly (audit I2). Corroded members at the lower tower give the
+    // orange-vs-iron-vs-timber separation.
+    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, 10, 0.4, 0.4, rust, false);
   }
   boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, 11, 0.7, 0.7, iron, false);
   const sheave = cylOnPlane(group, ivX, ivY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
@@ -621,10 +684,38 @@ export function createLandmarks(scene) {
   // Mission — adobe with a campanario on the facade (not a centered cone).
   const mission = POS.mission;
   boxOnGround(group, mission.x, mission.z, 10, 6, 8, adobe, false);
-  boxOnGround(group, mission.x, mission.z, 10.6, 0.4, 8.6, roof, false, 6);
-  boxOnGround(group, mission.x, mission.z + 4.2, 2.4, 4.5, 1.6, adobe, false, 6);
-  cylOnGround(group, mission.x, mission.z + 4.2, 0.5, 0.5, 0.8, iron, false, undefined, 9);
+  // Flush roof (no front overhang) so the tower below sits on the facade
+  // plane instead of punching through the eave.
+  boxOnGround(group, mission.x, mission.z, 10.6, 0.4, 8.0, roof, false, 6);
+  // Campanario in stone on the NORTH facade (the side the audit camera faces;
+  // north is -Z). The earlier attempts were on +Z — the far side — so the
+  // camera saw only the tower's tip above the roofline, which read as a
+  // rooftop box (M2). Stone against adobe keeps the tower visible, and it sits
+  // off-center (a side campanario) so the golden-hour silhouette cannot read
+  // as a centered roof element.
+  const campX = mission.x + 2.5;
+  boxOnGround(group, campX, mission.z - 4.8, 4.0, 12.0, 1.6, stone, false);
+  // Tower entry at the base and a large dark bell chamber above — the cues
+  // that make it a campanario rather than a chimney.
+  boxOnGround(group, campX, mission.z - 5.15, 1.1, 2.2, 0.4, dark, false, 0.3);
+  boxOnGround(group, campX, mission.z - 5.15, 2.6, 3.0, 0.5, dark, false, 6.4);
+  boxOnGround(group, campX, mission.z - 4.8, 0.18, 1.5, 0.18, wood, false, 12.0);
+  boxOnGround(group, campX, mission.z - 4.8, 0.8, 0.16, 0.16, wood, false, 12.7);
+  // Vigas on the west half of the facade (the campanario occupies the east):
+  // protruding timber beams give M1 a visible adobe-vs-timber comparison so
+  // the walls do not read as flat generic brown.
+  const vg = vigas({ w: 5.5, eave: 6, material: wood });
+  vg.rotation.y = Math.PI;
+  vg.position.set(mission.x - 2.75, heightAt(mission.x - 2.75, mission.z - 4.0), mission.z - 4.0);
+  group.add(vg);
+  // A full-size timber door on the facade: vigas alone were sub-pixel at the
+  // capture distance, so M1 needs a large wood-vs-adobe element that reads.
+  boxOnGround(group, mission.x - 1.5, mission.z - 4.12, 1.05, 2.15, 0.09, wood, false);
+  boxOnGround(group, mission.x - 2.02, mission.z - 4.15, 0.12, 2.15, 0.12, dark, false);
+  boxOnGround(group, mission.x - 0.98, mission.z - 4.15, 0.12, 2.15, 0.12, dark, false);
+  boxOnGround(group, mission.x - 1.5, mission.z - 4.15, 1.28, 0.16, 0.12, dark, false, 2.15);
   addBoxCollider(mission.x, mission.z, 5.2, 4.2);
+  addBoxCollider(campX, mission.z - 4.8, 2.0, 0.8);
   boxAt(group, POS.vipers.x, POS.vipers.z, 7, 3, 5, rust);
   boxAt(group, POS.hideout.x, POS.hideout.z, 6, 2.6, 5, dark);
 
@@ -653,6 +744,20 @@ export function createLandmarks(scene) {
     });
   }
 
+  // Plaza dressing: a stone well and a mission cross give the adobe cluster
+  // village furniture, so it reads as a settlement rather than repeated boxes
+  // (audit E1).
+  const wellX = ep.x + 1.5;
+  const wellZ = ep.z - 1.0;
+  cylOnGround(group, wellX, wellZ, 0.55, 0.7, 0.7, stone, true);
+  cylOnGround(group, wellX, wellZ, 0.32, 0.32, 0.9, dark, false, 0.7);
+  boxAt(group, wellX, wellZ, 0.12, 1.3, 0.12, wood, false, 1.4);
+  boxAt(group, wellX, wellZ, 1.0, 0.1, 0.1, wood, false, 1.9);
+  const crossX = ep.x - 6.5;
+  const crossZ = ep.z + 4.5;
+  boxAt(group, crossX, crossZ, 0.16, 2.6, 0.16, wood, false);
+  boxAt(group, crossX, crossZ, 1.2, 0.14, 0.14, wood, false, 1.35);
+
   // Tribal camp — tipis in a loose ring with per-instance scale and yaw.
   const tipiCount = 7;
   for (let i = 0; i < tipiCount; i += 1) {
@@ -666,13 +771,24 @@ export function createLandmarks(scene) {
   }
 
   // Cemetery — headstones with jitter.
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
     const hx = POS.cemetery.x + (i - 2) * 2.2 + (seeded(i) - 0.5) * 0.4;
     const hz = POS.cemetery.z + (seeded(i + 3) - 0.5) * 0.4;
-    const stone2 = boxOnGround(group, hx, hz, 0.35, 1.1, 0.18, stone, false);
+    // Vary size and lean so the row does not read as identical slabs (C1).
+    const sw = 0.26 + seeded(i + 9) * 0.2;
+    const sh = 0.7 + seeded(i + 11) * 0.7;
+    const sd = 0.14 + seeded(i + 13) * 0.1;
+    const stone2 = boxOnGround(group, hx, hz, sw, sh, sd, stone, false);
+    stone2.rotation.z = (seeded(i + 15) - 0.5) * 0.18;
     stone2.rotation.y = (seeded(i + 7) - 0.5) * 0.4;
   }
+  // Hunting cabin — the plain box read as flat-roofed (H1). The roof lives
+  // here with the box; the chimney, door, and step are in homestead.js.
   boxAt(group, POS.huntingCabin.x, POS.huntingCabin.z, 7, 3.6, 5.5, dark);
+  const hc = POS.huntingCabin;
+  const hcRoof = gableRoof({ w: 7.4, d: 5.5, pitch: 0.62, overhang: 0.5, eave: 3.6, material: roof });
+  hcRoof.position.set(hc.x, heightAt(hc.x, hc.z), hc.z);
+  group.add(hcRoof);
   boxAt(group, POS.overlook.x, POS.overlook.z, 8, 0.2, 1.1, dark, false);
 
   // Cattle — per-instance yaw.
@@ -684,6 +800,25 @@ export function createLandmarks(scene) {
     body.rotation.z = Math.PI / 2;
     body.rotation.y = seeded(x * 0.01 + z * 0.01) * Math.PI * 2;
     body.position.set(x, heightAt(x, z) + 0.7, z);
+    body.castShadow = true;
+    group.add(body);
+  }
+  // Western Range herd — the ranch herd sits 1.5 km away, so the range audit
+  // camera saw no cattle at all (W2). The camera stands 60 m EAST of the POI
+  // looking west, so the bunch must sit in the foreground (east of the POI),
+  // close enough to read, with varied orientation and a lighter hide for
+  // contrast against the grass.
+  const rangeCattle = mat(0x7a4a28);
+  for (const [dx, dz] of [[30, -20], [38, -28], [44, -16], [26, -34], [36, -38], [48, -30], [20, -26]]) {
+    const x = POS.westernRange.x + dx;
+    const z = POS.westernRange.z + dz;
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 1.3, 3, 6), rangeCattle);
+    body.rotation.z = Math.PI / 2;
+    // Orient by the offset indices, not the world position: the herd sits in
+    // a tight area, so world-position seeds were near-identical and every
+    // animal faced the same way (audit W2).
+    body.rotation.y = seeded(dx * 0.37 + dz * 0.11 + 3) * Math.PI * 2;
+    body.position.set(x, heightAt(x, z) + 0.82, z);
     body.castShadow = true;
     group.add(body);
   }

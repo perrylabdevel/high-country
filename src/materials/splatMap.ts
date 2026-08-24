@@ -4,7 +4,8 @@
  * R=grass G=dirt B=rock A=road/gravel. Sampled in worldToMap UV.
  */
 import * as THREE from "three/webgpu";
-import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor } from "../map.js";
+import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, ROADS } from "../map.js";
+import { distToPolyline, polylineCache } from "../map.js";
 
 const SPLAT_W = 2048;
 const SPLAT_H = 2560;
@@ -39,7 +40,13 @@ function weightsAt(x: number, z: number) {
   const biome = biomeAt(x, z);
   let grass = GRASSY.has(biome) ? 1 : 0.12;
   let dirt = DIRTY.has(biome) ? 0.9 : 0.18;
-  let rock = ROCKY.has(biome) ? 0.9 : 0.04;
+  // Badlands rock is no longer painted on uniformly: flats carry a mix of
+  // dirt and weathered rock so the strata bands read as deposits, while
+  // slopes add rock through the material's slope channel (audit D2).
+  let rock = ROCKY.has(biome) ? 0.45 : 0.04;
+  if (ROCKY.has(biome)) {
+    dirt = 0.52;
+  }
   // Noise-break the biome boundaries: a low-frequency perturbation pushes the
   // dominant layer's weight down and the others up near edges, so the straight
   // rectangle seams read as irregular transitions.
@@ -48,13 +55,19 @@ function weightsAt(x: number, z: number) {
   dirt = Math.min(1, Math.max(0, dirt - n * 0.35));
   rock = Math.min(1, Math.max(0, rock + n * 0.2));
   if (biome === "range") {
-    grass = 0.9;
-    dirt = 0.15;
+    grass = 0.97;
+    dirt = 0.05;
+  }
+  if (biome === "town") {
+    // A town should read as settled grass with packed dirt where people walk,
+    // not as an all-dirt plain (audit U1 at silverCreek).
+    grass = 0.42;
+    dirt = 0.62;
   }
   if (biome === "burn") {
-    grass = 0.08;
-    dirt = 0.95;
-    rock = 0.2;
+    grass = 0.05;
+    dirt = 0.35;
+    rock = 0.8;
   }
   if (biome === "lake") {
     grass = 0.7;
@@ -62,7 +75,30 @@ function weightsAt(x: number, z: number) {
   }
   const creek = creekFactor(x, z);
   const lake = lakeFactor(x, z);
-  const road = Math.min(1, Math.pow(roadFactor(x, z), 0.52));
+  // Road channel baked with a NARROW falloff (0.55x width vs roadFactor's
+  // 1.15x). The material derives both the road extent and the wheel-track
+  // center from this one channel: on the wide profile the center band covered
+  // nearly the whole road, so the wheel-track never read (audit G1).
+  const narrow = (() => {
+    let w = 0;
+    for (const road of ROADS) {
+      if (road.kind === "rail") {
+        // Rails get their own ballast ribbon and ties in roads.js; painting a
+        // gravel road under them made the rail bed read as a road (audit G1).
+        continue;
+      }
+      const falloff = (road.width || 6) * 0.55;
+      const c = polylineCache(road.pts);
+      const pad = falloff * 3;
+      if (x < c.minX - pad || x > c.maxX + pad || z < c.minZ - pad || z > c.maxZ + pad) {
+        continue;
+      }
+      const d = distToPolyline(x, z, road.pts);
+      w = Math.max(w, Math.exp(-((d * d) / (falloff * falloff))));
+    }
+    return w;
+  })();
+  const road = Math.min(1, Math.pow(narrow, 0.52));
   grass = Math.max(0, grass * (1 - creek * 0.8) * (1 - lake * 0.5) * (1 - road));
   dirt = Math.min(1, Math.max(dirt, creek * 0.75, lake * 0.55) * (1 - road * 0.85));
   rock = Math.min(1, Math.max(rock, creek * 0.08) * (1 - road));

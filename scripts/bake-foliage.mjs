@@ -19,7 +19,9 @@ import { writeFileSync, mkdirSync } from "node:fs";
 const OUT = "public/textures/foliage";
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+});
 const page = await browser.newPage();
 await page.setContent("<canvas id=a></canvas>");
 
@@ -169,14 +171,18 @@ const images = await page.evaluate(() => {
     cp.ca.stroke();
   }
   const NEEDLE = { root: [26, 50, 32], mid: [44, 84, 50], tip: [70, 108, 66] };
-  const clusters = 22;
+  // Denser sprig: the first bake left broad gaps between needles that read as
+  // sparse canopies from the audit cameras (P2). More clusters, more needles
+  // per cluster, and slightly wider needles fill the card without making it a
+  // solid block.
+  const clusters = 30;
   for (let c = 0; c < clusters; c += 1) {
     const t = (c + 0.4) / clusters;
     const cx = t * tipX;
     const cy = stemY + Math.sin(c * 1.7) * CONE * 0.012;
     const taper = Math.pow(1 - t, 0.62);
     const spread = CONE * 0.26 * taper;
-    const per = 20 + ((c * 5) % 8);
+    const per = 28 + ((c * 5) % 10);
     for (let k = 0; k < per; k += 1) {
       const up = k % 2 === 0 ? -1 : 1;
       const ang = up * (Math.PI * 0.42) + (Math.random() - 0.5) * 0.7 - 0.16;
@@ -186,7 +192,7 @@ const images = await page.evaluate(() => {
       blade(
         cp.ca, cp.cn, sx, cy, len,
         Math.cos(ang) * len * 1.1,
-        1.9 + Math.random() * 1.5,
+        2.3 + Math.random() * 1.7,
         {
           root: NEEDLE.root,
           mid: NEEDLE.mid.map((v) => v * shade),

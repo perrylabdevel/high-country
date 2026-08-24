@@ -979,15 +979,15 @@ export function boardwalk({ length, width, height = 0.45, material, y = 0 }) {
   tag(group, "boardwalk", { length, width, height });
   // A solid raised deck: thick enough to read as an elevated platform, not a
   // thin slab that vanishes edge-on at distance.
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.4, width), material);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.5, width), material);
   deck.position.set(0, y + height, 0);
   deck.castShadow = true;
   deck.receiveShadow = true;
   group.add(deck);
 
   // A front fascia board makes the raised edge read clearly against the street.
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(length, height + 0.4, 0.16), material);
-  fascia.position.set(0, y + (height + 0.4) / 2, -width / 2);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(length, height + 0.5, 0.18), material);
+  fascia.position.set(0, y + (height + 0.5) / 2, -width / 2);
   fascia.castShadow = true;
   group.add(fascia);
 

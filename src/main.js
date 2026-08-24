@@ -9,6 +9,7 @@ import { createTerrain, createSky, rebuildTerrainMaterial } from "./environment.
 import { createRanch } from "./buildings.js";
 import { mergeStatic } from "./buildings/mergeStatic.js";
 import { createLandmarks, createWater } from "./landmarks.js";
+import { loadBuildingMaps } from "./materials/buildingSets.ts";
 import { createInteriors } from "./interiors.js";
 import { createShore } from "./shore.js";
 import { createIndustry } from "./industry.js";
@@ -250,6 +251,9 @@ async function boot() {
     fallback: forceWebGL
   });
   await createRoads(scene);
+  // Building-surface maps (adobe / wood / roof) must be ready before the
+  // statics are built; the builders fall back to flat colours without them.
+  const buildingMaps = await loadBuildingMaps();
   // Every structure builder takes a parent and calls .add() on it, so collect
   // them under one group and collapse that to one mesh per material. The town,
   // ranch and outposts are ~670 meshes sharing 16 materials, and 659 of them
@@ -259,17 +263,19 @@ async function boot() {
   // anchors, interiors and the look-at overlay all read them.
   const statics = new THREE.Group();
   statics.name = "statics";
-  const ranch = createRanch();
+  const ranch = createRanch(buildingMaps);
   statics.add(ranch);
-  createLandmarks(statics);
+  createLandmarks(statics, buildingMaps);
   createInteriors(statics);
-  createShore(statics);
-  createIndustry(statics);
-  createFort(statics);
+  createShore(statics, buildingMaps);
+  createIndustry(statics, buildingMaps);
+  createFort(statics, buildingMaps);
   createPines(statics);
-  createHomestead(statics);
+  createHomestead(statics, buildingMaps);
   scene.add(statics);
-  scene.add(mergeStatic(statics, "statics-merged"));
+  if (!window.__skipStaticMerge) {
+    scene.add(mergeStatic(statics, "statics-merged"));
+  }
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
   const smoke = createSmoke(scene);
@@ -477,7 +483,11 @@ async function boot() {
     // Warmer and dimmer as the sun drops toward the horizon.
     const low = Math.max(0, 1 - materialSettings.sunElevation / 30);
     skyRig.sun.color.setRGB(1, 0.88 - low * 0.16, 0.69 - low * 0.28);
-    skyRig.sun.intensity = materialSettings.sunIntensity * (0.55 + 0.45 * Math.min(1, materialSettings.sunElevation / 32));
+    // Golden-hour sun is dimmed as it drops (warm, low), but the golden HDRI
+    // fill is 1.85x — the HARD_WON 1.4 fix — and together they washed the
+    // directional shadows out (audit U5 at golden). Keep the warm dimming but
+    // give the low sun more direct weight so shadows read against the fill.
+    skyRig.sun.intensity = materialSettings.sunIntensity * (0.85 + 0.15 * Math.min(1, materialSettings.sunElevation / 32));
   }
   updateSunOffset();
 

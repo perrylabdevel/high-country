@@ -4,6 +4,7 @@ import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
 import { addBoxCollider } from "./collision.js";
 import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -63,7 +64,24 @@ function cabinPorch(group, wood, dark, stone) {
   boxAt(group, cabin.x, porchZ, 5, 0.18, 2.2, wood, false);
   boxAt(group, cabin.x - 2.15, cabin.z + 4.7, 0.18, 2.1, 0.18, dark);
   boxAt(group, cabin.x + 2.15, cabin.z + 4.7, 0.18, 2.1, 0.18, dark);
-  boxAt(group, cabin.x + 2, cabin.z - 3.2, 0.9, 4.4, 0.9, stone);
+  // Chimney tall enough to clear the gable ridge (~5.6 m) and read from the
+  // path side (H1). The old 4.4 m stub stayed hidden behind the roof.
+  boxAt(group, cabin.x + 2, cabin.z - 3.2, 0.95, 6.7, 0.95, stone);
+  addBoxCollider(cabin.x + 2, cabin.z - 3.2, 0.5, 0.5);
+
+  // Door on the NORTH wall (-Z) — the facade the audit camera faces. The
+  // earlier attempts put the door on +Z, the far side, so the camera saw an
+  // uninterrupted wall (H1). A recessed dark opening with a pale leaf inside
+  // keeps the doorway readable even in golden-hour shadow.
+  const doorWood = mat(0xe3d2a8);
+  const doorDark = mat(0x24150c);
+  const doorZ = cabin.z - 2.85;
+  boxAt(group, cabin.x, cabin.z - 2.80, 1.15, 2.25, 0.16, doorDark, false);
+  boxAt(group, cabin.x, doorZ, 0.95, 2.05, 0.06, doorWood, false);
+  boxAt(group, cabin.x - 0.60, doorZ, 0.12, 2.05, 0.1, wood, false);
+  boxAt(group, cabin.x + 0.60, doorZ, 0.12, 2.05, 0.1, wood, false);
+  boxAt(group, cabin.x, doorZ, 1.32, 0.16, 0.1, wood, false, 2.05);
+  boxAt(group, cabin.x, cabin.z - 3.05, 1.3, 0.18, 0.4, wood, false);
 
   const pileX = cabin.x + 6.4;
   const pileZ = cabin.z + 0.8;
@@ -140,11 +158,18 @@ function tribalCamp(group, wood, dark, stone, canvas) {
   return lodges;
 }
 
-export function createHomestead(scene) {
+export function createHomestead(scene, maps = {}) {
   const group = new THREE.Group();
-  const wood = mat(0xc4a574);
-  const dark = mat(0x6b4226);
-  const stone = mat(0x8a8478);
+  const hasMaps = Boolean(maps?.wood && maps?.rock);
+  const wood = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
+    : mat(0xc4a574);
+  const dark = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : mat(0x6b4226);
+  const stone = hasMaps
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : mat(0xa89e90);
   const canvas = mat(0xd2c4a0);
 
   const cemeteryGate = cemeteryFence(group, wood, stone);

@@ -31,18 +31,28 @@ import {
   wheelOn
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function groundY(x, z) {
   return heightAt(x, z);
 }
 
-export function createRanch() {
+export function createRanch(maps = {}) {
   const ox = POS.ranch.x;
   const oz = POS.ranch.z;
-  const wood = new THREE.MeshStandardNodeMaterial({ map: woodTexture(), roughness: 0.86, color: 0xc4a574 });
-  const darkWood = new THREE.MeshStandardNodeMaterial({ map: woodTexture(), roughness: 0.9, color: 0x6b4226 });
-  const roof = new THREE.MeshStandardNodeMaterial({ map: shingleTexture(), roughness: 0.88, color: 0x4a3020 });
-  const stone = new THREE.MeshStandardNodeMaterial({ map: rockTexture(), roughness: 0.95, color: 0x8a8478 });
+  const hasMaps = Boolean(maps?.wood && maps?.roof && maps?.rock);
+  const wood = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
+    : new THREE.MeshStandardNodeMaterial({ map: woodTexture(), roughness: 0.86, color: 0xc4a574 });
+  const darkWood = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : new THREE.MeshStandardNodeMaterial({ map: woodTexture(), roughness: 0.9, color: 0x6b4226 });
+  const roof = hasMaps
+    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
+    : new THREE.MeshStandardNodeMaterial({ map: shingleTexture(), roughness: 0.88, color: 0x4a3020 });
+  const stone = hasMaps
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : new THREE.MeshStandardNodeMaterial({ map: rockTexture(), roughness: 0.95, color: 0x8a8478 });
   const glass = new THREE.MeshStandardNodeMaterial({
     color: 0xf0d9a0,
     emissive: 0x6a4018,
@@ -109,7 +119,13 @@ export function createRanch() {
   mate(mSouth, "wallSide", face(main, "front"));
 
   const mNorthLen = 4 - -10.5;
-  const mNorth = wallX({ length: mNorthLen, height: MEAVE, thickness: T, material: wood });
+  const mNorth = wallX({
+    length: mNorthLen, height: MEAVE, thickness: T, material: wood,
+    openings: [
+      { x: -4, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 },
+      { x: 2.5, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
+    ]
+  });
   mate(mNorth, "wallSide", face(main, "back", { along: (-10.5 + 4) / 2 - MCX }));
 
   const mWest = wallX({
@@ -123,7 +139,13 @@ export function createRanch() {
 
   const mEast = wallX({
     length: MD, height: MEAVE, thickness: T, material: wood,
-    openings: [{ x: 2.8 - MCZ, w: 1.3, h: 1.5, fromFloor: 0.9 }]
+    openings: [
+      { x: 2.8 - MCZ, w: 1.3, h: 1.5, fromFloor: 0.9 },
+      // Second-floor windows on the east wall: the audit camera approaches
+      // from the north-east, and without them the two-story main block read
+      // as a single story (R1).
+      { x: 2.8 - MCZ, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
+    ]
   });
   mate(mEast, "wallSide", face(main, "right"));
 
@@ -189,9 +211,9 @@ export function createRanch() {
   // Chimneys — continuous from the hearth, topping out above each ridge.
   const mainRidge = MEAVE + ((MD + 0.9) / 2) * 0.5;
   const ellRidge = EEAVE + ((ED + 0.9) / 2) * 0.5;
-  const mainStack = chimney({ width: 1.15, height: mainRidge + 0.8, material: stone });
+  const mainStack = chimney({ width: 1.15, height: mainRidge + 1.6, material: stone });
   mate(mainStack, "base", anchorsOf(main).get("footing"), { offset: { x: -6.8 - MCX, y: 0, z: -3.4 - MCZ } });
-  const ellStack = chimney({ width: 1.05, height: ellRidge + 0.7, material: stone });
+  const ellStack = chimney({ width: 1.05, height: ellRidge + 1.3, material: stone });
   mate(ellStack, "base", anchorsOf(ell).get("footing"), { offset: { x: 10.2 - ECX, y: 0, z: -16.35 - ECZ } });
 
   // Furniture, seated on each block's footing (house coords minus block centre).

@@ -1,12 +1,42 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-3457a478ab66.tar.gz",
-  "bundle": "textures-3457a478ab66.tar.gz",
-  "contentHash": "3457a478ab66c4c13aca22b3f53c11a71db622a61ee99bfc6c69ec2e4e467c58",
-  "bundleSha256": "0c5a78405e916ca4ed8199585d17da76341c24ddae1c389081821ea1779f50c0",
-  "bundleBytes": 93638841,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-ddab832dfb5b.tar.gz",
+  "bundle": "textures-ddab832dfb5b.tar.gz",
+  "contentHash": "ddab832dfb5b0331301bac9138f9125c3ca0ec9a757c53313d1ae6b889633bdf",
+  "bundleSha256": "2928e1ffd083498407573a176e5b6c30cf9224ba74d013e8241c421c9e4ab596",
+  "bundleBytes": 282020813,
   "target": "public/textures",
   "files": [
+    {
+      "path": "adobe_2k_albedo.jpg",
+      "bytes": 1621557,
+      "sha256": "e7ed1892b319d8a1ddb8b95242cc8b9d627bd2a558ec107da174a463f3dbc561"
+    },
+    {
+      "path": "adobe_2k_albedo.ktx2",
+      "bytes": 3930206,
+      "sha256": "fd90153db587e9c1ecbfd79334df175bc1727d5a9f31521502a36c86cf0063a8"
+    },
+    {
+      "path": "adobe_2k_normal.jpg",
+      "bytes": 3241213,
+      "sha256": "126f8d299022ed26fa70e0fa213d2b34db58e1f9aced1ee571902b575dced754"
+    },
+    {
+      "path": "adobe_2k_normal.ktx2",
+      "bytes": 5017449,
+      "sha256": "fdd8247f001190253428088b8829f428451386f9106127c924e20370616c1641"
+    },
+    {
+      "path": "adobe_2k_orm.ktx2",
+      "bytes": 5106885,
+      "sha256": "db43b903769e619aa42c0c7eacb10a00e9fbb0aebe99b9c83bc3df4de8d1018f"
+    },
+    {
+      "path": "adobe_2k_orm.png",
+      "bytes": 7906820,
+      "sha256": "895c0765a7f6ae449102898eb844162953568a7bd1d6ccde05bf992419ffb901"
+    },
     {
       "path": "bark_2k_albedo.ktx2",
       "bytes": 5455758,
@@ -23,19 +53,34 @@
       "sha256": "d4432784867a15555dddffb1d0046317aead63bdcca0ecc79c31ea8b54bb5b4c"
     },
     {
+      "path": "dirt_2k_albedo.jpg",
+      "bytes": 5324854,
+      "sha256": "6a775ad0f933e14e7702579f6d04f24161af480983b292975aae366e71e3af93"
+    },
+    {
       "path": "dirt_2k_albedo.ktx2",
-      "bytes": 5489001,
-      "sha256": "e773bf37c927fdf91a83047564c240bf67c9e675c9aeb57ed07e2880c4aa2bfc"
+      "bytes": 11585367,
+      "sha256": "684a595d526f648cbdb9926c068432bc2033f29f226ac46e89f5fb95b73d41d4"
+    },
+    {
+      "path": "dirt_2k_normal.jpg",
+      "bytes": 4977831,
+      "sha256": "da70ddc5c7d53d905d842ec189afbf7e2a7da84f281e94041346829b65f29786"
     },
     {
       "path": "dirt_2k_normal.ktx2",
-      "bytes": 5439586,
-      "sha256": "89f95199df39e836173726886fabe97a3bdab29f8561018508f2aeacbbf80bab"
+      "bytes": 5321536,
+      "sha256": "57c6568a337a8042dc7454f835faa3730933966d27600fd05134ace998bf265d"
     },
     {
       "path": "dirt_2k_orm.ktx2",
-      "bytes": 5379235,
-      "sha256": "3fadfbb76db5d7cb4ef5697976ea4eb56423ac839dcd51e4773bcb9d6d6a3d0e"
+      "bytes": 5332689,
+      "sha256": "198c60e8ef6d740e00613fcf65fc78c0b977642a32b71d823273dcc2da160192"
+    },
+    {
+      "path": "dirt_2k_orm.png",
+      "bytes": 9371351,
+      "sha256": "8bac4e05b7aca6504bad22b28c1fc9f3e5b819903efcfea4e8b66511d6aa3454"
     },
     {
       "path": "env/golden_2k.hdr",
@@ -48,49 +93,29 @@
       "sha256": "462a3cc63bfcd9fe0299137a0f33f4ade84e237f4cb6115fe46f5ab400693fe6"
     },
     {
-      "path": "foliage/broad_albedo.png",
-      "bytes": 347091,
-      "sha256": "4c3066ddce1f406b0d83097deeb255d7147e4268d850084b69ecd95811964dc2"
-    },
-    {
-      "path": "foliage/broad_normal.ktx2",
-      "bytes": 620066,
-      "sha256": "6ff38d4368f7de65c022c0664a677ad7b507528987e123efe3b811f31202cb37"
-    },
-    {
-      "path": "foliage/grass_albedo.png",
-      "bytes": 1223323,
-      "sha256": "0ad8a16b121d50fba90e7fb2b6f340b0f09211dd1502ab48128886b6c2683c36"
-    },
-    {
-      "path": "foliage/grass_normal.ktx2",
-      "bytes": 1497174,
-      "sha256": "4b254b65c73bdf8cb5abf6f19c59e8cb0a31053811141b7056802e28dbe0712e"
-    },
-    {
       "path": "foliage/needle_albedo.png",
-      "bytes": 355270,
-      "sha256": "2a3473dd9870a574ddc68e832e70e1f282fffb7df1f397002883e9a5197129d7"
+      "bytes": 237689,
+      "sha256": "a4eaf8288a2d92fcd9f2b80ca8c7b80906b0011d4ca044ac1ca2df23658f9e22"
     },
     {
       "path": "foliage/needle_normal.ktx2",
-      "bytes": 213774,
-      "sha256": "08b49efb9ecacb5f5e06cce5c942e862081b79956002a260aeae5039944dbef3"
+      "bytes": 241490,
+      "sha256": "0b8a8d32b87516b3c86fa6a19233ae36de08503a50f20ab416ddd73dafbb2404"
     },
     {
-      "path": "foliage/sage_albedo.png",
-      "bytes": 306213,
-      "sha256": "94bf5ea4fe5681e8ee31bbb884a23a7ab82e1d6dd64cca474628e7eb7ce2ef98"
-    },
-    {
-      "path": "foliage/sage_normal.ktx2",
-      "bytes": 530064,
-      "sha256": "2dffe599f545c5881eeaf7b247a872b4b757705891bdae6ad05737c139162925"
+      "path": "grass_2k_albedo.jpg",
+      "bytes": 5919795,
+      "sha256": "15dec2481b4e171ce4b8c034fd4837b1406132e7f452f77bcc4f253254ac289d"
     },
     {
       "path": "grass_2k_albedo.ktx2",
-      "bytes": 5546069,
-      "sha256": "bee9cf4ea68288e12e86474f916bb5fdc743b5a83cdf969701a6007c677ca12b"
+      "bytes": 12540648,
+      "sha256": "0a39304bfb2f24c006de0dbcbe8cd071c0d94d7de176b1b4c7aee25eb1f1e90b"
+    },
+    {
+      "path": "grass_2k_normal.jpg",
+      "bytes": 6047262,
+      "sha256": "df0cf0ce96e653f033e5b934d5b12995464bda027aa53bd12e329be889aa9f45"
     },
     {
       "path": "grass_2k_normal.ktx2",
@@ -103,19 +128,39 @@
       "sha256": "01d1aecee2b95da1d6b5a390182d5971e18ce0e62d4c35bd75c3c24873ba295d"
     },
     {
+      "path": "grass_2k_orm.png",
+      "bytes": 11247661,
+      "sha256": "8f2d5d6cd60807ba1d7d76dad055769596406a7fafc7f5738eda5161f10f3a96"
+    },
+    {
+      "path": "gravel_2k_albedo.jpg",
+      "bytes": 6298753,
+      "sha256": "dd166b403e773d7dff4d427eb556a84e8d3c51d6ab8c251c9c53b60f8f93e227"
+    },
+    {
       "path": "gravel_2k_albedo.ktx2",
-      "bytes": 5492228,
-      "sha256": "f6fd588c5715c4f94f7c38c786903b0e72a38c6f1139049544517b5234aa88f1"
+      "bytes": 12521934,
+      "sha256": "7b6abe6887888000474aef7770492ace63a1d34f05eadd9b1931bc8b3a936261"
+    },
+    {
+      "path": "gravel_2k_normal.jpg",
+      "bytes": 5481185,
+      "sha256": "571eb16b158eb8581ab5348579a26f42c3c711536941f347074795e79afe6329"
     },
     {
       "path": "gravel_2k_normal.ktx2",
-      "bytes": 5443183,
-      "sha256": "5ea2dd60fb0568ec2876e42d5cf4c5129fcd0995fb2c5e764a8f35d347c0e647"
+      "bytes": 5367033,
+      "sha256": "006986875ff682c427947ed38c465c8077a2c2fd12b48f09eadafcbd9ffedb88"
     },
     {
       "path": "gravel_2k_orm.ktx2",
-      "bytes": 5431640,
-      "sha256": "dfdbb926f53ba3ad5285bd8a5e7711f13fdbb14ad7e558ce5dd1304cad0f4a9d"
+      "bytes": 5392400,
+      "sha256": "e2451c23c3e2ed5b5ee57a6f7a0bc4abcd5e61bc0dad035509194b3118465147"
+    },
+    {
+      "path": "gravel_2k_orm.png",
+      "bytes": 10840730,
+      "sha256": "dc3cef95b0ffbd118c3ba71b242897c2941c6d841c0184f1c1c86414f1482c9e"
     },
     {
       "path": "pine_twig_2k.png",
@@ -123,19 +168,94 @@
       "sha256": "ed58515267e3a638535c9efd052219b22d28b5edb6e58885f18b055a4c493c96"
     },
     {
+      "path": "rock_2k_albedo.jpg",
+      "bytes": 6543534,
+      "sha256": "eafee7230022a86bffed4d906e78207a16f0463ef19fa323197ed3bfe1c9cbce"
+    },
+    {
       "path": "rock_2k_albedo.ktx2",
-      "bytes": 5223912,
-      "sha256": "2f9a56d0f1513e7a404c2b89f30649b0f32eb863b2c04796b2eb5f7a2a47f5e2"
+      "bytes": 12582639,
+      "sha256": "5ab300dc179429be1efda37254657f07686e93ff2f8f47351695d0e94b4b4b7d"
+    },
+    {
+      "path": "rock_2k_normal.jpg",
+      "bytes": 5566160,
+      "sha256": "661b107c1abcd82c7447f8c49238b504f02e8d12aa0406c029410f8073f12ba5"
     },
     {
       "path": "rock_2k_normal.ktx2",
-      "bytes": 5346611,
-      "sha256": "f170fd6aa4bd15ac1ae2c943d661aa414ccec00eae863cfbb8e58f6606973589"
+      "bytes": 5456724,
+      "sha256": "1dbf38988f61aa8ed153d8ce408947d70355ce92811d4c9c80b263efbe1b6991"
     },
     {
       "path": "rock_2k_orm.ktx2",
-      "bytes": 4973084,
-      "sha256": "a4b19b4bdacabce96a1e17e8705858acd00bdad51061fc8a58c1ef6bfb28013b"
+      "bytes": 5477773,
+      "sha256": "9c66d380723f2bc3c5bbfb147d9ebde44288c17d0dbef9387055241d23afc484"
+    },
+    {
+      "path": "rock_2k_orm.png",
+      "bytes": 12271287,
+      "sha256": "47c44479dd996a04b2fd3dc287b21363e1bc920e08190f1460f647bc1449c686"
+    },
+    {
+      "path": "roof_2k_albedo.jpg",
+      "bytes": 2384072,
+      "sha256": "5865ef77c2555691e9e01709a9d0d30f23c46bda238d65ef5f8faac1b91abc9f"
+    },
+    {
+      "path": "roof_2k_albedo.ktx2",
+      "bytes": 4994176,
+      "sha256": "34bafa5e86d12c4214e11b881aa3f319bebee5dbc188e952e1a3248a70dffdc3"
+    },
+    {
+      "path": "roof_2k_normal.jpg",
+      "bytes": 1974929,
+      "sha256": "e47d242d20c09ebd10596d48d11f54e1077219cd9a22c5870cb8f825a3885810"
+    },
+    {
+      "path": "roof_2k_normal.ktx2",
+      "bytes": 3680488,
+      "sha256": "893a159c9e5c5aeff32bb8ef5afdcbacc969ce5150275dd549028eac958abbb7"
+    },
+    {
+      "path": "roof_2k_orm.ktx2",
+      "bytes": 3764221,
+      "sha256": "127d46933f1555e3cf3549d67c027ba6f39b11958fefc0a71d4c0dc1f8e7cfe2"
+    },
+    {
+      "path": "roof_2k_orm.png",
+      "bytes": 4979359,
+      "sha256": "da4f6863e6bd2c22f3ad07391556623a1673cdc7e51d139bc21a9033cb27c85f"
+    },
+    {
+      "path": "wood_2k_albedo.jpg",
+      "bytes": 911358,
+      "sha256": "070ebc4c56a6729ca73a791f7cd3bab7670eb03bfa9ac0218864a554228bcc30"
+    },
+    {
+      "path": "wood_2k_albedo.ktx2",
+      "bytes": 5192153,
+      "sha256": "025832770d7f5fba1bdad143f592512da914412d0f33ed393c476c1494fa28ba"
+    },
+    {
+      "path": "wood_2k_normal.jpg",
+      "bytes": 1029733,
+      "sha256": "1c4882afd62de8da66b6e0730894e1a08db1e0cdd2370bd8bce77a6935d8812b"
+    },
+    {
+      "path": "wood_2k_normal.ktx2",
+      "bytes": 4966010,
+      "sha256": "52c57dd32d1dca717b7837276db65c17bc2ed7b4b2a76f9c05e5d2e0abe02013"
+    },
+    {
+      "path": "wood_2k_orm.ktx2",
+      "bytes": 5302871,
+      "sha256": "6be47d6a74c019e901ea3ed8ec9a4adee3eb1962005761d3eb35dbd8d0ffbf24"
+    },
+    {
+      "path": "wood_2k_orm.png",
+      "bytes": 9618939,
+      "sha256": "bee21f766281196f34219986bae6d61eb9d3ef2ae656fdbacac792a63a070c12"
     }
   ]
 }

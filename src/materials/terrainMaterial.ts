@@ -14,9 +14,11 @@ import {
   smoothstep,
   max,
   float,
+  fract,
   vec2,
   vec3,
   uniform,
+  pow,
   positionWorld,
   normalWorld,
   cameraPosition,
@@ -110,7 +112,10 @@ function twoScaleAlbedo(set: LoadedSet, tiling: FloatUniform, near: Node<"float"
     return texture(set.albedo, worldUv(tiling)).rgb;
   }
   const uvA = worldUv(tiling);
-  const uvB = worldUv(tiling.mul(0.137));
+  // 0.32 puts the second scale around 2.6 m per repeat (8 m base tiling):
+  // fine enough to read as human-scale ground detail at the audit distances,
+  // coarse enough that it does not turn into dense speckle up close.
+  const uvB = worldUv(tiling.mul(0.32));
   const a = texture(set.albedo, uvA).rgb;
   const b = texture(set.albedo, uvB).rgb;
   return mix(a, blendOverlay(a, b), u.twoScaleMix.mul(near));
@@ -155,7 +160,12 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const edgeNoise = mx_noise_float(positionWorld.xz.mul(u.roadNoiseScale));
   const roadRaw = splat.a.add(edgeNoise.mul(u.roadEdgeNoise));
   const roadMask = smoothstep(u.roadEdgeLo, u.roadEdgeHi, roadRaw).toVar();
-  const center = smoothstep(u.roadCenterLo, u.roadCenterHi, splat.a).toVar();
+  // The road channel is a broad Gaussian (falloff ~1.15x road width), so any
+  // smoothstep on it selects nearly the whole road — the wheel-track never
+  // read as distinct from the margins (audit G1). A steep power keeps only the
+  // middle strip dark: 0.96^16=0.52 at ~30% of the falloff, 0.92^16=0.26 at
+  // ~50%, so the band is roughly the center third of the road.
+  const center = pow(splat.a, 16).toVar();
 
   const grassW = splat.r.mul(rockSlope.oneMinus()).mul(nVar.mul(0.12).add(0.92)).mul(roadMask.oneMinus()).toVar();
   const dirtW = splat.g.mul(mix(float(1), float(0.32), rockSlope)).mul(mix(float(1), float(0.22), roadMask)).toVar();
@@ -196,8 +206,10 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const dirt = sampleOrmNormal(maps.dirt, dirtUv);
   const rock = sampleOrmNormal(maps.rock, rockUv);
   const gravel = sampleOrmNormal(maps.gravel, gravelUv);
-  const gravelHeight = mix(gravel.height.add(0.05), gravel.height.sub(0.04), center);
-  const gravelRough = mix(gravel.rough.mul(1.06), gravel.rough.mul(0.88), center).add(nVar.mul(0.04));
+  // Deeper, smoother wheel-track center: the track should read as recessed
+  // (height) and polished (roughness) against the loose bright margins.
+  const gravelHeight = mix(gravel.height.add(0.05), gravel.height.sub(0.08), center);
+  const gravelRough = mix(gravel.rough.mul(1.1), gravel.rough.mul(0.55), center).add(nVar.mul(0.04));
 
   const gPrime = grassW.mul(grass.height.add(u.grassHeightBias));
   const dPrime = dirtW.mul(dirt.height.add(u.dirtHeightBias));
@@ -218,7 +230,14 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
 
   const macro = useMacro ? mx_noise_float(positionWorld.xz.div(u.macroPeriod)).mul(u.macroStrength).add(1) : float(1);
   const biome = mix(vec3(1, 1, 1), vertexColor().rgb, u.vertexColorMix);
-  const color = albedo.mul(ao).mul(macro).mul(biome).mul(u.albedoGain);
+  // Badlands strata (D1/D2): horizontal deposits read as subtle bands on rock
+  // faces. World-Y banding with light noise, applied only where rock
+  // dominates, fading with distance so the horizon does not stripe.
+  const strataNoise = mx_noise_float(positionWorld.mul(vec3(0.35, 0.5, 0.35)));
+  const strataBand = fract(positionWorld.y.mul(0.09).add(strataNoise.mul(0.28)));
+  const strata = smoothstep(float(0.25), float(0.75), strataBand).sub(0.5).mul(0.55);
+  const rockShare = rC.div(sum).mul(near).toVar();
+  const color = albedo.mul(ao).mul(macro).mul(biome).mul(u.albedoGain).mul(rockShare.mul(strata).add(1));
 
   const weightsRgb = vec3(gC.div(sum), dC.div(sum), rC.div(sum));
   const roadRgb = vec3(roadMask, center, splat.a);
