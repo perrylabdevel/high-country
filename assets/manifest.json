@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-d4d1d05c286e.tar.gz",
-  "bundle": "textures-d4d1d05c286e.tar.gz",
-  "contentHash": "d4d1d05c286e4cf4d15c8ffa591a874f92e459eff12d9ddf327c3f224f5d7282",
-  "bundleSha256": "7df2767f4a5f05f1e9dd4991292a5ec4ddba9c055259841fc40de2083a841059",
-  "bundleBytes": 163099349,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-8095d799cf24.tar.gz",
+  "bundle": "textures-8095d799cf24.tar.gz",
+  "contentHash": "8095d799cf24641de924b6fc23a78a0c98de871be831c063c55d65d21d602279",
+  "bundleSha256": "cf2f959ff0845626d9c13eff37dbfd4d36d07055e77ae706fe536750efbde818",
+  "bundleBytes": 163185476,
   "target": "public/textures",
   "files": [
     {
@@ -94,13 +94,13 @@
     },
     {
       "path": "foliage/sage_albedo.png",
-      "bytes": 323717,
-      "sha256": "211b3615330f982368cf80703d3a9281670e0d603e1d7a18f1e915b1b6b83b52"
+      "bytes": 323736,
+      "sha256": "e7257f0d23231eafad64db8243a77346b966149e0a98950abbf77a383d488e01"
     },
     {
       "path": "foliage/sage_normal.ktx2",
       "bytes": 553038,
-      "sha256": "498444bf744c07a7a6713451e272fdaa8af8afc7c8cb9160df01570945553143"
+      "sha256": "5a38542388b3467d4920caee65f8ad07e3e15e1b4eec2dee55462785b7dba2e8"
     },
     {
       "path": "grass_2k_albedo.ktx2",
