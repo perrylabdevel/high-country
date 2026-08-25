@@ -239,3 +239,21 @@ angle limits (the rubric itself allows "cannot assess" for those).
   No floating/clipping, scale plausible. The change does not clear the read
   and moving the herd risks foreground W1/U2 collateral, so it was reverted.
   W2-golden joins the camera/design-limited reads (fixed camera 60 m out).
+- **Pass-84 — El Paso roofline/massing pass (reverted):** targeted E1 (3/3 in
+  pass-81: "repeated flat-roof boxes"). Camera-verified iteration: the south
+  store got a tin-gable roof (ridge north-south, grey metal material) whose
+  gable end faces the audit camera, the two-story got a taller stepped adobe
+  parapet, and the plaza well moved south of the store into the camera's near
+  field (its crossbeam removed). Direct reads: "clear improvement... no
+  longer feels like repeated flat-roof boxes"; the gable reads "well seated...
+  cool-grey color clearly distinguishes it as tin". Full double-checked
+  pass-84: **59 fails / 284 scored (79.2%) vs pass-81 53/279** — net +6,
+  inside the documented 44–60 noise band (pass-82 measured the identical
+  gameplay tree at 59 too). E1 cleared both lights (3→4) and elPaso G1-midday
+  improved (3→4), but elPaso-golden U2 dropped 4→3 and 13 unrelated
+  oscillator criteria (U2/U6/G1/U3/U5 at other POIs) moved ≥4→≤3 in the same
+  session. Contract: fails must drop with no ≥4 collateral regression, so the
+  variant was reverted (same standard as pass-82's P3). `pass-84.json/.md` +
+  `pass-84-doublecheck.md` are kept as the measurement record; the elPaso art
+  direction is documented here for a future pass that can measure outside the
+  noise band.
