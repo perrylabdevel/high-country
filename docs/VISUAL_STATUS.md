@@ -2,7 +2,8 @@
 
 **Updated:** 2026-08-25 · against `audit/reports/pass-86.json` (the latest
 double-checked pass that matches the shipped tree, 48 fails). `pass-82.json`
-through `pass-85.json` are reverted variants, kept as measurement records.
+through `pass-85.json` and `pass-87.json` are reverted variants, kept as
+measurement records.
 
 ## Objective
 
@@ -318,3 +319,16 @@ angle limits (the rubric itself allows "cannot assess" for those).
   (identical-tree passes measure 53 vs 59); this ships as the first
   measured, camera-verified improvement. `pass-86.json/.md` +
   `pass-86-doublecheck.md` are the record.
+- **Pass-87 — road edge-noise strengthening (reverted):** follow-up to the
+  shipped pass-86 fix. The remaining G1 fails at ironValley read "edges clean
+  and straight rather than ragged", so `roadEdgeNoise` was raised 0.85→1.05
+  and `roadNoiseScale` 0.22→0.18 (finer, stronger edge breakup). Direct
+  frame comparisons were positive (ironValley: "visibly finer, mildly ragged
+  road-edge noise while preserving the darker smoother wheel-track center,
+  road continuous"; ranch: "margins ragged and more natural, no dissolving"),
+  but the full double-checked pass-87 measured **51 fails / 290 scored
+  (82.4%) vs the shipped pass-86 48/280** — net +3 worse, with G1 up 8→11
+  (westernRange-midday confirmed "portions of the edge read as a clean
+  horizontal boundary") and new F1/I2/R2/P4/U4 fails. Camera checks did not
+  predict the grader's clean-boundary reads; reverted to the pass-86 state.
+  `pass-87.json/.md` + `pass-87-doublecheck.md` are kept as the record.
