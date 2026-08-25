@@ -61,6 +61,28 @@ const page = await browser.newPage();
 await page.setContent("<canvas id=a></canvas>");
 
 const images = await page.evaluate(() => {
+  /**
+   * Seeded RNG, replacing Math.random throughout.
+   *
+   * These atlases are hash-verified members of the asset bundle, so an
+   * unseeded baker made them unreproducible: once a file was lost off the one
+   * machine that had baked it, no re-run could recreate the bytes the manifest
+   * demanded, and the only copies in existence were whatever happened to be on
+   * someone's disk. That is not a theoretical risk — six atlases had to be
+   * copied between machines by hand for exactly this reason. Seeded, a lost
+   * atlas is one `npm run bake:foliage` away.
+   *
+   * mulberry32: small, fast, and good enough for scattering leaves.
+   */
+  let seed = 0x9e3779b9;
+  function rnd() {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
   // ---- shared blade maths -------------------------------------------------
   const CROSS_BEND = 1.05; // half-angle of the blade's cross-section curl
 
@@ -172,19 +194,19 @@ const images = await page.evaluate(() => {
   for (const sp of specs) {
     const root = sp.oy + panel * 0.98;
     for (let c = 0; c < sp.clumps; c += 1) {
-      const cxp = sp.ox + panel * (0.12 + (c + 0.5) / sp.clumps * 0.76 + (Math.random() - 0.5) * 0.06);
+      const cxp = sp.ox + panel * (0.12 + (c + 0.5) / sp.clumps * 0.76 + (rnd() - 0.5) * 0.06);
       const per = Math.round(sp.blades / sp.clumps);
       for (let i = 0; i < per; i += 1) {
-        const spreadX = (Math.random() - 0.5) * panel * sp.clumpW;
+        const spreadX = (rnd() - 0.5) * panel * sp.clumpW;
         const x = cxp + spreadX;
-        const len = panel * sp.tall * (0.5 + Math.random() * 0.5);
-        const lean = (spreadX * 2.2 + (Math.random() - 0.5) * panel * sp.lean) * (0.4 + Math.random() * 0.9);
-        const w = panel * sp.wide * (0.65 + Math.random() * 0.7);
-        const dry = Math.random();
+        const len = panel * sp.tall * (0.5 + rnd() * 0.5);
+        const lean = (spreadX * 2.2 + (rnd() - 0.5) * panel * sp.lean) * (0.4 + rnd() * 0.9);
+        const w = panel * sp.wide * (0.65 + rnd() * 0.7);
+        const dry = rnd();
         const cols = {
           root: sp.cols.root,
-          mid: sp.cols.mid.map((v) => v * (0.82 + Math.random() * 0.36)),
-          tip: dry > 0.72 ? [166, 152, 92] : sp.cols.tip.map((v) => v * (0.85 + Math.random() * 0.3))
+          mid: sp.cols.mid.map((v) => v * (0.82 + rnd() * 0.36)),
+          tip: dry > 0.72 ? [166, 152, 92] : sp.cols.tip.map((v) => v * (0.85 + rnd() * 0.3))
         };
         blade(gp.ca, gp.cn, x, root, len, lean, w, cols, 9);
       }
@@ -220,14 +242,14 @@ const images = await page.evaluate(() => {
     const per = 28 + ((c * 5) % 10);
     for (let k = 0; k < per; k += 1) {
       const up = k % 2 === 0 ? -1 : 1;
-      const ang = up * (Math.PI * 0.42) + (Math.random() - 0.5) * 0.7 - 0.16;
-      const len = spread * (0.5 + Math.random() * 0.7);
-      const sx = cx + (Math.random() - 0.5) * CONE * 0.02;
-      const shade = 0.8 + Math.random() * 0.4;
+      const ang = up * (Math.PI * 0.42) + (rnd() - 0.5) * 0.7 - 0.16;
+      const len = spread * (0.5 + rnd() * 0.7);
+      const sx = cx + (rnd() - 0.5) * CONE * 0.02;
+      const shade = 0.8 + rnd() * 0.4;
       blade(
         cp.ca, cp.cn, sx, cy, len,
         Math.cos(ang) * len * 1.1,
-        2.3 + Math.random() * 1.7,
+        2.3 + rnd() * 1.7,
         {
           root: NEEDLE.root,
           mid: NEEDLE.mid.map((v) => v * shade),
@@ -277,9 +299,9 @@ const images = await page.evaluate(() => {
   const branchTips = [];
   for (let i = 0; i < 9; i += 1) {
     const x0 = SAGE * (0.5 + (i / 9 - 0.5) * 0.22);
-    const tx = SAGE * (0.08 + (i + 0.5) / 9 * 0.84) + (Math.random() - 0.5) * SAGE * 0.04;
-    const ty = SAGE * (0.06 + Math.random() * 0.16);
-    sp2.ca.strokeStyle = `rgb(${76 + Math.random() * 16 | 0},${62 + Math.random() * 14 | 0},${44 + Math.random() * 12 | 0})`;
+    const tx = SAGE * (0.08 + (i + 0.5) / 9 * 0.84) + (rnd() - 0.5) * SAGE * 0.04;
+    const ty = SAGE * (0.06 + rnd() * 0.16);
+    sp2.ca.strokeStyle = `rgb(${76 + rnd() * 16 | 0},${62 + rnd() * 14 | 0},${44 + rnd() * 12 | 0})`;
     sp2.ca.lineWidth = 10 - i * 0.6;
     sp2.ca.beginPath();
     sp2.ca.moveTo(x0, SAGE * 0.99);
@@ -290,16 +312,16 @@ const images = await page.evaluate(() => {
   for (const t of branchTips) {
     for (let i = 0; i < 26; i += 1) {
       const f = 0.1 + (i / 26) * 0.9;
-      const bx = t.x0 + (t.x - t.x0) * f + (Math.random() - 0.5) * SAGE * 0.05;
-      const by = SAGE * 0.99 + (t.y - SAGE * 0.99) * f + (Math.random() - 0.5) * SAGE * 0.04;
+      const bx = t.x0 + (t.x - t.x0) * f + (rnd() - 0.5) * SAGE * 0.05;
+      const by = SAGE * 0.99 + (t.y - SAGE * 0.99) * f + (rnd() - 0.5) * SAGE * 0.04;
       for (let k = 0; k < 4; k += 1) {
-        const g = 108 + Math.random() * 36;
+        const g = 108 + rnd() * 36;
         oval(
-          bx + (Math.random() - 0.5) * SAGE * 0.06,
-          by + (Math.random() - 0.5) * SAGE * 0.06,
-          SAGE * (0.02 + Math.random() * 0.022),
-          Math.random() * Math.PI * 2,
-          [g - 14 + Math.random() * 18, g, g - 30 + Math.random() * 16]
+          bx + (rnd() - 0.5) * SAGE * 0.06,
+          by + (rnd() - 0.5) * SAGE * 0.06,
+          SAGE * (0.02 + rnd() * 0.022),
+          rnd() * Math.PI * 2,
+          [g - 14 + rnd() * 18, g, g - 30 + rnd() * 16]
         );
       }
     }
@@ -309,12 +331,12 @@ const images = await page.evaluate(() => {
   const BROAD = 1024;
   const bp = pair(BROAD);
   for (let i = 0; i < 150; i += 1) {
-    const cx = BROAD * (0.1 + Math.random() * 0.8);
-    const cy = BROAD * (0.1 + Math.random() * 0.8);
-    const r = BROAD * (0.05 + Math.random() * 0.075);
-    const ang = Math.random() * Math.PI * 2;
-    const g = 92 + Math.random() * 60;
-    const shade = [46 + Math.random() * 30, g, 34 + Math.random() * 24];
+    const cx = BROAD * (0.1 + rnd() * 0.8);
+    const cy = BROAD * (0.1 + rnd() * 0.8);
+    const r = BROAD * (0.05 + rnd() * 0.075);
+    const ang = rnd() * Math.PI * 2;
+    const g = 92 + rnd() * 60;
+    const shade = [46 + rnd() * 30, g, 34 + rnd() * 24];
     const dx = Math.cos(ang) * r;
     const dy = Math.sin(ang) * r;
     blade(bp.ca, bp.cn, cx - dx * 0.5, cy - dy * 0.5, r, dx * 0.9 + dy * 0.1, r * 0.46,

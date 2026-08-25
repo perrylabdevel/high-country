@@ -526,12 +526,27 @@ async function boot() {
         child.userData.blades.rotation.z += dt * 0.6;
       }
     });
-    const burn = POS.burn;
-    const burnY = heightAt(burn.x, burn.z);
-    smoke.children.forEach((puff, i) => {
-      puff.position.y = burnY + 12 + i * 7 + Math.sin(elapsed * 0.4 + i) * 1.5;
-      puff.position.x = burn.x + Math.sin(elapsed * 0.2 + i) * 2;
-      puff.position.z = burn.z + i * 2;
+    // Drift each puff around where createSmoke placed it. This used to derive
+    // the position from the child index instead — y = burnY + 12 + i * 7,
+    // z = burn.z + i * 2 — which threw the layout away every frame and strung
+    // the puffs into a diagonal line climbing to 425 m and 106 m downrange.
+    // That is the "puffs float detached in the sky" the burn audit kept
+    // reporting: createSmoke had been rebuilt twice to fix it, and this
+    // silently overrode it both times.
+    smoke.children.forEach((puff) => {
+      const home = puff.userData.home;
+      if (!home) {
+        return;
+      }
+      const phase = puff.userData.phase || 0;
+      const rise = puff.userData.rise || 0;
+      // Higher puffs have lost the column's momentum, so they wander more.
+      const wander = 0.35 + rise * 2.2;
+      puff.position.set(
+        home.x + Math.sin(elapsed * 0.33 + phase) * wander,
+        home.y + Math.sin(elapsed * 0.5 + phase * 0.7) * (0.25 + rise * 0.9),
+        home.z + Math.cos(elapsed * 0.27 + phase * 1.3) * wander
+      );
     });
 
     if (started && !talking && !debug.isOpen()) {
