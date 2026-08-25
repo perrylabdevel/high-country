@@ -257,3 +257,27 @@ angle limits (the rubric itself allows "cannot assess" for those).
   `pass-84-doublecheck.md` are kept as the measurement record; the elPaso art
   direction is documented here for a future pass that can measure outside the
   noise band.
+- **Pass-85 — raked-dirt base texture (reverted):** the best-measured U2
+  attempt yet. Poly Haven `raked_dirt` (CC0) has the opposite character to
+  brown_mud: essentially no low-frequency albedo variation (lowfreqStd 1.6 vs
+  dirt's 2.1 and brown_mud's 9.9), i.e. uniform fine ridged soil with no mottle.
+  Shipped albedo/normal were tone-matched to the established dirt colour and
+  the stable dirt height map was kept, so badlands strata held. 11-POI subset:
+  **41 vs 45**, U2 19→12, strata preserved, camera reads positive ("finer,
+  more evenly distributed ridge-like marks; no new tiling"; badlands
+  "strata preserved, ground sharper"). Full double-checked pass-85:
+  **49 fails / 282 scored (82.6%) vs pass-81 53/279** — net −4, the lowest
+  measured count of any pass so far (p81 53, p82 59, p83 50, p84 59). U2
+  19→16 with gains at 9 frames (huntingCabin-golden, ironValley-golden,
+  mission both, northernPines-golden, overlook-midday, tribal both,
+  badlands-golden, silverCreek-golden). But westernRange U2 dropped 4→2 at
+  BOTH lights — confirmed real by direct comparison: the fine raked ridges
+  alias into "dense tiny repetitive speckle, scale-wrong" on the open plain
+  at 60 m (the same fine-vs-coarse tension as the foliage bakes). E1 also
+  "cleared" with the elPaso code reverted, which confirms the ±6 noise
+  amplitude of the universal criteria. Contract: real ≥4→≤3 regression at
+  westernRange → reverted. `pass-85.json/.md` + `pass-85-doublecheck.md`
+  kept as the measurement record. The documented next direction is a
+  detail-map variant: raked ridges only in the near channel at a coarser
+  world scale (~0.3–1 m features, which is what resolves at 30–60 m), or a
+  Poly Haven asset whose native feature scale is 0.3–1 m rather than cm.
