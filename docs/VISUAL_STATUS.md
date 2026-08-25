@@ -1,7 +1,8 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-24 · against `audit/reports/pass-81.json` (the latest
-double-checked pass).
+**Updated:** 2026-08-25 · against `audit/reports/pass-81.json` (the latest
+double-checked pass that matches the shipped tree; `pass-82.json` is the
+reverted bark-relief variant, kept as a measurement record).
 
 ## Objective
 
@@ -103,8 +104,12 @@ angle limits (the rubric itself allows "cannot assess" for those).
 
 ## Next steps (when resumed)
 
-- A fundamentally different ground-detail approach (dedicated high-frequency
-  detail map or parallax layer) for the U2 tail — knob tuning has plateaued.
+- The U2 tail has now resisted a dedicated procedural detail map, a
+  fine-scale real-texture mix, splat character changes, and the existing
+  two-scale/knob set — every additive approach measured neutral-to-worse on
+  the double-check. The remaining lever is a genuinely different base texture
+  character (e.g., a scanned 4k+ dirt/gravel set at tighter tiling, or a
+  parallax layer), verified across all 16 POIs before anything ships.
 - Town-specific treatment for silverCreek S1/S2/U1 if the camera config or
   lot facing is ever revisited.
 - Re-upload the bundle whenever the texture set changes again.
@@ -138,3 +143,51 @@ angle limits (the rubric itself allows "cannot assess" for those).
   read — the near-field bare dirt is the street itself (the camera looks down
   the gravel road, which is bare by design). Rubric-vs-design conflict;
   reverted.
+- **Pass-82 — pine bark relief variant (reverted):** targeted the P3 read
+  ("trunks are flat untextured poles") with real geometry: pine trunks were
+  re-segmented (16×14), the radius deformed into eight vertical ridges that
+  twist with height, UVs repeated ~3 m per bark tile, and the bark albedo
+  lifted from pure white-multiply to 0xd9c9b2 so the camera-facing (shadowed)
+  trunks keep legible ridges at golden hour. P3 golden cleared 2→4 in two
+  independent double-checked reads (targeted 4-frame pass and full pass-82),
+  but the full double-checked pass-82 measured **59 fails of 279 scored
+  (78.9%) vs the pass-81 baseline of 53 (81.0%)**. The net worsening is inside
+  the documented 44–60 noise band, and the regressions (northernPines P2/P4
+  canopy reads, G1 roads, U2/U3/U6 oscillators) are criteria trunk geometry
+  cannot affect. Contract: a change ships only if double-checked fails drop
+  with no ≥4 collateral regression — so the variant was reverted and the tree
+  matches pass-81. `pass-82.json/.md` + `pass-82-doublecheck.md` are kept as
+  the measurement record.
+- **Foliage art pass (bake-foliage.mjs rewrite, reverted):** grass, sage and
+  broadleaf atlases were repainted from the audit reads — one smooth tapered
+  path per blade with a continuous root→mid→tip gradient (the old bake filled
+  nine stepped segments), clump density falling off from each clump core,
+  sage as ovals on visible branchlets, broadleaf as lanceolate leaves on twig
+  clusters, deterministic seed. Two variants were measured on 8 foliage-heavy
+  POIs (16 frames) through the full capture→Luna→blind-recheck pipeline:
+  (a) full new bake including a re-baked needle: **26 double-checked fails vs
+  24 (pass-81)** on the same frames; (b) shipped needle + new grass/sage/broad:
+  **24 vs 23**. Both netted worse; the grass atlas drove the regressions
+  ("tiny repeated leaf/grass marks" on U2) exactly as the earlier bakes did.
+  Reverted; the procedural fallback and the shipped needle atlas stay.
+- **U2 ground-detail layer attempts (all reverted):** (a) a dedicated
+  procedural tileable detail map (organic value-noise fBm + sparse stones +
+  cracks, albedo + normal, packed to KTX2) at three tunings — reads as
+  noise/speckle over the base smear, no win; (b) a fine-scale real-texture
+  mix (gravel + grass sampled at 3 m world scale, blended into the terrain
+  albedo and normal, weighted away from grass) — double-checked A/B on 6 U2
+  POIs: **33 fails vs 21 (pass-81)** on the same frames, collapsing
+  badlands/mission U1. The base 3072² surfaces at 8–12 m tiling remain the
+  U2 character; every additive-detail approach at this resolution reads as
+  either smear or tile, which is the documented noise floor.
+- **Per-POI one-shot attempts (all measured, all reverted/logged):**
+  badlands D2 flat-rock reduction in the splat (0.45→0.22 rock, dirt 0.52→0.64)
+  — D2 unmoved (2), U5 golden 4→3 collateral; reverted. WesternRange W1 range
+  splat pushed to full grass — W1 golden worse (2→1) and U2/U1 collaterally
+  down; reverted. ironValley I1 — held 4 in two consecutive double-checked
+  targeted reads with no code change (oscillator). silverCreek S1/S2 —
+  camera-verified design conflict: S1/S2 flip 0–4 between grader sessions on
+  identical geometry; no attempt shipped per the constraint. northernPines U4
+  "floating foliage fragments" — artifact present in the pass-81 captures
+  themselves (distant crowns behind the treeline); scored 5 in pass-81 golden
+  and 2 in a fresh read of the same frame; no safe change found.
