@@ -50,10 +50,28 @@ async function main() {
   if (!existsSync(SRC_DIR)) {
     throw new Error(`no ${SRC_DIR} — nothing to bundle`);
   }
-  const files = await collect(SRC_DIR);
-  if (!files.length) {
+  const all = await collect(SRC_DIR);
+  if (!all.length) {
     throw new Error(`${SRC_DIR} is empty`);
   }
+  // Drop pack-textures' intermediates. It writes each source as _albedo.jpg /
+  // _normal.jpg / _orm.png beside the .ktx2 it encodes from them, and nothing
+  // at runtime ever loads those — but they were going into the bundle anyway,
+  // which is why it had grown to 273 MB that every clone downloads. A file is
+  // an intermediate exactly when a .ktx2 twin of the same basename exists, so
+  // test for the twin rather than blocklisting extensions: foliage albedo is
+  // PNG on purpose and has no .ktx2 twin, so it stays.
+  const ktx2Twins = new Set(
+    all.filter((f) => f.endsWith(".ktx2")).map((f) => f.slice(0, -".ktx2".length))
+  );
+  const files = all.filter((f) => {
+    if (f.endsWith(".ktx2")) {
+      return true;
+    }
+    const dot = f.lastIndexOf(".");
+    return dot === -1 || !ktx2Twins.has(f.slice(0, dot));
+  });
+  const dropped = all.length - files.length;
 
   const entries = [];
   let total = 0;
@@ -79,8 +97,18 @@ async function main() {
   const bundleName = `textures-${short}.tar.gz`;
   const bundlePath = path.join(OUT_DIR, bundleName);
 
-  // -C so paths inside the tarball are relative to public/textures.
-  await execFileAsync("tar", ["-czf", bundlePath, "-C", SRC_DIR, "."]);
+  // -C so paths inside the tarball are relative to public/textures, and an
+  // explicit file list rather than "." so the archive holds exactly what the
+  // manifest describes. Archiving the whole directory instead meant the
+  // tarball carried files the manifest never listed — downloaded by every
+  // clone and verified by nothing.
+  await execFileAsync("tar", [
+    "-czf",
+    bundlePath,
+    "-C",
+    SRC_DIR,
+    ...entries.map((e) => e.path)
+  ]);
   const bundleSha = await sha256(bundlePath);
   const { size: bundleBytes } = await stat(bundlePath);
 
@@ -126,6 +154,7 @@ async function main() {
   const mb = (n) => (n / 1048576).toFixed(1);
   process.stdout.write(
     `bundled ${entries.length} files, ${mb(total)} MB raw -> ${mb(bundleBytes)} MB compressed\n` +
+      (dropped ? `  skipped ${dropped} pack-textures intermediates with .ktx2 twins\n` : "") +
       `  ${bundlePath}\n` +
       `  manifest: ${MANIFEST}\n\n` +
       (url

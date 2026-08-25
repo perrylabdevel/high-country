@@ -14,14 +14,49 @@
  *   node scripts/bake-foliage.mjs
  */
 import { chromium } from "playwright";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 
 const OUT = "public/textures/foliage";
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-});
+/**
+ * Find a Chromium to draw with.
+ *
+ * Playwright's own download is the right answer wherever it exists, so try
+ * that first and fall back to a system browser only if it does not. Pinning
+ * executablePath to a hard-coded /Applications path did the reverse: the
+ * baker then ran on exactly one machine and failed everywhere else, which is
+ * how the atlases came to be baked piecemeal across two checkouts and the
+ * asset bundle ended up describing only some of them.
+ */
+async function launchChromium() {
+  const override = process.env.PLAYWRIGHT_CHROMIUM;
+  if (override) {
+    return chromium.launch({ executablePath: override });
+  }
+  try {
+    return await chromium.launch();
+  } catch (err) {
+    const fallbacks = [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/opt/pw-browsers/chromium",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome"
+    ];
+    for (const path of fallbacks) {
+      if (existsSync(path)) {
+        return chromium.launch({ executablePath: path });
+      }
+    }
+    throw new Error(
+      `no Chromium found. Run "npx playwright install chromium", or set ` +
+        `PLAYWRIGHT_CHROMIUM to a browser binary.\n  ${err.message}`
+    );
+  }
+}
+
+const browser = await launchChromium();
 const page = await browser.newPage();
 await page.setContent("<canvas id=a></canvas>");
 
