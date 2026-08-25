@@ -1,8 +1,8 @@
 # Visual status — completion audit
 
 **Updated:** 2026-08-25 · against `audit/reports/pass-81.json` (the latest
-double-checked pass that matches the shipped tree; `pass-82.json` is the
-reverted bark-relief variant, kept as a measurement record).
+double-checked pass that matches the shipped tree; `pass-82.json` and
+`pass-83.json` are reverted variants, kept as measurement records).
 
 ## Objective
 
@@ -191,3 +191,24 @@ angle limits (the rubric itself allows "cannot assess" for those).
   "floating foliage fragments" — artifact present in the pass-81 captures
   themselves (distant crowns behind the treeline); scored 5 in pass-81 golden
   and 2 in a fresh read of the same frame; no safe change found.
+- **Pass-83 — brown_mud base-texture swap (reverted):** targeted U2 with a
+  genuinely different base-dirt character per the goal's "no more knob
+  tuning" instruction. Two variants measured on an 11-POI U2-heavy subset
+  (22 frames) plus one full pass, all through capture→Luna→blind recheck:
+  (a) raw Poly Haven `brown_mud_03` (CC0) at 3072² (all maps, vs the old
+  2048² normal/ORM), tiling 6 — subset **40 double-checked fails vs 45
+  (pass-81)**, U2 19→12, but badlands D1/D2 strata collapsed (hills read
+  mottled; confirmed by direct frame comparison — the mud's 3× stronger
+  low-frequency component in albedo/disp/AO drove the blend into patches);
+  (b) `dirt_fine` hybrid — brown_mud's blur-180 high-frequency detail
+  (K=1.0) composited over the established dirt base, keeping the stable dirt
+  height map — subset **39 vs 45**, U2 19→15, strata restored. Full
+  16-POI double-checked pass-83: **50 fails / 280 scored (82.1%) vs pass-81
+  53/279**, a net −3 inside the documented 44–60 noise band, with real U2
+  regressions at westernRange (both lights), burn-midday, badlands-midday,
+  and U3 at silverCreek (both lights); 14 criteria moved ≥4→≤3 vs p81
+  (mostly U5/U6/P2 grader noise). Did not meet the ship bar (collateral
+  regressions); reverted, tree matches pass-81, and the raw sources remain
+  in gitignored `assets-src/textures/` for a future detail-map pass.
+  `pass-83.json/.md` + `pass-83-doublecheck.md` are kept as the measurement
+  record.
