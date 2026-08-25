@@ -32,10 +32,22 @@ async function sha256(file) {
   return createHash("sha256").update(await readFile(file)).digest("hex");
 }
 
-/** Every file under public/textures, recursively, as repo-relative paths. */
+/**
+ * Every file under public/textures, recursively, as repo-relative paths.
+ *
+ * Dotfiles are skipped. macOS tar writes an AppleDouble sidecar (._name) for
+ * any file carrying an extended attribute — a downloaded texture picks up
+ * com.apple.quarantine, and six of them rode into the last bundle that way.
+ * They keep the real file's extension, so the .ktx2-twin filter below happily
+ * keeps them: without this they would be collected on the next rebuild and
+ * written into the manifest as if they were textures.
+ */
 async function collect(dir) {
   const out = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       out.push(...(await collect(full)));
@@ -73,6 +85,18 @@ async function main() {
   });
   const dropped = all.length - files.length;
 
+  // Preserve an existing url across rebuilds; only the operator sets it.
+  let url = "";
+  let prev = null;
+  if (existsSync(MANIFEST)) {
+    try {
+      prev = JSON.parse(await readFile(MANIFEST, "utf8"));
+      url = prev.url || "";
+    } catch {
+      // malformed manifest; start fresh
+    }
+  }
+
   const entries = [];
   let total = 0;
   for (const f of files) {
@@ -109,18 +133,21 @@ async function main() {
     SRC_DIR,
     ...entries.map((e) => e.path)
   ]);
-  const bundleSha = await sha256(bundlePath);
-  const { size: bundleBytes } = await stat(bundlePath);
-
-  // Preserve an existing url across rebuilds; only the operator sets it.
-  let url = "";
-  if (existsSync(MANIFEST)) {
-    try {
-      url = JSON.parse(await readFile(MANIFEST, "utf8")).url || "";
-    } catch {
-      // malformed manifest; start fresh
-    }
+  let bundleSha = await sha256(bundlePath);
+  let bundleBytes = (await stat(bundlePath)).size;
+  // gzip is not reproducible, so re-running this on a second machine produces
+  // a byte-different tarball from identical inputs. Recording that local gzip
+  // would point the manifest at a file nobody has uploaded, and every clone
+  // would warn against a hash no artifact matches — which is exactly the
+  // correction that had to be made by hand last time. When contentHash is
+  // unchanged the published bundle is still the right one, so keep its
+  // recorded identity and leave the local tarball as a convenience copy.
+  const sameContent = prev && prev.contentHash === contentHash && prev.bundleSha256;
+  if (sameContent) {
+    bundleSha = prev.bundleSha256;
+    bundleBytes = prev.bundleBytes;
   }
+
   // The bundle filename carries the content hash, so a rebuild always renames
   // it. Carrying the old url forward verbatim would commit a manifest that
   // downloads the previous bundle and then fails its own hash check — the
@@ -155,6 +182,9 @@ async function main() {
   process.stdout.write(
     `bundled ${entries.length} files, ${mb(total)} MB raw -> ${mb(bundleBytes)} MB compressed\n` +
       (dropped ? `  skipped ${dropped} pack-textures intermediates with .ktx2 twins\n` : "") +
+      (sameContent
+        ? `  contents unchanged — kept the published bundle's sha256; no re-upload needed\n`
+        : "") +
       `  ${bundlePath}\n` +
       `  manifest: ${MANIFEST}\n\n` +
       (url
