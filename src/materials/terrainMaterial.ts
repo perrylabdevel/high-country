@@ -160,12 +160,13 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const edgeNoise = mx_noise_float(positionWorld.xz.mul(u.roadNoiseScale));
   const roadRaw = splat.a.add(edgeNoise.mul(u.roadEdgeNoise));
   const roadMask = smoothstep(u.roadEdgeLo, u.roadEdgeHi, roadRaw).toVar();
-  // The road channel is a broad Gaussian (falloff ~1.15x road width), so any
-  // smoothstep on it selects nearly the whole road — the wheel-track never
-  // read as distinct from the margins (audit G1). A steep power keeps only the
-  // middle strip dark: 0.96^16=0.52 at ~30% of the falloff, 0.92^16=0.26 at
-  // ~50%, so the band is roughly the center third of the road.
-  const center = pow(splat.a, 16).toVar();
+  // The road channel is a broad Gaussian (falloff ~1.15x road width). pow^16
+  // only fires when the channel is near its 1.0 peak, so roads whose splat
+  // peaks lower (ironValley, huntingCabin) showed no wheel-track at all
+  // (audit G1). A smoothstep on the upper half of the falloff widens the band
+  // to the center ~40% of the road — still distinct from the bright margins —
+  // and uses the roadCenterLo/Hi knobs that were declared but never wired.
+  const center = smoothstep(u.roadCenterLo, u.roadCenterHi, splat.a).toVar();
 
   const grassW = splat.r.mul(rockSlope.oneMinus()).mul(nVar.mul(0.12).add(0.92)).mul(roadMask.oneMinus()).toVar();
   const dirtW = splat.g.mul(mix(float(1), float(0.32), rockSlope)).mul(mix(float(1), float(0.22), roadMask)).toVar();
