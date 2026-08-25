@@ -332,3 +332,23 @@ angle limits (the rubric itself allows "cannot assess" for those).
   horizontal boundary") and new F1/I2/R2/P4/U4 fails. Camera checks did not
   predict the grader's clean-boundary reads; reverted to the pass-86 state.
   `pass-87.json/.md` + `pass-87-doublecheck.md` are kept as the record.
+- **U2 scale probes — raked tiling 4 and Park Dirt tiling 8 (camera-checked,
+  not graded, reverted):** after pass-85 established that raked dirt fixes
+  the smear class (badlands/mission/ranch/silverCreek) but aliases to speckle
+  at the 30–60 m audit distances on open plains (westernRange), two follow-up
+  characters were probed with direct frame comparisons: (a) raked at tiling 4
+  (coarser ridge spacing on screen) and (b) Poly Haven park_dirt (CC0,
+  non-directional medium soil clods, tone-matched, stable dirt height map) at
+  tiling 8. Results: (a) westernRange "still dominated by dense fine speckle...
+  marginally better but still procedural"; mission "more convincingly
+  human-scale, less smear, some fine speckle". (b) westernRange "somewhat more
+  coherent natural soil, less directional streaking, still leans toward dense
+  speckle/slight mottle"; mission "slightly more human-scale, broad smearing
+  reduced, noticeable fine speckling". Neither clearly beats the shipped base
+  and both repeat the smear↔speckle tension; no full grade was run. This
+  closes the U2 texture-character direction: six families (dirt upgrade,
+  brown_mud, dirt_fine hybrid, raked t6, raked t4, park t8) all measure
+  neutral-to-regressive at the full-pass level, and the pass-86 G1 fix
+  remains the only shipped improvement. Sources remain in gitignored
+  `assets-src/textures/` for a future detail-map (dedicated overlay sampled
+  at ~20 m with 0.3–1 m features) if the measurement policy changes.
