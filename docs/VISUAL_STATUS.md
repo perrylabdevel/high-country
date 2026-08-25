@@ -394,3 +394,22 @@ angle limits (the rubric itself allows "cannot assess" for those).
   documented technical blocker; any future detail layer must live inside the
   existing texture set (e.g., a baked-in 0.3–1 m feature texture replacing
   the dirt base) rather than as an additional material binding.
+- **Pass-90 — dirt_med baked-in medium-scale features (reverted):** followed
+  the detail-map blocker's conclusion: medium-scale detail baked into the
+  dirt albedo itself (no extra material binding). Band-passed park_dirt's
+  30–200 px component (0.08–0.5 m at the 8 m tiling — the scale that
+  resolves at the audit cameras) at 0.55 weight over the proven dirt base,
+  keeping the dirt normal/ORM so badlands strata held. Camera checks were the
+  cleanest of any U2 variant (westernRange "better, no new speckle or
+  mottle"; ranch "slightly more believable"; badlands "strata retained,
+  slightly better"; mission "breaks up the broad smear"). The 11-POI subset
+  double-checked **31 vs 45 (pass-81) — U2 19→11 (−8), G1 7→5, U1 4→2,
+  U5 3→0**, the strongest subset result of any texture variant. But the full
+  16-POI double-checked pass-90 measured **54 fails / 284 scored (81.0%) vs
+  pass-86 48/280** — net +6, with U2 17 (diluted; regressions at
+  westernRange ×2, tribal-midday, cemetery-golden, silverCreek, burn-midday,
+  timberCamp) and G1 13 (up from 8 with unchanged G1 code — grader drift,
+  the same frames score 8–13 across passes). Subset-vs-full divergence of
+  ±14 is the documented noise floor. Contract: full pass must net lower →
+  reverted; the tree and bundle are back to the shipped 29-file state.
+  `pass-90.json/.md` + `pass-90-doublecheck.md` are the measurement record.
