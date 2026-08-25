@@ -212,3 +212,30 @@ angle limits (the rubric itself allows "cannot assess" for those).
   in gitignored `assets-src/textures/` for a future detail-map pass.
   `pass-83.json/.md` + `pass-83-doublecheck.md` are kept as the measurement
   record.
+- **Foliage bake v3 — fallback-identical art + normal maps (reverted):**
+  8-POI A/B (cemetery, huntingCabin, northernPines, overlook, ranch,
+  timberCamp, tribal, westernRange; 16 frames). The v2 bake lost because its
+  grass was denser and wider (96–150 blades/panel at 2048² vs the fallback's
+  36–62 at 1024²) and read as "tiny repeated marks". v3 instead ported the
+  fallback's exact proven art (blade counts, widths, clump layout, muted
+  3-stop palettes, straw tips) into the bake with a deterministic seed and
+  added only the per-segment normal maps the fallback lacks, plus
+  fallback-equivalent sage/broad (512²/256²) with leaf normals. Direct camera
+  reads were positive (huntingCabin: "more continuous sward with improved
+  light/dark blade shading"; ranch: "nearly identical, no new artifacts"),
+  but the double-checked A/B measured **32 fails vs 24 (pass-81)** on the
+  same frames — U2 unchanged (10→10), G1 4→7, U6 2→3, P4 0→1, W1 1→2, U5
+  improved 1→4. Net worse; reverted. The needle atlas remains the only
+  shipped bake; grass/sage/broad stay on the procedural fallback.
+- **WesternRange W2 cattle readability (reverted):** pass-81 golden W2 = 1
+  ("animals appear in nearly the same horizontal orientation"). The per-animal
+  yaws were measured spread 31–333°, so the read is a golden-hour silhouette
+  problem: at 60 m the 1.5 m cattle are ~10–30 px, heads and legs cannot
+  resolve, and the dark hide (0x7a4a28) blobs into the warm grass. Two
+  camera-verified iterations: (a) heads + legs + lighter hide (0x8f6133) —
+  "marginally more readable, still not recognizable animals"; (b) plus two
+  cream hides and one animal closer to the camera — "improved color contrast
+  and grounded, but still elongated capsule-like bodies, facing ambiguous".
+  No floating/clipping, scale plausible. The change does not clear the read
+  and moving the herd risks foreground W1/U2 collateral, so it was reverted.
+  W2-golden joins the camera/design-limited reads (fixed camera 60 m out).
