@@ -3,7 +3,8 @@
 **Updated:** 2026-08-25 · against `audit/reports/pass-86.json` (the latest
 double-checked pass that matches the shipped tree, 48 fails). `pass-82.json`
 through `pass-85.json` and `pass-87.json` are reverted variants, kept as
-measurement records.
+measurement records. `pass-88/89.json` record the baked-vs-fallback foliage
+A/B described below; the shipped tree keeps the procedural fallback.
 
 ## Objective
 
@@ -352,3 +353,22 @@ angle limits (the rubric itself allows "cannot assess" for those).
   remains the only shipped improvement. Sources remain in gitignored
   `assets-src/textures/` for a future detail-map (dedicated overlay sampled
   at ~20 m with 0.3–1 m features) if the measurement policy changes.
+- **Pass-88 / pass-89 — reseeded foliage atlases vs the fallback (reverted):
+  the parallel 35f0dac handoff shipped the deterministic bake (grass/sage/
+  broad at 2048², 96–150 blades/panel — the same dense art family that has
+  regressed every prior A/B) plus the burn-plume/ember fix. Full double-
+  checked pass-88 (baked shipped): **51 fails / 287 scored (82.2%) vs the
+  pass-86 shipped tree 48/280** — +3, with the known grass-atlas signature:
+  northernPines U2 4→2/4→3 and cemetery-golden U2 4→2 ("dense, low-resolution
+  repeating texture patches"). The plume fix itself held (B1/B2 = 0 fails;
+  burn byPoi 1 is a U-criterion oscillator). Per the goal rule — procedural
+  fallbacks stay until a bake beats them on the double-checked pass — the
+  grass/sage/broad entries were removed from FOLIAGE_SET (the loader falls
+  back to the runtime atlas), the six files dropped from the bundle (29
+  files, `textures-f9887acfed05.tar.gz`, uploaded and fetch-verified), and
+  the tree re-measured as pass-89: **53 fails / 288 scored (81.6%)** — inside
+  the documented noise band either way (identical fallback trees measure
+  48–53), so the revert decision rests on the consistent historical record
+  (62, 55, 26-vs-24, 24-vs-23, 32-vs-24) plus the pass-88 northernPines/
+  cemetery reads. `pass-88.json/.md` and `pass-89.json/.md` + their
+  doublechecks are the measurement record.

@@ -19,14 +19,8 @@ export type TextureSet = {
  * almost all thin tapering tip — compressing it turns fine blades into blocks.
  */
 export const FOLIAGE_SET = {
-  grassAlbedo: "/textures/foliage/grass_albedo.png",
-  grassNormal: "/textures/foliage/grass_normal.ktx2",
   needleAlbedo: "/textures/foliage/needle_albedo.png",
   needleNormal: "/textures/foliage/needle_normal.ktx2",
-  sageAlbedo: "/textures/foliage/sage_albedo.png",
-  sageNormal: "/textures/foliage/sage_normal.ktx2",
-  broadAlbedo: "/textures/foliage/broad_albedo.png",
-  broadNormal: "/textures/foliage/broad_normal.ktx2"
 };
 
 export const TEXTURE_SETS = {
