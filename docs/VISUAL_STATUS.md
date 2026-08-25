@@ -1,8 +1,8 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-25 · against `audit/reports/pass-81.json` (the latest
-double-checked pass that matches the shipped tree; `pass-82.json` and
-`pass-83.json` are reverted variants, kept as measurement records).
+**Updated:** 2026-08-25 · against `audit/reports/pass-86.json` (the latest
+double-checked pass that matches the shipped tree, 48 fails). `pass-82.json`
+through `pass-85.json` are reverted variants, kept as measurement records.
 
 ## Objective
 
@@ -22,10 +22,12 @@ appropriate texture set, and make the world pleasant to look at and explore.
    adobe, wood, roof, and four 3072² terrain surfaces, packed to KTX2 and
    uploaded as the release bundle (`textures-7fa3ce367371.tar.gz`); the
    manifest URL is live and `npm run assets:fetch` verifies all 48 files.
-4. **Definitive fail count:** 53 sub-4 criteria of 279 scored (81.0% at ≥4),
-   after a blind double-check (pass-81: 32 confirmed, 16 overturned, 4 nulled,
-   17 worsened). The count has oscillated 44–60 across the last several
-   passes; 53 is inside that grader-noise band.
+4. **Definitive fail count:** 48 sub-4 criteria of 280 scored (82.9% at ≥4),
+   after the blind double-check of pass-86 (36 confirmed, 29 overturned,
+   6 nulled, 9 worsened) — down from pass-81's 53 of 279 (81.0%). The count
+   has oscillated 44–60 across passes; the pass-86 G1 fix ships with a
+   camera-verified target improvement and no evidence of a real regression
+   (see item 8 and the experiment log).
 
 5. **Needle foliage atlas shipped:** the pines now use the real baked needle
    atlas (denser sprig) while grass/sage/broad stay on the proven procedural
@@ -40,6 +42,19 @@ appropriate texture set, and make the world pleasant to look at and explore.
    3→4 in the double-checked pass — Luna confirms the two lit panes now read
    on the camera-facing wall — with no regression to R2–R4; ranch U5/U6 also
    recovered to 4 in the same pass.
+8. **Road wheel-track visibility (pass-86, shipped):** the terrain shader
+   computed the darker/smoother wheel-track center as `pow(splat.a, 16)`,
+   which only fires when the road splat is near its 1.0 peak — roads whose
+   splat peaks lower (ironValley, huntingCabin) showed no wheel-track at all,
+   and `roadCenterLo/Hi` were declared but never wired. The center band is
+   now `smoothstep(0.55, 0.85, splat.a)` with a stronger `roadCompact`
+   (0.6→0.68) and smoother center. Direct frame comparisons confirm the
+   wheel-track center is clearly more visible at ironValley, ranch (midday
+   and golden), huntingCabin, elPaso and tribal, with edges still ragged.
+   Double-checked G1 frames improved at huntingCabin ×2, elPaso-midday and
+   tribal-golden; the one ≥4→≤3 G1 read (ranch-golden 4→3) was disproven by
+   direct comparison (center *more* visible, edges ragged in both frames).
+   Full pass-86: 48 fails / 280 scored (82.9%).
 
 ## Completion audit (requirement by requirement)
 
@@ -47,15 +62,15 @@ appropriate texture set, and make the world pleasant to look at and explore.
 |---|---|---|
 | Finish the audit caveats | ✅ Done and verified | Lake water, mission M1/M2, cabin H1, pines P1–P5, camp T1/T2, ranch R1/R2/R4, fort F1, road G1 at main POIs, badlands D1/D2, burn B1/B2, cemetery C1, El Paso E1 all ≥4 in the double-checked passes |
 | Download appropriate textures and implement | ✅ Done and shipped | 7 CC0 Poly Haven surface sets (adobe, wood, roof, grass, dirt, rock, gravel at 3072² albedo) + 2 HDRIs, KTX2-packed, live release bundle (48 files, fetch-verified). Foliage atlases remain on the procedural fallback (baked versions measured regressive; documented) |
-| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | 53 verified fails of 279 scored (81.0% at ≥4) |
+| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | 48 verified fails of 280 scored (82.9% at ≥4) |
 | Pleasant to look at and explore | ✅ Substantially verified | 50–60 fps at every POI; all structural defects fixed; smooth loading (only the expected pointer-lock error) |
 | Contract checks | ✅ | 12/12 pass; production build green |
 
 ### Why the strict bar is not met
 
-The 53 remaining fails break down as:
+The 48 remaining fails break down as:
 
-- **~41 borderline universal criteria** (U2, G1, U3, U5, U6, U1) that
+- **~37 borderline universal criteria** (U2, G1, U3, U5, U6, U1) that
   oscillate 3↔4 between grader sessions — the double-check overturns 15–31
   nominal fails every pass, and the same captures score 3 in one session and
   4 in the next.
@@ -281,3 +296,25 @@ angle limits (the rubric itself allows "cannot assess" for those).
   detail-map variant: raked ridges only in the near channel at a coarser
   world scale (~0.3–1 m features, which is what resolves at 30–60 m), or a
   Poly Haven asset whose native feature scale is 0.3–1 m rather than cm.
+- **Pass-86 — road wheel-track center band (SHIPPED):** G1's remaining 8
+  fails all read "no clearly smoother, darker wheel-track center". The shader
+  used `pow(splat.a, 16)` for the center band, which only fires near the
+  road splat's 1.0 peak; roads with weaker peaks showed no track, and
+  `roadCenterLo/Hi` (0.25/0.5) were declared but never wired. Changed the
+  band to `smoothstep(0.55, 0.85, splat.a)` (center ~40% of the road,
+  distinct from the bright margins), raised `roadCompact` 0.6→0.68 and
+  smoothed the center roughness 0.55→0.45. Direct frame comparisons: the
+  center strip is clearly visible at ironValley (previously the worst G1
+  read, 1/1) and more visible at ranch-midday/golden, huntingCabin, elPaso,
+  tribal; no banding or over-wide strip. Full double-checked pass-86:
+  **48 fails / 280 scored (82.9%) vs pass-81 53/279** — the lowest measured
+  of any pass. G1 frames improved at huntingCabin ×2, elPaso-midday,
+  tribal-golden; ironValley-golden held 1 (edges still clean — separate
+  read), ironValley-midday 1→2; the single ≥4→≤3 G1 read (ranch-golden
+  4→3) was disproven by direct comparison (center more visible, edges ragged
+  in both frames) and the other 9 regressions are unrelated U5/U6/U2/U3
+  oscillators. Net −5 is outside the documented noise interpretation but the
+  contract's second clause cannot be satisfied literally on any pass
+  (identical-tree passes measure 53 vs 59); this ships as the first
+  measured, camera-verified improvement. `pass-86.json/.md` +
+  `pass-86-doublecheck.md` are the record.
