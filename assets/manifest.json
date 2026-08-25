@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-221129cc2673.tar.gz",
-  "bundle": "textures-221129cc2673.tar.gz",
-  "contentHash": "221129cc26736cca4673ddc8a9a53bdf68520fafcf591c8caf633acb2876614f",
-  "bundleSha256": "a2937659a95865157ef1d0f87db63c7c2d3d22bf81c74bf0d38db3402f9554c5",
-  "bundleBytes": 162992005,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-d4d1d05c286e.tar.gz",
+  "bundle": "textures-d4d1d05c286e.tar.gz",
+  "contentHash": "d4d1d05c286e4cf4d15c8ffa591a874f92e459eff12d9ddf327c3f224f5d7282",
+  "bundleSha256": "7df2767f4a5f05f1e9dd4991292a5ec4ddba9c055259841fc40de2083a841059",
+  "bundleBytes": 163099349,
   "target": "public/textures",
   "files": [
     {
@@ -64,43 +64,43 @@
     },
     {
       "path": "foliage/broad_albedo.png",
-      "bytes": 347091,
-      "sha256": "4c3066ddce1f406b0d83097deeb255d7147e4268d850084b69ecd95811964dc2"
+      "bytes": 357997,
+      "sha256": "1db2789ac86e83b62af13dfb89f5a5651dd36077f2bbd7f9a6a9535f3d79ec00"
     },
     {
       "path": "foliage/broad_normal.ktx2",
-      "bytes": 620066,
-      "sha256": "6ff38d4368f7de65c022c0664a677ad7b507528987e123efe3b811f31202cb37"
+      "bytes": 650420,
+      "sha256": "49f8614c9bb87b0d6e14f34ed7fa1f3111a6df67d2d036a0f82f44f81d441638"
     },
     {
       "path": "foliage/grass_albedo.png",
-      "bytes": 1223323,
-      "sha256": "0ad8a16b121d50fba90e7fb2b6f340b0f09211dd1502ab48128886b6c2683c36"
+      "bytes": 1215454,
+      "sha256": "7b571a0a6b3362ae2d36ad3d752744982ae6bb85d1eeb437c570e516fcc1a55d"
     },
     {
       "path": "foliage/grass_normal.ktx2",
-      "bytes": 1497174,
-      "sha256": "4b254b65c73bdf8cb5abf6f19c59e8cb0a31053811141b7056802e28dbe0712e"
+      "bytes": 1475267,
+      "sha256": "4ac79e7be0c955ac1bcbd9218357427c20e73152283c4c2c99f6b4207d357284"
     },
     {
       "path": "foliage/needle_albedo.png",
-      "bytes": 237689,
-      "sha256": "a4eaf8288a2d92fcd9f2b80ca8c7b80906b0011d4ca044ac1ca2df23658f9e22"
+      "bytes": 374375,
+      "sha256": "a246d0d888ef06f9012e900828b8c1b836bae396bf312f61d8b1d127137b3e01"
     },
     {
       "path": "foliage/needle_normal.ktx2",
-      "bytes": 241490,
-      "sha256": "0b8a8d32b87516b3c86fa6a19233ae36de08503a50f20ab416ddd73dafbb2404"
+      "bytes": 243011,
+      "sha256": "8e9c4e1d25e5596e9d2ef0ab7f9291f5340916bf3f733f0841c7a4a6aba2b148"
     },
     {
       "path": "foliage/sage_albedo.png",
-      "bytes": 306213,
-      "sha256": "94bf5ea4fe5681e8ee31bbb884a23a7ab82e1d6dd64cca474628e7eb7ce2ef98"
+      "bytes": 323717,
+      "sha256": "211b3615330f982368cf80703d3a9281670e0d603e1d7a18f1e915b1b6b83b52"
     },
     {
       "path": "foliage/sage_normal.ktx2",
-      "bytes": 530064,
-      "sha256": "2dffe599f545c5881eeaf7b247a872b4b757705891bdae6ad05737c139162925"
+      "bytes": 553038,
+      "sha256": "498444bf744c07a7a6713451e272fdaa8af8afc7c8cb9160df01570945553143"
     },
     {
       "path": "grass_2k_albedo.ktx2",

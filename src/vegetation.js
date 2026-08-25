@@ -2118,45 +2118,130 @@ export function createVegetation(scene, maps = {}) {
   };
 }
 
+/**
+ * One soft smoke puff, drawn once and shared by every sprite.
+ *
+ * A radial alpha falloff is the whole trick: it is what lets overlapping
+ * puffs merge into a single mass instead of stacking as separate shapes.
+ */
+function smokePuffTexture() {
+  return makeTexture((ctx, size) => {
+    const img = ctx.createImageData(size, size);
+    const half = size / 2;
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const dx = (x - half) / half;
+        const dy = (y - half) / half;
+        const d = Math.hypot(dx, dy);
+        // Smooth to zero at the rim, with a soft shoulder rather than a disc.
+        const a = d >= 1 ? 0 : Math.pow(Math.max(0, 1 - d * d), 1.7);
+        // A little curdle so the edge is not a perfect circle.
+        const n =
+          0.82 +
+          0.18 *
+            Math.sin(Math.atan2(dy, dx) * 5 + d * 9) *
+            Math.min(1, d * 2);
+        const i = (y * size + x) * 4;
+        // White; the mesh tint does the colouring, so one texture serves the
+        // dark base puffs and the pale spent ones alike.
+        img.data[i] = 255;
+        img.data[i + 1] = 255;
+        img.data[i + 2] = 255;
+        img.data[i + 3] = Math.round(Math.max(0, Math.min(1, a * n)) * 255);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }, 128);
+}
+
 export function createSmoke(scene) {
   const group = new THREE.Group();
   const origin = { x: POS.burn.x - 22, z: POS.burn.z + 10 };
   const baseY = heightAt(origin.x, origin.z) + 1.2;
-  // A grounded column: a continuous dark body rising from the fire, with
-  // dense base puffs that spread and fade with height. The earlier puff
-  // string floated detached in the sky (audit B2); the column body is what
-  // makes the plume read as anchored to the burn.
-  const columnMat = new THREE.MeshBasicNodeMaterial({
-    color: 0x4a4545,
-    transparent: true,
-    opacity: 0.55,
-    side: THREE.DoubleSide
-  });
-  const column = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 3.0, 14, 8, 1, true), columnMat);
-  column.position.set(origin.x, baseY + 7.4, origin.z);
-  group.add(column);
-  const ember = new THREE.Mesh(
-    new THREE.SphereGeometry(1.1, 8, 8),
-    new THREE.MeshBasicNodeMaterial({ color: 0xff6a20, transparent: true, opacity: 0.55 })
-  );
-  ember.position.set(origin.x, baseY + 0.1, origin.z);
-  group.add(ember);
-  for (let i = 0; i < 12; i += 1) {
-    const t = i / 11;
-    const mat = new THREE.MeshBasicNodeMaterial({
-      color: new THREE.Color().lerpColors(new THREE.Color(0x4a4545), new THREE.Color(0xd8d8d8), t),
+
+  /**
+   * Smoke as soft sprites, not spheres.
+   *
+   * The plume used to be twelve spheres on an unlit material. An unlit sphere
+   * draws as a flat filled circle — no shading anywhere on it, a hard rim
+   * against the sky — so the column read as a stack of grey coins, and adding
+   * shading to the spheres only turned them into a stack of grey balls. The
+   * primitive was the problem: a plume is a diffuse mass with no surface, and
+   * geometry with a silhouette will always read as an object.
+   *
+   * Camera-facing sprites carrying a radial alpha falloff have no silhouette
+   * to give them away, and enough of them overlapping merge into one body.
+   * Many small ones beat few large ones: the count is what buys continuity,
+   * and each is cheap.
+   */
+  const puffTex = smokePuffTexture();
+  const PUFFS = 54;
+  const RISE = 26;
+  for (let i = 0; i < PUFFS; i += 1) {
+    const t = i / (PUFFS - 1);
+    // Deterministic jitter — the plume should look the same every session.
+    const j1 = Math.sin(i * 12.9898) * 43758.5453;
+    const j2 = Math.sin(i * 78.233) * 12345.6789;
+    const rx = j1 - Math.floor(j1) - 0.5;
+    const rz = j2 - Math.floor(j2) - 0.5;
+
+    const mat = new THREE.SpriteNodeMaterial({
+      map: puffTex,
       transparent: true,
-      opacity: (0.72 - t * 0.45) * (1 - t * 0.4)
+      depthWrite: false,
+      // Cools and thins with height: dark and dense over the fire, pale and
+      // nearly spent at the top.
+      // Hold the dark for most of the climb. A linear-ish ramp went mid-grey
+      // within a few metres of the fire, and mid-grey at low alpha against a
+      // pale sky is nothing at all — the first attempt at this was invisible
+      // from half the angles for exactly that reason.
+      color: new THREE.Color(0x35312f).lerp(new THREE.Color(0xdedbd6), Math.pow(t, 1.9)),
+      opacity: (0.58 - t * 0.40) * (1 - t * 0.25),
+      sizeAttenuation: true
     });
-    const r = 2.2 + i * 1.1 + (i % 3) * 0.3;
-    const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 10), mat);
-    // Tighten the sway so the puffs stay inside the column body instead of
-    // floating as disconnected blobs above it (audit B2).
-    const sway = Math.sin(i * 1.7) * (0.5 + i * 0.12);
-    puff.position.set(origin.x + sway, baseY + 1.0 + i * 2.0, origin.z + Math.cos(i * 1.3) * (0.5 + i * 0.1));
-    puff.userData.phase = i;
-    group.add(puff);
+    const sprite = new THREE.Sprite(mat);
+    // Widens as it rises, and drifts as the column loses its footing.
+    const spread = 1.2 + t * 6.0;
+    const size = 2.6 + Math.pow(t, 0.8) * 10.0;
+    sprite.scale.set(size, size, 1);
+    sprite.position.set(
+      origin.x + rx * spread * 2 + Math.sin(t * 3.1) * t * 3.5,
+      // Packed toward the fire, where the smoke is actually dense, rather
+      // than spaced evenly up the whole column.
+      baseY + Math.pow(t, 1.3) * RISE,
+      origin.z + rz * spread * 2 + Math.cos(t * 2.4) * t * 2.5
+    );
+    // The frame loop animates around this, so it has to be recorded: it used
+    // to recompute each position from the child index instead, which discarded
+    // the plume entirely.
+    sprite.userData.home = sprite.position.clone();
+    sprite.userData.rise = t;
+    sprite.userData.phase = i;
+    group.add(sprite);
   }
+
+  // The fire itself, as a hot core inside a warmer halo. It was a transparent
+  // low-poly sphere, and at close range its own back faces showed through the
+  // front ones — an orange figure-of-eight sitting in front of the flames
+  // rather than a glow inside them. Sprites have no back face to leak.
+  for (const glow of [
+    { size: 3.4, color: 0xff5a12, opacity: 0.34, y: 0.9 },
+    { size: 1.7, color: 0xffb347, opacity: 0.55, y: 0.5 }
+  ]) {
+    const mat = new THREE.SpriteNodeMaterial({
+      map: puffTex,
+      transparent: true,
+      depthWrite: false,
+      color: glow.color,
+      opacity: glow.opacity,
+      sizeAttenuation: true
+    });
+    const s = new THREE.Sprite(mat);
+    s.scale.set(glow.size, glow.size, 1);
+    s.position.set(origin.x, baseY + glow.y, origin.z);
+    group.add(s);
+  }
+
   scene.add(group);
   return group;
 }
