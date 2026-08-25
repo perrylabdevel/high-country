@@ -372,3 +372,25 @@ angle limits (the rubric itself allows "cannot assess" for those).
   (62, 55, 26-vs-24, 24-vs-23, 32-vs-24) plus the pass-88 northernPines/
   cemetery reads. `pass-88.json/.md` and `pass-89.json/.md` + their
   doublechecks are the measurement record.
+- **U2 detail-map overlay — dedicated coarse-scale layer (reverted,
+  technically blocked):** implemented the goal's explicitly-sanctioned
+  "detail-map approach": a separate dirt-detail albedo (raked, tone-matched)
+  sampled at a 16 m world repeat so its medium features land at 0.3–1 m — the
+  scale that resolves at the 30–60 m audit cameras — blended into the dirt
+  layer's near-overlay channel at low weight. The overlay itself was never
+  visually measurable: adding the detail texture to the terrain material
+  pushed its fragment-stage binding count past the WebGPU default per-stage
+  limit (16), the pipeline failed validation, and the terrain fell back to a
+  bright default material — which is what the camera checks ("washed out
+  toward white") actually saw, not the overlay. Root cause confirmed from the
+  renderer log: "The number of samplers (17) in the Fragment stage exceeds
+  the maximum per-stage limit (16)". A renderer-level fix (requesting
+  `maxSampledTexturesPerShaderStage` via `requiredLimits`, which this adapter
+  supports at 48) was tried and did not resolve the bright render before the
+  experiment was reverted; shipping it would also carry device-compat risk on
+  adapters that only support 16. Reverted to the shipped tree and verified
+  near-identical renders (westernRange mean 143.0 vs 143.8 baseline; ranch
+  140.1 vs 140.4). This closes the U2 detail-layer direction with the
+  documented technical blocker; any future detail layer must live inside the
+  existing texture set (e.g., a baked-in 0.3–1 m feature texture replacing
+  the dirt base) rather than as an additional material binding.
