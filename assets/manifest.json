@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-8095d799cf24.tar.gz",
-  "bundle": "textures-8095d799cf24.tar.gz",
-  "contentHash": "8095d799cf24641de924b6fc23a78a0c98de871be831c063c55d65d21d602279",
-  "bundleSha256": "cf2f959ff0845626d9c13eff37dbfd4d36d07055e77ae706fe536750efbde818",
-  "bundleBytes": 163185476,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-f9887acfed05.tar.gz",
+  "bundle": "textures-f9887acfed05.tar.gz",
+  "contentHash": "f9887acfed0525a5a9b72dfb4c0e2b5845b8d3032b9a132a471024fa94445bf2",
+  "bundleSha256": "bf777a546ee068beb030bf34259d3f6a975a665eaa11569eab6ce9c2b34be83f",
+  "bundleBytes": 158637599,
   "target": "public/textures",
   "files": [
     {
@@ -63,26 +63,6 @@
       "sha256": "462a3cc63bfcd9fe0299137a0f33f4ade84e237f4cb6115fe46f5ab400693fe6"
     },
     {
-      "path": "foliage/broad_albedo.png",
-      "bytes": 357997,
-      "sha256": "1db2789ac86e83b62af13dfb89f5a5651dd36077f2bbd7f9a6a9535f3d79ec00"
-    },
-    {
-      "path": "foliage/broad_normal.ktx2",
-      "bytes": 650420,
-      "sha256": "49f8614c9bb87b0d6e14f34ed7fa1f3111a6df67d2d036a0f82f44f81d441638"
-    },
-    {
-      "path": "foliage/grass_albedo.png",
-      "bytes": 1215454,
-      "sha256": "7b571a0a6b3362ae2d36ad3d752744982ae6bb85d1eeb437c570e516fcc1a55d"
-    },
-    {
-      "path": "foliage/grass_normal.ktx2",
-      "bytes": 1475267,
-      "sha256": "4ac79e7be0c955ac1bcbd9218357427c20e73152283c4c2c99f6b4207d357284"
-    },
-    {
       "path": "foliage/needle_albedo.png",
       "bytes": 374375,
       "sha256": "a246d0d888ef06f9012e900828b8c1b836bae396bf312f61d8b1d127137b3e01"
@@ -91,16 +71,6 @@
       "path": "foliage/needle_normal.ktx2",
       "bytes": 243011,
       "sha256": "8e9c4e1d25e5596e9d2ef0ab7f9291f5340916bf3f733f0841c7a4a6aba2b148"
-    },
-    {
-      "path": "foliage/sage_albedo.png",
-      "bytes": 323736,
-      "sha256": "e7257f0d23231eafad64db8243a77346b966149e0a98950abbf77a383d488e01"
-    },
-    {
-      "path": "foliage/sage_normal.ktx2",
-      "bytes": 553038,
-      "sha256": "5a38542388b3467d4920caee65f8ad07e3e15e1b4eec2dee55462785b7dba2e8"
     },
     {
       "path": "grass_2k_albedo.ktx2",
