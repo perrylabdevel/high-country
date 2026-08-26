@@ -501,3 +501,26 @@ angle limits (the rubric itself allows "cannot assess" for those).
   northernPines P2/P4, tribal N1, mission M2. Future fixes validate on a
   targeted A/B against `audit/close/` plus a normal audit-range pass for
   collateral (the 57419e3 U4 pattern). Raw reads: `/tmp/close-inbox/`.
+- **U3 cycle 1 — silverCreek boardwalk (reverted, measured 2026-08-26):**
+  target was the close-set U3 fail (midday 2, golden 2: "boardwalk and road
+  meet in a long clean straight material boundary"). Measure-first confirmed
+  the cause from the geometry: `boardwalk()` in kit.js is a 14 m × 4 m deck
+  whose fascia is a perfectly straight edge against the street, plus the
+  `structure()` foundation skirt reads as a straight pale band under the
+  storefronts. Fix 1 added jittered edge boards (0.16–0.66 m juts, seeded
+  per lot) to the fascia. Close A/B: **midday U3 2→4 in two independent
+  reads** (Luna crop confirmed the street edge now reads as a ragged
+  polyline), but **golden U3 stayed 2** — the residual was the pale
+  foundation strips, not the deck edge. Fix 2 added a rubble course of
+  uneven stone blocks along the skirt's front top edge: golden U3 still 2,
+  and close midday U4 regressed 3→2 ("boardwalk and building bases show
+  conspicuous gaps and dark undersides"). Audit-range collateral on the
+  fixed tree (one fresh session, no same-session baseline):
+  silverCreek-midday U3 read 2 — "the long straight dark boardwalk or
+  barrier creates a conspicuous linear material boundary" — i.e. at 34 m the
+  deck still reads as a straight dark line and the jitter did not remove it;
+  the other moves (U5/U6/U2/S4) are documented oscillators. Both fixes
+  reverted; tree back at baseline, build green, 13 PASS. Next candidate for
+  a future cycle: break the frontage as a system (deeper irregular deck edge
+  plus non-planar skirt face) with same-session before/after reads at both
+  ranges.
