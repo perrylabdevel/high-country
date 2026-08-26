@@ -472,3 +472,32 @@ angle limits (the rubric itself allows "cannot assess" for those).
   fail-count improvement for it. Any further push (darkening the top-tier
   card AO so apexes read as dark treeline silhouette) risks P1/P2 collateral
   and should be measured as its own pass.
+- **Close-camera diagnostic set stood up (2026-08-26, no graded-path change):**
+  `CAPTURE_MODE=close` in `capture-poi.mjs` adds an eye-height vantage table
+  (8–26 m back, 1.7–4.5 m eye, aimed at each POI's rubric subject: ranch
+  front door, fort gate, lake dock, range herd, mission facade). Captures go
+  to `audit/close/` (gitignored; `audit/current/` and the pass-NN series are
+  untouched — the script refuses close mode into `audit/current`), and
+  `scripts/close-grade.mjs` grades that set with the unchanged rubric,
+  computing coverage with grade.mjs's own formula and refusing to write
+  `audit/reports`. Luna (gpt-5.6-luna) read all 32 frames; after two framing
+  iterations the set converged to **coverage 97.3%** (292 scored, 8 non-n/a
+  nulls: ranch R6 ×2 + R3 ×1, silverCreek S3 ×2, westernRange W3 ×2, U6 ×1;
+  12 G1-n/a exempt) vs the 80% floor. The set starts scoring the eye-height
+  issues the 30–70 m cameras miss — ranked by POI count: U5 lighting/
+  exposure 12 POIs (crushed shadows + weak golden direction; cause partially
+  known, renderer knobs), U2 texture scale 11 POIs (the documented smear
+  plateau; every texture family measured neutral-to-regressive), G1 wheel-
+  track 10 POIs (shipped band; remaining fails are edge/camera reads), U6
+  silhouettes 7 POIs (far LOD cards), U1 ground cover 5 POIs (silverCreek/
+  timberCamp bare by design; fortGrant near-field dirt real), U3 seams 5
+  POIs (specific known boundaries: boardwalk, cabin path, ironValley slabs,
+  westernRange track, ranch courtyard strip), U4 floating/grounding 4 POIs
+  (northernPines leader-cone — measured last entry; westernRange cattle;
+  fortGrant wall bases; silverCreek). Per-POI reads that are framing-limited
+  at eye height, not game defects: ranch R1/R2/R3/R5 massing, fortGrant F1/F2
+  enclosure, lakeMercy L1/L3 shore gradient from the dock, silverCreek S2/S5,
+  elPaso E1 (real: "two boxy adobe structures"), burn B1, ironValley I1,
+  northernPines P2/P4, tribal N1, mission M2. Future fixes validate on a
+  targeted A/B against `audit/close/` plus a normal audit-range pass for
+  collateral (the 57419e3 U4 pattern). Raw reads: `/tmp/close-inbox/`.

@@ -20,12 +20,16 @@ import { mkdir, writeFile } from "node:fs/promises";
 const BASE = process.argv[2] || "http://127.0.0.1:8765";
 const OUT = process.argv[3] || "audit/current";
 const BACKEND = process.env.CAPTURE_BACKEND || "webgpu";
+const MODE = process.env.CAPTURE_MODE || "audit";
 
 if (!["webgpu", "webgl"].includes(BACKEND)) {
   throw new Error(`CAPTURE_BACKEND must be "webgpu" or "webgl", got ${BACKEND}`);
 }
 if (process.env.CAPTURE_POI && OUT === "audit/current") {
   throw new Error("CAPTURE_POI is diagnostic-only; write it outside audit/current");
+}
+if (MODE === "close" && OUT === "audit/current") {
+  throw new Error("close-vantage captures are diagnostic-only; write them outside audit/current");
 }
 if (BACKEND !== "webgpu" && OUT === "audit/current") {
   throw new Error("WebGL capture is diagnostic-only; write it outside audit/current");
@@ -34,7 +38,7 @@ if (BACKEND !== "webgpu" && OUT === "audit/current") {
 // dist: how far back to stand. height: camera height above local ground.
 // heading: degrees, direction the camera looks from (0 = looking north).
 // aim: height above ground of the point looked at.
-const POIS = [
+const AUDIT_POIS = [
   { id: "ranch", dist: 46, height: 13, heading: 150, aim: 5 },
   // Frame the sheriff–doctor storefront run at eye level from its street-facing
   // side. The town-center aerial view hid these false fronts behind the nearer
@@ -55,6 +59,52 @@ const POIS = [
   { id: "overlook", dist: 30, height: 8, heading: 45, aim: 4 },
   { id: "elPaso", dist: 28, height: 8, heading: 165, aim: 3 }
 ];
+
+/**
+ * Close-vantage cameras (CAPTURE_MODE=close) — the eye-height diagnostic set.
+ *
+ * Diagnostic only: write the output somewhere other than audit/current (the
+ * guard above enforces this) and never compile it into audit/reports. The
+ * audit-range cameras above stay the graded path. At 8-20 m and 1.7-2.5 m
+ * eye height the universal criteria (U2 scale, G1 wheel-tracks) resolve that
+ * the 30-70 m cameras smear, and the per-POI criteria are aimed at the
+ * subject the rubric names: the fort gate, the ranch house exterior, the
+ * lake dock, the western-range herd, the mission facade.
+ */
+const CLOSE_POIS = [
+  // Front-door side: the door is in the main block's south wall (R5). Camera
+  // 22 m south of that wall, looking north at the L-plan (ell to the east).
+  { id: "ranch", dist: 22, height: 2.2, heading: 180, aim: 2.0, targetOffset: { x: 1, z: -1 } },
+  // Storefront run: camera south of the street looking north at the facades.
+  // Wider than the first pass so S1/S2 alignment and the boardwalk read.
+  { id: "silverCreek", dist: 18, height: 2.2, heading: 180, aim: 2.0, targetOffset: { x: -43, z: 4 } },
+  // On the dock deck looking along it: dock plane, water depth, surface motion.
+  { id: "lakeMercy", dist: 10, height: 1.8, heading: 180, aim: 1.8, targetOffset: { x: -20, z: -84 } },
+  // Forest interior: canopy, bark, density and the floating-foliage read.
+  { id: "northernPines", dist: 10, height: 1.7, heading: 120, aim: 2.0 },
+  { id: "timberCamp", dist: 12, height: 1.8, heading: 145, aim: 1.8 },
+  { id: "burn", dist: 14, height: 1.8, heading: 130, aim: 2.0 },
+  // Herd sits 20-48 m east of the POI; stand east of the bunch, look west.
+  { id: "westernRange", dist: 14, height: 2.0, heading: 100, aim: 1.5, targetOffset: { x: 34, z: -28 } },
+  // Wide enough for headframe + stamp mill + tailings in one frame (I1).
+  { id: "ironValley", dist: 22, height: 2.4, heading: 160, aim: 2.5 },
+  { id: "tribal", dist: 12, height: 1.8, heading: 140, aim: 2.0 },
+  { id: "badlands", dist: 14, height: 1.8, heading: 110, aim: 2.0 },
+  // Facade + bell tower in frame (M2); far enough that the tower does not
+  // dominate the facade (first pass read "tower obscures the building").
+  { id: "mission", dist: 26, height: 3.2, heading: 170, aim: 2.5 },
+  // North gate is the near wall; stand north of it high enough to see over
+  // the 3.2 m wall into the courtyard (F1/F2) without going full aerial.
+  { id: "fortGrant", dist: 24, height: 4.5, heading: 180, aim: 1.5, targetOffset: { x: 0, z: -12 } },
+  { id: "cemetery", dist: 8, height: 1.7, heading: 150, aim: 1.5 },
+  { id: "huntingCabin", dist: 10, height: 1.7, heading: 145, aim: 1.8 },
+  // The vista is the subject (O2): wider, slightly higher than the first pass.
+  { id: "overlook", dist: 12, height: 2.0, heading: 45, aim: 1.5 },
+  // Widen so the adobe cluster reads as a settlement, not one wall (E1).
+  { id: "elPaso", dist: 20, height: 2.6, heading: 165, aim: 2.2 }
+];
+
+const POIS = MODE === "close" ? CLOSE_POIS : AUDIT_POIS;
 
 const LIGHTS = [
   { name: "midday", hdri: "midday", elevation: 62, azimuth: -120 },
@@ -206,6 +256,7 @@ async function main() {
 
   const manifest = {
     version: 1,
+    mode: MODE,
     backend: captureInfo.backend,
     adapter: captureInfo.adapter || "unknown",
     antialias: captureInfo.antialias,
@@ -215,6 +266,7 @@ async function main() {
     lightCount: LIGHTS.length,
     expectedFiles: process.env.CAPTURE_POI ? writtenFiles : expectedFiles,
     files: writtenFiles,
+    vantages: POIS,
     generated: new Date().toISOString()
   };
   await writeFile(`${OUT}/capture-manifest.json`, JSON.stringify(manifest, null, 2));
