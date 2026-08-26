@@ -13,6 +13,7 @@ Thumbs.db
 # Audit screenshots are regenerable: npm run capture
 audit/current/
 audit/pass-*/
+audit/close/
 audit/reports/inbox.json
 audit/reports/cursor-worksheet.md
 
