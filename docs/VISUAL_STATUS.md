@@ -524,3 +524,20 @@ angle limits (the rubric itself allows "cannot assess" for those).
   a future cycle: break the frontage as a system (deeper irregular deck edge
   plus non-planar skirt face) with same-session before/after reads at both
   ranges.
+- **U3 cycle 2 — huntingCabin trail edge (SHIPPED, measured 2026-08-26):**
+  target was the close-set U3 fail (midday 3: "gray path has visibly straight,
+  sharply defined material edges"). Measure-first: a projected check plus Luna
+  crop reads showed the seam is NOT the wooden porch (grass hides its edge)
+  but the cabinTrail's gravel edge in the left foreground — a clean straight
+  diagonal boundary against the grass at eye level. First attempt (jittered
+  planks on the porch front edge) was invisible and left U3 at 3 — reverted
+  within the cycle. Second attempt: 14 low stones (0.3–0.6 m, stone material,
+  grounded, deterministic jitter) straddling the trail edge on the two
+  segments that pass the cabin (3–19 m out). Luna crop check: "gravel edge
+  reads mostly irregular/broken, stones embedded/straddling the boundary, no
+  new artifacts". Close A/B: **huntingCabin-midday U3 3→4, golden held 4**
+  (a blind re-read of the midday frame also scored U3 4: "trail/gravel edge
+  mostly broken and irregular with grass intrusion"). Audit-range collateral
+  (fresh session vs pass-86): U3 held 4/4 both lights; the other moves on
+  those frames (U1/U2/U4/U5/U6/G1) are documented oscillators the stones
+  cannot affect (texture scale, distant silhouettes, road center). Shipped.
