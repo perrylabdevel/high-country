@@ -43,7 +43,9 @@ that match what you changed?
    done — then the deliverable is a doc correction carrying the evidence, and
    you skip the capture/grade cycle entirely.
 4. **Make it.** Then run the `verify-change` skill.
-5. **Capture.** `npm run capture` writes `audit/current/`.
+5. **Capture.** Start the preview server and wait for it to answer 200
+   first — `npm run capture` exits 1 with a navigation error if nothing is
+   serving. Follow the `capture-poi` skill; it has the exact commands.
 6. **Grade.** `npm run grade` writes a worksheet and an empty inbox.
    **You do not grade.** See "Never grade yourself" below.
 7. **Compile.** `npm run grade -- --compile audit/reports/inbox.json`

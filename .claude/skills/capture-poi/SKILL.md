@@ -28,13 +28,24 @@ did not settle as unreliable.
 
 ## The standard way
 
+`npm run capture` drives a browser against a **running preview server**. With
+no server it exits 1 with a navigation error and writes nothing. Backgrounding
+the server and capturing on the next line is a race — it needs ~4 s to answer,
+more under load — so wait for it, do not sleep a guess:
+
 ```bash
 npm run build
-npx vite preview --host 127.0.0.1 --port 8765 &
+nohup npx vite preview --host 127.0.0.1 --port 8765 > /tmp/preview.log 2>&1 &
+for i in $(seq 1 30); do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/)" = "200" ] && break
+  sleep 1
+done
+curl -s -o /dev/null -w 'server: %{http_code}\n' http://127.0.0.1:8765/   # must be 200
 npm run capture
 ```
 
-Writes to `audit/current/`.
+Writes to `audit/current/`. If capture exits non-zero, read the error: a
+navigation failure means the server is not up, not that the game is broken.
 
 ## A one-off look at one place
 
