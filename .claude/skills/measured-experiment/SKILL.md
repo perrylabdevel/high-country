@@ -31,20 +31,43 @@ that match what you changed?
 
 1. **Read the baseline.** `docs/VISUAL_STATUS.md` names the current
    double-checked pass and its fail count. Start there, not from memory.
-2. **Pick ONE change.** From `docs/BACKLOG.md` or the audit's worst-first
-   list. One change per pass or the measurement is meaningless.
-3. **Make it.** Then run the `verify-change` skill.
-4. **Capture.** `npm run capture` writes `audit/current/`.
-5. **Grade.** `npm run grade` writes a worksheet and an empty inbox.
+2. **Pick ONE change.** From `docs/VISUAL_STATUS.md` (current baseline and
+   open items) or the latest `audit/reports/pass-NN.md`. **Not**
+   `docs/BACKLOG.md` — that is the narrative/episode plan, not visual work.
+   **Not** `docs/VISION_AUDIT.md` §7 — that list is from pass 05 and is
+   marked stale. One change per pass or the measurement is meaningless.
+3. **Check the item is still real** before fixing anything. Docs here go
+   stale faster than code. §7 item 4 said `check-buildings.mjs` "cannot
+   fail"; a fault injection showed it fails correctly, naming every affected
+   structure. The cheapest result in this loop is finding the work already
+   done — then the deliverable is a doc correction carrying the evidence, and
+   you skip the capture/grade cycle entirely.
+4. **Make it.** Then run the `verify-change` skill.
+5. **Capture.** `npm run capture` writes `audit/current/`.
+6. **Grade.** `npm run grade` writes a worksheet and an empty inbox.
    **You do not grade.** See "Never grade yourself" below.
-6. **Compile.** `npm run grade -- --compile audit/reports/inbox.json`
+7. **Compile.** `npm run grade -- --compile audit/reports/inbox.json`
    writes `pass-NN.md` and `pass-NN.json`. Exit 0 = the bar is met and the
    loop is over. Exit 2 = continue. Exit 1 = the run itself failed.
-7. **Decide.** Beat the baseline outside the noise band, with a signature
+8. **Decide.** Beat the baseline outside the noise band, with a signature
    that matches your change? Ship. Otherwise `git revert` / restore.
-8. **Log either way.** A reverted experiment is a result. Commit the pass
+9. **Log either way.** A reverted experiment is a result. Commit the pass
    report with a message saying what was tried, what it measured, and that it
    was reverted. The next agent must not retry it blindly.
+
+## When a fault injection is the measurement
+
+Steps 5–7 need the grader. Some work does not: anything whose success is a
+command's exit code (a check that should fail and does not, a missing
+invariant, a broken script) is measured by **fault injection** instead —
+reintroduce the fault, confirm the failure, restore, confirm the pass. That
+path is fully available to you. Prefer these items when you cannot grade.
+
+**Confirm your injection took effect.** The first attempt at the roof
+reproduction added 1.9 m inside `markRoof`, which `mate()` then overwrote —
+a no-op that printed PASS and looked exactly like proof the check was blind.
+An injection that does not inject looks identical to a check that cannot
+fail. Verify the perturbation reached the thing you are testing.
 
 ## Never grade yourself
 
