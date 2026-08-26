@@ -370,6 +370,14 @@ HONESTY RULES:
 
 ## 7. Current backlog, worst first
 
+> **Stale — verified 2026-08-26, do not work from this list.** It records the
+> state at pass 05; the audit is past pass 91. Items 1, 2, 3, 4, 6 and 7 have
+> since been done, and item 4's specific accusation is *false* — see the
+> re-measurement under the list. For current work use
+> `docs/VISUAL_STATUS.md` (the baseline pass and its fail count) and the
+> latest `audit/reports/pass-NN.md`. The list is kept as a record of where the
+> project started.
+
 Standing state at the time of writing, for the implementer's first pass:
 
 1. **No scanned bark or leaf atlas** (§3.2 of the materials handoff). Both are
@@ -398,6 +406,41 @@ Standing state at the time of writing, for the implementer's first pass:
 
 Items 1 and 3 are asset work and need network. Item 4 is the one to do first
 anyway: until the check can fail, nothing else it covers is protected.
+
+### Re-measured 2026-08-26
+
+Each claim above was re-tested by command rather than by reading the code.
+
+**Item 4 is false — `check-buildings.mjs` has real teeth.** It has grown to
+643 lines with its own self-tests since this was written. Both reproductions
+named above were run as fault injections, and both were caught:
+
+- Floating every roof 1.9 m above its walls (by shifting the `base` anchor
+  that `mate()` positions from) fails with the measured numbers per structure:
+  `ranchHouse roof base y=24.30 not in [22.10, 22.42] (wallTop 22.40)`, and
+  the same for ranchEll, barn, bunkhouse, blacksmith, sheriff.
+- Suppressing the door headers so every zero-sill opening runs to full wall
+  height fails with `ranchHouse has a full-height doorway (no header)` and the
+  same at barn, bunkhouse and blacksmith.
+
+A caution worth recording: the *first* attempt at the roof reproduction —
+adding 1.9 m to the group's position inside `markRoof` — produced a PASS and
+appeared to confirm the accusation. It was a no-op: `mate()` sets the group's
+position from the anchor afterwards, overwriting it. A fault injection that
+does not actually inject the fault looks exactly like a check that cannot
+fail. Confirm the perturbation took effect before believing the result.
+
+**Also done since:** item 2 (25 of 28 runtime texture paths are `.ktx2`; the
+three exceptions are the foliage albedo PNGs, kept deliberately because block
+compression quantises alpha and chunks the grass tips), item 3 (`dirt_2k` and
+`gravel_2k` replaced and shipped as KTX2), item 6 (trees have near/far/distant
+instance bucketing in `src/vegetation.js`), item 7 (lake black — root cause in
+`docs/HARD_WON.md` §1.1/§1.2), and item 1 in part (bark set and the baked
+needle atlas ship; grass/sage/broad stay procedural because the baked atlases
+measured worse — pass-88/89).
+
+**Item 5 (stochastic/hex-grid sampling) is the one still unverified** — no
+implementation found by grep, and no measurement either way.
 
 ---
 

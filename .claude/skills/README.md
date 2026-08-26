@@ -26,7 +26,8 @@ more, not less.
 ## The loop, end to end
 
 ```
-pick ONE item (docs/BACKLOG.md, or the audit's worst-first list)
+pick ONE item (docs/VISUAL_STATUS.md or the latest audit/reports/pass-NN.md)
+  └─ re-test the claim  docs go stale; the item may already be done
   └─ measure-first      diagnose with numbers, not theories
   └─ make the change    smallest thing that could work
   └─ verify-change      build + 13 checks
