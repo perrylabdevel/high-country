@@ -62,6 +62,26 @@ function cabinPorch(group, wood, dark, stone) {
   const cabin = POS.huntingCabin;
   const porchZ = cabin.z + 3.85;
   boxAt(group, cabin.x, porchZ, 5, 0.18, 2.2, wood, false);
+  // Trail-edge stones: the cabinTrail's gravel edge reads as a clean straight
+  // line against the grass at eye level (audit U3, "cabin-side gravel pad").
+  // Low stones straddle the edge on the two segments that pass the cabin so
+  // the boundary is locally broken. Visual only — no colliders.
+  const hash = (n) => {
+    const sx = Math.sin(n * 12.9898 + 33.1 + cabin.x * 0.29 + cabin.z * 0.13) * 43758.5453;
+    return sx - Math.floor(sx);
+  };
+  for (let i = 0; i < 14; i += 1) {
+    const north = i % 2 === 0;
+    const along = 3 + hash(i * 7.3) * 16;
+    const side = 1.5 + hash(i * 5.1) * 1.1;
+    const px = north ? cabin.x + (hash(i * 3.7) - 0.5) * side * 2 : cabin.x + along + (hash(i * 9.1) - 0.5) * 1.2;
+    const pz = north ? cabin.z - along + (hash(i * 9.1) - 0.5) * 1.2 : cabin.z + (hash(i * 3.7) - 0.5) * side * 2;
+    const sw = 0.3 + hash(i * 11.3) * 0.3;
+    const sh = 0.22 + hash(i * 13.7) * 0.28;
+    const rock = boxOnGround(group, px, pz, sw, sh, sw * 0.7, stone, false);
+    rock.rotation.z = (hash(i * 15.1) - 0.5) * 0.25;
+    rock.rotation.y = hash(i * 17.3) * Math.PI * 2;
+  }
   boxAt(group, cabin.x - 2.15, cabin.z + 4.7, 0.18, 2.1, 0.18, dark);
   boxAt(group, cabin.x + 2.15, cabin.z + 4.7, 0.18, 2.1, 0.18, dark);
   // Chimney tall enough to clear the gable ridge (~5.6 m) and read from the
