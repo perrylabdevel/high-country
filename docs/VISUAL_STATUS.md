@@ -562,3 +562,24 @@ angle limits (the rubric itself allows "cannot assess" for those).
   collateral at other creek POIs. Next candidates for a future pass: a
   terrain-level road-edge treatment or a camera-angle change — outside this
   per-POI scope.
+- **U3 cycle 4 — westernRange track (measured, no safe fix, reverted/logged
+  2026-08-26):** target was the close-set U3 fail (midday 2: "several
+  straight-edged, rectangular-looking material transitions and patterned
+  strips"). Measure-first (Luna full-frame + zoom reads): the close-midday
+  read is a composite of two documented plateaus, neither safely fixable per
+  POI — (1) the stage-road's pale dirt track edge, whose nearest point is
+  132 m from the camera and whose straight edge is the terrain-shader road
+  boundary (the pass-87 road-edge-noise direction measured net worse and was
+  closed; local props at 130+ m were proven sub-pixel-or-artificial in cycle
+  3 at ironValley); (2) "patterned strips" in the 10–40 m foreground, which
+  are the grass-card planes (three crossed 0.5 m cards per tuft in a jittered
+  0.34 m grid) reading as parallel rectangular bands — the same read as the
+  westernRange U2 "repeated blade-card patterns", and the foliage-art family
+  that has regressed in every measured bake/density/size attempt. The blade
+  atlas alpha itself is thin tapered strokes (measured from bladeTexture()),
+  so the bands are the card planes, not the alpha footprint. No code change:
+  any attempt would retry a closed direction (road shader, foliage art) or
+  the measured distance wall. Audit-golden U3 (2: "straight horizontal
+  boundary where vegetated foreground meets bare terrain") is the same
+  road/grass-density composite. Left for a future pass that can move the
+  camera or the road-edge method.
