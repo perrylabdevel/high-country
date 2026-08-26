@@ -602,3 +602,33 @@ angle limits (the rubric itself allows "cannot assess" for those).
   **reverted on review — the user chose not to promote it**; the stones are
   removed and the tree is back to the pre-cycle-5 state (build green, 13
   PASS). Measurement stands for a future revisit.
+- **Full-pass validation — huntingCabin trail-edge stones (2026-08-26,
+  validated):** one full audit-range pass on the production build (32 frames,
+  WebGPU; the HUD is present in every capture because the script always loads
+  `?dev`). Nominal grade: 109 fails; blind double-check: 112 fails, vs
+  pass-86's 48. That gap is grader-session calibration, not the change:
+  (1) the production frames are pixel-near-identical to the pass-86 era
+  (mean channel diff 0.45/255; max region 5.3 = the stones' area); (2)
+  re-reading the ORIGINAL pass-86 frames with the same prompts in the same
+  session scores them near baseline (8 fails on a 4-image sample ≈ 64
+  extrapolated, inside the documented 48–60 band); (3) identical frames flip
+  within one session (northernPines U4 4↔1, silverCreek U3 4↔2). huntingCabin
+  rows: U3-midday held 4 in both read sets; U3-golden read 3 once and 4 in
+  two fresh reads of both the pre-stone and post-stone frames; U1/U4/H1 held;
+  U2/U6/G1 flips are the documented oscillator set. Verdict: validated — no
+  audit-range regression attributable to the stones. A literal compile of
+  this session's pass would report ~112 fails, which is exactly why the
+  calibration evidence (same-session baseline reads + pixel diff) is the
+  tie-breaker. Raw data: `/tmp/fullpass2/`, `/tmp/fullpass2-reads/`,
+  `/tmp/fullpass2-dc/`, `/tmp/p86-same-session/`.
+- **U6 targeting (2026-08-26, measure-first):** U6 fails, audit range —
+  lakeMercy ×2, overlook-midday (2), ranch-midday, westernRange-midday;
+  close set adds badlands, burn, ironValley, northernPines, overlook-golden,
+  westernRange-golden. Measured cause: at the lakeMercy and overlook audit
+  cameras the dist-bucket (crown-only, >520 m) band draws ~4,900 crowns
+  on-screen at a median 6 px (1 px at 1.8–2.5 km) — an unresolvable smeared
+  treeline, exactly what the reads name ("collapse into a smeared band",
+  "tiny smeared marks"). The lever is the dist/far LOD band (crown size,
+  density, or silhouette contrast), measured per the close+A/B pattern; note
+  this sits at the documented renderer-architecture boundary (LOD banding)
+  where a small-model change needs extra care.
