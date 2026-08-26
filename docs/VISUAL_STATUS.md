@@ -541,3 +541,24 @@ angle limits (the rubric itself allows "cannot assess" for those).
   (fresh session vs pass-86): U3 held 4/4 both lights; the other moves on
   those frames (U1/U2/U4/U5/U6/G1) are documented oscillators the stones
   cannot affect (texture scale, distant silhouettes, road center). Shipped.
+- **U3 cycle 3 — ironValley pale strip (reverted, measured 2026-08-26):**
+  target was the close-set U3 fail (midday 3, golden 3: "gray road/gravel
+  transition at right forms an unusually clean straight-edged boundary"; the
+  audit range fails it too, 2/2). Measure-first: projected geometry + Luna
+  crop reads showed the seam is the twin creek's first segment — a pale
+  water ribbon whose straight mesh edge reads as a gravel road at 150-250 m.
+  Four attempts, all measured: (1) 40 small pale bank stones — sub-pixel at
+  that distance, edge unchanged; (2) 10 large rust-dark boulders — read as
+  artificial vertical slabs, edge unchanged; (3) gentle ribbon-edge wobble
+  (±1.8 m at ~10 m features, all creeks) — ironValley golden cleared 3→4 and
+  ranch U3 3→4 (side win), but ironValley midday stayed 3; (4) stronger
+  low-frequency wobble (±2.6 m at ~12.5 m features, width-clamped) —
+  ironValley midday regressed 3→2, golden 3→3, and close collateral
+  regressed: tribal-midday U3 4→3 and lakeMercy-midday U3 4→2 ("water meets
+  the shore along an unusually clean straight boundary"). Direction negative
+  → all four reverted; tree back at baseline, build green, 13 PASS. The
+  creek ribbon edge is a documented straight-edge class, but bank props at
+  150-250 m are either sub-pixel or artificial, and the ribbon wobble cost
+  collateral at other creek POIs. Next candidates for a future pass: a
+  terrain-level road-edge treatment or a camera-angle change — outside this
+  per-POI scope.
