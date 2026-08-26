@@ -449,3 +449,26 @@ angle limits (the rubric itself allows "cannot assess" for those).
   foliage, ground cover) — not a quick win, and not noise-fighting. The
   decision on adopting that basis remains with the user. Full data in
   `/tmp/camdiag-inbox.json` and `/tmp/camdiag-doublecheck.md`.
+- **northernPines U4 leader-cone thinning (reverted, measured 2026-08-26):**
+  targeted the "floating foliage chunks" read (close-camera U4 2/1; also
+  present in the audit-range frames, where identical captures scored 5 and 2
+  across sessions). Measured cause, by dry-build projection + Luna reads:
+  the chunks are the crown **apexes** of near/far trees (41–175 m) poking
+  above the treeline — the leader cone (0.72 m base × ~2.7 m local, scaled
+  ×2 on big trees) plus the top-tier card tuft — drawn as a solid mid-tone
+  mass against the sky (rgb 112/124/104 vs the near-black canopy mass
+  35/56/35) with the trunk connection hidden behind the treeline. Fault
+  injection confirmed it: rendering with the cone removed deleted the chunk,
+  leaving only a thin tuft remnant. The change thinned the cone (base
+  0.72→0.22, height `span*0.24+0.7`→`span*0.12+0.5`). Targeted Luna A/B on
+  fresh WebGPU captures: the 27×22 px chunk shrank to a small pointed tip,
+  the treeline still read as conifers with pointed tops, and no new holes or
+  floating pieces appeared; U4 at the close-camera read moved 2/1 → 3/3
+  ("small dark-green chunks remain above the upper-left treeline" — the
+  residual is the top-tier tuft of the same near trees, natural geometry
+  whose trunks are occluded). Reverted: the change halves the artifact but
+  does not clear the strict ≥4 bar, and the audit camera already scores
+  northernPines U4 5/5 (pass-86), so no full pass can show the required
+  fail-count improvement for it. Any further push (darkening the top-tier
+  card AO so apexes read as dark treeline silhouette) risks P1/P2 collateral
+  and should be measured as its own pass.
