@@ -8,6 +8,16 @@ rubric, milestones and stop condition in that document still stand.
 
 Read this file end to end before touching anything.
 
+**Running a smaller/cheaper model?** Start at `.claude/skills/README.md`
+instead. It holds six procedural skills — verify-change, measured-experiment,
+capture-poi, measure-first, asset-bundle, add-check — that encode this
+project's verification discipline as steps with hard gates, plus the loop that
+ties them together. This brief is the background; those are the procedure.
+
+Note this brief was written against pass 05 and the audit is now past pass 90:
+the architecture and the rules hold, but treat any specific count or commit
+here as historical. `docs/VISUAL_STATUS.md` carries the current baseline.
+
 ---
 
 ## 1. What this project is
