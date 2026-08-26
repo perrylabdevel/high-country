@@ -583,3 +583,18 @@ angle limits (the rubric itself allows "cannot assess" for those).
   boundary where vegetated foreground meets bare terrain") is the same
   road/grass-density composite. Left for a future pass that can move the
   camera or the road-edge method.
+- **U3 cycle 5 — ranch courtyard strip (SHIPPED, measured 2026-08-26):**
+  target was the close-set U3 fail (midday 3: "dark ground strip on the right
+  has a relatively clean straight-looking boundary"). Measure-first: a Luna
+  read plus projected geometry showed the strip is a cast building shadow
+  (not a material seam) crossing the yard west of the house front — its edge
+  reads as a straight dark track (G1 close reads it the same way). Lighting
+  changes were off-limits, so the fix was geometry: 14 low yard stones along
+  the shadow's crossing (projected into the frame; the first placement was
+  off-screen west of the visible band and re-projected before measuring).
+  Close A/B: **ranch-midday U3 3→4, golden held 4**; the crop read confirmed
+  the stones are grounded and interrupt the edge (they do not fully break it
+  in a tight zoom, but the full-frame read clears). Audit-range collateral vs
+  pass-86: U3 held 4/4 both lights with **no ≥4→≤3 regression anywhere** on
+  the ranch frames (the close R4 4→3 chimney-continuity reads are unrelated
+  oscillators the yard stones cannot affect). Shipped.

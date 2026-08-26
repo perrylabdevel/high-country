@@ -602,5 +602,22 @@ export function createRanch(maps = {}) {
   groundBox(ox + 11, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
   addBoxCollider(ox + 11, oz + 16, 1.4, 0.5);
 
+  // Yard stones west of the front door: the house's midday shadow reads as a
+  // clean straight dark strip against the yard (audit U3 close read, "dark
+  // ground strip on the right"). Low stones along the shadow's crossing break
+  // the straight edge. Visual only — no colliders.
+  const shash = (n) => {
+    const sx = Math.sin(n * 12.9898 + 4.7) * 43758.5453;
+    return sx - Math.floor(sx);
+  };
+  for (let i = 0; i < 14; i += 1) {
+    const rx = ox - 3 - shash(i * 7.7) * 9;
+    const rz = oz - 10 - shash(i * 3.1) * 10;
+    const sw = 0.4 + shash(i * 5.9) * 0.35;
+    const rock = boxOnGround(group, rx, rz, sw, 0.22 + shash(i * 2.3) * 0.25, sw * 0.7, stone, false);
+    rock.rotation.z = (shash(i * 9.1) - 0.5) * 0.25;
+    rock.rotation.y = shash(i * 4.7) * Math.PI * 2;
+  }
+
   return group;
 }
