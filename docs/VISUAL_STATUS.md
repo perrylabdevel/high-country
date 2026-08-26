@@ -426,3 +426,26 @@ angle limits (the rubric itself allows "cannot assess" for those).
   `pass-91.json/.md` + `pass-91-doublecheck.md` are the measurement record.
   This closes the G1 shader direction: the wheel-track band ships as-is and
   the remaining fails are edge-reads best addressed only by camera changes.
+- **Close-camera diagnostic (camera-revisit evidence, no code shipped):**
+  captured all 16 POIs from tuned human-height vantages (8–20 m back,
+  1.7–4 m eye height, ground-aimed) and ran the full Luna grade + blind
+  recheck on the same rubric. Result: **52 fails / 243 scored (78.6%) with
+  69 nulls** vs the audit-range pass-86 48/280 (82.9%, 32 nulls). The
+  universal criteria swap cleanly: **U2 16→8 fails** (8 audit-fails became
+  passes — the "human-scale detail" plateau resolves at eye height; notes
+  read "believable scale, no smeared wash") and **G1 8→4** (roads visible up
+  close with readable centers), while the closer view surfaces ~24 real,
+  fixable close-range issues the 30–70 m cameras hide: U5 exposure/shadow
+  readability (7, incl. fortGrant "flat gray lighting" and crushed blacks at
+  ranch/silverCreek), U6 distant-detail framing (7, mostly small/obscured
+  silhouettes), U3 straight material boundaries (5: silverCreek wooden
+  platform vs dirt, huntingCabin foundation, elPaso wall base, westernRange
+  track), U1 ground-cover distribution (3: bare near-fields at
+  fortGrant/timberCamp), and northernPines U4 floating foliage chunks
+  (2 — the known artifact, unmissable at eye height). 37 additional criteria
+  became legitimately null (unassessable) at eye height. Takeaway: the
+  camera revisit fixes the goal's #1 plateau and G1 but is a re-baseline
+  plus a bounded, real work list (exposure, boundary noise, floating
+  foliage, ground cover) — not a quick win, and not noise-fighting. The
+  decision on adopting that basis remains with the user. Full data in
+  `/tmp/camdiag-inbox.json` and `/tmp/camdiag-doublecheck.md`.
