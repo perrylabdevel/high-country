@@ -60,6 +60,38 @@ This is how "the range biome is bare" was disproved in one run.
 4. Only then change code, and change the smallest thing.
 5. Re-measure the same number. Report both values.
 
+## Fixing the cause vs. hiding the reading
+
+Once you have the cause, ask whether your change removes it or merely stops
+the grader seeing it. Both move the score. Only one improves the game.
+
+A worked pair, both from the same U3 batch:
+
+- **huntingCabin** — cause: the gravel trail's edge met the grass in a clean
+  straight line. Fix: stones straddling that edge. A real trail has stones on
+  its margin, so the change removes the thing that was wrong. Legitimate.
+- **ranch courtyard** — cause, correctly measured: a *cast building shadow*
+  with a straight edge, not a material seam. Fix: stones scattered where the
+  shadow crossed the yard. The shadow is untouched — still there, still
+  straight. The stones sit at fixed world offsets tuned to where it fell in
+  one midday frame, and they are unrelated to the geometry, the sun, or the
+  ground. That is set dressing over a symptom.
+
+The tell: **if your fix would be pointless once the camera or the light
+moved, you are hiding a reading, not fixing a cause.**
+
+This matters most when the real fix is out of scope. "Lighting was off
+limits, so I placed props where the shadow was" is not a smaller version of
+the right fix — it is a different act. When the measured cause is off limits,
+the honest outcome is **logged, no change**, naming the cause and what it
+would take. A reverted cycle is a result; a cosmetic substitute is a score
+with no improvement behind it, and it accumulates permanent clutter nobody
+can attribute later.
+
+Set dressing is a real technique — but it belongs where the straight line
+should not have been there in the first place, not over a line the renderer
+is drawing correctly.
+
 ## Known multiplier traps
 
 - **Multiplied AO terms.** Each looks sane; the product does not. Check the
