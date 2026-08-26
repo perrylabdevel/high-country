@@ -413,3 +413,16 @@ angle limits (the rubric itself allows "cannot assess" for those).
   ±14 is the documented noise floor. Contract: full pass must net lower →
   reverted; the tree and bundle are back to the shipped 29-file state.
   `pass-90.json/.md` + `pass-90-doublecheck.md` are the measurement record.
+- **Pass-91 — G1 center-contrast strengthening (reverted):** the shipped
+  pass-86 wheel-track band reads 8–13 G1 fails across sessions with unchanged
+  code, so the center contrast was pushed to be decisive (roadCompact 0.68→
+  0.78, center roughness 0.55→0.4, roadEdgeBright 1.5→1.6). Camera-verified:
+  ironValley "track center visibly darker and smoother, still reads as a
+  road, no artifact"; ranch "improved readability without an unnaturally dark
+  strip, no regression". Full double-checked pass-91: **52 fails / 284 scored
+  (81.7%) vs the shipped pass-86 48/280** — net +4, G1 still 11 (the failing
+  reads are "edges clean/straight" complaints that center contrast cannot
+  fix, plus grader drift 8–13). Reverted to the pass-86 state;
+  `pass-91.json/.md` + `pass-91-doublecheck.md` are the measurement record.
+  This closes the G1 shader direction: the wheel-track band ships as-is and
+  the remaining fails are edge-reads best addressed only by camera changes.
