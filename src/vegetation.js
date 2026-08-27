@@ -367,9 +367,15 @@ function bladeTexture() {
     ctx.clearRect(0, 0, size, size);
     const panel = size / 2;
     // Muted palettes: [rootR,G,B, midR,G,B]. Nothing here is a primary green.
-    const MEADOW = [[38, 56, 26, 82, 104, 44], [44, 62, 28, 96, 116, 52], [34, 50, 24, 74, 96, 40]];
-    const DRYISH = [[52, 58, 30, 112, 116, 56], [46, 54, 28, 100, 106, 50], [58, 62, 32, 124, 124, 62]];
-    const STRAW = [[96, 92, 46, 158, 148, 84], [88, 84, 44, 146, 136, 76]];
+    // Root stops sit at a ~1.4x ramp below the mid, not ~2x: at the old 2x
+    // ramp (root lum 0.18-0.23 vs mid 0.34-0.47) the lower half of every
+    // blade fell below dark wood and vanished, and the lit upper half read
+    // as a blade starting in mid-air (the "floating grass" read — it was
+    // tonal, not geometric; see HARD_WON 1.5). Roots keep the between-row
+    // hue spread; only luminance is lifted.
+    const MEADOW = [[52, 76, 35, 82, 104, 44], [61, 85, 39, 96, 116, 52], [47, 70, 34, 74, 96, 40]];
+    const DRYISH = [[75, 84, 43, 112, 116, 56], [66, 77, 40, 100, 106, 50], [84, 90, 46, 124, 124, 62]];
+    const STRAW = [[111, 107, 53, 158, 148, 84], [103, 98, 51, 146, 136, 76]];
     // Canvas y runs down and texture v runs up, so a species whose atlas offset
     // is v=0 lives in the LOWER half of the canvas.
     const panels = [
