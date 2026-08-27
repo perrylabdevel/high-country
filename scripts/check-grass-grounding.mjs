@@ -31,7 +31,7 @@ globalThis.document = {
 };
 
 import * as THREE from "three/webgpu";
-const { bakeHeightfield, heightAt } = await import("../src/heightfield.js");
+const { bakeHeightfield, meshHeightAt } = await import("../src/heightfield.js");
 const { clearColliders } = await import("../src/collision.js");
 const { createLandmarks } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
@@ -85,7 +85,7 @@ for (const [name, cx, cz] of CAMERAS) {
       const foot = ((bb.max.x - bb.min.x) * scale.x) / 2;
       let mn = pos.y;
       for (const [dx, dz] of [[foot, 0], [-foot, 0], [0, foot], [0, -foot]]) {
-        mn = Math.min(mn, heightAt(pos.x + dx, pos.z + dz));
+        mn = Math.min(mn, meshHeightAt(pos.x + dx, pos.z + dz));
       }
       checked += 1;
       if (pos.y - mn > MAX_LIFT) {

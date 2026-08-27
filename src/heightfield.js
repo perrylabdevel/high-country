@@ -143,6 +143,44 @@ function vertexHeight(ix, iz) {
   return heights[z * COLS + x];
 }
 
+/**
+ * The height of the terrain as it is actually DRAWN.
+ *
+ * heightAt() is bilinear over the 12.5 m grid. The terrain mesh is that same
+ * grid triangulated, and a bilinear patch over a twisted quad is not planar —
+ * so inside every cell the smooth surface and the drawn triangles disagree.
+ * Seating anything on heightAt() therefore floats it wherever the bilinear
+ * surface runs above the triangle: measured by raycasting the real mesh,
+ * 9.5% of the map by more than 2 cm, p99 9.5 cm, worst 76 cm. That is the
+ * "floating grass" — the tufts were seated perfectly on a surface nobody
+ * draws, which is also why every heightAt-based check passed.
+ *
+ * three's PlaneGeometry splits each cell on the anti-diagonal: with
+ * a=(ix,iz) b=(ix,iz+1) c=(ix+1,iz+1) d=(ix+1,iz) it emits (a,b,d) and
+ * (b,c,d), so the shared edge is b-d and the split is tx + tz = 1.
+ *
+ * Use this for anything that must sit ON the ground. heightAt() stays the
+ * right call for smooth queries — camera, physics, slope — where the
+ * discontinuity of a triangulated surface would be worse than the gap.
+ */
+export function meshHeightAt(x, z) {
+  bakeHeightfield();
+  const fx = (x + HALF_X) / SPACING_X;
+  const fz = (z + HALF_Z) / SPACING_Z;
+  const ix = Math.floor(fx);
+  const iz = Math.floor(fz);
+  const tx = Math.max(0, Math.min(1, fx - ix));
+  const tz = Math.max(0, Math.min(1, fz - iz));
+  const h00 = vertexHeight(ix, iz);
+  const h10 = vertexHeight(ix + 1, iz);
+  const h01 = vertexHeight(ix, iz + 1);
+  const h11 = vertexHeight(ix + 1, iz + 1);
+  if (tx + tz <= 1) {
+    return h00 + tx * (h10 - h00) + tz * (h01 - h00);
+  }
+  return h11 + (1 - tx) * (h01 - h11) + (1 - tz) * (h10 - h11);
+}
+
 export function heightAt(x, z) {
   bakeHeightfield();
   const fx = (x + HALF_X) / SPACING_X;
