@@ -1,10 +1,13 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-25 · against `audit/reports/pass-86.json` (the latest
-double-checked pass that matches the shipped tree, 48 fails). `pass-82.json`
-through `pass-85.json` and `pass-87.json` are reverted variants, kept as
-measurement records. `pass-88/89.json` record the baked-vs-fallback foliage
-A/B described below; the shipped tree keeps the procedural fallback.
+**Updated:** 2026-08-27 · baseline is `audit/reports/pass-93.json`
+(double-checked, 90 fails / 296 scored — see `pass-93-doublecheck.md`),
+graded with the pinned grader AND the pinned pass-92 prompt; counts from
+earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
+now deterministic (seeded painters, 88c57e7), so pass-93 frames are
+reproducible in a way pass-91/92 frames were not.
+`pass-86.json` (48 fails) remains the reference for passes graded with the
+older prompt/configuration only.
 
 ## Objective
 
