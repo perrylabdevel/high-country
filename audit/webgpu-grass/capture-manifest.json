@@ -1,0 +1,201 @@
+{
+  "version": 1,
+  "mode": "audit",
+  "backend": "webgpu",
+  "adapter": "aP",
+  "antialias": true,
+  "build": "production",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "poiCount": 16,
+  "lightCount": 2,
+  "expectedFiles": [
+    "ranch-midday.png",
+    "ranch-golden.png",
+    "silverCreek-midday.png",
+    "silverCreek-golden.png",
+    "lakeMercy-midday.png",
+    "lakeMercy-golden.png",
+    "northernPines-midday.png",
+    "northernPines-golden.png",
+    "timberCamp-midday.png",
+    "timberCamp-golden.png",
+    "burn-midday.png",
+    "burn-golden.png",
+    "westernRange-midday.png",
+    "westernRange-golden.png",
+    "ironValley-midday.png",
+    "ironValley-golden.png",
+    "tribal-midday.png",
+    "tribal-golden.png",
+    "badlands-midday.png",
+    "badlands-golden.png",
+    "mission-midday.png",
+    "mission-golden.png",
+    "fortGrant-midday.png",
+    "fortGrant-golden.png",
+    "cemetery-midday.png",
+    "cemetery-golden.png",
+    "huntingCabin-midday.png",
+    "huntingCabin-golden.png",
+    "overlook-midday.png",
+    "overlook-golden.png",
+    "elPaso-midday.png",
+    "elPaso-golden.png"
+  ],
+  "files": [
+    "ranch-midday.png",
+    "silverCreek-midday.png",
+    "lakeMercy-midday.png",
+    "northernPines-midday.png",
+    "timberCamp-midday.png",
+    "burn-midday.png",
+    "westernRange-midday.png",
+    "ironValley-midday.png",
+    "tribal-midday.png",
+    "badlands-midday.png",
+    "mission-midday.png",
+    "fortGrant-midday.png",
+    "cemetery-midday.png",
+    "huntingCabin-midday.png",
+    "overlook-midday.png",
+    "elPaso-midday.png",
+    "ranch-golden.png",
+    "silverCreek-golden.png",
+    "lakeMercy-golden.png",
+    "northernPines-golden.png",
+    "timberCamp-golden.png",
+    "burn-golden.png",
+    "westernRange-golden.png",
+    "ironValley-golden.png",
+    "tribal-golden.png",
+    "badlands-golden.png",
+    "mission-golden.png",
+    "fortGrant-golden.png",
+    "cemetery-golden.png",
+    "huntingCabin-golden.png",
+    "overlook-golden.png",
+    "elPaso-golden.png"
+  ],
+  "vantages": [
+    {
+      "id": "ranch",
+      "dist": 46,
+      "height": 13,
+      "heading": 150,
+      "aim": 5
+    },
+    {
+      "id": "silverCreek",
+      "dist": 34,
+      "height": 5.5,
+      "heading": 180,
+      "aim": 5,
+      "targetOffset": {
+        "x": -43,
+        "z": 4
+      }
+    },
+    {
+      "id": "lakeMercy",
+      "dist": 70,
+      "height": 16,
+      "heading": 20,
+      "aim": 2
+    },
+    {
+      "id": "northernPines",
+      "dist": 40,
+      "height": 9,
+      "heading": 120,
+      "aim": 6
+    },
+    {
+      "id": "timberCamp",
+      "dist": 42,
+      "height": 11,
+      "heading": 145,
+      "aim": 3
+    },
+    {
+      "id": "burn",
+      "dist": 55,
+      "height": 14,
+      "heading": 130,
+      "aim": 4
+    },
+    {
+      "id": "westernRange",
+      "dist": 60,
+      "height": 12,
+      "heading": 90,
+      "aim": 3
+    },
+    {
+      "id": "ironValley",
+      "dist": 62,
+      "height": 18,
+      "heading": 160,
+      "aim": 6
+    },
+    {
+      "id": "tribal",
+      "dist": 38,
+      "height": 10,
+      "heading": 140,
+      "aim": 3
+    },
+    {
+      "id": "badlands",
+      "dist": 66,
+      "height": 16,
+      "heading": 110,
+      "aim": 4
+    },
+    {
+      "id": "mission",
+      "dist": 40,
+      "height": 12,
+      "heading": 170,
+      "aim": 5
+    },
+    {
+      "id": "fortGrant",
+      "dist": 58,
+      "height": 20,
+      "heading": 155,
+      "aim": 3
+    },
+    {
+      "id": "cemetery",
+      "dist": 24,
+      "height": 6,
+      "heading": 150,
+      "aim": 1.5
+    },
+    {
+      "id": "huntingCabin",
+      "dist": 26,
+      "height": 8,
+      "heading": 145,
+      "aim": 3
+    },
+    {
+      "id": "overlook",
+      "dist": 30,
+      "height": 8,
+      "heading": 45,
+      "aim": 4
+    },
+    {
+      "id": "elPaso",
+      "dist": 28,
+      "height": 8,
+      "heading": 165,
+      "aim": 3
+    }
+  ],
+  "generated": "2026-08-27T23:12:22.232Z"
+}

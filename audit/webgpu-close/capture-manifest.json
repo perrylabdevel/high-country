@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "mode": "close",
+  "backend": "webgpu",
+  "adapter": "aP",
+  "antialias": true,
+  "build": "production",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "poiCount": 16,
+  "lightCount": 2,
+  "expectedFiles": [
+    "ranch-midday.png",
+    "ranch-golden.png",
+    "silverCreek-midday.png",
+    "silverCreek-golden.png",
+    "lakeMercy-midday.png",
+    "lakeMercy-golden.png",
+    "northernPines-midday.png",
+    "northernPines-golden.png",
+    "timberCamp-midday.png",
+    "timberCamp-golden.png",
+    "burn-midday.png",
+    "burn-golden.png",
+    "westernRange-midday.png",
+    "westernRange-golden.png",
+    "ironValley-midday.png",
+    "ironValley-golden.png",
+    "tribal-midday.png",
+    "tribal-golden.png",
+    "badlands-midday.png",
+    "badlands-golden.png",
+    "mission-midday.png",
+    "mission-golden.png",
+    "fortGrant-midday.png",
+    "fortGrant-golden.png",
+    "cemetery-midday.png",
+    "cemetery-golden.png",
+    "huntingCabin-midday.png",
+    "huntingCabin-golden.png",
+    "overlook-midday.png",
+    "overlook-golden.png",
+    "elPaso-midday.png",
+    "elPaso-golden.png"
+  ],
+  "files": [
+    "ranch-midday.png",
+    "silverCreek-midday.png",
+    "lakeMercy-midday.png",
+    "northernPines-midday.png",
+    "timberCamp-midday.png",
+    "burn-midday.png",
+    "westernRange-midday.png",
+    "ironValley-midday.png",
+    "tribal-midday.png",
+    "badlands-midday.png",
+    "mission-midday.png",
+    "fortGrant-midday.png",
+    "cemetery-midday.png",
+    "huntingCabin-midday.png",
+    "overlook-midday.png",
+    "elPaso-midday.png",
+    "ranch-golden.png",
+    "silverCreek-golden.png",
+    "lakeMercy-golden.png",
+    "northernPines-golden.png",
+    "timberCamp-golden.png",
+    "burn-golden.png",
+    "westernRange-golden.png",
+    "ironValley-golden.png",
+    "tribal-golden.png",
+    "badlands-golden.png",
+    "mission-golden.png",
+    "fortGrant-golden.png",
+    "cemetery-golden.png",
+    "huntingCabin-golden.png",
+    "overlook-golden.png",
+    "elPaso-golden.png"
+  ],
+  "vantages": [
+    {
+      "id": "ranch",
+      "dist": 22,
+      "height": 2.2,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": 1,
+        "z": -1
+      }
+    },
+    {
+      "id": "silverCreek",
+      "dist": 18,
+      "height": 2.2,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": -43,
+        "z": 4
+      }
+    },
+    {
+      "id": "lakeMercy",
+      "dist": 10,
+      "height": 1.8,
+      "heading": 180,
+      "aim": 1.8,
+      "targetOffset": {
+        "x": -20,
+        "z": -84
+      }
+    },
+    {
+      "id": "northernPines",
+      "dist": 10,
+      "height": 1.7,
+      "heading": 120,
+      "aim": 2
+    },
+    {
+      "id": "timberCamp",
+      "dist": 12,
+      "height": 1.8,
+      "heading": 145,
+      "aim": 1.8
+    },
+    {
+      "id": "burn",
+      "dist": 14,
+      "height": 1.8,
+      "heading": 130,
+      "aim": 2
+    },
+    {
+      "id": "westernRange",
+      "dist": 14,
+      "height": 2,
+      "heading": 100,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 34,
+        "z": -28
+      }
+    },
+    {
+      "id": "ironValley",
+      "dist": 22,
+      "height": 2.4,
+      "heading": 160,
+      "aim": 2.5
+    },
+    {
+      "id": "tribal",
+      "dist": 12,
+      "height": 1.8,
+      "heading": 140,
+      "aim": 2
+    },
+    {
+      "id": "badlands",
+      "dist": 14,
+      "height": 1.8,
+      "heading": 110,
+      "aim": 2
+    },
+    {
+      "id": "mission",
+      "dist": 26,
+      "height": 3.2,
+      "heading": 170,
+      "aim": 2.5
+    },
+    {
+      "id": "fortGrant",
+      "dist": 24,
+      "height": 4.5,
+      "heading": 180,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 0,
+        "z": -12
+      }
+    },
+    {
+      "id": "cemetery",
+      "dist": 8,
+      "height": 1.7,
+      "heading": 150,
+      "aim": 1.5
+    },
+    {
+      "id": "huntingCabin",
+      "dist": 10,
+      "height": 1.7,
+      "heading": 145,
+      "aim": 1.8
+    },
+    {
+      "id": "overlook",
+      "dist": 12,
+      "height": 2,
+      "heading": 45,
+      "aim": 1.5
+    },
+    {
+      "id": "elPaso",
+      "dist": 20,
+      "height": 2.6,
+      "heading": 165,
+      "aim": 2.2
+    }
+  ],
+  "generated": "2026-08-27T23:15:38.402Z"
+}
