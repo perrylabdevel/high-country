@@ -15,7 +15,7 @@
  */
 import { existsSync } from "node:fs";
 import { chromium } from "playwright";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 const BASE = process.argv[2] || "http://127.0.0.1:8765";
 const OUT = process.argv[3] || "audit/current";
@@ -154,8 +154,60 @@ function launchOptions() {
   );
 }
 
+/**
+ * Fail fast, and loudly, when BASE is not serving the build we just made.
+ *
+ * Two capture runs have now been lost to this: `npm run capture` defaults to
+ * port 8765, but `npm run preview` silently moves to 8766/8767 when that port
+ * is occupied, and the failure surfaced 60s later as an opaque page.goto
+ * timeout. A stale server on the right port is worse still — it answers, the
+ * backend assertion passes, and the pass grades an old build.
+ */
+async function preflight() {
+  let res;
+  try {
+    res = await fetch(`${BASE}/`, { signal: AbortSignal.timeout(5000) });
+  } catch {
+    const alive = [];
+    for (const port of [8765, 8766, 8767, 8768, 5173, 4173]) {
+      try {
+        await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(1000) });
+        alive.push(port);
+      } catch {
+        /* nothing listening */
+      }
+    }
+    throw new Error(
+      `nothing serving ${BASE}. Start it with \`npm run preview\` and pass the port it prints:\n` +
+        `  npm run capture -- http://127.0.0.1:<port> ${OUT}\n` +
+        (alive.length
+          ? `Ports answering right now: ${alive.join(", ")}.`
+          : "No local dev server is answering on 8765-8768, 5173 or 4173.")
+    );
+  }
+  if (!res.ok) {
+    throw new Error(`${BASE}/ returned HTTP ${res.status}; expected the built index.html`);
+  }
+  const served = await res.text();
+
+  // dist/index.html is what `npm run build` just wrote. If the server is
+  // handing out a different entry bundle it is a stale process from an
+  // earlier build, and the capture would grade the wrong code.
+  if (existsSync("dist/index.html")) {
+    const built = await readFile("dist/index.html", "utf8");
+    const entry = built.match(/src="([^"]*assets\/[^"]+\.js)"/)?.[1];
+    if (entry && !served.includes(entry)) {
+      throw new Error(
+        `${BASE} is serving a different build than dist/ (expected entry ${entry}). ` +
+          "Kill the old preview server and restart it after `npm run build`."
+      );
+    }
+  }
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
+  await preflight();
   const browser = await chromium.launch(launchOptions());
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const errors = [];
