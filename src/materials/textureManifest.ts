@@ -28,7 +28,19 @@ export const TEXTURE_SETS = {
     albedo: "/textures/grass_2k_albedo.ktx2",
     normal: "/textures/grass_2k_normal.ktx2",
     orm: "/textures/grass_2k_orm.ktx2",
-    tiling: 10,
+    // Metres per repeat (worldUv = positionWorld.xz / tiling). At 10 m the
+    // 3072-px albedo resolved at 3.26 mm/px, putting its painted leaves and
+    // straw near 20-33 cm — two to four times life size, so the ground read as
+    // flat foliage lying among the real grass rather than as surface detail.
+    // Confirmed rather than assumed: with every grass instance hidden the flat
+    // streaks were still there, so they were never geometry.
+    //
+    // 6 m lands the same features near 12-20 cm. 4 m was measured too and is
+    // better still up close (8-13 cm), but it costs more than it looks: the
+    // oversized leaves had been acting as filler between tufts, so at audit
+    // range 4 m went visibly patchy and arid while 6 m holds the pasture read.
+    // No tiling repetition was visible at either value.
+    tiling: 6,
     heightBias: 0.0
   },
   dirt: {

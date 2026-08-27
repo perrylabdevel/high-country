@@ -1944,13 +1944,19 @@ export function createVegetation(scene, maps = {}) {
   //
   // Guarded because the headless checks import this module with no window.
   if (typeof window !== "undefined") {
+    // Track whether we are actually hiding: restoring a count we never saved
+    // sets it to the initial 0, so __hideGrass(false) on a fresh page hid the
+    // grass instead of showing it — the opposite of what it says.
+    let hidden = false;
     let savedGrassCount = 0;
     window.__hideGrass = (on) => {
-      if (on) {
+      if (on && !hidden) {
         savedGrassCount = grass.count;
         grass.count = 0;
-      } else {
+        hidden = true;
+      } else if (!on && hidden) {
         grass.count = savedGrassCount;
+        hidden = false;
       }
       return grass.count;
     };
