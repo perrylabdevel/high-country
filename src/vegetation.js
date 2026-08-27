@@ -2250,6 +2250,47 @@ export function createVegetation(scene, maps = {}) {
     scatterSettled(cameraPos) {
       return !scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP;
     },
+    /**
+     * Measure the ground cover as DRAWN, near the camera.
+     *
+     * Every previous pass at the floating-grass artefact reasoned about card
+     * size from the constants, which is how a wrong answer survives: the
+     * constants are inputs to a chain (species height x spread x a distance
+     * ramp x a hash jitter / BLADE_PANEL_W) and only the instance matrix says
+     * what came out the other end. This reads the matrices back.
+     *
+     * Width and height are the card's, in metres; the painted plant is
+     * BLADE_PANEL_W of the width and `fill` of the height.
+     */
+    grassStats(cameraPos, radius = 15) {
+      const m = new THREE.Matrix4();
+      const p = new THREE.Vector3();
+      const w = [];
+      const h = [];
+      for (let i = 0; i < grass.count; i += 1) {
+        grass.getMatrixAt(i, m);
+        p.setFromMatrixPosition(m);
+        if (flatDist(p, cameraPos) > radius) {
+          continue;
+        }
+        w.push(Math.hypot(m.elements[0], m.elements[1], m.elements[2]) * GRASS_CARD_W);
+        h.push(Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H);
+      }
+      if (!w.length) {
+        return { count: 0 };
+      }
+      const pct = (arr, q) => {
+        const a = arr.slice().sort((x, y) => x - y);
+        return Number(a[Math.min(a.length - 1, Math.floor(q * a.length))].toFixed(3));
+      };
+      const ratio = w.map((v, i) => v / h[i]);
+      return {
+        count: w.length,
+        widthM: { p05: pct(w, 0.05), p50: pct(w, 0.5), p95: pct(w, 0.95), max: pct(w, 1) },
+        heightM: { p05: pct(h, 0.05), p50: pct(h, 0.5), p95: pct(h, 0.95), max: pct(h, 1) },
+        widthOverHeight: { p05: pct(ratio, 0.05), p50: pct(ratio, 0.5), p95: pct(ratio, 0.95), max: pct(ratio, 1) }
+      };
+    },
     update(cameraPos) {
       if (flatDist(lastLodCenter, cameraPos) >= LOD_HYSTERESIS) {
         lastLodCenter.copy(cameraPos);

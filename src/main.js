@@ -268,6 +268,7 @@ async function boot() {
     // camera. Capture tooling waits on this: the scatter takes ~55 frames, so
     // a screenshot straight after a jump shows the previous location's cover.
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
+    window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
     // Report the backend from something minification cannot rewrite.
     //
     // This used to read /webgl/i.test(renderer.backend.constructor.name). A
