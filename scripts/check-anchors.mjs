@@ -27,6 +27,7 @@ import {
   post,
   cone,
   grounded,
+  lowestSeat,
   boxOnGround,
   boxOnPlane,
   boxLookAt,
@@ -986,8 +987,13 @@ if (STRUCTURES.length !== structuresBeforeGrounded) {
 }
 
 const boxParent = new THREE.Group();
+// The prop pads seat at the LOWEST terrain sample over their footprint (see
+// lowestSeat), not the centre sample — the grass-grounding fix for props. The
+// typed equivalent follows that seat so this still checks the mate/anchor
+// plumbing, not the seat policy.
+const boxSeat = lowestSeat(GROUND_X, GROUND_Z, Math.hypot(GROUND_W, GROUND_D) / 2);
 const typedBoxAt = new THREE.Mesh(new THREE.BoxGeometry(GROUND_W, GROUND_H, GROUND_D), wood);
-typedBoxAt.position.set(GROUND_X, groundY + GROUND_H / 2 + GROUND_OFF, GROUND_Z);
+typedBoxAt.position.set(GROUND_X, boxSeat + GROUND_H / 2 + GROUND_OFF, GROUND_Z);
 typedBoxAt.updateMatrixWorld(true);
 const boxAtBefore = new THREE.Box3().setFromObject(typedBoxAt);
 const matedBoxAt = boxOnGround(boxParent, GROUND_X, GROUND_Z, GROUND_W, GROUND_H, GROUND_D, wood, false, GROUND_OFF);
@@ -1003,8 +1009,11 @@ if (STRUCTURES.length !== structuresBeforeGrounded) {
 const CYL_RT = 0.1;
 const CYL_RB = 0.12;
 const CYL_H = 9;
+// Bare grounded() pads keep the single centre sample; the typed box/cyl/cone
+// OnGround helpers seat at the LOWEST terrain sample over their footprint
+// (lowestSeat). Each gets its own typed reference.
 const typedCyl = new THREE.Mesh(new THREE.CylinderGeometry(CYL_RT, CYL_RB, CYL_H, 8), wood);
-typedCyl.position.set(GROUND_X, groundY + CYL_H / 2, GROUND_Z);
+typedCyl.position.set(GROUND_X, lowestSeat(GROUND_X, GROUND_Z, CYL_RB) + CYL_H / 2, GROUND_Z);
 typedCyl.updateMatrixWorld(true);
 const cylBefore = new THREE.Box3().setFromObject(typedCyl);
 const matedCyl = cylOnGround(boxParent, GROUND_X, GROUND_Z, CYL_RT, CYL_RB, CYL_H, wood, false);
@@ -1013,12 +1022,16 @@ const cylAfter = new THREE.Box3().setFromObject(matedCyl);
 if (cylBefore.min.distanceTo(cylAfter.min) > 1e-5 || cylBefore.max.distanceTo(cylAfter.max) > 1e-5) {
   throw new Error("cylOnGround world box drifted from typed cylAt");
 }
+const typedCylCentre = new THREE.Mesh(new THREE.CylinderGeometry(CYL_RT, CYL_RB, CYL_H, 8), wood);
+typedCylCentre.position.set(GROUND_X, groundY + CYL_H / 2, GROUND_Z);
+typedCylCentre.updateMatrixWorld(true);
+const cylCentreBefore = new THREE.Box3().setFromObject(typedCylCentre);
 
 const CONE_R = 2.5;
 const CONE_H = 4;
 const CONE_OFF = 0.2;
 const typedCone = new THREE.Mesh(new THREE.ConeGeometry(CONE_R, CONE_H, 7), wood);
-typedCone.position.set(GROUND_X, groundY + CONE_H / 2 + CONE_OFF, GROUND_Z);
+typedCone.position.set(GROUND_X, lowestSeat(GROUND_X, GROUND_Z, CONE_R) + CONE_H / 2 + CONE_OFF, GROUND_Z);
 typedCone.updateMatrixWorld(true);
 const coneBefore = new THREE.Box3().setFromObject(typedCone);
 const matedCone = coneOnGround(boxParent, GROUND_X, GROUND_Z, CONE_R, CONE_H, wood, false, CONE_OFF);
@@ -1088,7 +1101,7 @@ if (axleBefore.min.distanceTo(axleAfter.min) > 1e-5 || axleBefore.max.distanceTo
 
 const TRUNK_YAW = 0.4;
 const typedTrunk = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.36, 0.4), wood);
-typedTrunk.position.set(GROUND_X, groundY + 0.18 + 0.1, GROUND_Z);
+typedTrunk.position.set(GROUND_X, lowestSeat(GROUND_X, GROUND_Z, Math.hypot(4.8, 0.4) / 2) + 0.18 + 0.1, GROUND_Z);
 typedTrunk.rotation.y = TRUNK_YAW;
 typedTrunk.rotation.z = 0.07;
 typedTrunk.updateMatrixWorld(true);
@@ -1174,7 +1187,7 @@ const matedPost = post({ rTop: CYL_RT, rBot: CYL_RB, h: CYL_H, material: wood })
 mate(matedPost, "base", anchorsOf(postPad).get("footing"));
 postPad.updateMatrixWorld(true);
 const postAfter = new THREE.Box3().setFromObject(matedPost);
-if (cylBefore.min.distanceTo(postAfter.min) > 1e-5 || cylBefore.max.distanceTo(postAfter.max) > 1e-5) {
+if (cylCentreBefore.min.distanceTo(postAfter.min) > 1e-5 || cylCentreBefore.max.distanceTo(postAfter.max) > 1e-5) {
   throw new Error("post world box drifted from typed cylinder sitting on heightAt");
 }
 
@@ -1183,7 +1196,11 @@ const matedSpike = cone({ r: CONE_R, h: CONE_H, material: wood });
 mate(matedSpike, "base", anchorsOf(conePad).get("footing"), { offset: { y: CONE_OFF } });
 conePad.updateMatrixWorld(true);
 const spikeAfter = new THREE.Box3().setFromObject(matedSpike);
-if (coneBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneBefore.max.distanceTo(spikeAfter.max) > 1e-5) {
+const typedConeCentre = new THREE.Mesh(new THREE.ConeGeometry(CONE_R, CONE_H, 7), wood);
+typedConeCentre.position.set(GROUND_X, groundY + CONE_H / 2 + CONE_OFF, GROUND_Z);
+typedConeCentre.updateMatrixWorld(true);
+const coneCentreBefore = new THREE.Box3().setFromObject(typedConeCentre);
+if (coneCentreBefore.min.distanceTo(spikeAfter.min) > 1e-5 || coneCentreBefore.max.distanceTo(spikeAfter.max) > 1e-5) {
   throw new Error("cone world box drifted from typed coneAt");
 }
 

@@ -145,6 +145,29 @@ so a door was not inside its collider.
 **Found by:** the ranch smith yaw/roof pass, then running the generalized
 check against the rest of the town.
 
+### 2.x Prop pads floated on slopes — the grass bug, one layer up
+
+**Symptom:** nothing. That is the point. Wide kit props (`boxOnGround`,
+`cylOnGround`, `coneOnGround`) were seated at one centre terrain sample, so on
+any slope the downhill end of the piece hovered while the uphill end buried —
+a 4.1 m log stack floating 0.19 m at its low end, a charcoal-pit disc 0.25 m,
+a sheepCamp tipi 0.35 m, an ironValley ore cart 0.46 m. No throw, no log; the
+close-camera U4 reads named it only as "bases appear slightly detached".
+**Cause:** the same centre-anchoring defect the grass tufts had (fixed by
+`check:grass-grounding`), one layer up the abstraction stack: kit.js's own
+comment said the prop pads use "a single heightAt sample — not four-corner
+footing()", and `footing()` (4-corner min + skirt) existed for buildings but
+was never applied to props.
+**Fix:** the three typed helpers seat at the LOWEST terrain sample under the
+footprint (`lowestSeat` — centre + a 16-point two-ring disc, ring radius =
+half-diagonal so a later yaw cannot outrun the samples); each piece is stamped
+`userData.groundSeat` so `check:prop-grounding` can verify the invariant and
+skip pieces that deliberately rest on other pieces (ladder rungs, tent cones).
+**Found by:** applying the grass-grounding lens to the classes that check did
+not cover — dry-build, then bbox-bottom vs lowest-terrain-under-footprint for
+every placement class. The same sweep is what cleared rocks (buried by design)
+and buildings (already four-corner seated).
+
 ---
 
 ## 3. Verification — the expensive lessons

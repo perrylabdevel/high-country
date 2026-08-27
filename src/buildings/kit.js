@@ -645,12 +645,40 @@ export function grounded({ x, z, y, yaw = 0, name } = {}) {
 }
 
 /**
+ * Lowest terrain sample under a circular footprint, centre plus an 8-point
+ * ring at `r`.
+ *
+ * The prop pads used to seat at the single centre sample `heightAt(x, z)` —
+ * the same defect the grass tufts had: on any slope the downhill edge of a
+ * wide piece floated above the ground while the uphill edge buried. Measured
+ * offenders reached 0.46 m (ironValley ore carts), 0.35 m (sheepCamp tipis)
+ * and 0.19–0.25 m (timberCamp log stacks and charcoal-pit discs). Nothing
+ * threw; the pieces simply hovered (close-camera U4 "bases slightly
+ * detached"). Seating at the lowest sample buries the uphill edge instead,
+ * which is what a prop resting on a slope does. Callers yaw pieces after
+ * seating, so the ring radius is the footprint's half-diagonal — the widest
+ * reach any yaw can produce.
+ */
+export function lowestSeat(x, z, r) {
+  let y = heightAt(x, z);
+  for (let ring = 1; ring <= 2; ring += 1) {
+    const rr = (r * ring) / 2;
+    for (let i = 0; i < 16; i += 1) {
+      const a = (i / 16) * Math.PI * 2;
+      y = Math.min(y, heightAt(x + Math.cos(a) * rr, z + Math.sin(a) * rr));
+    }
+  }
+  return y;
+}
+
+/**
  * Typed `boxAt`: a block mated to a grounded pad. Returns the block so the
  * caller can yaw it. Does not register a kit structure.
  */
 export function boxOnGround(parent, x, z, w, h, d, material, collide = true, yOff = 0) {
-  const pad = grounded({ x, z });
+  const pad = grounded({ x, z, y: lowestSeat(x, z, Math.hypot(w, d) / 2) });
   const piece = block({ w, h, d, material });
+  piece.userData.groundSeat = { y: pad.position.y, yOff, r: Math.hypot(w, d) / 2 };
   mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
   parent.add(pad);
   if (collide) {
@@ -708,8 +736,9 @@ export function wheelOn(pad, { x, y, z, r, thick, material, axis, radialSegments
  * structure.
  */
 export function cylOnGround(parent, x, z, rTop, rBot, h, material, collide = true, colliderR, yOff = 0, radialSegments = 8) {
-  const pad = grounded({ x, z });
+  const pad = grounded({ x, z, y: lowestSeat(x, z, rBot) });
   const piece = post({ rTop, rBot, h, material, radialSegments });
+  piece.userData.groundSeat = { y: pad.position.y, yOff, r: rBot };
   mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
   parent.add(pad);
   if (collide) {
@@ -738,8 +767,9 @@ export function cylOnPlane(parent, x, y, z, rTop, rBot, h, material, collide = t
  * structure.
  */
 export function coneOnGround(parent, x, z, r, h, material, collide = false, yOff = 0, colliderR, radialSegments = 7) {
-  const pad = grounded({ x, z });
+  const pad = grounded({ x, z, y: lowestSeat(x, z, r) });
   const piece = cone({ r, h, material, radialSegments });
+  piece.userData.groundSeat = { y: pad.position.y, yOff, r };
   mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
   parent.add(pad);
   if (collide) {
