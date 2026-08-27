@@ -317,7 +317,14 @@ function bladeShape(ctx, x0, y0, len, lean, wBase, segs) {
     const dx = q.x - p.x;
     const dy = q.y - p.y;
     const l = Math.hypot(dx, dy) || 1;
-    const w = wBase * Math.pow(1 - t, 0.7);
+    // Taper the base as well as the tip. Width used to be maximum at t=0, so
+    // every blade ended in a full-width flat rectangle — and since a clump's
+    // blades all share one root Y, those square ends lined up into a single
+    // straight horizontal cut. That is the "cut off" read: it is in the source
+    // art, in all four species, which is why it survived every geometry fix.
+    // A real blade narrows into its sheath; pinch the bottom tenth so it does
+    // the same and the ends stop reading as cut stems.
+    const w = wBase * Math.pow(1 - t, 0.7) * Math.min(1, 0.3 + t * 9);
     left.push([p.x - (dy / l) * w, p.y + (dx / l) * w]);
     right.push([p.x + (dy / l) * w, p.y - (dx / l) * w]);
   }
@@ -333,7 +340,7 @@ function bladeShape(ctx, x0, y0, len, lean, wBase, segs) {
 }
 
 function paintBladePanel(ctx, ox, oy, panel, sp) {
-  const root = oy + panel * 0.98;
+  const rootLine = oy + panel * 0.98;
   // Clumps, not an even comb: real tufts crowd around a few crowns.
   const clumps = sp.clumps;
   for (let c = 0; c < clumps; c += 1) {
@@ -348,6 +355,9 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
       const w = panel * sp.wide * (0.65 + rnd() * 0.7);
       const dry = rnd();
       const tone = sp.tones[(rnd() * sp.tones.length) | 0];
+      // Jitter each blade's root so a clump's bases do not all sit on one
+      // line — even tapered ends read as a cut when they are collinear.
+      const root = rootLine - panel * 0.012 * rnd();
       const grad = ctx.createLinearGradient(x, root, x + lean, root - len);
       // Contact darkening in the bottom tenth of the blade.
       //
