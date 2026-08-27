@@ -632,3 +632,32 @@ angle limits (the rubric itself allows "cannot assess" for those).
   density, or silhouette contrast), measured per the close+A/B pattern; note
   this sits at the documented renderer-architecture boundary (LOD banding)
   where a small-model change needs extra care.
+- **Floating grass + pine tips (SHIPPED, measured 2026-08-26):** user
+  reported grass rendering above the terrain and pine tips floating. Two
+  measured causes and three fixes:
+  (1) **Pine tips** — the crown's solid leaf leader cone (0.72 m base,
+  ~2.5 m local, scaled up to ~2×) read as a detached mid-tone chunk above
+  the treeline; replaced with a real conifer leader: the leaf cone is gone
+  and the bark trunk extends 0.75 m above the crown top (2.2 m read as a
+  4.4 m pole, 1.0 m as a long spike — user-verified lengths). Close
+  northernPines U4: **2→5 both lights**, audit U4 5/5 held.
+  (2) **Grass/sage grounding** — every tuft was anchored at heightAt() of its
+  centre only; on slopes the downhill edge of the rendered footprint hovered
+  (measured: westernRange 15.9k tufts > 5 cm, badlands 46% of tufts, up to
+  20 cm). Fix: seat at the LOWEST terrain sample over the footprint, using
+  the geometry's real half-width (0.425 m grass — the card const 0.28 m
+  under-covers because skywardNormals spreads the crossed cards; 1.0 m sage
+  — a hand-picked 0.9·s foot under-cut the angled planes). New
+  `check:grass-grounding` (14th check) verifies 119,645 tufts across 3
+  slope-heavy cameras sit ≤5 cm above the terrain; negative-tested by
+  reverting to centre-seating (10,159 offenders named).
+  (3) **Cattle grounding** — the grass fix exposed the herd: legless
+  capsules sat ~0.4 m above the ground (centre-anchored, previously masked
+  by grass height). Now seated 5 cm above the lowest terrain along the body
+  axis. Close westernRange U4 4/5, **W2 (cattle orientation) 1→4 / 2→4**,
+  audit U4 4/4. Audit U1/W1/U5/U3 "regressions" vs pass-86 proven to be
+  grader calibration: same-session re-reads of the pre-fix frames score the
+  same low values, and a tie-break read of the post-fix westernRange-golden
+  U1 = 4. The U6 far-crown density experiment (PINE far 7×9→9×12) was
+  reverted — entangled in this A/B and not independently validated; it
+  remains the open U6 cycle-1 candidate.

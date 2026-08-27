@@ -746,20 +746,13 @@ function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
       limbs.push(limb);
     }
   }
-  {
-    const h = span * 0.24 + 0.7;
-    const geo = new THREE.CylinderGeometry(0.03, 0.72, h, 7, 1);
-    paintAo(geo, (pos, v) => {
-      const t = (pos.getY(v) + h / 2) / h;
-      return 0.48 + 0.44 * t;
-    });
-    geo.translate(0, topY + h * 0.42, 0);
-    // Merge needs one attribute set across the whole crown, and every card now
-    // carries a tangent, so the leader cone needs one too. A constant is an
-    // approximation on a cone, but this is the spire tip: a few dozen pixels.
-    setTangent(geo, 1, 0, 0);
-    leaves.push(geo);
-  }
+  // The crown's apex is now the trunk's bark leader (makePineTrunk is built
+  // to topY + 0.75 and pokes through here), so the old solid leaf cone is
+  // gone. A 0.72 m-radius cone above the top tier read as a detached
+  // mid-tone chunk against the sky (audit U4 "floating pine tips"); a thin
+  // dark bark stem with the top-tier tuft at its base reads as a conifer
+  // leader instead. The leader is deliberately short — 2.2 m local read as
+  // a 4.4 m pole, 1.0 m as a long spike; 0.75 m keeps it a stub.
   const crown = mergeGeometries(leaves);
   // groundClamp recomputes normals, so bend after it, not before.
   groundClamp(crown, 0.06);
@@ -1064,7 +1057,7 @@ export function createVegetation(scene, maps = {}) {
     // The distant band is crown-only and cheapest; fuller cards keep the
     // horizon reading as tree silhouettes instead of smeared specks (U6).
     distant: makePineCanopy(9, 13, radius, baseY, topY),
-    trunk: makePineTrunk(topY, baseR, Math.max(0.045, baseR * 0.16))
+    trunk: makePineTrunk(topY + 0.75, baseR, Math.max(0.045, baseR * 0.16))
   });
   // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
   // it is tall; these were 0.66 and a full 1.00, which is why they read as tree
@@ -1577,6 +1570,12 @@ export function createVegetation(scene, maps = {}) {
 
   const grassTex = bladeTexture();
   const grassGeo = makeGrassTuft();
+  grassGeo.computeBoundingBox();
+  // Half-width of the tuft's RENDERED footprint in local units. The card
+  // const (GRASS_CARD_W 0.56) is not the footprint: skywardNormals bends the
+  // crossed cards outward, so the merged bbox is ~0.85 wide. Seating must
+  // cover the rendered footprint or the downhill edge still hovers.
+  const GRASS_FOOT = Math.max(-grassGeo.boundingBox.min.x, grassGeo.boundingBox.max.x);
 
   // ---------------------------------------------------------------------
   // Ground-cover scatter
@@ -1709,6 +1708,11 @@ export function createVegetation(scene, maps = {}) {
   grass.frustumCulled = false;
 
   const sageGeo = makeSageBush();
+  sageGeo.computeBoundingBox();
+  // Half-width of the sage footprint in local units; the seating below must
+  // cover the real bush, not an estimate (a hand-picked 0.9*s foot under-cut
+  // the angled planes and left bushes hovering on slopes).
+  const SAGE_FOOT = Math.max(-sageGeo.boundingBox.min.x, sageGeo.boundingBox.max.x);
   const SAGE_CAND = buildCandidates([{ cell: 3.1, outer: 90 }, { cell: 5.2, outer: SAGE_RADIUS }], SAGE_RADIUS);
   const MAX_SAGE = SAGE_CAND.length;
   const sage = new THREE.InstancedMesh(sageGeo, sageMat, MAX_SAGE);
@@ -1776,7 +1780,20 @@ export function createVegetation(scene, maps = {}) {
     const cardH = (hMet * hGrow) / sp.fill;
     const cardW = (hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow) / BLADE_PANEL_W;
 
-    dummy.position.set(x, heightAt(x, z), z);
+    // Seat on the LOWEST corner of the card footprint, not the centre: on a
+    // slope a tuft anchored at its centre hovered above the downhill edge
+    // (audit U4 — "grass floating above the terrain"; worst on the open
+    // plains and strata slopes). The uphill side buries a little, which is
+    // invisible under alpha-tested blades; a floating downhill edge is not.
+    const foot = GRASS_FOOT * (cardW / GRASS_CARD_W);
+    const baseY = Math.min(
+      heightAt(x, z),
+      heightAt(x - foot, z),
+      heightAt(x + foot, z),
+      heightAt(x, z - foot),
+      heightAt(x, z + foot)
+    );
+    dummy.position.set(x, baseY, z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
@@ -1828,9 +1845,20 @@ export function createVegetation(scene, maps = {}) {
       return false;
     }
     const s = 0.8 + hash2(ix, jz, 14) * 0.7;
-    dummy.position.set(x, y, z);
+    const sx = s * (0.85 + hash2(ix, jz, 16) * 0.35);
+    // Same lowest-corner seat as grass: a sage bush anchored at its centre
+    // hovered above the downhill side on slopes.
+    const sfoot = SAGE_FOOT * sx;
+    const sBaseY = Math.min(
+      y,
+      heightAt(x - sfoot, z),
+      heightAt(x + sfoot, z),
+      heightAt(x, z - sfoot),
+      heightAt(x, z + sfoot)
+    );
+    dummy.position.set(x, sBaseY, z);
     dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
-    dummy.scale.set(s * (0.85 + hash2(ix, jz, 16) * 0.35), s * (0.8 + hash2(ix, jz, 17) * 0.4), s);
+    dummy.scale.set(sx, s * (0.8 + hash2(ix, jz, 17) * 0.4), sx);
     dummy.updateMatrix();
     sage.setMatrixAt(slot, dummy.matrix);
     return true;
