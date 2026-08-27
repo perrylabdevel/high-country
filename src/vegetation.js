@@ -349,7 +349,23 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
       const dry = rnd();
       const tone = sp.tones[(rnd() * sp.tones.length) | 0];
       const grad = ctx.createLinearGradient(x, root, x + lean, root - len);
-      grad.addColorStop(0, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
+      // Contact darkening in the bottom tenth of the blade.
+      //
+      // Grass neither casts nor receives shadows — castShadow is false at
+      // ~50k instances, and the shadow pass was cut from 2.94M to 0.02M tris
+      // to get there. So the blade/ground junction had no grounding cue of
+      // any kind, anywhere on the map. That is what reads as grass floating:
+      // it shows in every direction, at every location, and worst in first
+      // person, where that junction is exactly what the eye is on.
+      //
+      // Short on purpose. The old 2x ramp darkened the whole lower HALF of
+      // every blade, which is what made blades vanish against dark wood
+      // (HARD_WON 1.5) — the fix for that removed the only grounding cue
+      // there was. A tenth is enough to read as contact and too little to
+      // swallow the blade.
+      const contact = `rgb(${Math.round(tone[0] * 0.45)},${Math.round(tone[1] * 0.45)},${Math.round(tone[2] * 0.45)})`;
+      grad.addColorStop(0, contact);
+      grad.addColorStop(0.1, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
       grad.addColorStop(0.55, `rgb(${tone[3]},${tone[4]},${tone[5]})`);
       // Tips dry out; a fraction of blades are dead straw all the way down.
       const tipDry = dry > sp.deadAt ? sp.straw : [tone[3] + 26, tone[4] + 16, tone[5] + 8];
@@ -1740,6 +1756,15 @@ export function createVegetation(scene, maps = {}) {
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
+  // receiveShadow stays off, and not for want of trying. Ground cover ignores
+  // shadow entirely, so a tuft under a canopy renders at full sunlit
+  // brightness — half of why it reads as pasted on. Turning it on broke the
+  // render: at northernPines the ground cover all but vanished and the bound
+  // texture count moved 39 -> 34, so the shadow path is changing what this
+  // material binds at 50k instances under the WebGL fallback. Not diagnosed
+  // further; it is not needed for the grounding cue, which the blade's own
+  // contact darkening supplies. Anyone retrying this: capture under a dense
+  // canopy, not in open sun, or the failure will not show.
   grass.frustumCulled = false;
 
   const sageGeo = makeSageBush();
