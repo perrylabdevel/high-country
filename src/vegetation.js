@@ -23,7 +23,6 @@ import {
   transformNormalToView,
   positionWorld,
   cameraPosition,
-  mix,
   smoothstep,
   max,
   dot,
@@ -892,7 +891,15 @@ function makeGrassTuft() {
     geo.setAttribute("aTangent", new THREE.Float32BufferAttribute(tan, 3));
     geos.push(geo);
   }
-  return skywardNormals(mergeGeometries(geos), 1.0, 0.38);
+  // Shade the tuft off the ground, not off the card. At 0.38 the normals kept
+  // most of each quad's own facing, so within a single tuft the card turned
+  // toward the sun lit up and the card turned away went near-black - the same
+  // clump reading as two unrelated objects, one of them a dark patch lying on
+  // bright ground with nothing joining it to the surface. Real grass is a
+  // surface, and every engine shades it as one: take the normal from the
+  // ground plane and keep only a trace of the card. 0.85 leaves enough
+  // per-card variation to avoid a flat green mat.
+  return skywardNormals(mergeGeometries(geos), 1.0, 0.85);
 }
 
 /**
@@ -947,34 +954,27 @@ function makeBroadCanopy(cardCount, radius, baseY, topY) {
 }
 
 export async function loadVegetationMaps() {
-  const [
-    barkAlbedo, barkNormal, grassAlbedo, grassNormal,
-    needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal
-  ] = await Promise.all([
+  // Only bark and needle are baked. Grass, sage and broadleaf render from the
+  // painted canvas atlases, and their keys were dropped from FOLIAGE_SET; the
+  // loads for them stayed behind and were passing undefined into tryLoadTexture
+  // on every boot, which extOf turned into six caught TypeErrors and six
+  // console warnings per page load. Ask only for what exists.
+  const [barkAlbedo, barkNormal, needleAlbedo, needleNormal] = await Promise.all([
     tryLoadTexture(BARK_SET.albedo, "albedo"),
     tryLoadTexture(BARK_SET.normal, "linear"),
-    tryLoadTexture(FOLIAGE_SET.grassAlbedo, "albedo"),
-    tryLoadTexture(FOLIAGE_SET.grassNormal, "linear"),
     tryLoadTexture(FOLIAGE_SET.needleAlbedo, "albedo"),
-    tryLoadTexture(FOLIAGE_SET.needleNormal, "linear"),
-    tryLoadTexture(FOLIAGE_SET.sageAlbedo, "albedo"),
-    tryLoadTexture(FOLIAGE_SET.sageNormal, "linear"),
-    tryLoadTexture(FOLIAGE_SET.broadAlbedo, "albedo"),
-    tryLoadTexture(FOLIAGE_SET.broadNormal, "linear")
+    tryLoadTexture(FOLIAGE_SET.needleNormal, "linear")
   ]);
   // Atlas panels, not tiling surfaces: repeat would bleed one species into the
   // next across the guard band.
-  for (const t of [grassAlbedo, grassNormal, needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal]) {
+  for (const t of [needleAlbedo, needleNormal]) {
     if (t) {
       t.wrapS = THREE.ClampToEdgeWrapping;
       t.wrapT = THREE.ClampToEdgeWrapping;
       t.needsUpdate = true;
     }
   }
-  return {
-    barkAlbedo, barkNormal, grassAlbedo, grassNormal,
-    needleAlbedo, needleNormal, sageAlbedo, sageNormal, broadAlbedo, broadNormal
-  };
+  return { barkAlbedo, barkNormal, needleAlbedo, needleNormal };
 }
 
 export function createVegetation(scene, maps = {}) {
@@ -1744,17 +1744,34 @@ export function createVegetation(scene, maps = {}) {
   const speciesAttr = instancedBufferAttribute(speciesUV, "vec2", 2, 0);
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
   const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
-  const grassSampleTex = texture(maps.grassAlbedo || grassTex, atlasUV);
+  const grassSampleTex = texture(grassTex, atlasUV);
   const grassView = normalize(cameraPosition.sub(positionWorld));
-  // The canvas texture was flat, so the material supplied all of its shading:
-  // a per-instance tint darkening the root and a hard green push at the tip.
-  // The baked albedo already carries that gradient, so applying the ramp again
-  // double-counts it and drives the tips to a saturated green. With real maps,
-  // keep only a gentle per-instance variation around unity.
-  const grassCol = maps.grassAlbedo
-    ? grassSampleTex.rgb.mul(tintAttr.mul(0.7).add(0.72))
-    : grassSampleTex.rgb.mul(mix(tintAttr, vec3(1.08, 1.22, 0.78), uv().y));
-  const grassBack = maps.grassAlbedo ? back(grassView).mul(warmGreen).mul(0.45) : back(grassView).mul(warmGreen);
+  /**
+   * One shading path, no root-to-tip ramp. THIS IS THE FLOATING GRASS.
+   *
+   * The ramp branch below was written for a flat canvas atlas that carried no
+   * gradient of its own, so the material supplied one: multiply the root end by
+   * the per-instance tint (0.32-0.66, 0.42-0.82, 0.20-0.38) and the tip end by
+   * (1.08, 1.22, 0.78). It was supposed to be retired the moment a baked albedo
+   * existed — but the baked-map branch is dead code. FOLIAGE_SET never gained
+   * grassAlbedo, so maps.grassAlbedo has always been undefined and the ramp has
+   * always been what ships.
+   *
+   * Then paintBladePanel gained its own root-to-tip gradient and a contact
+   * darkening in the bottom tenth. Both now get multiplied by the ramp: a root
+   * pixel is painted at 0.45x and then multiplied by ~0.5 again, landing near
+   * a fifth of the blade's brightness, while the tip is pushed above unity.
+   * Every blade fades out before it reaches the ground and the lit part of it
+   * hangs in the air. That is the artefact, in every direction, at every
+   * location, worst in first person - and it is exactly the failure HARD_WON
+   * 1.5 recorded for the old 2x root ramp, reintroduced through a branch that
+   * was only ever meant to be a fallback.
+   *
+   * The atlas owns the gradient now. The material contributes a gentle
+   * per-instance variation around unity and nothing else.
+   */
+  const grassCol = grassSampleTex.rgb.mul(tintAttr.mul(0.7).add(0.72));
+  const grassBack = back(grassView).mul(warmGreen).mul(0.45);
   grassMat.colorNode = vec4(grassCol.mul(grassBack.add(1)), grassSampleTex.a);
   // Hold full cover almost to the edge of the disc, then dissolve over the last
   // stretch. The old 150 -> 205 fade started eroding grass at two thirds of the
@@ -1762,7 +1779,7 @@ export function createVegetation(scene, maps = {}) {
   grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
-  grassMat.normalNode = maps.grassNormal ? mappedNormal(maps.grassNormal, atlasUV) : bentNormal;
+  grassMat.normalNode = bentNormal;
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;

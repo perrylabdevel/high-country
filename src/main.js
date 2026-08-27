@@ -216,11 +216,29 @@ async function boot() {
     // camera. Capture tooling waits on this: the scatter takes ~55 frames, so
     // a screenshot straight after a jump shows the previous location's cover.
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
+    // Report the backend from something minification cannot rewrite.
+    //
+    // This used to read /webgl/i.test(renderer.backend.constructor.name). A
+    // production build mangles class names to two-character identifiers, so
+    // that test was false for every build the capture tooling ever looked at
+    // and the function answered "webgpu" unconditionally — including in
+    // headless Chrome, where requestAdapter() returns null and the renderer is
+    // physically running WebGL2. The assertion meant to stop WebGL frames from
+    // being graded as a WebGPU pass was instead vouching for them. The
+    // WebGPUBackend owns a GPUDevice; the WebGL one does not, and no amount of
+    // renaming changes that.
     window.__captureInfo = () => {
-      const backendName = renderer.backend?.constructor?.name || "";
+      const backend = renderer.backend || {};
+      // WebGLBackend holds a WebGL2RenderingContext, WebGPUBackend a GPUDevice.
+      // Neither means the renderer has not finished init; say so rather than
+      // guessing, so the caller's assertion fails instead of passing blind.
+      const isWebGL = backend.gl != null;
+      const isWebGPU = !isWebGL && backend.device != null;
       return {
-        backend: forceWebGL || /webgl/i.test(backendName) ? "webgl" : "webgpu",
-        adapter: renderer.backend?.adapter?.info?.description || backendName || "unknown",
+        backend: isWebGL ? "webgl" : isWebGPU ? "webgpu" : "uninitialised",
+        adapter: backend.adapter?.info?.description
+          || [backend.adapter?.info?.vendor, backend.adapter?.info?.architecture].filter(Boolean).join(" ")
+          || (isWebGPU ? "webgpu-no-adapter-info" : "unknown"),
         antialias: true,
         build: import.meta.env.MODE
       };
