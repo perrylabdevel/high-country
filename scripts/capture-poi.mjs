@@ -28,8 +28,11 @@ if (!["webgpu", "webgl"].includes(BACKEND)) {
 if (process.env.CAPTURE_POI && OUT === "audit/current") {
   throw new Error("CAPTURE_POI is diagnostic-only; write it outside audit/current");
 }
-if (MODE === "close" && OUT === "audit/current") {
-  throw new Error("close-vantage captures are diagnostic-only; write them outside audit/current");
+if (!["audit", "close", "eye"].includes(MODE)) {
+  throw new Error(`CAPTURE_MODE must be "audit", "close" or "eye", got ${MODE}`);
+}
+if (MODE !== "audit" && OUT === "audit/current") {
+  throw new Error("close and eye vantages are diagnostic-only; write them outside audit/current");
 }
 if (BACKEND !== "webgpu" && OUT === "audit/current") {
   throw new Error("WebGL capture is diagnostic-only; write it outside audit/current");
@@ -104,7 +107,22 @@ const CLOSE_POIS = [
   { id: "elPaso", dist: 20, height: 2.6, heading: 165, aim: 2.2 }
 ];
 
-const POIS = MODE === "close" ? CLOSE_POIS : AUDIT_POIS;
+/**
+ * Eye-level vantages: stand where the close pass stands, at a walking adult's
+ * eye height, and look dead level at the horizon.
+ *
+ * Every capture mode before this one pitched the camera down at the ground —
+ * even the close pass, which aims 1.5-2.5 m up from 10-22 m away and so still
+ * looks down at the grass from above. Looking down is the one angle where the
+ * blade/ground junction is hidden behind the blades themselves. In first
+ * person you look OUT: the junction is edge-on, at the bottom of the frame,
+ * across the whole width of it, which is exactly where a tuft that does not
+ * meet the ground gives itself away. Nothing in this repo has ever captured
+ * that view.
+ */
+const EYE_POIS = CLOSE_POIS.map((p) => ({ ...p, height: 1.65, level: true }));
+
+const POIS = MODE === "close" ? CLOSE_POIS : MODE === "eye" ? EYE_POIS : AUDIT_POIS;
 
 const LIGHTS = [
   { name: "midday", hdri: "midday", elevation: 62, azimuth: -120 },
@@ -277,9 +295,24 @@ async function main() {
         const rad = (p.heading * Math.PI) / 180;
         const px = targetX + Math.sin(rad) * p.dist;
         const pz = targetZ + Math.cos(rad) * p.dist;
+        const py = window.__heightAt(px, pz) + p.height;
+        if (p.level) {
+          // Look level: the target sits at the camera's own height, so pitch is
+          // exactly zero however the ground rises or falls ahead.
+          const len = Math.hypot(targetX - px, targetZ - pz) || 1;
+          window.__captureView = {
+            px,
+            py,
+            pz,
+            tx: px + ((targetX - px) / len) * 80,
+            ty: py,
+            tz: pz + ((targetZ - pz) / len) * 80
+          };
+          return true;
+        }
         window.__captureView = {
           px,
-          py: window.__heightAt(px, pz) + p.height,
+          py,
           pz,
           tx: targetX,
           ty: window.__heightAt(targetX, targetZ) + p.aim,
@@ -301,6 +334,16 @@ async function main() {
       }
       if (!settled) {
         throw new Error(`ground cover never settled at ${poi.id}; screenshot would be stale`);
+      }
+      // CAPTURE_GROUND_LINES=1 overlays the terrain surface in magenta (a grid
+      // on the rendered triangulation plus 12 cm pins) so a frame shows where
+      // the ground actually is under the cover, instead of leaving it to the
+      // eye. Built after the settle wait, because it is centred on the camera's
+      // CURRENT position and the view only takes effect on the next frame.
+      // Diagnostic only.
+      if (process.env.CAPTURE_GROUND_LINES) {
+        await page.evaluate(() => window.__groundLines?.(true));
+        await page.waitForTimeout(300);
       }
       // Shadows and the wind pass still need a beat after the scatter lands.
       await page.waitForTimeout(1500);
