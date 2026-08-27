@@ -122,10 +122,16 @@ function launchOptions() {
   if (process.env.PLAYWRIGHT_CHROMIUM) {
     return { executablePath: process.env.PLAYWRIGHT_CHROMIUM };
   }
+  // macOS: headless Chromium has no Metal GPU process, so requestAdapter()
+  // returns null and three.js silently falls back to WebGL2 -- which the
+  // __captureInfo backend assertion cannot catch, because it sniffs
+  // renderer.backend.constructor.name and a production build mangles that
+  // to a 2-char identifier that never matches /webgl/i. Headed gets the real
+  // apple/metal-3 adapter. Same reasoning as the Linux branch below.
   try {
     const bundled = chromium.executablePath();
     if (bundled && existsSync(bundled)) {
-      return {};
+      return process.platform === "darwin" ? { headless: false } : {};
     }
   } catch {
     // no bundled browser
@@ -211,6 +217,12 @@ async function main() {
   const browser = await chromium.launch(launchOptions());
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const errors = [];
+  page.on("console", (m) => {
+    process.stdout.write(`[console:${m.type()}] ${m.text()}\n`);
+  });
+  page.on("requestfailed", (r) => {
+    process.stdout.write(`[requestfailed] ${r.url()} ${r.failure()?.errorText || ""}\n`);
+  });
   page.on("pageerror", (e) => {
     // Synthetic click on #btn-enter requests pointer lock without a real OS
     // focus/user-gesture context under automated headed Chrome; the browser
