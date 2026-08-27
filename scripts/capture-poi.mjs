@@ -241,7 +241,12 @@ async function main() {
       // Shadows and the wind pass still need a beat after the scatter lands.
       await page.waitForTimeout(1500);
       const file = `${poi.id}-${light.name}.png`;
-      await page.screenshot({ path: `${OUT}/${file}` });
+      // Playwright's default screenshot timeout is 30 s, which is not enough
+      // for this scene on a real GPU: the readback of a WebGPU frame carrying
+      // ~50k grass instances and a 4096 shadow map regularly runs past it, and
+      // the run dies after the hard part (navigation, backend assertion and the
+      // scatter settle) has already succeeded.
+      await page.screenshot({ path: `${OUT}/${file}`, timeout: 180000 });
       writtenFiles.push(file);
       process.stdout.write(`captured ${file}\n`);
     }
