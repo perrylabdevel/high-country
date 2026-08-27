@@ -271,6 +271,10 @@ raycast, or an ID-buffer read. It is not an adjective.
 - **A backend switch invalidates comparisons.** Everything before pass 04 was
   captured through the WebGL2 fallback; any score depending on a WebGPU-only
   path was suspect, water above all.
+- **`codex-vision` takes long prompts on stdin, not argv.** It `stat()`s every
+  positional argument to decide image-vs-prompt; a multi-KB prompt arg dies
+  with `OSError: [Errno 63] File name too long` before any grading happens.
+  Use `codex-vision --stdin-prompt <image>` with the prompt on stdin.
 
 ---
 
