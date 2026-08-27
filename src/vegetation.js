@@ -44,6 +44,31 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
 import { BARK_SET, FOLIAGE_SET } from "./materials/textureManifest.ts";
 
+/**
+ * Seeded RNG for the procedural texture painters.
+ *
+ * These atlases are repainted on every page load, and they were painted with
+ * Math.random — so the grass, sage and broadleaf art was different in every
+ * session. That is invisible in play and corrosive to measurement: two audit
+ * captures of the same commit did not share the same textures, which puts
+ * unattributable variance straight into a fail count that has oscillated
+ * 44-60 across passes. Only the needle atlas escaped it, by being baked.
+ *
+ * Each painter reseeds before it draws, so every texture is reproducible on
+ * its own and stays reproducible if another painter is added or reordered.
+ */
+let texRngState = 0;
+function resetTexRng(seed) {
+  texRngState = seed | 0;
+}
+function rnd() {
+  texRngState = (texRngState + 0x6d2b79f5) | 0;
+  let t = texRngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 function seeded(n) {
   const x = Math.sin(n * 999) * 43758.5453;
   return x - Math.floor(x);
@@ -312,17 +337,17 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
   // Clumps, not an even comb: real tufts crowd around a few crowns.
   const clumps = sp.clumps;
   for (let c = 0; c < clumps; c += 1) {
-    const cxp = ox + panel * (0.12 + (c + 0.5) / clumps * 0.76 + (Math.random() - 0.5) * 0.06);
+    const cxp = ox + panel * (0.12 + (c + 0.5) / clumps * 0.76 + (rnd() - 0.5) * 0.06);
     const per = Math.round(sp.blades / clumps);
     for (let i = 0; i < per; i += 1) {
-      const spreadX = (Math.random() - 0.5) * panel * sp.clumpW;
+      const spreadX = (rnd() - 0.5) * panel * sp.clumpW;
       const x = cxp + spreadX;
-      const len = panel * sp.tall * (0.5 + Math.random() * 0.5);
+      const len = panel * sp.tall * (0.5 + rnd() * 0.5);
       // Blades on the outside of a clump lean further out.
-      const lean = (spreadX * 2.2 + (Math.random() - 0.5) * panel * sp.lean) * (0.4 + Math.random() * 0.9);
-      const w = panel * sp.wide * (0.65 + Math.random() * 0.7);
-      const dry = Math.random();
-      const tone = sp.tones[(Math.random() * sp.tones.length) | 0];
+      const lean = (spreadX * 2.2 + (rnd() - 0.5) * panel * sp.lean) * (0.4 + rnd() * 0.9);
+      const w = panel * sp.wide * (0.65 + rnd() * 0.7);
+      const dry = rnd();
+      const tone = sp.tones[(rnd() * sp.tones.length) | 0];
       const grad = ctx.createLinearGradient(x, root, x + lean, root - len);
       grad.addColorStop(0, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
       grad.addColorStop(0.55, `rgb(${tone[3]},${tone[4]},${tone[5]})`);
@@ -337,6 +362,7 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
 }
 
 function bladeTexture() {
+  resetTexRng(0x9e3779b9);
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     const panel = size / 2;
@@ -363,7 +389,7 @@ function bladeTexture() {
     for (const sp of panels) {
       paintBladePanel(ctx, sp.ox, sp.oy, panel, sp);
     }
-  }, 1024));
+  }, 2048));
 }
 
 /**
@@ -376,6 +402,7 @@ function bladeTexture() {
  * passes between the clusters. Colour is a muted blue-green, dark at the stem.
  */
 function leafTexture() {
+  resetTexRng(0x85ebca6b);
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     const stemY = size * 0.5;
@@ -420,19 +447,19 @@ function leafTexture() {
       const perCluster = 20 + ((c * 5) % 8);
       for (let k = 0; k < perCluster; k += 1) {
         const up = k % 2 === 0 ? -1 : 1;
-        const g = 74 + Math.random() * 46;
-        const r = 34 + Math.random() * 20;
-        const bl = 44 + Math.random() * 26;
-        const alpha = 0.72 + Math.random() * 0.28;
+        const g = 74 + rnd() * 46;
+        const r = 34 + rnd() * 20;
+        const bl = 44 + rnd() * 26;
+        const alpha = 0.72 + rnd() * 0.28;
         // Angle sweeps back toward the tip, as needles do.
-        const ang = up * (Math.PI * 0.42) + (Math.random() - 0.5) * 0.7 - 0.16;
+        const ang = up * (Math.PI * 0.42) + (rnd() - 0.5) * 0.7 - 0.16;
         needle(
-          cx + (Math.random() - 0.5) * size * 0.02,
+          cx + (rnd() - 0.5) * size * 0.02,
           cy,
-          spread * (0.5 + Math.random() * 0.7),
+          spread * (0.5 + rnd() * 0.7),
           ang,
           `rgba(${r | 0},${g | 0},${bl | 0},${alpha})`,
-          1.0 + Math.random() * 1.35
+          1.0 + rnd() * 1.35
         );
       }
     }
@@ -446,6 +473,7 @@ function leafTexture() {
  * irregular outline that has to stay clear of the card border.
  */
 function sageTexture() {
+  resetTexRng(0xc2b2ae35);
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     ctx.lineCap = "round";
@@ -455,9 +483,9 @@ function sageTexture() {
     const tips = [];
     for (let i = 0; i < stems; i += 1) {
       const x0 = size * (0.38 + (i / stems - 0.5) * 0.3);
-      const tx = size * (0.16 + (i + 0.5) / stems * 0.68) + (Math.random() - 0.5) * size * 0.05;
-      const ty = size * (0.2 + Math.random() * 0.3);
-      ctx.strokeStyle = `rgba(${76 + Math.random() * 16},${62 + Math.random() * 14},${44 + Math.random() * 12},0.95)`;
+      const tx = size * (0.16 + (i + 0.5) / stems * 0.68) + (rnd() - 0.5) * size * 0.05;
+      const ty = size * (0.2 + rnd() * 0.3);
+      ctx.strokeStyle = `rgba(${76 + rnd() * 16},${62 + rnd() * 14},${44 + rnd() * 12},0.95)`;
       ctx.lineWidth = 4.5 - i * 0.35;
       ctx.beginPath();
       ctx.moveTo(x0, size * 0.99);
@@ -481,20 +509,20 @@ function sageTexture() {
       const along = 18;
       for (let i = 0; i < along; i += 1) {
         const t = 0.18 + (i / along) * 0.82;
-        const bx = s.x0 + (s.x - s.x0) * t + (Math.random() - 0.5) * size * 0.05;
-        const by = size * 0.99 + (s.y - size * 0.99) * t + (Math.random() - 0.5) * size * 0.04;
+        const bx = s.x0 + (s.x - s.x0) * t + (rnd() - 0.5) * size * 0.05;
+        const by = size * 0.99 + (s.y - size * 0.99) * t + (rnd() - 0.5) * size * 0.04;
         const cluster = 3 + ((i * 3) % 3);
         for (let k = 0; k < cluster; k += 1) {
           // Sage green is grey and desaturated: R and B stay close to G.
-          const g = 104 + Math.random() * 34;
-          const r = g - 18 + Math.random() * 20;
-          const b = g - 34 + Math.random() * 18;
+          const g = 104 + rnd() * 34;
+          const r = g - 18 + rnd() * 20;
+          const b = g - 34 + rnd() * 18;
           leaf(
-            bx + (Math.random() - 0.5) * size * 0.055,
-            by + (Math.random() - 0.5) * size * 0.055,
-            size * (0.018 + Math.random() * 0.02),
-            Math.random() * Math.PI,
-            `rgba(${r | 0},${g | 0},${b | 0},${0.82 + Math.random() * 0.18})`
+            bx + (rnd() - 0.5) * size * 0.055,
+            by + (rnd() - 0.5) * size * 0.055,
+            size * (0.018 + rnd() * 0.02),
+            rnd() * Math.PI,
+            `rgba(${r | 0},${g | 0},${b | 0},${0.82 + rnd() * 0.18})`
           );
         }
       }
@@ -503,6 +531,7 @@ function sageTexture() {
 }
 
 function broadleafTexture() {
+  resetTexRng(0x27d4eb2f);
   return asCardMap(makeTexture((ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     const drawLeaf = (cx, cy, len, ang, shade) => {
@@ -518,16 +547,16 @@ function broadleafTexture() {
       ctx.restore();
     };
     for (let i = 0; i < 55; i += 1) {
-      const cx = size * (0.12 + Math.random() * 0.76);
-      const cy = size * (0.12 + Math.random() * 0.76);
-      const g = 86 + Math.random() * 80;
-      const r = 48 + Math.random() * 40;
+      const cx = size * (0.12 + rnd() * 0.76);
+      const cy = size * (0.12 + rnd() * 0.76);
+      const g = 86 + rnd() * 80;
+      const r = 48 + rnd() * 40;
       drawLeaf(
         cx,
         cy,
-        size * (0.1 + Math.random() * 0.16),
-        Math.random() * Math.PI * 2,
-        `rgba(${r | 0},${g | 0},${(28 + Math.random() * 24) | 0},${0.72 + Math.random() * 0.28})`
+        size * (0.1 + rnd() * 0.16),
+        rnd() * Math.PI * 2,
+        `rgba(${r | 0},${g | 0},${(28 + rnd() * 24) | 0},${0.72 + rnd() * 0.28})`
       );
     }
   }, 256));
