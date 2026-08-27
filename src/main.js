@@ -5,6 +5,7 @@
 import * as THREE from "three/webgpu";
 import { createInput } from "./input.js";
 import { heightAt } from "./world.js";
+import { meshHeightAt } from "./heightfield.js";
 import { createTerrain, createSky, rebuildTerrainMaterial } from "./environment.js";
 import { createRanch } from "./buildings.js";
 import { mergeStatic } from "./buildings/mergeStatic.js";
@@ -184,6 +185,57 @@ async function boot() {
     window.__materialSettings = materialSettings;
     window.__POS = POS;
     window.__heightAt = heightAt;
+    /**
+     * Magenta ground reference, for the floating-grass question.
+     *
+     * Six passes argued about whether a blade meets the ground from screenshots
+     * alone, which cannot settle it: the ground line is exactly the thing the
+     * grass hides. This draws the terrain surface itself - a grid lying on
+     * meshHeightAt (the triangulated height the ground mesh actually renders
+     * at, not the bilinear approximation) plus a 12 cm vertical pin at every
+     * intersection. Depth-tested, so a blade in front of a line hides it. Read
+     * it like this: a tuft is seated if its blades cross the magenta line and
+     * the pin's foot sits at the blade's base. A gap of bare pin under a blade
+     * is the artefact, measurable against the 12 cm pin.
+     */
+    let groundLines = null;
+    window.__groundLines = (on, span = 14, step = 0.5) => {
+      if (groundLines) {
+        scene.remove(groundLines);
+        groundLines.geometry.dispose();
+        groundLines.material.dispose();
+        groundLines = null;
+      }
+      if (!on) {
+        return;
+      }
+      const cx = Math.round(camera.position.x / step) * step;
+      const cz = Math.round(camera.position.z / step) * step;
+      const pts = [];
+      const fine = step / 4;
+      for (let a = -span; a <= span; a += step) {
+        for (let b = -span; b < span; b += fine) {
+          // One segment along X at this Z, and one along Z at this X.
+          pts.push(cx + b, meshHeightAt(cx + b, cz + a), cz + a);
+          pts.push(cx + b + fine, meshHeightAt(cx + b + fine, cz + a), cz + a);
+          pts.push(cx + a, meshHeightAt(cx + a, cz + b), cz + b);
+          pts.push(cx + a, meshHeightAt(cx + a, cz + b + fine), cz + b + fine);
+        }
+        for (let b = -span; b <= span; b += step) {
+          const y = meshHeightAt(cx + a, cz + b);
+          pts.push(cx + a, y, cz + b);
+          pts.push(cx + a, y + 0.12, cz + b);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      groundLines = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicNodeMaterial({ color: 0xff00ff, fog: false })
+      );
+      groundLines.frustumCulled = false;
+      scene.add(groundLines);
+    };
     window.__syncMaterialSettings = () => {
       updateSunOffset();
       syncEnvironmentIntensity(scene);
