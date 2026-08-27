@@ -1858,7 +1858,22 @@ export function createVegetation(scene, maps = {}) {
       meshHeightAt(x, z - foot),
       meshHeightAt(x, z + foot)
     );
-    dummy.position.set(x, baseY, z);
+    // Sink the card's bottom edge below the ground.
+    //
+    // The cards are not floating — measured against the drawn terrain, the
+    // worst bottom-edge corner on the map hangs 1.8 cm and the median is 0.0.
+    // That is the problem. A card is a flat plane, so every blade painted on
+    // it emerges from one straight horizontal edge instead of from soil, and
+    // an edge sitting exactly at the ground line reads at a low angle as a
+    // clump guillotined flat with ground visible under it. Real blades come
+    // out of the dirt; a card has to be buried for that to be true.
+    //
+    // ~9% of card height, capped at 5 cm: enough to put the straight edge
+    // under the surface, little enough that the blades above it are what is
+    // left. The contact darkening occupies the bottom tenth of the blade, so
+    // what survives burial is a thin dark band right at the soil line.
+    const sink = Math.min(0.05, cardH * 0.09);
+    dummy.position.set(x, baseY - sink, z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
@@ -1923,7 +1938,8 @@ export function createVegetation(scene, maps = {}) {
       meshHeightAt(x, z - sfoot),
       meshHeightAt(x, z + sfoot)
     );
-    dummy.position.set(x, sBaseY, z);
+    // Same burial as grass: a sage card's flat bottom edge reads as a cut too.
+    dummy.position.set(x, sBaseY - 0.05, z);
     dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
     dummy.scale.set(sx, s * (0.8 + hash2(ix, jz, 17) * 0.4), sx);
     dummy.updateMatrix();
