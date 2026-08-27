@@ -1929,6 +1929,33 @@ export function createVegetation(scene, maps = {}) {
   }
   scene.add(...broadMeshes, burnt, sage, grass, rocks);
 
+  // Diagnostic toggle for the U2 question: are the long flat streaks on the
+  // ground painted into the terrain albedo, or are they grass geometry?
+  //
+  //   __hideGrass(true)    // screenshot
+  //   __hideGrass(false)   // screenshot
+  //
+  // Streaks that survive with the grass hidden are the terrain texture, whose
+  // grass set tiles every 10 m — coarse enough that its painted blades come
+  // out around 0.8 m long, as long as the real tufts standing on it.
+  //
+  // Stand still between the two shots. The scatter rewrites grass.count when
+  // the camera moves REBUILD_STEP (42 m), which restores it.
+  //
+  // Guarded because the headless checks import this module with no window.
+  if (typeof window !== "undefined") {
+    let savedGrassCount = 0;
+    window.__hideGrass = (on) => {
+      if (on) {
+        savedGrassCount = grass.count;
+        grass.count = 0;
+      } else {
+        grass.count = savedGrassCount;
+      }
+      return grass.count;
+    };
+  }
+
   const LOD_DIST = 120;
   const LOD_DIST_SQ = LOD_DIST * LOD_DIST;
   const lodDummy = new THREE.Object3D();
