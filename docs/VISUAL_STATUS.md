@@ -1,13 +1,36 @@
 # Visual status — completion audit
 
 **Updated:** 2026-08-27 · baseline is `audit/reports/pass-94.json`
-(double-checked, 94 fails / 294 scored — see `pass-94-doublecheck.md`;
-within same-prompt variance of pass-93's 90/296). Graded with the pinned
-grader AND the pinned pass-92 prompt; counts from earlier prompts are not
-comparable (HARD_WON 3.4). The capture pipeline is deterministic (seeded
-painters, 88c57e7), so frames are reproducible in a way pass-91/92 frames
-were not. `pass-86.json` (48 fails) remains the reference for passes graded
-with the older prompt/configuration only.
+(double-checked, 94 fails / 294 scored — see `pass-94-doublecheck.md`).
+Graded with the pinned grader AND the pinned pass-92 prompt; counts from
+earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
+deterministic (seeded painters, 88c57e7), so frames are reproducible in a
+way pass-91/92 frames were not. `pass-86.json` (48 fails) remains the
+reference for passes graded with the older prompt/configuration only.
+
+### The measured noise floor (pass-95, no-change variance pass)
+
+`audit/reports/pass-95-doublecheck.md` is a full double-checked pass on the
+**byte-identical tree** with pixel-near-identical captures (mean whole-frame
+diff 0.017/255 vs pass-94's captures; seeded atlases make this possible).
+It read **99/297** against pass-94's 94/294. That +5 came from grader
+variance and wind-phase pixels alone. Observed no-change single-criterion
+deltas: U3 −4, U6 +3, U1 +3, U4 +2, G1 +2, E1 −2, rest ±1; and across the
+same-prompt series G1 reads 14→9→14→16 and U6 10→6→8→11.
+
+**Threshold a change must beat to count:**
+- **Total fails:** a move within ±5 of the baseline is noise. Ship only on a
+  drop to ≤ 89 vs pass-94's 94 (or treat a rise to ≥ 99 as possible noise,
+  not regression, unless the signature matches the change).
+- **Single criteria:** a move of ≤ 4 on one criterion is not interpretable —
+  U3, U6, G1, and U1 each moved that much with nothing changed. A ship
+  argument must name its target criterion and show a move ≥ 5 on it, in the
+  predicted direction, with the total outside the band.
+- The blind double-check has now crossed no 3/4 boundaries in three
+  consecutive passes (pass-93: 26 rows moved, pass-94: 33, pass-95: 22) —
+  it shifts scores ±1 but has never overturned a fail/pass call, so the
+  double-checked count is the number to compare, and the raw count differs
+  from it by 0 in all three passes.
 
 ## Objective
 
