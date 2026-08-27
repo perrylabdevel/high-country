@@ -798,8 +798,15 @@ export function createLandmarks(scene, maps = {}) {
     const z = POS.ranch.z + dz;
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 1.1, 3, 6), cattle);
     body.rotation.z = Math.PI / 2;
-    body.rotation.y = seeded(x * 0.01 + z * 0.01) * Math.PI * 2;
-    body.position.set(x, heightAt(x, z) + 0.7, z);
+    const yaw = seeded(x * 0.01 + z * 0.01) * Math.PI * 2;
+    body.rotation.y = yaw;
+    // The capsules used to float ~0.38 m above the ground (centre-anchored,
+    // no legs); the grass-grounding fix stopped hiding the gap. Seat the
+    // bottom of the body 5 cm above the lowest terrain under its long axis.
+    const ax = Math.cos(yaw) * 0.95;
+    const az = Math.sin(yaw) * 0.95;
+    const minY = Math.min(heightAt(x, z), heightAt(x - ax, z - az), heightAt(x + ax, z + az));
+    body.position.set(x, minY + 0.32 + 0.05, z);
     body.castShadow = true;
     group.add(body);
   }
@@ -817,8 +824,14 @@ export function createLandmarks(scene, maps = {}) {
     // Orient by the offset indices, not the world position: the herd sits in
     // a tight area, so world-position seeds were near-identical and every
     // animal faced the same way (audit W2).
-    body.rotation.y = seeded(dx * 0.37 + dz * 0.11 + 3) * Math.PI * 2;
-    body.position.set(x, heightAt(x, z) + 0.82, z);
+    const yaw = seeded(dx * 0.37 + dz * 0.11 + 3) * Math.PI * 2;
+    body.rotation.y = yaw;
+    // Same grounding as the ranch herd: bottom 5 cm above the lowest terrain
+    // along the body axis (was floating ~0.44 m, masked by grass height).
+    const ax = Math.cos(yaw) * 0.95;
+    const az = Math.sin(yaw) * 0.95;
+    const minY = Math.min(heightAt(x, z), heightAt(x - ax, z - az), heightAt(x + ax, z + az));
+    body.position.set(x, minY + 0.38 + 0.05, z);
     body.castShadow = true;
     group.add(body);
   }
