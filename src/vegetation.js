@@ -35,7 +35,7 @@ import {
   cross,
   varyingProperty
 } from "three/tsl";
-import { heightAt, normalAt } from "./heightfield.js";
+import { heightAt, meshHeightAt, normalAt } from "./heightfield.js";
 import { barkTexture, makeTexture } from "./world.js";
 import { addCylinderCollider } from "./collision.js";
 import { insideStructure } from "./buildings/kit.js";
@@ -1846,12 +1846,17 @@ export function createVegetation(scene, maps = {}) {
     // plains and strata slopes). The uphill side buries a little, which is
     // invisible under alpha-tested blades; a floating downhill edge is not.
     const foot = GRASS_FOOT * (cardW / GRASS_CARD_W);
+    // meshHeightAt, not heightAt: the tuft must sit on the terrain as it is
+    // DRAWN. heightAt is bilinear; the mesh is that grid triangulated, and the
+    // two disagree inside every cell. Seating on the bilinear surface floated
+    // 9.5% of the map's ground cover by more than 2 cm (worst 76 cm) while
+    // every heightAt-based check reported it perfectly grounded.
     const baseY = Math.min(
-      heightAt(x, z),
-      heightAt(x - foot, z),
-      heightAt(x + foot, z),
-      heightAt(x, z - foot),
-      heightAt(x, z + foot)
+      meshHeightAt(x, z),
+      meshHeightAt(x - foot, z),
+      meshHeightAt(x + foot, z),
+      meshHeightAt(x, z - foot),
+      meshHeightAt(x, z + foot)
     );
     dummy.position.set(x, baseY, z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
@@ -1909,12 +1914,14 @@ export function createVegetation(scene, maps = {}) {
     // Same lowest-corner seat as grass: a sage bush anchored at its centre
     // hovered above the downhill side on slopes.
     const sfoot = SAGE_FOOT * sx;
+    // Same drawn-surface seating as grass — `y` is the bilinear heightAt used
+    // for the elevation gate above, which is not where the ground is rendered.
     const sBaseY = Math.min(
-      y,
-      heightAt(x - sfoot, z),
-      heightAt(x + sfoot, z),
-      heightAt(x, z - sfoot),
-      heightAt(x, z + sfoot)
+      meshHeightAt(x, z),
+      meshHeightAt(x - sfoot, z),
+      meshHeightAt(x + sfoot, z),
+      meshHeightAt(x, z - sfoot),
+      meshHeightAt(x, z + sfoot)
     );
     dummy.position.set(x, sBaseY, z);
     dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
