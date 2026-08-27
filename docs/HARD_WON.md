@@ -57,6 +57,37 @@ A fix that lifts twenty scores and breaks four is not finished.
 
 ---
 
+### 1.5 Grass that looks like it floats, but does not
+
+**Symptom:** in close frames, blades appear to start in mid-air — most obvious
+in front of a barn wall, where light blade tips hang with nothing under them.
+Reported independently by eye more than once.
+
+**Not the cause**, each ruled out by measurement rather than argument: card
+origin above terrain (0 of 49,573 ranch instances sit >5 cm above the ground
+under them), geometry base offset (the card's base is at local y=0), painted
+blades not reaching the panel bottom (all four species root 1.8% up), `fill`
+drifted from the painter's `tall` (exact match), species-to-panel UV mapping,
+wind lifting the base (profile is `uv.y^2`, zero at the base; peak displacement
+0.18 m), and opacity fading the bases (distance only).
+
+**Cause:** the blade gradient in `paintBladePanel` runs from a near-black root
+to a much lighter mid — root luminance 0.18-0.23 against mid 0.34-0.47, a 2x
+ramp. Dark wood is 0.05-0.12. So in front of anything dark the lower half of
+every blade falls below the background and disappears, and the lit upper half
+reads as a blade starting in mid-air. Against open ground the root still
+separates, which is why it only shows near dark objects.
+
+**Fix:** not yet applied — lifting the root end (say to ~0.28, a 1.4x ramp
+instead of 2x) keeps the clump's depth while keeping the base visible. It is
+an appearance change and belongs in a measured pass.
+
+**Found by:** projecting every grass instance into the exact capture camera.
+5032 tips landed in the region that looked wrong, at distances from 2 m to
+352 m, every one of them correctly grounded — so that screen region is simply
+where normal grass projects. The defect had to be tonal, not positional.
+
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
