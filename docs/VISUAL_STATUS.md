@@ -661,3 +661,24 @@ angle limits (the rubric itself allows "cannot assess" for those).
   U1 = 4. The U6 far-crown density experiment (PINE far 7×9→9×12) was
   reverted — entangled in this A/B and not independently validated; it
   remains the open U6 cycle-1 candidate.
+- **Prop grounding (SHIPPED, measured 2026-08-26):** the add-check lens from
+  the grass fix applied to the classes that check did not cover. Dry-build
+  sweep of bbox-bottom vs lowest-terrain-under-footprint found ~120
+  ground-resting kit pieces floating on slopes, worst 1.33 m; after scoping to
+  the kit prop path (buildings already seat four-corner via `footing()`;
+  rocks are buried by design), the measured offenders were ironValley ore
+  carts 0.46 m, a sheepCamp tipi 0.35 m, timberCamp log stacks/pit discs
+  0.11–0.25 m. Cause: `boxOnGround`/`cylOnGround`/`coneOnGround` seat at one
+  centre `heightAt` sample (their own comment says "not four-corner footing").
+  Fix: the three helpers seat at the LOWEST terrain sample under the
+  footprint (`lowestSeat` in kit.js, centre + 16-point two-ring disc at
+  half-diagonal reach, so caller-side yaw cannot outrun the samples) and stamp
+  `userData.groundSeat` so the new 15th check `check:prop-grounding` can
+  verify the invariant for terrain-seated pieces (yOff ≤ 10 cm) while
+  skipping pieces that rest on other pieces. Negative-tested: reverting the
+  seat to the centre sample makes the check fail naming 66 offenders;
+  restored, PASS with 190 pieces checked. `check-anchors` typed-equivalent
+  assertions updated to the new seat contract (bare `grounded()` pads keep
+  the centre sample). Suite 15/15 PASS, build green; post-fix captures at
+  ironValley and timberCamp show props seated with no gaps and no burial.
+  Fault-injection measured — no grade cycle needed.
