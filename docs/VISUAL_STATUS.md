@@ -682,3 +682,22 @@ angle limits (the rubric itself allows "cannot assess" for those).
   the centre sample). Suite 15/15 PASS, build green; post-fix captures at
   ironValley and timberCamp show props seated with no gaps and no burial.
   Fault-injection measured — no grade cycle needed.
+
+- **U6 cycle 1 — far-band crown density (REVERTED, measured 2026-08-27):**
+  PINE far-band crown cards 7×9/7×9/7×10/6×10 → 9×12 (one change per pass).
+  Same-prompt Luna A/B (gpt-5.6-luna via codex-vision, identical prompt both
+  runs): before 93 fails/277 scored, after 116/297. The targeted criterion
+  did NOT move — U6 mean 3.60 → 3.63, U6 fails 10 → 10 — while
+  northernPines-midday U6 went 4→2 ("collapse into small smeared shapes and
+  appear to pop"). Mechanism: 1.7× more alpha-cutout cards in the far band
+  reads as more distant speckle, not denser trees. Reverted; do not retry a
+  bare far-band card-count increase — if U6 is re-attempted, change the card
+  SIZE/alpha (fewer, larger, softer-edge cards) rather than the count.
+  **Grading-configuration hazard found during this cycle:** the identical
+  pass-91 tree scored 52 fails under the 2026-08-26 full-pass prompt and 93
+  fails under this cycle's prompt (arid-POI note added, null policy relaxed).
+  The 44–60 noise band is configuration-bound. The prompt is part of the
+  pinned grader — changing it invalidates comparison with every earlier pass
+  (same rule as HARD_WON 3.4). `/tmp/read-images.mjs` (Aug 26) is the
+  reference prompt shape; pass-92 numbers are only comparable to
+  `/tmp/u6before-reads` (93), not to pass-86/90/91.

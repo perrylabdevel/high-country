@@ -218,6 +218,16 @@ numbers are not comparable, and pass 05 was the first pass comparable to the one
 before it. Pin the grader; if you must change it, treat the next two passes as a
 fresh baseline and say so.
 
+**The prompt is part of the grader.** The identical tree scored 52 fails under
+the 2026-08-26 full-pass prompt and 93 fails under a reworded prompt (arid-POI
+note added, null policy relaxed) the next day — a swing far outside the 44–60
+"noise band", which turned out to be bound to that prompt, not to the scene.
+An A/B run inside the new prompt (93 → 116) was still valid because both sides
+used the same wording; comparing either to pass-86/90/91 was not. When driving
+the grader from a script, reuse the previous pass's prompt verbatim, or
+re-baseline both sides of the A/B under the new wording and say so in the pass
+report.
+
 ### 3.5 Nulls made the bar easier
 
 The stop condition originally ignored unassessed criteria, so a grader declining
