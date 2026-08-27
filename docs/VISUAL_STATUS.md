@@ -1,13 +1,13 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-27 · baseline is `audit/reports/pass-93.json`
-(double-checked, 90 fails / 296 scored — see `pass-93-doublecheck.md`),
-graded with the pinned grader AND the pinned pass-92 prompt; counts from
-earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
-now deterministic (seeded painters, 88c57e7), so pass-93 frames are
-reproducible in a way pass-91/92 frames were not.
-`pass-86.json` (48 fails) remains the reference for passes graded with the
-older prompt/configuration only.
+**Updated:** 2026-08-27 · baseline is `audit/reports/pass-94.json`
+(double-checked, 94 fails / 294 scored — see `pass-94-doublecheck.md`;
+within same-prompt variance of pass-93's 90/296). Graded with the pinned
+grader AND the pinned pass-92 prompt; counts from earlier prompts are not
+comparable (HARD_WON 3.4). The capture pipeline is deterministic (seeded
+painters, 88c57e7), so frames are reproducible in a way pass-91/92 frames
+were not. `pass-86.json` (48 fails) remains the reference for passes graded
+with the older prompt/configuration only.
 
 ## Objective
 
@@ -704,3 +704,31 @@ angle limits (the rubric itself allows "cannot assess" for those).
   (same rule as HARD_WON 3.4). `/tmp/read-images.mjs` (Aug 26) is the
   reference prompt shape; pass-92 numbers are only comparable to
   `/tmp/u6before-reads` (93), not to pass-86/90/91.
+
+- **Blade root gradient (SHIPPED, measured 2026-08-27, cycle B):** the
+  "floating grass" read was tonal, not geometric — 0 of 49,573 ranch
+  instances sit more than 5 cm above the ground under them; `paintBladePanel`
+  started every blade ramp at root luminance 0.18–0.23 against a mid of
+  0.34–0.47 (a 2× ramp), so in front of dark wood the lower half of each
+  blade fell below the background and vanished, and the lit upper half read
+  as a blade starting in mid-air. Fix: root stops only, in the
+  MEADOW/DRYISH/STRAW tables, lifted to mid/1.4 per row (hue preserved;
+  measured root lum 0.245–0.335 on MEADOW/DRYISH, ≈0.28 mean as targeted;
+  all ramps exactly 1.40×; mid/tip stops untouched; STRAW roots 0.375–0.408
+  keep their pale character at the same ramp). Measured where the artifact
+  shows: eye-height A/B at the barn's dark north wall (grass against dark
+  wood — the reproduction) and the same camera turned over open ground (the
+  cost), midday + golden, driven by `scripts/capture-cycleB.mjs`.
+  Blind side-swapped pair reads (pinned grader, `scripts/close-cycleB.mjs`):
+  barnWall-golden and openGround-golden prefer the fix 2/2 on BOTH side
+  arrangements (after forced left, then forced right — cancels position
+  bias, which a first alternating run suggested); barnWall-midday ties 2/2;
+  openGround-midday flip-flops with side (genuine toss-up). Scored reads:
+  grounded 3→4 on both golden frames, tonalRange 4→4 everywhere — the
+  guardrail (clump interiors flattening to one value, the conifer-normal
+  failure mode) did NOT trip. Full audit-range collateral: pass-94
+  double-checked 94/294 vs pass-93 baseline 90/296 — within same-prompt
+  variance, U1 10→6 and U4 4→2 improved, U2 22→24 and G1 9→14 inside the
+  variance those rows show with no grass change. Do not push the root
+  further toward the mid: the 1.40× ramp is measured-safe, and the golden
+  open-ground frame is where any additional lift will show first.

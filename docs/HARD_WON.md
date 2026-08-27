@@ -55,6 +55,28 @@ and warm, so nothing filled the shadow side.
 **Caution:** this also exposed 1.1 by changing which frames showed the `NaN`.
 A fix that lifts twenty scores and breaks four is not finished.
 
+### 1.5 "Floating grass" that is not floating — a tonal ramp vanishing against dark backdrops
+
+**Symptom:** at eye height, grass tufts in front of dark wood (the ranch barn
+wall was the clean reproduction) read as lit blades starting in mid-air. The
+grounding checks all passed — and they were right: a dry-build count showed
+**0 of 49,573 ranch grass instances sitting more than 5 cm above the terrain**
+under them. The geometry was grounded; the *read* was tonal.
+**Cause:** `paintBladePanel` started every blade's gradient at the root stop
+of the MEADOW/DRYISH/STRAW tables — luminance 0.18–0.23 against a mid stop of
+0.34–0.47, a 2× ramp. Dark wood is 0.05–0.12, so the lower half of every blade
+fell below the backdrop and disappeared into it, leaving only the lit upper
+half visible — which reads as a blade whose base is missing. The dark root is
+real art (it gives clumps internal depth), which is why the fix lifts the root
+only to a 1.4× ramp instead of flattening it away; overshoot washes the field
+to one value (the failure mode that bit the conifer canopies when their normal
+bend was driven too hard).
+**Found by:** the add-check lens applied in reverse — before adding another
+geometric check, measure the suspected geometry. The check would have passed,
+because there was nothing to check. The A/B that proved it is eye-height at a
+dark wall, not the 30–70 m audit cameras where the artifact smears into
+ambiguity.
+
 ---
 
 ### 1.5 Grass that looks like it floats, but does not
