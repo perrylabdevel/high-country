@@ -32,3 +32,7 @@ package-lock.json
 
 # Poly Haven source downloads are binary and regenerable; only the packed bundle ships
 assets-src/
+
+# Throwaway Playwright probes. They must live in the repo root to resolve
+# node_modules, but they are scratch and never part of the build.
+tmp-*.mjs
