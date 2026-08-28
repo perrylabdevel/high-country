@@ -110,6 +110,57 @@ an appearance change and belongs in a measured pass.
 where normal grass projects. The defect had to be tonal, not positional.
 
 
+### 1.6 Grass that really was floating — a TSL node has no `needsUpdate`
+
+**Symptom:** clumps of grass hanging in mid-air, cut off flat with their
+painted root ends showing, at a fixed height on the card and leaning with it in
+the wind. Visible in any direction, anywhere on the map, worst in first person,
+and only ever on *some* tufts of *some* species. Reported by eye repeatedly
+across seven attempted fixes and fifteen green checks.
+
+**Not the cause**, each ruled out by measurement: card seating (a raycast
+against the terrain as rendered — `window.__terrainProbe` — put every one of
+2355 cards 3-11 cm BELOW the drawn ground, none above), `meshHeightAt` versus
+the drawn mesh (0.00 cm at every percentile), card size (median 0.46 x 0.59 m,
+taller than wide), the atlas art (solid blades, no gap), the atlas alpha (solid
+to mip 5; mip erosion only ever trims the tips), the mip chain
+(`__grassMips(false)` — identical), and the wind (`__setWind(0, 0)` — identical,
+which also killed the mid-vertex-row kink theory).
+
+**Cause:** `tints` and `speciesUV` were TSL nodes built with
+`instancedBufferAttribute(...)`, and the scatter marked them dirty with
+`tintAttr.needsUpdate = true`. `BufferAttributeNode` has no `needsUpdate`
+property — the line set an inert field on a plain object — and
+`instancedBufferAttribute` builds its buffer with `StaticDrawUsage`. Both
+arrays were uploaded once at first render and never again. `grass.instanceMatrix`
+is a real `BufferAttribute`, so matrices *did* update, and the ring grid
+rescatters constantly as the camera moves. Every instance kept getting a new
+position, size and rotation while holding the first scatter's species. A card
+sized for blue grama (`fill 0.4`, so a card 2.5x the plant's height) drawing
+bluestem's panel, whose blades fill 93% of it, renders that clump most of the
+way up a card two and a half times too tall. The reverse pairing draws a small
+clump low on a big card and looks perfect, which is why only some tufts showed
+it.
+
+**Fix:** real `THREE.InstancedBufferAttribute`s on the tuft geometry
+(`aTint`, `aSpecies`, `DynamicDrawUsage`), read with `attribute()` the way
+`aTangent` already was, and `needsUpdate` set on the attributes.
+`scripts/check-instance-attrs.mjs` now fails the build if any TSL node is
+marked dirty again.
+
+**Found by:** planting one species alone (`__soloGrass`) and flat-colouring the
+cards by species (`__speciesColour`). With only cheatgrass in the world, cards
+rendered in blue grama's and bunchgrass's colours — a contradiction no numeric
+agreement could hide. Every measurement before that came back clean because the
+CPU side was correct the whole time; the only wrong thing was a stale copy of
+one attribute in GPU memory, which nothing headless can read.
+
+**The lesson is about the instrument, not the bug.** Seven passes measured the
+scene and found it correct, and each time "the numbers are clean" was read as
+"there is no bug" rather than "I am measuring the wrong thing." The user could
+see it and the checks could not. When an observer you trust keeps reporting a
+defect that every measurement denies, the measurement is the thing to doubt.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
