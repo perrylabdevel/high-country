@@ -30,7 +30,6 @@ import {
   normalize,
   sin,
   texture,
-  instancedBufferAttribute,
   attribute,
   cross,
   varyingProperty
@@ -1758,8 +1757,46 @@ export function createVegetation(scene, maps = {}) {
   // instance buys four species out of one instanced draw.
   const speciesUV = new Float32Array(MAX_GRASS * 2);
   const grassMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
-  const tintAttr = instancedBufferAttribute(tints, "vec3", 3, 0);
-  const speciesAttr = instancedBufferAttribute(speciesUV, "vec2", 2, 0);
+  /**
+   * Per-instance tint and atlas panel, as REAL geometry attributes.
+   *
+   * THIS IS THE FLOATING GRASS, and it took seven passes to find because the
+   * CPU side was correct the whole time.
+   *
+   * These used to be TSL instancedBufferAttribute() nodes, and finishScatter
+   * marked them dirty with `tintAttr.needsUpdate = true`. BufferAttributeNode
+   * has no needsUpdate property - that line set an inert field on a plain
+   * object and did nothing - and instancedBufferAttribute() creates its buffer
+   * with StaticDrawUsage, so the species panel and tint were uploaded once, at
+   * first render, and never again.
+   *
+   * The matrices were not: grass.instanceMatrix is a real BufferAttribute and
+   * its needsUpdate works. So every time the ring grid rescattered - which is
+   * constantly, as the camera moves - each instance got a NEW position, size
+   * and rotation while keeping the FIRST scatter's species. Slot N would be
+   * sized for blue grama (fill 0.4, so a card 2.5x the plant's height) while
+   * still sampling bluestem's panel, whose blades fill 93% of it. The result
+   * is a clump drawn most of the way up a card that is two and a half times
+   * too tall: a tuft of grass hanging in mid-air, its painted root ends
+   * showing, at a fixed height on the card, leaning with the card in the wind.
+   * The reverse pairing draws a small clump low on a big card and looks fine,
+   * which is why only some tufts and some species were ever affected.
+   *
+   * It explains every measurement that came back clean. Card placement, card
+   * size, the atlas, its alpha, the mip chain and the terrain were all exactly
+   * right; the only thing wrong was a stale copy of one attribute on the GPU.
+   *
+   * Real InstancedBufferAttributes on the geometry, read with attribute(), the
+   * same way aTangent already is. needsUpdate on these actually uploads.
+   */
+  const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
+  const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
+  tintAttrib.setUsage(THREE.DynamicDrawUsage);
+  speciesAttrib.setUsage(THREE.DynamicDrawUsage);
+  grassGeo.setAttribute("aTint", tintAttrib);
+  grassGeo.setAttribute("aSpecies", speciesAttrib);
+  const tintAttr = attribute("aTint", "vec3");
+  const speciesAttr = attribute("aSpecies", "vec2");
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
   const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
   const grassSampleTex = texture(grassTex, atlasUV);
@@ -2054,8 +2091,10 @@ export function createVegetation(scene, maps = {}) {
   function finishScatter(cx, cz, grassCount, sageCount) {
     grass.count = grassCount;
     grass.instanceMatrix.needsUpdate = true;
-    tintAttr.needsUpdate = true;
-    speciesAttr.needsUpdate = true;
+    // The attributes, not the nodes that read them: a node has no needsUpdate
+    // and setting one silently did nothing for the whole life of this file.
+    tintAttrib.needsUpdate = true;
+    speciesAttrib.needsUpdate = true;
     grass.boundingSphere.center.set(cx, heightAt(cx, cz), cz);
     grass.boundingSphere.radius = GRASS_RADIUS + 40;
     sage.count = sageCount;
