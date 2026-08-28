@@ -2394,6 +2394,15 @@ export function createVegetation(scene, maps = {}) {
       grassTex.needsUpdate = true;
       return grassTex.minFilter === THREE.LinearFilter ? "mips off" : "mips on";
     },
+    /**
+     * Turn shadow receiving on the ground cover on or off at runtime, so the
+     * failure it caused can be reproduced and looked at instead of remembered.
+     */
+    debugGrassShadow(on) {
+      grass.receiveShadow = Boolean(on);
+      grassMat.needsUpdate = true;
+      return grass.receiveShadow;
+    },
     debugSpeciesColour(mode) {
       dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
       return dbgSpecies.value;
