@@ -2247,6 +2247,29 @@ export function createVegetation(scene, maps = {}) {
     // actually sit inside their panel rather than inferring it from the
     // painter's constants.
     grassAtlas: grassTex.image,
+    /**
+     * The (x, z) of every ground-cover instance near a point, so a debug
+     * overlay can put its reference mark at the tuft's OWN footing.
+     *
+     * A grid of ground lines cannot answer whether a blade meets the ground:
+     * at eye level a line further away sits higher in the frame than one
+     * nearby, so a blade base compared against the wrong line reads as a gap
+     * of several centimetres that is pure perspective. The mark has to be at
+     * the same (x, z) as the tuft.
+     */
+    grassPositions(cameraPos, radius = 12) {
+      const m = new THREE.Matrix4();
+      const p = new THREE.Vector3();
+      const out = [];
+      for (let i = 0; i < grass.count; i += 1) {
+        grass.getMatrixAt(i, m);
+        p.setFromMatrixPosition(m);
+        if (flatDist(p, cameraPos) <= radius) {
+          out.push([p.x, p.y, p.z, Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H]);
+        }
+      }
+      return out;
+    },
     // Capture tooling needs to know when the amortised scatter has caught up
     // with the camera. Without it a screenshot taken after a jump across the
     // map shows ground cover still centred on the previous position, which
