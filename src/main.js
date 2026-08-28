@@ -328,6 +328,15 @@ async function boot() {
     // vertex row; __grassMips(false) drops the atlas mip chain. Whichever one
     // makes the band go away names the cause.
     window.__windProfile = (exp) => vegetation.debugWindProfile(exp);
+    // __setWind(0, 0) stops the ground cover dead. Amplitude and profile are
+    // separate questions: with the amplitude at zero the profile cannot matter,
+    // so this isolates "the wind displacement is doing it" from "the shape of
+    // the bend is doing it" without the two frames differing in wind phase.
+    window.__setWind = (sway, gust) => {
+      vegetation.windStrength.value = Number(sway);
+      vegetation.gustStrength.value = Number(gust);
+      return { sway: vegetation.windStrength.value, gust: vegetation.gustStrength.value };
+    };
     window.__grassMips = (on) => vegetation.debugGrassMips(on);
     /**
      * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
