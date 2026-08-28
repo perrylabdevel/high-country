@@ -314,6 +314,11 @@ async function boot() {
     // a screenshot straight after a jump shows the previous location's cover.
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
     window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
+    window.__grassSpecies = () => vegetation.grassSpecies;
+    // __soloGrass("bluestem") plants that species alone; __soloGrass(null)
+    // restores the mix. The scatter is amortised, so give it a few seconds
+    // (or poll __vegSettled) before judging a frame.
+    window.__soloGrass = (name) => vegetation.soloGrass(name, camera.position);
     /**
      * Where does a blade actually start, inside its atlas panel?
      *

@@ -323,6 +323,12 @@ async function main() {
       if (!ok) {
         throw new Error(`missing capture POI ${poi.id}`);
       }
+      // CAPTURE_SOLO_GRASS=<species> plants that ground cover alone, so an
+      // artefact can be pinned to one grass instead of argued about across a
+      // mix of four. Set before the settle wait: it forces a rescatter.
+      if (process.env.CAPTURE_SOLO_GRASS) {
+        await page.evaluate((n) => window.__soloGrass(n), process.env.CAPTURE_SOLO_GRASS);
+      }
       // The ground-cover scatter is amortised over ~72 frames, and consecutive
       // POIs are kilometres apart, so a fixed wait screenshots the PREVIOUS
       // location's grass and sage — which reads as an empty biome rather than

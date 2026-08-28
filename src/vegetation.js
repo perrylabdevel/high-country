@@ -1736,6 +1736,9 @@ export function createVegetation(scene, maps = {}) {
     };
   }
 
+  // Name of the only ground-cover species to plant, or null for all four.
+  let soloSpecies = null;
+
   const CAND = buildCandidates(RINGS, GRASS_RADIUS);
   // Size the pool to the candidate list rather than a round number. A cap below
   // it would be hit first by the outermost ring (candidates are ordered near to
@@ -1858,6 +1861,13 @@ export function createVegetation(scene, maps = {}) {
       si += 1;
     }
     const sp = GRASS_SPECIES[si];
+    // Species isolation, for telling one grass apart from the three it is
+    // mixed with. Filtering here rather than hiding instances afterwards means
+    // the amortised rescatter keeps honouring it instead of undoing it on the
+    // next rebuild.
+    if (soloSpecies && sp.name !== soloSpecies) {
+      return false;
+    }
 
     // Height comes from the species, nudged by how wet the ground is.
     const hMet = (sp.hMin + (sp.hMax - sp.hMin) * hash2(ix, jz, 4)) * (0.86 + weight * 0.24);
@@ -2269,6 +2279,23 @@ export function createVegetation(scene, maps = {}) {
     // actually sit inside their panel rather than inferring it from the
     // painter's constants.
     grassAtlas: grassTex.image,
+    grassSpecies: GRASS_SPECIES.map((sp) => sp.name),
+    /**
+     * Plant one species and nothing else, so an artefact can be pinned to a
+     * grass instead of argued about across a mix of four. Pass null to
+     * restore. Forces a rescatter so the change is visible immediately.
+     */
+    soloGrass(name, cameraPos) {
+      if (name && !GRASS_SPECIES.some((sp) => sp.name === name)) {
+        throw new Error(`unknown grass species ${name}; have ${GRASS_SPECIES.map((sp) => sp.name).join(", ")}`);
+      }
+      soloSpecies = name || null;
+      lastCenter.set(Infinity, Infinity, Infinity);
+      if (cameraPos) {
+        this.update(cameraPos);
+      }
+      return soloSpecies;
+    },
     /**
      * The (x, z) of every ground-cover instance near a point, so a debug
      * overlay can put its reference mark at the tuft's OWN footing.
