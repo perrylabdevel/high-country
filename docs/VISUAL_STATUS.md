@@ -865,3 +865,28 @@ angle limits (the rubric itself allows "cannot assess" for those).
   variance those rows show with no grass change. Do not push the root
   further toward the mid: the 1.40× ramp is measured-safe, and the golden
   open-ground frame is where any additional lift will show first.
+
+- **Building wall macro noise (5218984) — REVERTED on A/B evidence, measured
+  2026-08-28:** the "back up and everything looks repeated and stamped"
+  report was answered with a 9 m-period, 0.16-strength world-space macro
+  multiply in `texturedMat` (5218984). The full instrument per the commit's
+  own plan: blind pair preference at three facade POIs (silverCreek, elPaso,
+  fortGrant), both side arrangements (PAIR_SIDE left then right, position
+  bias cancelled), at BOTH vantage ranges — audit cameras (24–58 m) and
+  eye mode (the reported distance), plus single-criterion scored reads.
+  Pixel-verified live: the change alters 8–15% of bytes audit-range and
+  18–22% eye-range at silverCreek/elPaso (fortGrant eye vantage excludes
+  textured walls, ~0.4%). Result: **24/24 blind pairs read "same" except
+  two contradictory eye answers on elPaso-midday** (one before, one after —
+  position bias, not signal); scored tilingRepeat mean 4.17 before → 4.33
+  after (one 4→5 fortGrant, everything else tied). Verdict: the pinned
+  grader cannot see the improvement at any tested vantage; per the goal rule
+  an appearance change that does not beat the baseline is reverted. The
+  revert is not evidence the diagnosis was wrong — the tiling signatures in
+  the commit message stand as measured description; the 0.16 macro strength
+  sits below what this instrument can resolve. Do not re-ship the same
+  geometry of change without either a stronger character (visible, then
+  measured) or a closer-than-eye instrument. Harness notes:
+  `close-cycleB.mjs` now carries the wall-tiling NAMES/prompt,
+  `--stdin-prompt`-only, resolver resolved codex-vision, BEFORE_DIR/AFTER_DIR
+  env overrides.
