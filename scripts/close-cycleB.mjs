@@ -12,12 +12,19 @@ import { resolveCodexVision } from "./codex-vision.mjs";
 
 const VISION = resolveCodexVision();
 const MODE = process.argv[2]; // "scored" | "pair"
-const BEFORE = "/tmp/cycleB-before";
-const AFTER = "/tmp/cycleB-after";
+const BEFORE = process.env.BEFORE_DIR || "/tmp/cycleB-before";
+const AFTER = process.env.AFTER_DIR || "/tmp/cycleB-after";
 const OUT = process.env.READS_OUT || "/tmp/cycleB-reads";
 mkdirSync(OUT, { recursive: true });
 
-const NAMES = ["barnWall-midday", "barnWall-golden", "openGround-midday", "openGround-golden"];
+// Wall-tiling A/B (5218984, macro noise in texturedMat): the three POIs whose
+// fixed audit cameras take a building facade in at a glance — the repeat
+// distance the report names. Replaced the grass cycle-B names.
+const NAMES = [
+  "silverCreek-midday", "silverCreek-golden",
+  "elPaso-midday", "elPaso-golden",
+  "fortGrant-midday", "fortGrant-golden"
+];
 
 function run(image, prompt) {
   return execFileSync(VISION, ["--stdin-prompt", image], {
@@ -30,17 +37,9 @@ if (MODE === "scored") {
     for (const [side, dir] of [["before", BEFORE], ["after", AFTER]]) {
       const out = `${OUT}/${name}-${side}.json`;
       if (existsSync(out)) continue;
-      const dark = name.startsWith("barnWall");
-      const open = name.startsWith("openGround");
-      const prompt = `You are the visual auditor for High Country. This is an eye-height diagnostic screenshot (${name}, midday or golden hour) of grass rendered as alpha-cutout blade cards.
-${dark ? "The subject: grass tufts standing in front of a dark barn wall. Judge ONLY these two criteria." : "The subject: open grassland at eye height, no dark backdrop behind it. Judge ONLY these two criteria."}
-1. "grounded" (0-5): ${dark
-  ? "Does each grass tuft in front of the dark wall read as growing out of the ground — blade bases connecting to the soil — or do the darker lower halves of blades fall below the wall and vanish, so lit blades appear to start in mid-air? 5 = every tuft clearly rooted; 0 = most blades look like they float."
-  : "Does each grass tuft read as growing out of the ground with a visible base, or do blades look detached from the soil? 5 = every tuft clearly rooted; 0 = blades float."}
-2. "tonalRange" (0-5): ${open
-  ? "Does the grass keep a natural range of tones — darker shaded interiors inside clumps against lighter lit blades — or has it gone flat/washed-out, one uniform value across the field? 5 = rich internal depth; 0 = flat wash."
-  : "Does the grass keep a natural range of tones with darker interiors inside each clump, or has it gone flat/uniform? 5 = rich internal depth; 0 = flat wash."}
-Return ONLY JSON: {"image":"${name}-${side}","criteria":[{"id":"tonalRange","score":4,"note":"..."},{"id":"grounded","score":4,"note":"..."}]}`;
+      const prompt = `You are the visual auditor for High Country. This is a diagnostic screenshot (${name}, midday or golden hour) of one or more buildings with textured walls. Judge ONLY this one criterion.
+1. "tilingRepeat" (0-5): Does the wall/facade texture read as a natural surface, or as ONE texture tile stamped repeatedly at a fixed period — the same marks recurring across the wall so it reads as printed rather than built? 5 = no visible repeat period, each stretch of wall reads distinct; 0 = the same tile pattern is obviously stamped end to end. Note this is judged at the distance shown in the frame.
+Return ONLY JSON: {"image":"${name}-${side}","criteria":[{"id":"tilingRepeat","score":4,"note":"..."}]}`;
       try {
         const raw = run(`${dir}/${name}.png`, prompt);
         const m = raw.match(/\{[\s\S]*\}/);
@@ -66,10 +65,8 @@ if (MODE === "pair") {
     const left = afterLeft ? `${AFTER}/${name}.png` : `${BEFORE}/${name}.png`;
     const right = afterLeft ? `${BEFORE}/${name}.png` : `${AFTER}/${name}.png`;
     const dark = name.startsWith("barnWall");
-    const prompt = `You are the visual auditor for High Country. Two renders of the SAME view are attached side by side; they may be identical or may differ in the grass blade colouring. LEFT image first, RIGHT image second.
-Question: ${dark
-  ? "In which image do the grass tufts in front of the dark barn wall read better — more clearly growing out of the ground, with blade bases that do not vanish against the dark wood?"
-  : "In which image does the open grassland read better — keeping natural tonal depth inside the clumps without looking washed out or flat?"}
+    const prompt = `You are the visual auditor for High Country. Two renders of the SAME view are attached side by side; they may be identical or may differ in the wall surface texturing. LEFT image first, RIGHT image second.
+Question: In which image does the building's wall/facade texture read as LESS repeated or stamped at this distance — i.e. whose walls look less like one texture tile printed over and over, with the same marks recurring at a fixed period?
 Answer "left", "right", or "same". Then one sentence saying what you SEE that justifies it.
 Return ONLY JSON: {"image":"${name}","answer":"left|right|same","note":"...","afterWas":"left|right"}`;
     const full = prompt.replace('"afterWas":"left|"', "").replace(',"afterWas":"left|right"', "");
