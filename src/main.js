@@ -324,6 +324,48 @@ async function boot() {
     // it is a uniform, not a rescatter.
     window.__speciesColour = (mode) => vegetation.debugSpeciesColour(mode);
     /**
+     * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
+     * greyscale, and optionally after N box-filter halvings, which is what the
+     * mip chain does. An alpha-tested material draws whatever survives
+     * `alpha >= alphaTest` at the mip level the GPU picks, so a band that
+     * looks solid in the source art can still be discarded a few levels down.
+     */
+    window.__dumpGrassAtlas = (opts = {}) => {
+      const { alpha = false, mip = 0 } = opts;
+      const src = vegetation.grassAtlas;
+      if (!src) {
+        return null;
+      }
+      let w = src.width;
+      let h = src.height;
+      let c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      c.getContext("2d").drawImage(src, 0, 0);
+      for (let i = 0; i < mip; i += 1) {
+        const next = document.createElement("canvas");
+        next.width = Math.max(1, w >> 1);
+        next.height = Math.max(1, h >> 1);
+        const nctx = next.getContext("2d");
+        nctx.imageSmoothingEnabled = true;
+        nctx.drawImage(c, 0, 0, next.width, next.height);
+        c = next;
+        w = next.width;
+        h = next.height;
+      }
+      if (alpha) {
+        const ctx = c.getContext("2d", { willReadFrequently: true });
+        const img = ctx.getImageData(0, 0, w, h);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = d[i + 1] = d[i + 2] = d[i + 3];
+          d[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+      return c.toDataURL("image/png");
+    };
+    /**
      * Where does a blade actually start, inside its atlas panel?
      *
      * The card is seated so its bottom edge is buried, and the painter puts
