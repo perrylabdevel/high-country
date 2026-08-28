@@ -1,14 +1,35 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-27 · baseline is `audit/reports/pass-94.json`
-(double-checked, 94 fails / 294 scored — see `pass-94-doublecheck.md`).
+**Updated:** 2026-08-28 · baseline is `audit/reports/pass-96.json`
+(**80 fails / 294 scored** — the first graded pass on the per-instance-wind
+renderer, 8687980).
+
+> **Renderer change 2026-08-28 (8687980):** wind now shears every plant in one
+> world direction via a real per-instance `aWind` attribute. Every pass before
+> 96 was graded on the old renderer and is **not comparable**. Pass-96 is the
+> new baseline — a starting point, not a delta. (For the record it measured
+> 80/294 vs pass-94's 94 and pass-95's 99, both on the old renderer; do not
+> read that as a wind improvement — the renderer changed underneath.)
+>
+> Pass-96 was graded single-read (no blind double-check) on the committed
+> `audit/current` frames (production WebGPU, 14:19Z, pinned grader
+> gpt-5.6-luna, pinned pass-92 prompt via the `/tmp/read-images.mjs` prompt
+> shape driven through `codex-vision --stdin-prompt`; the old positional-argv
+> invocation of that harness now crashes `codex-vision` with
+> "File name too long" — `/tmp/read-images2.mjs` is the working wrapper).
+> Coverage 95%. Fails by criterion: U2 15, G1 10, U6 9, U5 8, U1 8, U3 6,
+> U4 4, S1/S2/S4/W1/I2/E1 2 each, D2/L3/P3/P4/O2/R5/R6/S5 1 each.
+>
+> The old ship thresholds (±5 noise band, "drop to ≤89") were calibrated on
+> pass-94's 94 and are stale. A new no-change variance pass on THIS renderer
+> is needed before any ship/revert call is made against 80.
 Graded with the pinned grader AND the pinned pass-92 prompt; counts from
 earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
 deterministic (seeded painters, 88c57e7), so frames are reproducible in a
 way pass-91/92 frames were not. `pass-86.json` (48 fails) remains the
 reference for passes graded with the older prompt/configuration only.
 
-### The measured noise floor (pass-95, no-change variance pass)
+### The measured noise floor (pass-95, no-change variance pass — old renderer)
 
 `audit/reports/pass-95-doublecheck.md` is a full double-checked pass on the
 **byte-identical tree** with pixel-near-identical captures (mean whole-frame
