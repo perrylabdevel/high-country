@@ -1,8 +1,9 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-28 · baseline is `audit/reports/pass-96.json`
-(**80 fails / 294 scored** — the first graded pass on the per-instance-wind
-renderer, 8687980).
+**Updated:** 2026-08-28 · baseline is `audit/reports/pass-97.json`
+(**74 fails / 297 scored** — a no-change variance pass on the
+per-instance-wind renderer, 8687980; same-tree twin of pass-96, which read
+**80 / 294**).
 
 > **Renderer change 2026-08-28 (8687980):** wind now shears every plant in one
 > world direction via a real per-instance `aWind` attribute. Every pass before
@@ -25,6 +26,37 @@ renderer, 8687980).
 > The old ship thresholds (±5 noise band, "drop to ≤89") were calibrated on
 > pass-94's 94 and are stale. A new no-change variance pass on THIS renderer
 > is needed before any ship/revert call is made against 80.
+
+### The measured noise floor on THIS renderer (pass-97, no-change variance pass)
+
+Pass-97 is the same tree as pass-96, re-captured and re-graded with the same
+pinned grader/prompt via the committed `scripts/read-images.mjs`:
+
+- **Total fails: 80 → 74 (−6) with nothing changed.** The no-change band on
+  this renderer is therefore **±6 around 77**; reads from 68–86 carry no
+  information. Ship only on a double-checked read **≤ 67**, or on a signature
+  that matches the change (below).
+- **Single reads swing harder than the old renderer.** 109 of 294 scored rows
+  moved between sessions with a byte-identical tree. Largest single-criterion
+  moves: silverCreek-golden S4 **0→4**, lakeMercy-golden L3 2→5,
+  mission M2 **4→1 at both lights**, ironValley/lakeMercy/silverCreek U3 ±2.
+  Whole frames swung by 6 fails (northernPines-golden 6→0, lakeMercy-golden
+  7→4) and ranch-golden +3. A single-criterion move of ±2, even a whole
+  frame's, is not interpretable by itself.
+- **Per-criterion fail counts (96→97):** U1 8→8, U2 15→13, U3 6→7, U4 4→4,
+  U5 8→7, U6 9→9, G1 10→**12** — the historical swing set (U3, U6, U1, U4,
+  G1, E1) still moves without cause (E1 2→1, G1 +2, M2 0→2, I2/W1 2→0).
+  Coverage 96% (297 scored vs pass-96's 294 — the grader scored 3 more rows).
+- **Capture determinism finding:** on the wind build the audit frames are NO
+  LONGER pixel-deterministic. A tree-identical re-capture differs by **mean
+  2.51/255** whole-frame (vs 0.017 recorded for pass-95 on the old renderer),
+  worst lakeMercy-midday 10.6, cemetery 8.5 — concentrated exactly in the
+  vegetation-heavy frames. Mechanism: `windBend`'s sway and gust phases read
+  `time` (`sin(time.mul(gustFreq)…)`, gustFreq 3.2 rad/s, amp ~0.18 m) and
+  `capture-poi.mjs` pins no clock, so every shutter samples a different gust
+  phase. Any A/B that relies on pixel diffs must either pin the clock or
+  budget for this band; and part of the pass-96↔97 score spread is wind-phase
+  pixels, as it was in pass-95.
 Graded with the pinned grader AND the pinned pass-92 prompt; counts from
 earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
 deterministic (seeded painters, 88c57e7), so frames are reproducible in a
