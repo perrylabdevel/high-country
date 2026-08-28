@@ -24,8 +24,9 @@ per-instance-wind renderer, 8687980; same-tree twin of pass-96, which read
 > U4 4, S1/S2/S4/W1/I2/E1 2 each, D2/L3/P3/P4/O2/R5/R6/S5 1 each.
 >
 > The old ship thresholds (±5 noise band, "drop to ≤89") were calibrated on
-> pass-94's 94 and are stale. A new no-change variance pass on THIS renderer
-> is needed before any ship/revert call is made against 80.
+> pass-94's 94 and are stale. Pass-97 is the no-change variance pass on this
+> renderer and supersedes them — see the next section for the band and the
+> current ship threshold.
 
 ### The measured noise floor on THIS renderer (pass-97, no-change variance pass)
 
@@ -58,10 +59,20 @@ pinned grader/prompt via the committed `scripts/read-images.mjs`:
   budget for this band; and part of the pass-96↔97 score spread is wind-phase
   pixels, as it was in pass-95.
 Graded with the pinned grader AND the pinned pass-92 prompt; counts from
-earlier prompts are not comparable (HARD_WON 3.4). The capture pipeline is
-deterministic (seeded painters, 88c57e7), so frames are reproducible in a
-way pass-91/92 frames were not. `pass-86.json` (48 fails) remains the
-reference for passes graded with the older prompt/configuration only.
+earlier prompts are not comparable (HARD_WON 3.4). `pass-86.json` (48 fails)
+remains the reference for passes graded with the older prompt/configuration
+only.
+
+The painters are seeded (88c57e7), so the world a capture walks into is
+reproducible — but **the frames were not**, on passes 96 and 97. `windBend`
+and the water normals read the TSL `time` node and `capture-poi.mjs` pinned no
+clock, so each shutter caught a different gust phase (mean 2.51/255
+whole-frame between tree-identical runs; see the determinism finding above).
+The capture now freezes the clock at a fixed value (`CAPTURE_CLOCK`, applied
+by `__captureMode(true)`), which makes a frame a function of the scene again.
+Every pass from that change onward is a **different frame set** from 96 and 97
+— it needs its own baseline, and its band should be re-measured rather than
+assumed to be ±6.
 
 ### The measured noise floor (pass-95, no-change variance pass — old renderer)
 

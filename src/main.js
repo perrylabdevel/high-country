@@ -3,6 +3,7 @@
  * Append ?webgl to the URL to force the WebGL2 backend.
  */
 import * as THREE from "three/webgpu";
+import { time } from "three/tsl";
 import { createInput } from "./input.js";
 import { heightAt } from "./world.js";
 import { meshHeightAt } from "./heightfield.js";
@@ -182,6 +183,9 @@ async function boot() {
   if (isDev) {
     // Handles for scripted capture (scripts/capture-poi.mjs) and the vision
     // audit loop: mutate the settings object, then re-apply.
+    // The clock every capture is taken at. Changing it changes every graded
+    // frame, so it is a constant, not a knob.
+    const CAPTURE_CLOCK = 12.0;
     window.__materialSettings = materialSettings;
     window.__POS = POS;
     window.__heightAt = heightAt;
@@ -294,6 +298,23 @@ async function boot() {
     // Park the camera at an explicit pose and hide the HUD and player body, so
     // captures frame the subject instead of the back of the player's head.
     window.__captureView = null;
+    /**
+     * Pin the TSL clock to a fixed value, or hand it back to the renderer.
+     *
+     * `time` is a uniform whose update callback returns the frame's elapsed
+     * time; onUpdate replaces that callback outright, so pinning and restoring
+     * are symmetric. Everything animated reads this one node - grass and tree
+     * wind, water scroll - so pinning it freezes all of them together.
+     */
+    window.__pinClock = (t) => {
+      if (t === null || t === undefined) {
+        time.onRenderUpdate((frame) => frame.time);
+        return null;
+      }
+      time.onRenderUpdate(() => t);
+      time.value = t;
+      return t;
+    };
     window.__captureMode = (on) => {
       const hud = document.getElementById("hud");
       if (hud) {
@@ -308,6 +329,28 @@ async function boot() {
       if (!on) {
         window.__captureView = null;
       }
+      // Freeze the shader clock while capturing.
+      //
+      // The audit frames stopped being reproducible on the wind build: a
+      // tree-identical re-capture differed by a mean 2.51/255 whole-frame
+      // (0.017 on the old renderer), worst in the vegetation-heavy frames and
+      // over water. Nothing was non-deterministic in the world - the painters
+      // are seeded and the scatter is a pure function of the camera. The
+      // shutter was. windBend's sway and gust read `time` (gustFreq 3.2 rad/s,
+      // ~0.18 m amplitude) and the water normals scroll on it, so every
+      // screenshot caught a different gust phase and a different swell.
+      //
+      // That noise lands in the grader: pass-96 and pass-97 are the same tree
+      // and read 80 and 74. Part of that +-6 is wind-phase pixels rather than
+      // grader variance, and the noise floor is what every future change has
+      // to clear. Pin the clock and the frames are a function of the scene
+      // again.
+      //
+      // 12.0 rather than 0: at t=0 the sway and gust terms are in phase
+      // everywhere, which is a degenerate sample of a field meant to be
+      // travelling. Any fixed value works as long as it never changes - it is
+      // the pinning that matters, not the number.
+      window.__pinClock(on ? CAPTURE_CLOCK : null);
     };
     // True once the amortised ground-cover scatter has caught up with the
     // camera. Capture tooling waits on this: the scatter takes ~55 frames, so
