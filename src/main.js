@@ -323,6 +323,12 @@ async function boot() {
     // (2) draws the card quads solid; (0) restores. Takes effect immediately -
     // it is a uniform, not a rescatter.
     window.__speciesColour = (mode) => vegetation.debugSpeciesColour(mode);
+    // Two live toggles for the mid-blade transparent band. __windProfile(1)
+    // makes the wind bend linear, which removes the kink at the card's middle
+    // vertex row; __grassMips(false) drops the atlas mip chain. Whichever one
+    // makes the band go away names the cause.
+    window.__windProfile = (exp) => vegetation.debugWindProfile(exp);
+    window.__grassMips = (on) => vegetation.debugGrassMips(on);
     /**
      * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
      * greyscale, and optionally after N box-filter halvings, which is what the

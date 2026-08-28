@@ -1821,7 +1821,20 @@ export function createVegetation(scene, maps = {}) {
   // draw distance, so the world went bald well before the disc actually ended.
   grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
   sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
-  grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(2)));
+  /**
+   * Wind profile exponent, as a uniform so it can be flipped live.
+   *
+   * The card has two height segments - three vertex rows, at uv.y 0, 0.5, 1 -
+   * and the profile is evaluated per vertex, so a squared profile puts 0.25 of
+   * the bend on the middle row where a straight card would want 0.5. The card
+   * kinks at that row. A kink is fixed at one height up the blade and moves
+   * with the wind, and it inflates the screen-space UV derivative across that
+   * band, which is how an alpha-tested blade can lose coverage in a stripe
+   * while the wider parts above and below survive. Exponent 1 is linear
+   * between the rows and cannot kink; 2 is the shipped bend.
+   */
+  const windProfileExp = uniform(2);
+  grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(windProfileExp)));
   grassMat.normalNode = bentNormal;
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
@@ -2322,6 +2335,26 @@ export function createVegetation(scene, maps = {}) {
      * flat colour, 2 solid card quads. blueGrama red, bunchgrass green,
      * bluestem blue, cheatgrass yellow.
      */
+    /**
+     * Wind bend profile exponent: 2 is shipped, 1 is linear (no kink at the
+     * card's middle vertex row). Live - it is a uniform.
+     */
+    debugWindProfile(exp) {
+      windProfileExp.value = Math.max(0.25, Math.min(4, Number(exp) || 1));
+      return windProfileExp.value;
+    },
+    /**
+     * Turn the blade atlas mip chain off (LinearFilter) or on. An alpha-tested
+     * blade loses coverage as the box filter thins it, so if the band is a mip
+     * artefact it disappears with mips off - at the cost of aliasing further
+     * out, which is why this is a diagnostic and not a fix.
+     */
+    debugGrassMips(on) {
+      grassTex.generateMipmaps = Boolean(on);
+      grassTex.minFilter = on ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
+      grassTex.needsUpdate = true;
+      return grassTex.minFilter === THREE.LinearFilter ? "mips off" : "mips on";
+    },
     debugSpeciesColour(mode) {
       dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
       return dbgSpecies.value;
