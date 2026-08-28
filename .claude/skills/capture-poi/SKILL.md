@@ -35,7 +35,7 @@ more under load — so wait for it, do not sleep a guess:
 
 ```bash
 npm run build
-nohup npx vite preview --host 127.0.0.1 --port 8765 > /tmp/preview.log 2>&1 &
+nohup npm run preview > /tmp/preview.log 2>&1 &   # --strictPort: it cannot drift
 for i in $(seq 1 30); do
   [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/)" = "200" ] && break
   sleep 1
@@ -61,6 +61,53 @@ window.__captureView = { px:P.x+16, py:h(P.x+16,P.z+16)+1.7, pz:P.z+16,
 
 POI ids are the keys of `window.__POS` (`ranch`, `northernPines`, `burn`,
 `westernRange`, `lakeMercy`, `ironValley`, `badlands`, …) — see `src/map.js`.
+
+## Which vantage — this decides whether you can see the defect at all
+
+`CAPTURE_MODE` picks the camera:
+
+- `audit` (default) — the graded set. Stands back and **pitches down**.
+- `close` — nearer, still pitched down.
+- `eye` — stands at 1.65 m and looks **dead level**; the target height is
+  pinned to the camera's own, so pitch is exactly zero however the ground
+  rises ahead.
+
+Looking down at grass hides the blade/ground junction behind the blades
+themselves. The floating-grass artefact was invisible in **every** downward
+frame taken across a whole session — dozens — and obvious in the first
+level one. If the defect is anything about how ground cover meets the ground,
+or about silhouettes, shoot `eye`. Against the sky is where a severed or
+floating card gives itself away; against ground it just reads as more grass.
+
+`eye` and `close` are diagnostic: the script refuses to write them into
+`audit/current`.
+
+## Verify the backend before you believe the frame
+
+WebGPU ships; `?webgl` is a fallback. A whole session was spent diagnosing on
+WebGL frames while the user ran WebGPU — the single biggest methodological
+failure in this project. `npm run capture` defaults to `CAPTURE_BACKEND=webgpu`
+and asserts the page agrees before writing anything.
+
+The assertion is only as good as its test. It used to read
+`renderer.backend.constructor.name`, which minification turns into two
+characters, so a WebGL fallback passed the WebGPU check silently. It now tests
+for a real `GPUDevice`. If you write your own harness, call
+`window.__captureInfo()` and check `backend`.
+
+Note that headless Chromium usually has **no** WebGPU adapter and falls back
+without saying so. Genuine WebGPU frames may need a headed launch.
+
+## Other useful capture switches
+
+- `CAPTURE_POI=<id>` — one location instead of sixteen.
+- `CAPTURE_SOLO_GRASS=<species>` — plant one ground-cover species alone.
+- `CAPTURE_GROUND_LINES=1` — magenta grid on the drawn terrain, plus 12 cm
+  pins, so a frame shows where the ground actually is under the cover.
+- `CAPTURE_GRASS_PINS=1` — a 12 cm pin at each tuft's own footing, sharing its
+  depth, so a gap is measurable rather than arguable.
+
+`docs/DEBUG_HOOKS.md` is the full list.
 
 ## Reading the HUD
 

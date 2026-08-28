@@ -60,6 +60,68 @@ This is how "the range biome is bare" was disproved in one run.
 4. Only then change code, and change the smallest thing.
 5. Re-measure the same number. Report both values.
 
+## When every measurement is clean and the defect is still there
+
+This is the most expensive failure mode in the project's history: seven fixes,
+fifteen green checks, and a user who could see the bug the whole time.
+
+Ground cover appeared to float. Each pass measured something and got a clean
+number — card origin (0 of 49,573 above 5 cm), the geometry base (local y=0),
+the atlas art (blades reach the panel floor), the atlas alpha (solid to mip 5),
+the mip chain (only ever trims tips), the wind (identical with amplitude at
+zero), and finally a raycast against the terrain **as rendered** (all 2355
+cards buried 3-11 cm, none above). Every one of those readings was correct.
+
+The cause was that `tints` and `speciesUV` were TSL nodes, and
+`node.needsUpdate = true` does nothing — `BufferAttributeNode` has no such
+property and the node's buffer is `StaticDrawUsage`. Both uploaded once at
+first render and never again, while the instance matrices kept updating. Cards
+kept getting new positions and sizes while holding the first scatter's species.
+See HARD_WON 1.6.
+
+**Nothing headless could ever have seen it**, because the CPU side was right.
+The defect lived only in a stale GPU buffer.
+
+Two rules come out of that:
+
+1. **A clean number means "this is not the cause", never "there is no bug".**
+   After two or three clean readings, stop adding readings and ask what class
+   of thing your instrument cannot see. Node scripts cannot see GPU state.
+2. **When someone who can see the defect keeps saying it is still there,
+   the measurement is the thing to doubt.** The user was right seven times
+   running. "The numbers are clean" is not a rebuttal to an observation.
+
+### Measure the drawn thing, not a model of it
+
+The same trap, one level down. `heightAt` is bilinear; the terrain mesh is that
+grid triangulated, and the two disagree inside every cell — so a grounding
+check written against `heightAt` reported perfect seating while 9.5% of cover
+floated. `meshHeightAt` replicates the triangulation and matches the drawn mesh
+to 0.00 cm (`window.__terrainProbe` raycasts the real mesh to confirm it).
+
+Ask of any measurement: *is this the number the renderer uses, or my model of
+it?* Prefer, in order: read it back off the GPU-facing object (instance
+matrices, `__grassStats`), raycast the actual mesh, then a model.
+
+### Make the invisible visible instead of measuring harder
+
+What finally found it was not a better number. It was `__soloGrass("cheatgrass")`
+plus `__speciesColour(2)`: plant one species, draw every card as a flat-coloured
+solid quad. Cards rendered in two other species' colours — a contradiction no
+amount of numeric agreement could hide.
+
+When a defect survives several clean measurements, build the view that makes
+the wrong thing *impossible to look at without noticing*. `docs/DEBUG_HOOKS.md`
+lists what already exists.
+
+### Verify the renderer you are testing is the one that ships
+
+WebGPU is the target; `?webgl` is a fallback. Frames from the wrong backend
+answer a question nobody asked. `window.__captureInfo()` reports the real
+backend — it tests for an actual `GPUDevice`, because an earlier version tested
+`renderer.backend.constructor.name`, which minification turns into two
+characters, so a WebGL fallback passed a WebGPU assertion silently.
+
 ## Fixing the cause vs. hiding the reading
 
 Once you have the cause, ask whether your change removes it or merely stops
@@ -100,6 +162,10 @@ is drawing correctly.
   sub-1 values crush a surface fast. Multiply them out.
 - **Unset `instanceColor` renders pure black.** three leaves `vInstanceColor`
   at zero, nothing throws, nothing logs. `check:vegetation` pins this now.
+- **A TSL node has no `needsUpdate`.** Per-instance data written every frame
+  must be a real `InstancedBufferAttribute` on the geometry with
+  `DynamicDrawUsage`, read with `attribute()`, and marked dirty on the
+  attribute. `check:instance-attrs` pins this now — it cost seven passes.
 - **Alpha in block-compressed textures.** KTX2 quantises alpha; fine grass
   tips go chunky. Foliage albedo stays PNG for this reason.
 - **Density beats materials.** Established four separate times: raising

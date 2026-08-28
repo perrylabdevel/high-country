@@ -12,11 +12,14 @@ done. It is done when a command says so.**
 
 ```bash
 npm run build      # must print "built in"; any error means stop
-npm run check      # must print PASS 13 times
+npm run check      # must print PASS 16 times
 ```
 
-`npm run check` is 13 contract checks. Read the output. `12/13` is a failure,
+`npm run check` is 16 contract checks. Read the output. `15/16` is a failure,
 not a rounding error.
+
+Count them: `npm run check 2>&1 | grep -c '^PASS'`. A check that fails throws,
+so the count is the whole story.
 
 ## Then answer these in your report
 
