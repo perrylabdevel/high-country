@@ -27,7 +27,7 @@ look exactly as invisible.
 | `__setWind(sway, gust)` | Wind amplitudes. `(0, 0)` stops the cover dead, which separates "the displacement is doing it" from "the shape of the bend is doing it" with no wind phase to confuse the comparison. |
 | `__windProfile(exp)` | Wind bend profile exponent. `2` ships; `1` is linear between the card's vertex rows. |
 | `__grassMips(on)` | Drop or restore the blade atlas mip chain. Diagnostic only — off aliases badly at distance. |
-| `__grassShadow(on)` | Shadow receiving on the ground cover. Off by default; see HARD_WON for why. |
+| `__grassShadow(on)` | Shadow receiving on the ground cover. Off by default — it works (see HARD_WON 1.7) but is an appearance change, so it is enabled in a measured pass, not by default. |
 | `__dumpGrassAtlas({ alpha, mip })` | The blade atlas as a PNG data URL, optionally its alpha channel as greyscale and after N box-filter halvings — what the GPU samples at that mip level. |
 | `__grassAtlasBase(alphaTest)` | Per panel, the lowest row painted at all versus the lowest row surviving the alpha test. The difference times card height is a gap in metres. |
 | `__hideGrass(on)` | Hide the ground cover. Restores the saved count, so calling `(false)` first is safe. |
