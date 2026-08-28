@@ -319,6 +319,10 @@ async function boot() {
     // restores the mix. The scatter is amortised, so give it a few seconds
     // (or poll __vegSettled) before judging a frame.
     window.__soloGrass = (name) => vegetation.soloGrass(name, camera.position);
+    // __speciesColour(1) floods each blade silhouette with its species colour;
+    // (2) draws the card quads solid; (0) restores. Takes effect immediately -
+    // it is a uniform, not a rescatter.
+    window.__speciesColour = (mode) => vegetation.debugSpeciesColour(mode);
     /**
      * Where does a blade actually start, inside its atlas panel?
      *

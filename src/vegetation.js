@@ -24,6 +24,7 @@ import {
   positionWorld,
   cameraPosition,
   smoothstep,
+  mix,
   max,
   dot,
   normalize,
@@ -1789,7 +1790,32 @@ export function createVegetation(scene, maps = {}) {
    */
   const grassCol = grassSampleTex.rgb.mul(tintAttr.mul(0.7).add(0.72));
   const grassBack = back(grassView).mul(warmGreen).mul(0.45);
-  grassMat.colorNode = vec4(grassCol.mul(grassBack.add(1)), grassSampleTex.a);
+  /**
+   * Flat-colour species debug.
+   *
+   * Four species share one atlas, one material and one instanced draw, all in
+   * shades of the same green, so an artefact seen in the field belongs to
+   * "one of the grass species" with no way to say which - and no way to see
+   * where one species' cards actually are. 0 is off. 1 keeps the blade
+   * silhouette and floods it with the species' colour. 2 forces alpha to 1 as
+   * well, drawing each card as a solid quad, which is the only way to see the
+   * cards themselves: their size, their lean, and where their edges sit
+   * relative to the ground.
+   *
+   * blueGrama red, bunchgrass green, bluestem blue, cheatgrass yellow.
+   */
+  const dbgSpecies = uniform(0);
+  const spX = speciesAttr.x.mul(2);
+  const spY = speciesAttr.y.mul(2);
+  const speciesFlat = vec3(1, 0.15, 0.15).mul(spX.oneMinus().mul(spY.oneMinus()))
+    .add(vec3(0.2, 1, 0.2).mul(spX.mul(spY.oneMinus())))
+    .add(vec3(0.25, 0.5, 1).mul(spX.oneMinus().mul(spY)))
+    .add(vec3(1, 0.95, 0.2).mul(spX.mul(spY)));
+  const shaded = grassCol.mul(grassBack.add(1));
+  grassMat.colorNode = vec4(
+    mix(shaded, speciesFlat, dbgSpecies.min(1)),
+    mix(grassSampleTex.a, float(1), dbgSpecies.sub(1).max(0))
+  );
   // Hold full cover almost to the edge of the disc, then dissolve over the last
   // stretch. The old 150 -> 205 fade started eroding grass at two thirds of the
   // draw distance, so the world went bald well before the disc actually ended.
@@ -2291,6 +2317,15 @@ export function createVegetation(scene, maps = {}) {
      * grass instead of argued about across a mix of four. Pass null to
      * restore. Forces a rescatter so the change is visible immediately.
      */
+    /**
+     * Flat-colour the ground cover by species: 0 off, 1 blade silhouettes in
+     * flat colour, 2 solid card quads. blueGrama red, bunchgrass green,
+     * bluestem blue, cheatgrass yellow.
+     */
+    debugSpeciesColour(mode) {
+      dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
+      return dbgSpecies.value;
+    },
     soloGrass(name, cameraPos) {
       if (name && !GRASS_SPECIES.some((sp) => sp.name === name)) {
         throw new Error(`unknown grass species ${name}; have ${GRASS_SPECIES.map((sp) => sp.name).join(", ")}`);
