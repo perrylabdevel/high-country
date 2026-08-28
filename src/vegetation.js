@@ -370,11 +370,19 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
       // Short on purpose. The old 2x ramp darkened the whole lower HALF of
       // every blade, which is what made blades vanish against dark wood
       // (HARD_WON 1.5) — the fix for that removed the only grounding cue
-      // there was. A tenth is enough to read as contact and too little to
-      // swallow the blade.
+      // there was.
+      //
+      // A tenth was too little to survive burial, though: the card is seated
+      // below the drawn ground and the terrain covers the blade's lowest
+      // centimetres, so a band confined to the bottom 10% went underground
+      // with them and the visible base was full-brightness blade. Run the
+      // band to a quarter and hold the darkest part at the very bottom, so
+      // whatever the burial takes there is still shading left at the soil
+      // line. Still nothing like the old half-blade ramp.
       const contact = `rgb(${Math.round(tone[0] * 0.45)},${Math.round(tone[1] * 0.45)},${Math.round(tone[2] * 0.45)})`;
       grad.addColorStop(0, contact);
-      grad.addColorStop(0.1, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
+      grad.addColorStop(0.08, `rgb(${Math.round(tone[0] * 0.55)},${Math.round(tone[1] * 0.55)},${Math.round(tone[2] * 0.55)})`);
+      grad.addColorStop(0.25, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
       grad.addColorStop(0.55, `rgb(${tone[3]},${tone[4]},${tone[5]})`);
       // Tips dry out; a fraction of blades are dead straw all the way down.
       const tipDry = dry > sp.deadAt ? sp.straw : [tone[3] + 26, tone[4] + 16, tone[5] + 8];
@@ -1895,11 +1903,25 @@ export function createVegetation(scene, maps = {}) {
     // clump guillotined flat with ground visible under it. Real blades come
     // out of the dirt; a card has to be buried for that to be true.
     //
-    // ~9% of card height, capped at 5 cm: enough to put the straight edge
-    // under the surface, little enough that the blades above it are what is
-    // left. The contact darkening occupies the bottom tenth of the blade, so
-    // what survives burial is a thin dark band right at the soil line.
-    const sink = Math.min(0.05, cardH * 0.09);
+    // ~3% of card height, capped at 2 cm.
+    //
+    // This was 9% capped at 5 cm, and a raycast against the terrain as
+    // RENDERED (window.__terrainProbe, 2355 tufts, zero misses) says what that
+    // actually bought: card bottoms sit 5.4-11.0 cm below the drawn ground,
+    // median 8.5. meshHeightAt matches the drawn mesh to 0.00 cm at every
+    // percentile, so this is not a seating error - the cards are simply buried
+    // far deeper than the 5 cm asked for, because baseY is already the MINIMUM
+    // over the footprint and the sink then stacks on top of it.
+    //
+    // 8.5 cm of a card whose painted plant is ~24 cm tall is a third of the
+    // plant underground - and it is the bottom third, which is exactly where
+    // paintBladePanel puts the contact darkening. So the only grounding cue
+    // the blade had was buried, and what met the ground line was the blade's
+    // full-brightness middle, ending abruptly against bright gravel with no
+    // shading transition at all. That is the artefact: not a gap, a missing
+    // contact. Bury just enough to hide the card's straight bottom edge and
+    // let the dark band survive to sit at the soil line.
+    const sink = Math.min(0.02, cardH * 0.03);
     dummy.position.set(x, baseY - sink, z);
     dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
