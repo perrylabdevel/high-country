@@ -8,8 +8,9 @@
  */
 import { readdirSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { resolveCodexVision } from "./codex-vision.mjs";
 
-const VISION = "/Users/brian/.codex/bin/codex-vision";
+const VISION = resolveCodexVision();
 const MODE = process.argv[2]; // "scored" | "pair"
 const BEFORE = "/tmp/cycleB-before";
 const AFTER = "/tmp/cycleB-after";

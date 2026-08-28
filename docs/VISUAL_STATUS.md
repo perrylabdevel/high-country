@@ -13,10 +13,12 @@ renderer, 8687980).
 >
 > Pass-96 was graded single-read (no blind double-check) on the committed
 > `audit/current` frames (production WebGPU, 14:19Z, pinned grader
-> gpt-5.6-luna, pinned pass-92 prompt via the `/tmp/read-images.mjs` prompt
-> shape driven through `codex-vision --stdin-prompt`; the old positional-argv
-> invocation of that harness now crashes `codex-vision` with
-> "File name too long" — `/tmp/read-images2.mjs` is the working wrapper).
+> gpt-5.6-luna, pinned pass-92 prompt) via `scripts/read-images.mjs`, which
+> pipes the prompt to `codex-vision --stdin-prompt` and resolves the binary
+> through `scripts/codex-vision.mjs` ($CODEX_VISION → `which codex-vision` →
+> ~/.codex/bin). The earlier positional-argv invocation passes a multi-KB
+> prompt as an argument, which codex-vision stat()s and dies with
+> "File name too long" (HARD_WON 4) — do not restore it.
 > Coverage 95%. Fails by criterion: U2 15, G1 10, U6 9, U5 8, U1 8, U3 6,
 > U4 4, S1/S2/S4/W1/I2/E1 2 each, D2/L3/P3/P4/O2/R5/R6/S5 1 each.
 >
