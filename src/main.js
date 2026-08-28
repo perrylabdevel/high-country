@@ -328,6 +328,7 @@ async function boot() {
     // vertex row; __grassMips(false) drops the atlas mip chain. Whichever one
     // makes the band go away names the cause.
     window.__windProfile = (exp) => vegetation.debugWindProfile(exp);
+    window.__grassShadow = (on) => vegetation.debugGrassShadow(on);
     // __setWind(0, 0) stops the ground cover dead. Amplitude and profile are
     // separate questions: with the amplitude at zero the profile cannot matter,
     // so this isolates "the wind displacement is doing it" from "the shape of
