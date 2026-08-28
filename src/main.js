@@ -269,6 +269,62 @@ async function boot() {
     // a screenshot straight after a jump shows the previous location's cover.
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
     window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
+    /**
+     * Where does a blade actually start, inside its atlas panel?
+     *
+     * The card is seated so its bottom edge is buried, and the painter puts
+     * the blade roots 2% up from the panel's bottom - on paper the blades
+     * reach the soil. What the card DRAWS is the alpha-tested texture, and
+     * alphaTest 0.32 discards every pixel below the threshold, so a blade's
+     * tapered root can be cut off well above where it was painted. This scans
+     * the atlas the material samples and reports, per panel, the lowest row
+     * that survives the alpha test, as a fraction of panel height. Multiply
+     * by the card height to get the gap in metres.
+     */
+    window.__grassAtlasBase = (alphaTest = 0.32) => {
+      const src = vegetation.grassAtlas;
+      if (!src) {
+        return null;
+      }
+      const c = document.createElement("canvas");
+      c.width = src.width;
+      c.height = src.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(src, 0, 0);
+      const half = src.width / 2;
+      const cut = Math.round(alphaTest * 255);
+      // Panel names in atlas order: uv [0,0] is the LOWER-left panel because
+      // canvas y runs down and v runs up.
+      const panels = [
+        { name: "blueGrama", ox: 0, oy: half },
+        { name: "bunchgrass", ox: half, oy: half },
+        { name: "bluestem", ox: 0, oy: 0 },
+        { name: "cheatgrass", ox: half, oy: 0 }
+      ];
+      return panels.map((p) => {
+        const d = ctx.getImageData(p.ox, p.oy, half, half).data;
+        let lowest = -1;
+        let painted = -1;
+        for (let row = half - 1; row >= 0 && lowest < 0; row -= 1) {
+          for (let col = 0; col < half; col += 1) {
+            const a = d[(row * half + col) * 4 + 3];
+            if (painted < 0 && a > 0) {
+              painted = row;
+            }
+            if (a >= cut) {
+              lowest = row;
+              break;
+            }
+          }
+        }
+        // Rows from the panel's bottom edge, as a fraction of panel height.
+        return {
+          panel: p.name,
+          paintedBaseFrac: Number(((half - 1 - painted) / half).toFixed(4)),
+          alphaTestedBaseFrac: Number(((half - 1 - lowest) / half).toFixed(4))
+        };
+      });
+    };
     // Report the backend from something minification cannot rewrite.
     //
     // This used to read /webgl/i.test(renderer.backend.constructor.name). A

@@ -2243,6 +2243,10 @@ export function createVegetation(scene, maps = {}) {
     gustFreq,
     gustStrength,
     grassInstances: g,
+    // The painted blade atlas, so a dev build can measure where the blades
+    // actually sit inside their panel rather than inferring it from the
+    // painter's constants.
+    grassAtlas: grassTex.image,
     // Capture tooling needs to know when the amortised scatter has caught up
     // with the camera. Without it a screenshot taken after a jump across the
     // map shows ground cover still centred on the previous position, which
