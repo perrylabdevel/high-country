@@ -1989,15 +1989,26 @@ export function createVegetation(scene, maps = {}) {
   if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("grassshadow")) {
     grass.receiveShadow = true;
   }
-  // receiveShadow stays off, and not for want of trying. Ground cover ignores
-  // shadow entirely, so a tuft under a canopy renders at full sunlit
-  // brightness — half of why it reads as pasted on. Turning it on broke the
-  // render: at northernPines the ground cover all but vanished and the bound
-  // texture count moved 39 -> 34, so the shadow path is changing what this
-  // material binds at 50k instances under the WebGL fallback. Not diagnosed
-  // further; it is not needed for the grounding cue, which the blade's own
-  // contact darkening supplies. Anyone retrying this: capture under a dense
-  // canopy, not in open sun, or the failure will not show.
+  // receiveShadow stays off, but the old reason is gone — replaced by
+  // measurement on 2026-08-28 (see HARD_WON 1.7 for the full record).
+  //
+  // The comment below used to say turning this on made the ground cover vanish
+  // at northernPines with bound textures 39 -> 34. That was a memory, not a
+  // diagnosis, and it does not reproduce. A/B at a forest-interior vantage
+  // (northernPines core, wind frozen, golden hour so crown shadows actually
+  // cross the grass — at midday they hide under the crowns themselves):
+  //
+  //   - Nothing vanishes. Draws, triangles and tuft counts are identical both
+  //     ways; 98% of pixels are byte-identical, and the same-config control
+  //     run differs by ~300 bytes where this differs by ~49,000.
+  //   - Bound textures do not move: 41 vs 41 under WebGPU, 42 vs 42 under
+  //     WebGL. No console errors on either backend.
+  //   - Grass inside a canopy shadow DOES darken: the shadow-band regions
+  //     measure 89 -> 84 mean red (~5%), sunlit grass is pixel-identical.
+  //
+  // It stays off only because it is an appearance change to every frame the
+  // audit grades, and those belong in a measured pass — flip it on there (the
+  // ?grassshadow construction flag, or __grassShadow) and grade it.
   grass.frustumCulled = false;
 
   const sageGeo = makeSageBush();

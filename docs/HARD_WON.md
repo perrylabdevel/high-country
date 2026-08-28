@@ -161,6 +161,37 @@ scene and found it correct, and each time "the numbers are clean" was read as
 see it and the checks could not. When an observer you trust keeps reporting a
 defect that every measurement denies, the measurement is the thing to doubt.
 
+### 1.7 "Turning on grass shadows breaks the render" — a memory that was not true
+
+**Symptom (recorded, never diagnosed):** the ground cover never received
+shadows, because turning `grass.receiveShadow` on once made it vanish at
+northernPines with bound textures 39 -> 34. The comment carried that story for
+its whole life in the file.
+
+**What was actually measured (2026-08-28):** A/B with the construction-time
+`?grassshadow` flag — the runtime toggle does not rebuild the TSL program and
+tests nothing — at a forest-interior vantage in the northernPines core, wind
+frozen, golden hour. Two instrument notes that made the first attempts useless:
+the audit POI camera sits on a road where every tuft is in full sun (roads
+exclude grass), and at midday the crown shadows hide under the crowns
+themselves, so there is nothing for the grass to receive. Under a canopy at
+low sun:
+
+- Nothing vanishes. Draws, triangles and tuft counts identical; 98% of pixels
+  byte-identical against a same-config control that differs by ~300 bytes.
+- Bound textures do not move: 41 vs 41 WebGPU, 42 vs 42 WebGL. No console
+  errors on either backend. The 39 -> 34 memory did not reproduce anywhere.
+- Grass inside a canopy shadow darkens ~5% mean red (89 -> 84); sunlit grass is
+  pixel-identical.
+
+**Found by:** per-pixel diff of the A/B pair plus a determinism control (same
+config twice) to separate signal from noise — the eye alone could not see the
+5% darkening in a full frame.
+
+**Left as is:** receiveShadow stays off by default — it works, but it changes
+every frame the audit grades, so it belongs in a measured pass, not a drive-by
+flip.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
