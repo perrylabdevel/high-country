@@ -1876,6 +1876,17 @@ export function createVegetation(scene, maps = {}) {
 
   const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
   grass.castShadow = false;
+  // Construction-time opt-in: ?grassshadow on a dev build.
+  //
+  // A runtime toggle is not a test. Flipping grass.receiveShadow after the
+  // first render and setting material.needsUpdate produced three frames whose
+  // mean RGB agreed to 0.1 and whose tuft counts were identical - no error, no
+  // change, almost certainly because the node program was never rebuilt. The
+  // original failure was reported with receiveShadow set at construction, so
+  // that is the only way to reproduce it.
+  if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("grassshadow")) {
+    grass.receiveShadow = true;
+  }
   // receiveShadow stays off, and not for want of trying. Ground cover ignores
   // shadow entirely, so a tuft under a canopy renders at full sunlit
   // brightness — half of why it reads as pasted on. Turning it on broke the
