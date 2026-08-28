@@ -19,6 +19,30 @@ Corollary already established: **procedural fallbacks stay until a bake beats
 them.** Do not replace a working fallback with new art because the new art
 seems nicer.
 
+## What the grader cannot decide
+
+The loop is for *appearance*. It is not a court of fact, and two things
+outrank it:
+
+- **A defect a person can see.** The grader scores 32 frames from fixed
+  vantages. A user walking around at eye level sees things no graded frame
+  contains — the floating grass was in none of them. When a human reports a
+  defect, it is a bug report, not a preference to be scored. Reproduce it at
+  the vantage they describe (see `capture-poi`, `CAPTURE_MODE=eye`) before
+  deciding anything.
+- **A correctness bug.** If a change fixes something that was wrong — stale
+  GPU state, a dead code branch, a wrong species — it ships on the evidence
+  that it was wrong, not on a fail count. Grade the appearance afterwards if
+  you like, but do not revert a correctness fix because the score moved
+  sideways.
+
+## A changed renderer resets the series
+
+If the fix changed how anything is drawn, the old passes were graded on a
+different renderer and are not comparable. The next pass is a **new baseline**,
+not a result. Say so in the commit and in `docs/VISUAL_STATUS.md`; do not
+report "N fails, up 4 from pass 96" across a renderer change.
+
 ## The noise band
 
 Recent passes have oscillated between **48 and 53 fails**. A change that moves
