@@ -198,6 +198,51 @@ async function boot() {
      * the pin's foot sits at the blade's base. A gap of bare pin under a blade
      * is the artefact, measurable against the 12 cm pin.
      */
+    /**
+     * A magenta pin at each tuft's own footing.
+     *
+     * The grid version of this cannot settle the question it was built for.
+     * At eye level, a ground line ten metres out sits HIGHER in the frame
+     * than one two metres out, so comparing a blade's base against whichever
+     * line happens to be near it in screen space measures perspective, not a
+     * gap - which is exactly the mistake that produced a confident "blades
+     * hang 5 cm" reading off the grid frame. A pin planted at the tuft's own
+     * (x, z) shares its depth, so the comparison is real: the pin's foot is
+     * the ground under that tuft, its head is 12 cm above it, and the card's
+     * own bottom edge is marked so burial is visible too.
+     */
+    let grassPins = null;
+    window.__grassPins = (on, radius = 12) => {
+      if (grassPins) {
+        scene.remove(grassPins);
+        grassPins.geometry.dispose();
+        grassPins.material.dispose();
+        grassPins = null;
+      }
+      if (!on) {
+        return;
+      }
+      const pts = [];
+      for (const [x, cardBottomY, z] of vegetation.grassPositions(camera.position, radius)) {
+        const g = meshHeightAt(x, z);
+        // Ground to 12 cm: the ruler.
+        pts.push(x, g, z, x, g + 0.12, z);
+        // A 4 cm cross-bar at the ground line, so the foot is findable when
+        // blades cover the pin.
+        pts.push(x - 0.02, g, z, x + 0.02, g, z);
+        // And a bar at the card's own bottom edge: below the ground line means
+        // the card is buried, above it means it is not.
+        pts.push(x - 0.02, cardBottomY, z, x + 0.02, cardBottomY, z);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      grassPins = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicNodeMaterial({ color: 0xff00ff, fog: false })
+      );
+      grassPins.frustumCulled = false;
+      scene.add(grassPins);
+    };
     let groundLines = null;
     window.__groundLines = (on, span = 14, step = 0.5) => {
       if (groundLines) {
@@ -366,7 +411,8 @@ async function boot() {
     document.body.appendChild(infoEl);
     structureLabels = createStructureLabels();
   }
-  scene.add(await createTerrain());
+  const terrainMesh = await createTerrain();
+  scene.add(terrainMesh);
   // depthSource: "buffer" (viewportDepthTexture) fails WebGPU bind-group
   // validation under antialias: true — the renderer's MSAA depth attachment
   // doesn't match the single-sample texture three.js allocates for it, so
@@ -416,6 +462,57 @@ async function boot() {
     // capture script: window.__xray(2) for the see-through pass.
     const xray = createXray(scene);
     window.__xray = (n) => xray.setMode(n);
+
+    /**
+     * Compare each tuft against the terrain AS RENDERED, at its own (x, z).
+     *
+     * Every grounding check in this repo measures grass against a CPU height
+     * function - heightAt, then meshHeightAt - and every one of them has come
+     * back clean while the artefact stayed on screen. Both are models of the
+     * ground; the renderer draws a mesh. If the drawn mesh dips below the
+     * model anywhere (finer subdivision, a different grid, a later edit), the
+     * cards are seated on a surface that is not the one you can see, and no
+     * amount of checking them against the model will ever say so.
+     *
+     * This raycasts straight down onto the terrain object itself. `modelError`
+     * is meshHeightAt minus the ray hit: positive means the model sits ABOVE
+     * the drawn ground, which floats every tuft seated on it. `cardGap` is the
+     * card's own bottom edge minus the ray hit: positive is a card hanging in
+     * the air, negative is the burial working as intended.
+     */
+    window.__terrainProbe = (radius = 12) => {
+      const ray = new THREE.Raycaster();
+      const down = new THREE.Vector3(0, -1, 0);
+      const modelError = [];
+      const cardGap = [];
+      let missed = 0;
+      for (const [x, cardBottomY, z] of vegetation.grassPositions(camera.position, radius)) {
+        ray.set(new THREE.Vector3(x, cardBottomY + 60, z), down);
+        const hit = ray.intersectObject(terrainMesh, true)[0];
+        if (!hit) {
+          missed += 1;
+          continue;
+        }
+        modelError.push(meshHeightAt(x, z) - hit.point.y);
+        cardGap.push(cardBottomY - hit.point.y);
+      }
+      const cm = (arr, q) => {
+        if (!arr.length) {
+          return null;
+        }
+        const a = arr.slice().sort((p, q2) => p - q2);
+        return Number((a[Math.min(a.length - 1, Math.floor(q * a.length))] * 100).toFixed(2));
+      };
+      const stats = (arr) => ({
+        p05: cm(arr, 0.05), p50: cm(arr, 0.5), p95: cm(arr, 0.95), max: cm(arr, 1)
+      });
+      return {
+        sampled: modelError.length,
+        missed,
+        modelErrorCm: stats(modelError),
+        cardGapCm: stats(cardGap)
+      };
+    };
 
     // Orthographic plan view. A perspective overhead shot foreshortens: roofs
     // that merely sit behind one another look interpenetrated, and a facade

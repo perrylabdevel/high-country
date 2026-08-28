@@ -345,6 +345,14 @@ async function main() {
         await page.evaluate(() => window.__groundLines?.(true));
         await page.waitForTimeout(300);
       }
+      // CAPTURE_GRASS_PINS=1 plants a 12 cm magenta pin at each nearby tuft's
+      // own footing, with a cross-bar at the ground line and another at the
+      // card's bottom edge. Unlike the grid, this shares the tuft's depth, so
+      // a gap between the pin's foot and the blade base is a real gap.
+      if (process.env.CAPTURE_GRASS_PINS) {
+        await page.evaluate(() => window.__grassPins?.(true));
+        await page.waitForTimeout(300);
+      }
       // Shadows and the wind pass still need a beat after the scatter lands.
       await page.waitForTimeout(1500);
       const file = `${poi.id}-${light.name}.png`;
