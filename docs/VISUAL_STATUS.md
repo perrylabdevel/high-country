@@ -1,9 +1,10 @@
 # Visual status — completion audit
 
-**Updated:** 2026-08-28 · baseline is `audit/reports/pass-97.json`
-(**74 fails / 297 scored** — a no-change variance pass on the
-per-instance-wind renderer, 8687980; same-tree twin of pass-96, which read
-**80 / 294**).
+**Updated:** 2026-08-28 · baseline is `audit/reports/pass-98.json`
+(**83 fails / 292 scored** — NEW BASELINE on the pinned-clock capture,
+d616d64). Its same-tree variance twin is `pass-99.json`
+(**72 / 294**). The operative noise band and ship threshold are in
+"pass-98/99 noise floor" below.
 
 > **Renderer change 2026-08-28 (8687980):** wind now shears every plant in one
 > world direction via a real per-instance `aWind` attribute. Every pass before
@@ -29,6 +30,49 @@ per-instance-wind renderer, 8687980; same-tree twin of pass-96, which read
 > current ship threshold.
 
 ### The measured noise floor on THIS renderer (pass-97, no-change variance pass)
+
+> **SUPERSEDED by pass-98/99 (see next section).** The 96/97 pair mixed
+> wind-phase shutter pixels into its band; 98/99 re-measured the band with the
+> clock pinned. Nothing below this block is operative.
+
+### Pass-98/99 noise floor (CLOSED SET — the ±6 band from 96/97 does NOT carry over)
+
+Both passes were captured with the shader clock pinned (`__captureMode(true)`,
+TSL `time` pinned to CAPTURE_CLOCK=12.0; d616d64) and graded with the same
+pinned grader/prompt. **Totals: pass-98 = 83 fails / 292 scored; pass-99 =
+72 / 294. Delta −11 on a byte-identical tree.** The pass-96/97 band (±6,
+ship ≤ 67) is replaced:
+
+- **Total fails:** the same-tree range is **72–83**. A read inside it proves
+  nothing. **Ship only on a double-checked read ≤ 71** (below both same-tree
+  reads), or on the change's named criterion + a total outside the band.
+- **The grader alone, on pixel-identical frames, moved U2 by −7 (22→15),
+  U3 by −3 (9→6), G1 by +2 (11→13), U1 +1, U4 −2, U5 +1, U6 +1, E1 +1.**
+  89 of 292 rows changed score between sessions. A per-criterion move of ≤ 7
+  is not interpretable, which on this grader effectively removes the
+  "target criterion moved ≥5 alone" argument for any small criterion — the
+  **total** is the gate.
+- **Whole-frame pixel diff between the 98 and 99 capture sets: mean 0.034/255
+  across 31 frames; 0.565 including one outlier** — ranch-golden captured a
+  **global lighting shift** (mean signed 98−99 delta R+11.2/G+20.7/B+13.1,
+  66% of bytes, no localized object). The pin froze the shader clock, but
+  some CPU-side light/exposure state still varies between capture runs at
+  that POI (burn-golden's smoke plume also varies, 2.7% of bytes). So: the
+  98↔99 score spread of 11 is **grader session variance, essentially not
+  wind-phase pixels** — the loop's floor is the grader, not the frame.
+- **Swing set with nothing changed (98→99):** U3 9→6, U4 3→1, U6 5→6, U1
+  7→8, G1 11→13, E1 1→2, plus U2 22→15. Whole frames swung −5 (ironValley-
+  golden 8→5) and +2 (tribal-golden 0→2). Coverage 95% (98) / 96% (99).
+- **Residual capture non-determinism (a finding, not fixed):** with the pin,
+  a tree-identical re-capture differs by mean 0.034/255 excluding one frame —
+  but **ranch-golden alone differs by mean 17.0/255 (66% of bytes), a global
+  illumination shift (98's frame ~+12/+21/+13 brighter)**: some CPU-side
+  light/tone state at that POI still varies between runs, and the burn-golden
+  smoke plume differs (2.7% of bytes). Both are outside the frozen TSL clock.
+  Practical consequence: any 98-vs-99-style score comparison must treat
+  ranch-golden and burn-golden rows as frame-confounded, not grader noise.
+
+### (superseded) pass-97 noise floor — old, unpinned-clock frames
 
 Pass-97 is the same tree as pass-96, re-captured and re-graded with the same
 pinned grader/prompt via the committed `scripts/read-images.mjs`:
