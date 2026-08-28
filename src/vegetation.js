@@ -372,17 +372,23 @@ function paintBladePanel(ctx, ox, oy, panel, sp) {
       // (HARD_WON 1.5) — the fix for that removed the only grounding cue
       // there was.
       //
-      // A tenth was too little to survive burial, though: the card is seated
-      // below the drawn ground and the terrain covers the blade's lowest
-      // centimetres, so a band confined to the bottom 10% went underground
-      // with them and the visible base was full-brightness blade. Run the
-      // band to a quarter and hold the darkest part at the very bottom, so
-      // whatever the burial takes there is still shading left at the soil
-      // line. Still nothing like the old half-blade ramp.
-      const contact = `rgb(${Math.round(tone[0] * 0.45)},${Math.round(tone[1] * 0.45)},${Math.round(tone[2] * 0.45)})`;
-      grad.addColorStop(0, contact);
-      grad.addColorStop(0.08, `rgb(${Math.round(tone[0] * 0.55)},${Math.round(tone[1] * 0.55)},${Math.round(tone[2] * 0.55)})`);
-      grad.addColorStop(0.25, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
+      // A tenth was too little to survive burial, though, and so was a
+      // quarter. __terrainProbe puts the card bottom a median 5.4 cm below
+      // the drawn ground after the sink was cut to 2 cm - the rest is the
+      // footprint minimum, which is honest slope handling and has to stay,
+      // since the card's downhill edge really is that much lower. Burial is
+      // therefore ~22% of the plant's height whatever its size, because both
+      // the sink and the footprint scale with the card.
+      //
+      // So the band has to clear 22% before it is back to full tone. Darkest
+      // at the very bottom, still 62% at the soil line, full by 40% up the
+      // blade. That is a gradient over the lower third, not the lower half at
+      // 2x that made blades vanish against dark wood (HARD_WON 1.5).
+      const shade = (f) =>
+        `rgb(${Math.round(tone[0] * f)},${Math.round(tone[1] * f)},${Math.round(tone[2] * f)})`;
+      grad.addColorStop(0, shade(0.45));
+      grad.addColorStop(0.22, shade(0.62));
+      grad.addColorStop(0.4, `rgb(${tone[0]},${tone[1]},${tone[2]})`);
       grad.addColorStop(0.55, `rgb(${tone[3]},${tone[4]},${tone[5]})`);
       // Tips dry out; a fraction of blades are dead straw all the way down.
       const tipDry = dry > sp.deadAt ? sp.straw : [tone[3] + 26, tone[4] + 16, tone[5] + 8];
