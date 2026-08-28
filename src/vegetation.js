@@ -631,6 +631,30 @@ const TAN_X = new THREE.Vector3();
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_Z = new THREE.Vector3(0, 0, 1);
 
+/**
+ * Attach a per-instance wind frame to `geo` as a REAL InstancedBufferAttribute
+ * and return it.
+ *
+ * The attribute holds (cos a / sx, sin a / sx) per instance — a is the
+ * instance's Y rotation, sx its XZ scale — and windBend() rotates the world
+ * wind into object space with it. It must be a real attribute read back with
+ * attribute("aWind"), never a TSL instancedBufferAttribute node: a node
+ * uploads once at first render and never again (HARD_WON 1.6), and these
+ * values are rewritten every rescatter and every tree LOD bucketing pass.
+ */
+function makeWindAttrib(geo, cap) {
+  const attr = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2);
+  attr.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute("aWind", attr);
+  return attr;
+}
+
+/** Copy tree `i`'s wind frame into instanced slot `slot` of `attrib`. */
+function writeWind(attrib, slot, src, i) {
+  attrib.array[slot * 2] = src[i * 2];
+  attrib.array[slot * 2 + 1] = src[i * 2 + 1];
+}
+
 function paintAo(geo, aoAt) {
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
@@ -1033,10 +1057,37 @@ export function createVegetation(scene, maps = {}) {
   const broadSample = texture(broadTex, uv());
   const back = (viewDir) => max(float(0), dot(viewDir, sunDir).negate());
 
+  /**
+   * Wind bend, in the instance's OBJECT space.
+   *
+   * The phase terms read positionWorld, so a whole hillside's grass swings in
+   * step — but the displacement used to be `windDir.mul(...)` added straight
+   * onto positionLocal, which is object space, and every tuft, sage bush and
+   * tree carries a random Y rotation. So each plant leaned along a different
+   * compass direction and the field never moved as one. This was invisible
+   * frame to frame and obvious in any video of the field.
+   *
+   * Fix: each instance carries its wind frame as a REAL InstancedBufferAttribute
+   * ("aWind", see the scatter below and HARD_WON 1.6 for why it cannot be a TSL
+   * node) holding (cos a / sx, sin a / sx) for its Y rotation a and XZ scale sx.
+   * Rotating the world wind into the instance's frame is
+   *   object = R_y(a)^-1 * world  =>  ox = wx*c - wz*s, oz = wx*s + wz*c,
+   * and the 1/sx folded into the attribute cancels the XZ scale the
+   * instanceMatrix will multiply back in, so the amplitude stays in world
+   * metres whatever the card's size.
+   */
   const windBend = (profile) => {
     const sway = sin(time.mul(windFreq).add(positionWorld.x.mul(0.12)).add(positionWorld.z.mul(0.16)));
     const gust = sin(time.mul(gustFreq).add(positionWorld.x.mul(0.6)).add(positionWorld.z.mul(0.9)));
-    return windDir.mul(sway.mul(windStrength).add(gust.mul(gustStrength)).mul(profile));
+    const amp = sway.mul(windStrength).add(gust.mul(gustStrength)).mul(profile);
+    const wx = windDir.x.mul(amp);
+    const wz = windDir.z.mul(amp);
+    const rot = attribute("aWind", "vec2");
+    return vec3(
+      wx.mul(rot.x).sub(wz.mul(rot.y)),
+      float(0),
+      wx.mul(rot.y).add(wz.mul(rot.x))
+    );
   };
 
   /**
@@ -1174,6 +1225,11 @@ export function createVegetation(scene, maps = {}) {
     // a thin crown. Dropping it removes that artefact and returns ~245k
     // triangles, which buys the crown density that actually reads at range.
     const crownDist = new THREE.InstancedMesh(proto.distant.leaves, pineLeafMat, MAX);
+    // Per-instance wind frames for the three crown LODs; slots are rewritten in
+    // step with the matrices by the seeding loop below and by bucketTrees.
+    const windNear = makeWindAttrib(proto.near.leaves, MAX);
+    const windFar = makeWindAttrib(proto.far.leaves, MAX);
+    const windDist = makeWindAttrib(proto.distant.leaves, MAX);
     for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist]) {
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -1186,7 +1242,7 @@ export function createVegetation(scene, maps = {}) {
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
     limbNear.castShadow = false;
-    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist };
+    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist, windNear, windFar, windDist };
   });
 
   const treePos = new Float32Array(MAX * 3);
@@ -1197,6 +1253,10 @@ export function createVegetation(scene, maps = {}) {
   const treeLeanZ = new Float32Array(MAX);
   const treeType = new Uint8Array(MAX);
   const treeTint = new Float32Array(MAX * 3);
+  // Per-tree wind frame, (cos a / sx, sin a / sx) from the placement Y rotation
+  // and XZ scale. Statically computed here, copied into each crown LOD's
+  // aWind attribute wherever the matrices are (seeding loop, bucketTrees).
+  const treeWind = new Float32Array(MAX * 2);
   const tintColor = new THREE.Color();
 
   /**
@@ -1260,9 +1320,12 @@ export function createVegetation(scene, maps = {}) {
     const trunkFar = new THREE.InstancedMesh(proto.trunk, cottonBark, MAX_COTTON);
     const crownFar = new THREE.InstancedMesh(proto.far, cottonLeafMat, MAX_COTTON);
     const crownDist = new THREE.InstancedMesh(proto.distant, cottonLeafMat, MAX_COTTON);
+    const windNear = makeWindAttrib(proto.near, MAX_COTTON);
+    const windFar = makeWindAttrib(proto.far, MAX_COTTON);
+    const windDist = makeWindAttrib(proto.distant, MAX_COTTON);
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
-    return { trunkNear, crownNear, trunkFar, crownFar, crownDist };
+    return { trunkNear, crownNear, trunkFar, crownFar, crownDist, windNear, windFar, windDist };
   });
   const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar, b.crownDist]);
   for (const mesh of [...broadMeshes, burnt]) {
@@ -1271,6 +1334,7 @@ export function createVegetation(scene, maps = {}) {
   const cottonPos = new Float32Array(MAX_COTTON * 3);
   const cottonScale = new Float32Array(MAX_COTTON);
   const cottonRot = new Float32Array(MAX_COTTON);
+  const cottonWind = new Float32Array(MAX_COTTON * 2);
   const cottonType = new Uint8Array(MAX_COTTON);
   let cottons = 0;
 
@@ -1330,16 +1394,24 @@ export function createVegetation(scene, maps = {}) {
       && seeded(i + 37) < BROADLEAF_CHANCE[biome];
     if ((riparian || grove) && cottons < MAX_COTTON && seeded(i + 33) < (riparian ? 0.34 : 0.62)) {
       const scale = 0.85 + seeded(i + 4) * 1.15;
+      const xz = 0.85 + seeded(i + 12) * 0.3;
+      const rotY = seeded(i + 7) * Math.PI * 2;
       dummy.position.set(x, y, z);
-      dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
-      dummy.scale.set(scale * (0.85 + seeded(i + 12) * 0.3), scale, scale * (0.85 + seeded(i + 12) * 0.3));
+      dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, rotY, (seeded(i + 43) - 0.5) * 0.08);
+      dummy.scale.set(scale * xz, scale, scale * xz);
       dummy.updateMatrix();
       cottonType[cottons] = riparian ? (seeded(i + 71) < 0.72 ? 0 : 1) : (seeded(i + 71) < 0.35 ? 0 : 1);
       cottonPos[cottons * 3] = x;
       cottonPos[cottons * 3 + 1] = y;
       cottonPos[cottons * 3 + 2] = z;
       cottonScale[cottons] = scale;
-      cottonRot[cottons] = dummy.rotation.y;
+      cottonRot[cottons] = rotY;
+      // Divide by the scale the DRAWN matrix uses (cottonScale, uniform — both
+      // matrix writers drop the placement-time anisotropic wobble), not the
+      // placement scale, so the amplitude cancels against the real instance
+      // scale.
+      cottonWind[cottons * 2] = Math.cos(rotY) / scale;
+      cottonWind[cottons * 2 + 1] = Math.sin(rotY) / scale;
       foliageTint("valley", seeded(i + 61), seeded(i + 63), cottonTint, cottons);
       addCylinderCollider(x, z, 0.5 * scale);
       cottons += 1;
@@ -1370,8 +1442,9 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
     const type = pickPineType(biome, seeded(i + 19));
+    const rotY = seeded(i + 7) * Math.PI * 2;
     dummy.position.set(x, y, z);
-    dummy.rotation.set((seeded(i + 41) - 0.5) * 0.1, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.1);
+    dummy.rotation.set((seeded(i + 41) - 0.5) * 0.1, rotY, (seeded(i + 43) - 0.5) * 0.1);
     dummy.scale.set(girth, height, girth);
     dummy.updateMatrix();
     treePos[placed * 3] = x;
@@ -1379,7 +1452,9 @@ export function createVegetation(scene, maps = {}) {
     treePos[placed * 3 + 2] = z;
     treeGirth[placed] = girth;
     treeHeight[placed] = height;
-    treeRot[placed] = dummy.rotation.y;
+    treeRot[placed] = rotY;
+    treeWind[placed * 2] = Math.cos(rotY) / girth;
+    treeWind[placed * 2 + 1] = Math.sin(rotY) / girth;
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = type;
@@ -1413,8 +1488,9 @@ export function createVegetation(scene, maps = {}) {
     const y = heightAt(x, z);
     if (i % 5 === 0 && cottons < MAX_COTTON) {
       const scale = 0.95 + seeded(i + 4) * 0.9;
+      const rotY = seeded(i + 7) * Math.PI * 2;
       dummy.position.set(x, y, z);
-      dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
+      dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, rotY, (seeded(i + 43) - 0.5) * 0.08);
       dummy.scale.set(scale, scale, scale);
       dummy.updateMatrix();
       cottonType[cottons] = seeded(i + 71) < 0.6 ? 0 : 1;
@@ -1422,7 +1498,9 @@ export function createVegetation(scene, maps = {}) {
       cottonPos[cottons * 3 + 1] = y;
       cottonPos[cottons * 3 + 2] = z;
       cottonScale[cottons] = scale;
-      cottonRot[cottons] = dummy.rotation.y;
+      cottonRot[cottons] = rotY;
+      cottonWind[cottons * 2] = Math.cos(rotY) / scale;
+      cottonWind[cottons * 2 + 1] = Math.sin(rotY) / scale;
       foliageTint("valley", seeded(i + 61), seeded(i + 63), cottonTint, cottons);
       addCylinderCollider(x, z, 0.5 * scale);
       cottons += 1;
@@ -1431,8 +1509,9 @@ export function createVegetation(scene, maps = {}) {
     const windSize = 0.78 + seeded(i + 15) * 1.05;
     const girth = windSize * (0.87 + seeded(i + 4) * 0.26);
     const height = windSize;
+    const rotY = seeded(i + 7) * Math.PI * 2;
     dummy.position.set(x, y, z);
-    dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, seeded(i + 7) * Math.PI * 2, (seeded(i + 43) - 0.5) * 0.08);
+    dummy.rotation.set((seeded(i + 41) - 0.5) * 0.08, rotY, (seeded(i + 43) - 0.5) * 0.08);
     dummy.scale.set(girth, height, girth);
     dummy.updateMatrix();
     treePos[placed * 3] = x;
@@ -1440,7 +1519,9 @@ export function createVegetation(scene, maps = {}) {
     treePos[placed * 3 + 2] = z;
     treeGirth[placed] = girth;
     treeHeight[placed] = height;
-    treeRot[placed] = dummy.rotation.y;
+    treeRot[placed] = rotY;
+    treeWind[placed * 2] = Math.cos(rotY) / girth;
+    treeWind[placed * 2 + 1] = Math.sin(rotY) / girth;
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = seeded(i + 19) < 0.45 ? 1 : 2;
@@ -1466,8 +1547,9 @@ export function createVegetation(scene, maps = {}) {
     const heroSize = 1.05 + seeded(i + 905) * 0.45;
     const girth = heroSize * (0.9 + seeded(i + 900) * 0.2);
     const height = heroSize;
+    const rotY = seeded(i + 912) * Math.PI * 2;
     dummy.position.set(x, y, z);
-    dummy.rotation.set((seeded(i + 910) - 0.5) * 0.06, seeded(i + 912) * Math.PI * 2, (seeded(i + 914) - 0.5) * 0.06);
+    dummy.rotation.set((seeded(i + 910) - 0.5) * 0.06, rotY, (seeded(i + 914) - 0.5) * 0.06);
     dummy.scale.set(girth, height, girth);
     dummy.updateMatrix();
     treePos[placed * 3] = x;
@@ -1475,7 +1557,9 @@ export function createVegetation(scene, maps = {}) {
     treePos[placed * 3 + 2] = z;
     treeGirth[placed] = girth;
     treeHeight[placed] = height;
-    treeRot[placed] = dummy.rotation.y;
+    treeRot[placed] = rotY;
+    treeWind[placed * 2] = Math.cos(rotY) / girth;
+    treeWind[placed * 2 + 1] = Math.sin(rotY) / girth;
     treeLeanX[placed] = dummy.rotation.x;
     treeLeanZ[placed] = dummy.rotation.z;
     treeType[placed] = i % 3 === 0 ? 0 : i % 3 === 1 ? 1 : 2;
@@ -1540,8 +1624,9 @@ export function createVegetation(scene, maps = {}) {
       const size = 0.62 + seeded(k + c * 13 + 55000) * 1.4;
       const height = size;
       const girth = size * (0.87 + seeded(k + c * 3 + 56000) * 0.26);
+      const rotY = seeded(k + 7) * Math.PI * 2;
       dummy.position.set(x, y, z);
-      dummy.rotation.set((seeded(k + 41) - 0.5) * 0.1, seeded(k + 7) * Math.PI * 2, (seeded(k + 43) - 0.5) * 0.1);
+      dummy.rotation.set((seeded(k + 41) - 0.5) * 0.1, rotY, (seeded(k + 43) - 0.5) * 0.1);
       dummy.scale.set(girth, height, girth);
       dummy.updateMatrix();
       treePos[placed * 3] = x;
@@ -1549,7 +1634,9 @@ export function createVegetation(scene, maps = {}) {
       treePos[placed * 3 + 2] = z;
       treeGirth[placed] = girth;
       treeHeight[placed] = height;
-      treeRot[placed] = dummy.rotation.y;
+      treeRot[placed] = rotY;
+      treeWind[placed * 2] = Math.cos(rotY) / girth;
+      treeWind[placed * 2 + 1] = Math.sin(rotY) / girth;
       treeLeanX[placed] = dummy.rotation.x;
       treeLeanZ[placed] = dummy.rotation.z;
       treeType[placed] = type;
@@ -1577,6 +1664,7 @@ export function createVegetation(scene, maps = {}) {
       pines[t].trunkNear.setMatrixAt(n, dummy.matrix);
       pines[t].crownNear.setMatrixAt(n, dummy.matrix);
       pines[t].limbNear.setMatrixAt(n, dummy.matrix);
+      writeWind(pines[t].windNear, n, treeWind, i);
       n += 1;
     }
     for (const mesh of [pines[t].trunkNear, pines[t].crownNear, pines[t].limbNear]) {
@@ -1608,6 +1696,9 @@ export function createVegetation(scene, maps = {}) {
     pines[t].crownNear.instanceColor.needsUpdate = true;
     pines[t].crownFar.instanceColor.needsUpdate = true;
     pines[t].crownDist.instanceColor.needsUpdate = true;
+    pines[t].windNear.needsUpdate = true;
+    pines[t].windFar.needsUpdate = true;
+    pines[t].windDist.needsUpdate = true;
   }
   for (let t = 0; t < broads.length; t += 1) {
     let n = 0;
@@ -1622,6 +1713,7 @@ export function createVegetation(scene, maps = {}) {
       dummy.updateMatrix();
       broads[t].trunkNear.setMatrixAt(n, dummy.matrix);
       broads[t].crownNear.setMatrixAt(n, dummy.matrix);
+      writeWind(broads[t].windNear, n, cottonWind, i);
       tintColor.setRGB(cottonTint[i * 3], cottonTint[i * 3 + 1], cottonTint[i * 3 + 2]);
       broads[t].crownNear.setColorAt(n, tintColor);
       broads[t].crownFar.setColorAt(n, tintColor);
@@ -1636,6 +1728,9 @@ export function createVegetation(scene, maps = {}) {
     broads[t].crownNear.instanceColor.needsUpdate = true;
     broads[t].crownFar.instanceColor.needsUpdate = true;
     broads[t].crownDist.instanceColor.needsUpdate = true;
+    broads[t].windNear.needsUpdate = true;
+    broads[t].windFar.needsUpdate = true;
+    broads[t].windDist.needsUpdate = true;
     broads[t].trunkFar.count = 0;
     broads[t].crownFar.count = 0;
   }
@@ -1791,10 +1886,17 @@ export function createVegetation(scene, maps = {}) {
    */
   const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
   const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
+  // Per-tuft wind frame, (cos a / sx, sin a / sx) for the tuft's Y rotation a
+  // and XZ scale sx. windBend rotates the world gust into object space with
+  // it, so a field leans one way instead of every tuft leaning its own.
+  const windRot = new Float32Array(MAX_GRASS * 2);
+  const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
   tintAttrib.setUsage(THREE.DynamicDrawUsage);
   speciesAttrib.setUsage(THREE.DynamicDrawUsage);
+  windRotAttrib.setUsage(THREE.DynamicDrawUsage);
   grassGeo.setAttribute("aTint", tintAttrib);
   grassGeo.setAttribute("aSpecies", speciesAttrib);
+  grassGeo.setAttribute("aWind", windRotAttrib);
   const tintAttr = attribute("aTint", "vec3");
   const speciesAttr = attribute("aSpecies", "vec2");
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
@@ -1907,6 +2009,7 @@ export function createVegetation(scene, maps = {}) {
   const SAGE_CAND = buildCandidates([{ cell: 3.1, outer: 90 }, { cell: 5.2, outer: SAGE_RADIUS }], SAGE_RADIUS);
   const MAX_SAGE = SAGE_CAND.length;
   const sage = new THREE.InstancedMesh(sageGeo, sageMat, MAX_SAGE);
+  const sageWind = makeWindAttrib(sageGeo, MAX_SAGE);
   sage.castShadow = false;
   sage.frustumCulled = false;
 
@@ -2025,13 +2128,19 @@ export function createVegetation(scene, maps = {}) {
     // contact. Bury just enough to hide the card's straight bottom edge and
     // let the dark band survive to sit at the soil line.
     const sink = Math.min(0.02, cardH * 0.03);
+    const rotY = hash2(ix, jz, 3) * Math.PI * 2;
     dummy.position.set(x, baseY - sink, z);
-    dummy.rotation.set(0, hash2(ix, jz, 3) * Math.PI * 2, 0);
+    dummy.rotation.set(0, rotY, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
     grass.setMatrixAt(slot, dummy.matrix);
     speciesUV[slot * 2] = sp.uv[0];
     speciesUV[slot * 2 + 1] = sp.uv[1];
+    // Wind frame for windBend: cos/sin of this tuft's Y rotation over its XZ
+    // scale, so the world gust lands in the same compass direction on every
+    // tuft and keeps its amplitude in world metres.
+    windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
+    windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
 
     const lush = GRASSINESS[biome] ?? 0;
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
@@ -2091,11 +2200,15 @@ export function createVegetation(scene, maps = {}) {
       meshHeightAt(x, z + sfoot)
     );
     // Same burial as grass: a sage card's flat bottom edge reads as a cut too.
+    const rotY = hash2(ix, jz, 15) * Math.PI * 2;
     dummy.position.set(x, sBaseY - 0.05, z);
-    dummy.rotation.set(0, hash2(ix, jz, 15) * Math.PI * 2, 0);
+    dummy.rotation.set(0, rotY, 0);
     dummy.scale.set(sx, s * (0.8 + hash2(ix, jz, 17) * 0.4), sx);
     dummy.updateMatrix();
     sage.setMatrixAt(slot, dummy.matrix);
+    // Same wind frame as grass: world gust rotated into this bush's frame.
+    sageWind.array[slot * 2] = Math.cos(rotY) / sx;
+    sageWind.array[slot * 2 + 1] = Math.sin(rotY) / sx;
     return true;
   }
 
@@ -2106,6 +2219,8 @@ export function createVegetation(scene, maps = {}) {
     // and setting one silently did nothing for the whole life of this file.
     tintAttrib.needsUpdate = true;
     speciesAttrib.needsUpdate = true;
+    windRotAttrib.needsUpdate = true;
+    sageWind.needsUpdate = true;
     grass.boundingSphere.center.set(cx, heightAt(cx, cz), cz);
     grass.boundingSphere.radius = GRASS_RADIUS + 40;
     sage.count = sageCount;
@@ -2262,6 +2377,7 @@ export function createVegetation(scene, maps = {}) {
       if (dSq > MID_DIST_SQ) {
         const n = distCounts[t];
         pines[t].crownDist.setMatrixAt(n, lodDummy.matrix);
+        writeWind(pines[t].windDist, n, treeWind, i);
         tintColor.setRGB(treeTint[i * 3], treeTint[i * 3 + 1], treeTint[i * 3 + 2]);
         pines[t].crownDist.setColorAt(n, tintColor);
         distCounts[t] = n + 1;
@@ -2277,6 +2393,7 @@ export function createVegetation(scene, maps = {}) {
         pines[t].trunkNear.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownNear.setMatrixAt(n, lodDummy.matrix);
         pines[t].limbNear.setMatrixAt(n, lodDummy.matrix);
+        writeWind(pines[t].windNear, n, treeWind, i);
         pines[t].crownNear.setColorAt(n, tintColor);
         nearCounts[t] = n + 1;
       } else {
@@ -2284,6 +2401,7 @@ export function createVegetation(scene, maps = {}) {
         pines[t].trunkFar.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownFar.setMatrixAt(n, lodDummy.matrix);
         pines[t].limbFar.setMatrixAt(n, lodDummy.matrix);
+        writeWind(pines[t].windFar, n, treeWind, i);
         pines[t].crownFar.setColorAt(n, tintColor);
         farCounts[t] = n + 1;
       }
@@ -2306,6 +2424,9 @@ export function createVegetation(scene, maps = {}) {
       pines[t].crownNear.instanceColor.needsUpdate = true;
       pines[t].crownFar.instanceColor.needsUpdate = true;
       pines[t].crownDist.instanceColor.needsUpdate = true;
+      pines[t].windNear.needsUpdate = true;
+      pines[t].windFar.needsUpdate = true;
+      pines[t].windDist.needsUpdate = true;
     }
 
     const broadNear = new Array(broads.length).fill(0);
@@ -2328,6 +2449,7 @@ export function createVegetation(scene, maps = {}) {
       if (bSq > MID_DIST_SQ) {
         const n = broadDist[t];
         broads[t].crownDist.setMatrixAt(n, lodDummy.matrix);
+        writeWind(broads[t].windDist, n, cottonWind, i);
         broads[t].crownDist.setColorAt(n, tintColor);
         broadDist[t] = n + 1;
         continue;
@@ -2336,12 +2458,14 @@ export function createVegetation(scene, maps = {}) {
         const n = broadNear[t];
         broads[t].trunkNear.setMatrixAt(n, lodDummy.matrix);
         broads[t].crownNear.setMatrixAt(n, lodDummy.matrix);
+        writeWind(broads[t].windNear, n, cottonWind, i);
         broads[t].crownNear.setColorAt(n, tintColor);
         broadNear[t] = n + 1;
       } else {
         const n = broadFar[t];
         broads[t].trunkFar.setMatrixAt(n, lodDummy.matrix);
         broads[t].crownFar.setMatrixAt(n, lodDummy.matrix);
+        writeWind(broads[t].windFar, n, cottonWind, i);
         broads[t].crownFar.setColorAt(n, tintColor);
         broadFar[t] = n + 1;
       }
@@ -2360,6 +2484,9 @@ export function createVegetation(scene, maps = {}) {
       broads[t].crownNear.instanceColor.needsUpdate = true;
       broads[t].crownFar.instanceColor.needsUpdate = true;
       broads[t].crownDist.instanceColor.needsUpdate = true;
+      broads[t].windNear.needsUpdate = true;
+      broads[t].windFar.needsUpdate = true;
+      broads[t].windDist.needsUpdate = true;
     }
   }
 

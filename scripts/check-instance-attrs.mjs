@@ -118,7 +118,7 @@ assert(
 // half-undone: real attribute, dynamic usage, and marked dirty when rewritten.
 const veg = await readFile("src/vegetation.js", "utf8");
 const wired = [];
-for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"]]) {
+for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"], ["aWind", "windRot"]]) {
   const varMatch = veg.match(
     new RegExp(`const\\s+([\\w$]+)\\s*=\\s*new THREE\\.InstancedBufferAttribute\\(\\s*${array}\\b`)
   );
@@ -152,6 +152,36 @@ for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"]]) {
       `wherever grass.instanceMatrix.needsUpdate is set.`
   );
   wired.push(`${array} -> ${attr} (${name})`);
+}
+
+// aWind rides on the tree canopies too, and the tree side is the same trap
+// one level up: bucketTrees rewrites the crown matrices (and reshuffles their
+// slots) every time the camera crosses the LOD shell, so the wind frames must
+// be rewritten and flagged dirty in exactly the same passes. These are built
+// by makeWindAttrib (a shared helper, so the loop above cannot see them) and
+// filled from the per-tree arrays treeWind / cottonWind.
+for (const host of ["pines[t]", "broads[t]"]) {
+  for (const lod of ["Near", "Far", "Dist"]) {
+    const flag = `${host}.wind${lod}.needsUpdate = true`;
+    assert(
+      veg.includes(flag),
+      `src/vegetation.js: ${host}.wind${lod} is never marked dirty. The crown ` +
+        `matrices are rewritten by the seeding loop and bucketTrees, so a stale ` +
+        `wind frame is the floating-grass bug again, on the trees: each crown ` +
+        `keeps a rotation belonging to a different tree and leans the wrong ` +
+        `way. Set needsUpdate wherever ${host}.crown${lod}` +
+        `.instanceMatrix.needsUpdate is set.`
+    );
+  }
+}
+for (const array of ["treeWind", "cottonWind"]) {
+  assert(
+    new RegExp(`const ${array} = new Float32Array\\(`).test(veg),
+    `src/vegetation.js: the per-tree wind frame array ${array} is missing; ` +
+      `windBend reads attribute("aWind") on every wind-blown canopy, so each ` +
+      `crown instance needs (cos a / sx, sin a / sx) written wherever its ` +
+      `matrix is written.`
+  );
 }
 
 console.log(JSON.stringify({
