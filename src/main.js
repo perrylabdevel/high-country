@@ -23,6 +23,7 @@ import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.
 import { createPlayer } from "./player.js";
 import { createHorse } from "./horse.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
+import { readSave, writeSave } from "./save.js";
 import { POS, placeLabel } from "./map.js";
 import { createMissions } from "./missions.js";
 import { createMinimap } from "./minimap.js";
@@ -703,6 +704,67 @@ async function boot() {
   // is created next to them and consulted whenever anyone speaks.
   const missions = createMissions();
 
+  // R2 persistence: the loop reads one save at boot (stage/flags through
+  // missions.hydrate, pose restored directly) and autosaves on every stage
+  // transition plus on unload. readSave returns null on anything unusable,
+  // so a corrupt or foreign-versioned save just boots fresh — the player is
+  // never asked to recover anything (pillar P8).
+  const saved = readSave();
+  const restored = saved && saved.missions ? missions.hydrate(saved.missions) : false;
+  if (saved && saved.missions && !restored) {
+    // Schema-valid but unhydrgatable (a stage this build's mission data no
+    // longer contains): say so, then fall through to a fresh story — the
+    // player is never asked to recover anything silently.
+    console.warn("[save] save carried unusable mission state; starting fresh");
+  }
+  if (restored) {
+    const p = saved.player;
+    if (p && Number.isFinite(p.x) && Number.isFinite(p.z)) {
+      // resolvePosition keeps a restored pose out of the yard's colliders —
+      // the pose was legal when it was saved, geometry may differ now.
+      const placed = resolvePosition(p.x, p.z, player.radius);
+      player.object.position.set(placed.x, player.object.position.y, placed.z);
+      player.groundPlayer();
+      if (Number.isFinite(p.yaw)) {
+        player.state.yaw = p.yaw;
+      }
+      player.state.snapCam = true;
+    }
+    const h = saved.horse;
+    if (h && Number.isFinite(h.x) && Number.isFinite(h.z)) {
+      const placed = resolvePosition(h.x, h.z, horse.radius);
+      horse.object.position.set(placed.x, heightAt(placed.x, placed.z), placed.z);
+      horse.collider.x = placed.x;
+      horse.collider.z = placed.z;
+      horse.mounted = false;
+      horse.collider.radius = horse.radius;
+    }
+  }
+
+  function snapshot() {
+    return {
+      missions: missions.serialize(),
+      // `mounted` is deliberately absent: a reload always returns you to
+      // standing beside your saved spot, on foot, horse parked where it was —
+      // remounting is one E press, and a mounted restore would have to solve
+      // the dismount-placement problem from inside boot.
+      player: {
+        x: player.object.position.x,
+        y: player.object.position.y,
+        z: player.object.position.z,
+        yaw: player.state.yaw
+      },
+      horse: {
+        x: horse.object.position.x,
+        z: horse.object.position.z
+      }
+    };
+  }
+  function autosave() {
+    writeSave(snapshot());
+  }
+  window.addEventListener("beforeunload", autosave);
+
   let toastTimer = null;
   function showToast(text) {
     if (!text) {
@@ -815,6 +877,10 @@ async function boot() {
     if (ev && ev.toast) {
       showToast(ev.toast);
     }
+    // Stage transitions that arrive through dialogue do not all produce an
+    // event worth a toast, so the autosave beat cannot key off one. A
+    // completed conversation is the moment progress can have moved; save here.
+    autosave();
     if (started && !debug.isOpen()) {
       // Best-effort: Chromium rejects re-locking when no fresh gesture backs
       // the request (WrongDocumentError in scripted runs, a silent refusal
@@ -1009,9 +1075,15 @@ async function boot() {
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
       // Arrival stages complete by proximity the instant you stand in them.
+      // The autosave keys off the stage delta, not off the event: an arrival
+      // whose next stage carries no entrance event legitimately returns null.
+      const stageAtFrameStart = missions.state.stage;
       const missionEv = missions.update(player.object.position.x, player.object.position.z);
       if (missionEv && missionEv.toast) {
         showToast(missionEv.toast);
+      }
+      if (missions.state.stage !== stageAtFrameStart) {
+        autosave();
       }
       if (!player.state.mounted) {
         horse.object.position.y = heightAt(horse.object.position.x, horse.object.position.z);

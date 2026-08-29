@@ -1,17 +1,35 @@
 {
   "id": "20260829-R2",
   "requirementId": "R2",
-  "stage": "selected",
+  "stage": "accepted",
   "startedAt": "2026-08-29T03:58:17.467Z",
-  "rounds": 0,
-  "builder": null,
-  "verifier": null,
+  "rounds": 2,
+  "builder": "claude-main-bugh",
+  "verifier": "critic-fork-2",
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
     "maxMinutes": 120
   },
-  "notes": [],
-  "evidence": [],
-  "outcome": null
+  "notes": [
+    {
+      "ts": "2026-08-29T04:04:17.650Z",
+      "stage": "implementing",
+      "text": "R2 implemented: src/save.js (injected-storage read/write, fail-safe parse), main.js boot restore + autosave on every stage transition and beforeunload, missions.hydrate hardened (stage clamp/flags validation/done normalisation), update() completion-toast precedence fix, check:save dry contract, probe-save browser probe (reload restore + torn write + version mismatch + impossible stage), probe driving helpers shared via scripts/probe/drive.mjs"
+    },
+    {
+      "ts": "2026-08-29T04:35:19.153Z",
+      "stage": "implementing",
+      "text": "Critic-fork-2 verdict ACCEPT (in fault injection: 3 self-invented defects each caught by check:save). Findings addressed: frame autosave now keys off mission state stage delta (closes silent-advance gap), refused hydrate logs '[save] save carried unusable mission state', dead player.mounted field removed from snapshot, hydrate filters flags through KNOWN_FLAGS derived from stage data; E5 overcounts corrected in E6. Deferred: none."
+    }
+  ],
+  "evidence": [
+    {
+      "ts": "2026-08-29T04:35:28.051Z",
+      "verdict": "accept",
+      "verifier": "critic-fork-2",
+      "note": "Independent critic verified all 4 acceptance conditions on the runnable build: traced every transition to an autosave call, restored flags through a real boot (own playwright flag probe), ran 3 self-invented fault injections in a /tmp copy (all caught by check:save), cold-re-ran both probes and npm run check. Corrections applied: evidence counts fixed (E6), stage-delta autosave, hydrate refusal logging, mounted field dropped, unknown flags filtered."
+    }
+  ],
+  "outcome": "R2 verified accepted by critic-fork-2. Autosave on every stage transition + unload; reload restores stage, flags and pose; torn, foreign-version and impossible-stage saves all fail safe in browser and dry checks."
 }

@@ -58,7 +58,7 @@
     {
       "id": "R2",
       "title": "Mission progress survives save/load and failure recovery",
-      "status": "proposed",
+      "status": "verified",
       "locked": false,
       "observation": "There is no save anywhere in src/. localStorage is used only for the dev speed tuning key. Pillar P8 makes save/load a production requirement; today a reload erases every interaction.",
       "playerExperience": "A player who closes the tab mid-loop, or whose renderer dies, resumes where the story left off instead of starting over.",
@@ -92,6 +92,11 @@
           "date": "2026-08-28",
           "action": "created",
           "note": "split out of R1 so the loop itself lands first and save/load is verified independently"
+        },
+        {
+          "date": "2026-08-29T04:35:28.150Z",
+          "action": "verified",
+          "note": "20260829-R2: R2 verified accepted by critic-fork-2. Autosave on every stage transition + unload; reload restores stage, flags and pose; torn, foreign-version and impossible-stage saves all fail safe in browser and dry checks."
         }
       ]
     },
