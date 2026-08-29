@@ -62,5 +62,21 @@
     "path": "audit/evidence/probe-play-R4-2026-08-29.log",
     "summary": "probe-play (R4 build) 19/19 PASS exit 0, cold run 2026-08-29: Harlan's two-line conversation advances and exits, mid-loop Wade conversation carries the sawArson discovery before completion, Nell report + persistence + all R1 beats still pass; no page errors. npm run check 18/18 including check:missions Wade conditional and multi-line array passthrough asserts.",
     "durable": true
+  },
+  {
+    "id": "E8",
+    "date": "2026-08-29T12:53:13.065Z",
+    "kind": "observation",
+    "path": "audit/visual-campaign-V0",
+    "summary": "Fresh-critic visual discover pass (independent, fresh context) inspected 32 audit + 32 eye-level WebGPU captures from the CURRENT build (audit/visual-campaign-V0, -V0-eye, 2026-08-29). Top visible deficiency: the sky is a flat three-stop cream/beige gradient with a hard-edged flat white sun disc and zero clouds in all 32 frames; scene fog (bluish 0x9bb4c8) does not match the sky horizon color (cream 0xf0e2c4), so all distant terrain hazes into a color no part of the sky contains. Ranked 1st by player experience over: bare untextured settlement walls, roads as paint stripes, salmon-pink golden-hour wash, placeholder destination props.",
+    "durable": true
+  },
+  {
+    "id": "E9",
+    "date": "2026-08-29T13:11:05.168Z",
+    "kind": "observation",
+    "path": "audit/visual-campaign-V1",
+    "summary": "R6 before/after capture sets: BEFORE = audit/visual-campaign-V0 (+ -eye, 2026-08-29, pre-change build): flat cream gradient sky, hard-edged flat white disc, zero clouds, bluish fog mismatching sky horizon. AFTER = audit/visual-campaign-V1 (+ -eye, current build): warm amber golden gradient with layered sun (HDR core + halo), blue midday with drifting FBM clouds, fog hue matching sky horizon. 32 audit + 32 eye frames per set; captures regenerated after round-1 self-repair (cloud domain scale, HDR sun core).",
+    "durable": true
   }
 ]

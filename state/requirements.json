@@ -218,6 +218,53 @@
           "note": "proposed; overlaps R1's stage-arrival transitions — fold in or retire after R1 lands"
         }
       ]
+    },
+    {
+      "id": "R6",
+      "title": "The sky is weather, not a gradient",
+      "status": "verified",
+      "locked": false,
+      "observation": "The visible sky (src/environment.js createSky) is a static three-stop gradient sphere whose mid/bottom stops are cream and beige, with a flat hard-edged white sun disc and no clouds in any of 32 fresh captures at 16 POIs x 2 sun angles. Scene fog (0x9bb4c8) does not match the sky's own horizon stop (0xf0e2c4), so every distant ridge hazes into a color the air above it does not contain. The sky occupies 25-45% of every player frame and is the largest single 'procedural prototype' tell.",
+      "playerExperience": "The player enters a world with weather and air: a soft-lit horizon that distant ridges fade into, drifting clouds that give time of day, and a sun that feels like the source of the warm light — instead of an empty cream dome with a white disc. In every frame, at every destination, during all travel.",
+      "expectedBenefit": "Directly serves P1 (distance becomes something to look at and travel toward) and P6 (visual cohesion — nothing screams 'algorithm' louder than an empty gradient sky). Retunes the fog/sky relationship that also drives the salmon-pink golden-hour wash finding.",
+      "acceptance": [
+        "At both captured sun angles (midday, golden), fresh captures show: distant terrain fading into a haze whose hue matches the sky at the horizon, and no flat hard-edged sun disc — a layered sun (bright core plus soft halo) whose tint/intensity varies with elevation",
+        "Clouds are visible at representative viewpoints (thin cirrus plus a few cumulus masses), drift slowly during extended play without popping, and fade toward/below the horizon",
+        "Cloud coverage is tunable for A/B (dev affordance), defaulting to the accepted look",
+        "No regression: terrain readability, golden-hour shadow strength, and horizon banding judged on before/after re-captures of badlands-golden, ranch-golden, overlook-golden and timberCamp-golden (eye); frame time within noise on the same views"
+      ],
+      "verification": [
+        "focused before/after capture comparison on the 4 regression views plus both sun angles",
+        "independent fresh visual critic with the exact perceptual question",
+        "npm run check + build",
+        "frame-time spot check versus the captured before set"
+      ],
+      "source": "Fresh-critic visual discover pass (E8) on audit/visual-campaign-V0 and -V0-eye, 2026-08-29. First campaign of the new autonomous loop: a fresh independent visual critic inspected current pixels and picked this over bare settlement walls, roads-as-paint-stripes, golden pink wash, and placeholder destination props.",
+      "attempts": [],
+      "files": [
+        "src/environment.js",
+        "src/main.js"
+      ],
+      "priority": 1,
+      "confidence": 0.8,
+      "cost": "M",
+      "risk": "M",
+      "deps": [],
+      "evidenceRefs": [
+        "E8"
+      ],
+      "history": [
+        {
+          "date": "2026-08-29",
+          "action": "created",
+          "note": "created from the fresh-critic visual discover pass; first production campaign under the new autonomous loop per the operator's explicit first-campaign requirement (R4 deferred, see decisions log)"
+        },
+        {
+          "date": "2026-08-29T13:18:17.375Z",
+          "action": "verified",
+          "note": "20260829-R6: First production campaign of the new autonomous loop: fresh-critic visual discover pass picked the empty/cream sky as the highest-value visible gap; implemented elevation-driven palettes, fog-from-horizon, layered HDR sun, drifting FBM clouds; independently verified ACCEPT by critic-visual-1 on before/after captures. Backlog noted: sun rim feather, cloud tiling break, horizon speck aliasing."
+        }
+      ]
     }
   ]
 }

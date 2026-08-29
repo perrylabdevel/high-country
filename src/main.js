@@ -1023,6 +1023,10 @@ async function boot() {
     // directional shadows out (audit U5 at golden). Keep the warm dimming but
     // give the low sun more direct weight so shadows read against the fill.
     skyRig.sun.intensity = materialSettings.sunIntensity * (0.85 + 0.15 * Math.min(1, materialSettings.sunElevation / 32));
+    // The dome reads the same elevation: gradient stops, cloud/halo warmth,
+    // and the fog colour the distant terrain fades into.
+    skyRig.updateSun(materialSettings.sunElevation, sunOffset);
+    skyRig.cover.value = materialSettings.cloudCover;
   }
   updateSunOffset();
 
