@@ -16,6 +16,8 @@ Thumbs.db
 audit/current/
 audit/pass-*/
 audit/close/
+audit/visual-campaign-*/
+audit/diag-*/
 audit/reports/inbox.json
 audit/reports/cursor-worksheet.md
 

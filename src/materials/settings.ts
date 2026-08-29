@@ -22,6 +22,7 @@ export const materialSettings = {
   sunElevation: 52,
   sunAzimuth: -120,
   fogDensity: 0.00026,
+  cloudCover: 0.45,
   quality: "high" as QualityTier,
   detailQ: 1,
   detailDistanceQ: 1,

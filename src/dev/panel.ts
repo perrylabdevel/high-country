@@ -36,6 +36,7 @@ export function createMaterialPanel(options: {
   folders.env.add(materialSettings, "sunElevation", 5, 85, 0.5).name("sun elevation").onChange(options.onSun);
   folders.env.add(materialSettings, "sunAzimuth", -180, 180, 0.5).name("sun azimuth").onChange(options.onSun);
   folders.env.add(materialSettings, "fogDensity", 0, 0.002, 0.00001).name("fog").onChange(options.onFog);
+  folders.env.add(materialSettings, "cloudCover", 0, 1, 0.01).name("cloud cover").onChange(options.onSun);
 
   folders.terrain = gui.addFolder("Terrain");
   folders.terrain.add(materialSettings, "grassTiling", 1, 40, 0.1).onChange(onTerrain);
