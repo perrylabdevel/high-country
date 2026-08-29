@@ -1,0 +1,42 @@
+[
+  {
+    "id": "E0",
+    "date": "2026-08-29T02:35:34.834Z",
+    "kind": "check",
+    "path": null,
+    "summary": "Baseline on commit b30187e (branch bugh): npm run build passes (chunk-size warning only); npm run check passes all 15 dry-build contracts; game is the pass-99 WebGPU capture baseline.",
+    "durable": true
+  },
+  {
+    "id": "E1",
+    "date": "2026-08-29T02:35:34.930Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "Play/code inspection: gameplay surface is enter->walk/ride->E to talk with 3 NPCs, each with ONE static line (src/main.js npcs). No objectives, no waypoints, no mission state, no save/load (localStorage used only by dev tune UI). No episode-1 systems exist anywhere in src/ despite docs/BACKLOG.md claiming Episode 1 was established with reputation, clue records, and a save schema. BACKLOG's premise is fiction in code.",
+    "durable": true
+  },
+  {
+    "id": "E2",
+    "date": "2026-08-29T02:35:35.032Z",
+    "kind": "report",
+    "path": null,
+    "summary": "audit/reports/latest.md = pass 99 (grader gpt-5.6-luna via Cursor picker): visual state is healthy, universal criteria average ~4; visual polish is NOT the largest gap. Discrepancies vs handoff: newest_handoff_prompt.md and High_Country_Game_Handoff/ do not exist (README stale); IMPLEMENTATION_STATUS.md absent; branch is bugh; docs/BACKLOG.md claims unimplemented Episode-1 systems. Decision: keep pillars, build the loop from actual code reality.",
+    "durable": true
+  },
+  {
+    "id": "E3",
+    "date": "2026-08-29T03:56:55.574Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-play-R1-2026-08-28.log",
+    "summary": "probe-play 17/17 PASS exit 0: full loop via real inputs (WASD/Shift/right-drag look/E) — Harlan talk, 740m ride, arrival event, glass-the-smoke discovery, 740m return, Nell report, post-loop dialogue consequence. No page errors.",
+    "durable": true
+  },
+  {
+    "id": "E4",
+    "date": "2026-08-29T03:56:55.667Z",
+    "kind": "check",
+    "path": null,
+    "summary": "check:missions dry-run FSM contract (16 assertions incl. gates, wrong-NPC guard, early-complete guard, serialize/hydrate). Fault injection performed during development: arrival radius 45->60 fails '46 m short of the overlook'; restored. Reviewer's independent fault injection (3 faults in a copy) also caught by the check.",
+    "durable": true
+  }
+]

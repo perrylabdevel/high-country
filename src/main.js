@@ -24,6 +24,7 @@ import { createPlayer } from "./player.js";
 import { createHorse } from "./horse.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { POS, placeLabel } from "./map.js";
+import { createMissions } from "./missions.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
 import { STRUCTURES } from "./buildings/kit.js";
@@ -45,6 +46,8 @@ const promptEl = document.getElementById("prompt");
 const dialogueEl = document.getElementById("dialogue");
 const speakerEl = document.getElementById("dialogue-speaker");
 const bodyEl = document.getElementById("dialogue-body");
+const objectiveEl = document.getElementById("objective");
+const toastEl = document.getElementById("toast");
 const titleEl = document.getElementById("title");
 const enterBtn = document.getElementById("btn-enter");
 const params = new URLSearchParams(window.location.search);
@@ -189,6 +192,25 @@ async function boot() {
     window.__materialSettings = materialSettings;
     window.__POS = POS;
     window.__heightAt = heightAt;
+    /**
+     * Play-probe instrument (scripts/probe-play.mjs). The mission FSM's state
+     * and objective as the frame loop last wrote them, plus the player pose —
+     * everything a scripted run needs to assert transitions without reading
+     * gameplay state out of pixels. Read-only: advancing is only ever done
+     * through the real input paths.
+     */
+    window.__missions = () => ({
+      state: missions.serialize(),
+      objective: missions.objective(),
+      player: {
+        x: player.object.position.x,
+        y: player.object.position.y,
+        z: player.object.position.z,
+        yaw: player.state.yaw,
+        mounted: player.state.mounted
+      },
+      place: placeEl.textContent
+    });
     /**
      * Magenta ground reference, for the floating-grass question.
      *
@@ -677,6 +699,32 @@ async function boot() {
 
   npcs.forEach(makeNpc);
 
+  // Episode 1's smallest loop. The family's dialogue flows through it, so it
+  // is created next to them and consulted whenever anyone speaks.
+  const missions = createMissions();
+
+  let toastTimer = null;
+  function showToast(text) {
+    if (!text) {
+      return;
+    }
+    toastEl.textContent = text;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 4600);
+  }
+
+  function setObjective(text) {
+    if (objectiveEl.textContent === text) {
+      return;
+    }
+    objectiveEl.textContent = text;
+    objectiveEl.classList.remove("updated");
+    // Restart the pulse animation for the new wording.
+    void objectiveEl.offsetWidth;
+    objectiveEl.classList.add("updated");
+  }
+
   function setTitleCamera() {
     const r = POS.ranch;
     camera.position.set(r.x - 72, heightAt(r.x - 72, r.z + 95) + 18, r.z + 95);
@@ -689,13 +737,12 @@ async function boot() {
 
   function nearestInteract() {
     const p = player.object.position;
-    const horseDist = p.distanceTo(horse.object.position);
-    if (!player.state.mounted && horseDist < 3.2) {
-      return { kind: "horse", label: "E — Mount Juniper" };
-    }
     if (player.state.mounted) {
       return { kind: "dismount", label: "E — Dismount" };
     }
+    // People outrank parked horses: Juniper stands ~4 m from Nell in the
+    // yard, so a horse-first check made her unaddressable from the house
+    // side — "Mount Juniper" instead of "Talk to Nell" at her range.
     let best = null;
     let bestD = 3.4;
     for (const npc of npcs) {
@@ -705,7 +752,17 @@ async function boot() {
         best = { kind: "talk", npc, label: `E — Talk to ${npc.name}` };
       }
     }
-    return best;
+    if (best) {
+      return best;
+    }
+    const examine = missions.examineAt(p.x, p.z);
+    if (examine) {
+      return { kind: "examine", examine, label: examine.label };
+    }
+    if (p.distanceTo(horse.object.position) < 3.2) {
+      return { kind: "horse", label: "E — Mount Juniper" };
+    }
+    return null;
   }
 
   function setPrompt(text) {
@@ -717,17 +774,62 @@ async function boot() {
     promptEl.classList.remove("hidden");
   }
 
+  /**
+   * Open a conversation or a reading. `talking` is {name, lines, index, npc?}
+   * either way: dialogue and examine readings advance the same way, and
+   * reaching the end of the lines is what completes a mission stage.
+   */
   function openTalk(npc) {
-    talking = npc;
     input.clear();
+    talking = { npc, lines: missions.dialogueFor(npc), index: 0, kind: "talk" };
     speakerEl.textContent = npc.name;
-    bodyEl.textContent = npc.line;
+    bodyEl.textContent = talking.lines[0];
     dialogueEl.classList.remove("hidden");
   }
 
-  function closeTalk() {
+  function openReading(examine) {
+    input.clear();
+    talking = { lines: examine.lines, index: 0, kind: "examine", examine };
+    speakerEl.textContent = examine.speaker;
+    bodyEl.textContent = talking.lines[0];
+    dialogueEl.classList.remove("hidden");
+  }
+
+  /**
+   * Advance the open dialogue by one line; completing it is what tells the
+   * mission the conversation happened. Returns true while more lines remain.
+   */
+  function advanceTalk() {
+    if (!talking) {
+      return false;
+    }
+    talking.index += 1;
+    if (talking.index < talking.lines.length) {
+      bodyEl.textContent = talking.lines[talking.index];
+      return true;
+    }
+    const { kind, npc, examine } = talking;
     talking = null;
     dialogueEl.classList.add("hidden");
+    const ev = examine ? missions.onExamined(examine) : missions.onTalk(npc.name);
+    if (ev && ev.toast) {
+      showToast(ev.toast);
+    }
+    if (started && !debug.isOpen()) {
+      // Best-effort: Chromium rejects re-locking when no fresh gesture backs
+      // the request (WrongDocumentError in scripted runs, a silent refusal
+      // after some real inputs) — the canvas click listener re-locks, so a
+      // failed re-settle just means one extra click, never a broken input.
+      try {
+        const lock = renderer.domElement.requestPointerLock();
+        if (lock && typeof lock.catch === "function") {
+          lock.catch(() => {});
+        }
+      } catch {
+        // the canvas click path recovers
+      }
+    }
+    return false;
   }
 
   function use() {
@@ -769,6 +871,10 @@ async function boot() {
       player.state.snapCam = true;
       return;
     }
+    if (target.kind === "examine") {
+      openReading(target.examine);
+      return;
+    }
     if (target.kind === "talk") {
       openTalk(target.npc);
     }
@@ -779,7 +885,16 @@ async function boot() {
     started = true;
     player.state.snapCam = true;
     minimap.show();
-    renderer.domElement.requestPointerLock();
+    // Synthetic/dispatched clicks cannot back a pointer-lock request; a real
+    // click on the canvas re-locks, so swallowing the refusal is correct.
+    try {
+      const lock = renderer.domElement.requestPointerLock();
+      if (lock && typeof lock.catch === "function") {
+        lock.catch(() => {});
+      }
+    } catch {
+      // click-to-lock on the canvas recovers
+    }
   });
 
   renderer.domElement.addEventListener("click", () => {
@@ -790,10 +905,18 @@ async function boot() {
       return;
     }
     if (talking) {
-      closeTalk();
+      advanceTalk();
       return;
     }
-    renderer.domElement.requestPointerLock();
+    try {
+      const lock = renderer.domElement.requestPointerLock();
+      if (lock && typeof lock.catch === "function") {
+        lock.catch(() => {});
+      }
+    } catch {
+      // Chromium refuses to lock in some scripted/browser states; the next
+      // real click or the right-drag look path still work.
+    }
   });
 
   window.addEventListener("resize", () => {
@@ -885,6 +1008,11 @@ async function boot() {
 
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
+      // Arrival stages complete by proximity the instant you stand in them.
+      const missionEv = missions.update(player.object.position.x, player.object.position.z);
+      if (missionEv && missionEv.toast) {
+        showToast(missionEv.toast);
+      }
       if (!player.state.mounted) {
         horse.object.position.y = heightAt(horse.object.position.x, horse.object.position.z);
         horse.collider.x = horse.object.position.x;
@@ -898,10 +1026,13 @@ async function boot() {
         minimap.toggleSize();
       }
     } else if (talking && !debug.isOpen() && input.consume("useTap")) {
-      closeTalk();
+      advanceTalk();
     }
 
     placeEl.textContent = placeLabel(player.object.position.x, player.object.position.z);
+    if (started) {
+      setObjective(missions.objective());
+    }
     minimap.update(player.object.position.x, player.object.position.z, player.state.yaw);
     debug.update(player);
     if (structureLabels) {

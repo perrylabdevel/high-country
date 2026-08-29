@@ -1,0 +1,17 @@
+{
+  "id": "20260829-R2",
+  "requirementId": "R2",
+  "stage": "selected",
+  "startedAt": "2026-08-29T03:58:17.467Z",
+  "rounds": 0,
+  "builder": null,
+  "verifier": null,
+  "budget": {
+    "maxRounds": 4,
+    "maxCalls": 30,
+    "maxMinutes": 120
+  },
+  "notes": [],
+  "evidence": [],
+  "outcome": null
+}
