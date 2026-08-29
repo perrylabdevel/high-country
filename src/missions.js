@@ -78,6 +78,27 @@ const MISSIONS = [
   }
 ];
 
+// Every flag the loop itself ever sets, derived from the stage data — the
+// whitelist hydrate filters saved flags through, so a hand-mangled or
+// foreign save cannot inject state the mission data does not know.
+const KNOWN_FLAGS = (() => {
+  const known = new Set(["loopComplete"]);
+  for (const m of MISSIONS) {
+    for (const st of m.stages) {
+      if (st.completeOn && st.completeOn.onEnter && st.completeOn.onEnter.flag) {
+        known.add(st.completeOn.onEnter.flag);
+      }
+      if (st.examine && st.examine.onDone && st.examine.onDone.flag) {
+        known.add(st.examine.onDone.flag);
+      }
+      if (st.onEnter && st.onEnter.flag) {
+        known.add(st.onEnter.flag);
+      }
+    }
+  }
+  return known;
+})();
+
 const POST_LOOP_LINES = {
   // Consequence stage: what the family does with the discovery. These replace
   // the calders' opening lines once the loop is complete, so the world reflects
@@ -155,10 +176,12 @@ export function createMissions() {
         setFlag(enter.flag);
       }
       const ev = advance();
-      if (enter && enter.toast) {
-        return { toast: enter.toast };
+      // A completing stage's own entrance flavour yields to the loop's
+      // completion event — dropping that toast would hide the payoff.
+      if (ev) {
+        return ev;
       }
-      return ev;
+      return enter && enter.toast ? { toast: enter.toast } : null;
     }
     return null;
   }
@@ -239,13 +262,35 @@ export function createMissions() {
   }
 
   function hydrate(saved) {
-    if (!saved || saved.version !== 1 || !MISSIONS.some((m) => m.id === saved.mission)) {
+    if (!saved || saved.version !== 1) {
+      return false;
+    }
+    const mission = MISSIONS.find((m) => m.id === saved.mission);
+    if (!mission) {
+      return false;
+    }
+    // A stage the mission data no longer contains (a save from an older or
+    // modified build) is refused, not applied: a half-restored stage would
+    // complete on no interaction at all.
+    if (!Number.isInteger(saved.stage) || saved.stage < 0 || saved.stage > mission.stages.length) {
       return false;
     }
     state.mission = saved.mission;
     state.stage = saved.stage;
-    state.done = Boolean(saved.done);
-    state.flags = { ...saved.flags };
+    // Flags land first, so the done normalisation below stamps loopComplete
+    // ON TOP of the saved flags instead of being overwritten by them.
+    state.flags = {};
+    if (saved.flags && typeof saved.flags === "object" && !Array.isArray(saved.flags)) {
+      for (const flag of Object.keys(saved.flags)) {
+        if (KNOWN_FLAGS.has(flag)) {
+          state.flags[flag] = Boolean(saved.flags[flag]);
+        }
+      }
+    }
+    state.done = saved.stage >= mission.stages.length ? true : Boolean(saved.done);
+    if (state.done) {
+      setFlag("loopComplete");
+    }
     return true;
   }
 

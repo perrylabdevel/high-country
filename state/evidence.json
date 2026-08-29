@@ -38,5 +38,21 @@
     "path": null,
     "summary": "check:missions dry-run FSM contract (16 assertions incl. gates, wrong-NPC guard, early-complete guard, serialize/hydrate). Fault injection performed during development: arrival radius 45->60 fails '46 m short of the overlook'; restored. Reviewer's independent fault injection (3 faults in a copy) also caught by the check.",
     "durable": true
+  },
+  {
+    "id": "E5",
+    "date": "2026-08-29T04:13:02.435Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-save-R2-2026-08-28.log",
+    "summary": "probe-save 17/17 PASS exit 0 (2026-08-28): reload restores stage+flags+pose; torn write, version mismatch, and impossible stage each boot fresh with no page errors; corrupt-save path logged via [save] warning. Regression: probe-play full loop still 17/17 after R2 changes; npm run check now 19 scripts all PASS.",
+    "durable": true
+  },
+  {
+    "id": "E6",
+    "date": "2026-08-29T04:35:19.054Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-save-R2-2026-08-28.log",
+    "summary": "CORRECTED (supersedes E5's counts): probe-save is 16/16 PASS exit 0, not 17/17; npm run check is 18 check:* scripts, not 19. Log updated to the post-fix cold run after the critic's findings were applied (autosave keyed off stage delta, hydrate-refusal logged, mounted field dropped, unknown flags filtered). probe-play re-run 17/17 after the same fixes.",
+    "durable": true
   }
 ]

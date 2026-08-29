@@ -1,0 +1,19 @@
+probe: using server at http://127.0.0.1:8766 (spawned)
+PASS  fresh: no save means the loop starts unstarted — Find Harlan Calder at the ranch
+PASS  transition: the loop moved to the travelling stage — Ride the ridge trail north to the Ranch Overlook
+PASS  autosave: the stage transition wrote a save — record under hc-save-v1
+PASS  autosave: the saved stage is the travelling stage — {"version":1,"mission":"smoke","stage":1,"done":false,"flags":{}}
+PASS  autosave: the save carries the player pose — {"x":-395.4859981186412,"y":16.200000762939453,"z":303.41026610907494,"yaw":-0.12239999999999998}
+PASS  reload: the mission is restored to the same stage — {"version":1,"mission":"smoke","stage":1,"done":false,"flags":{}}
+PASS  reload: the objective is the same objective — Ride the ridge trail north to the Ranch Overlook
+PASS  reload: the player resumed where the story left off — moved 0.0 m by the reload
+PASS  reload: this is really a restore, not a fresh spawn — 15 m from the default spawn
+PASS  torn write: the game boots fresh, not stuck — {"version":1,"mission":"smoke","stage":0,"done":false,"flags":{}}
+PASS  torn write: the failure is logged, not silent — warning: [save] discarding unreadable save: Expected ',' or '}' after property value in JSON at position 120 (line 1 column 121)
+PASS  torn write: no page errors
+PASS  version mismatch: the game boots fresh, not stuck — {"version":1,"mission":"smoke","stage":0,"done":false,"flags":{}}
+PASS  version mismatch: no page errors
+PASS  impossible stage: hydrate refuses it and the loop starts unstarted — {"version":1,"mission":"smoke","stage":0,"done":false,"flags":{}}
+PASS  impossible stage: no page errors
+
+probe-save: PASSED
