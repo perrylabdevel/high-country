@@ -1,30 +1,17 @@
 {
-  "id": "20260829-R6",
-  "requirementId": "R6",
-  "stage": "accepted",
-  "startedAt": "2026-08-29T12:54:12.747Z",
-  "rounds": 1,
-  "builder": "claude-main-bugh",
-  "verifier": "critic-visual-1",
+  "id": "20260829-R3",
+  "requirementId": "R3",
+  "stage": "selected",
+  "startedAt": "2026-08-29T13:18:33.377Z",
+  "rounds": 0,
+  "builder": null,
+  "verifier": null,
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
     "maxMinutes": 120
   },
-  "notes": [
-    {
-      "ts": "2026-08-29T13:10:54.421Z",
-      "stage": "implementing",
-      "text": "R6 implemented in src/environment.js + src/main.js + src/dev/panel.ts: elevation-driven gradient palettes (golden stays warm-amber, midday blue-to-pale-haze), fog colour derived from the same horizon stop so distant terrain fades into the sky's own air, layered sun (HDR core + dome-shader halo scaling with elevation), 2-layer FBM clouds on a horizon-stretched projection drifting on the pinned TSL clock, cloud-cover dev slider. Round 1 self-repair: cloud domain rescaled (0.0009->3.0, the original made FBM constant - no clouds rendered) and the sun core made HDR (2.6/2.3/1.9) because tone mapping turned the 1.0-white disc flat gray. Self-checked diag captures: clouds at both sun angles, no settlement/shadow regression, 55-60 FPS."
-    }
-  ],
-  "evidence": [
-    {
-      "ts": "2026-08-29T13:17:44.384Z",
-      "verdict": "accept",
-      "verifier": "critic-visual-1",
-      "note": "ACCEPT on the pixels. C1 haze/sun: fog colour copied from the dome horizon stop by construction (env.js:227) - V0's sky/fog mismatch gone in every frame; pixel sampling of burn-golden shows 60px halo rise into a 246 core vs V0's abrupt 4px cliff. C2 clouds: cirrus+cumulus at 12 viewpoint pairs, horizon-faded below ~9 deg. C3 slider code-verified, 0.45 default = accepted look. C4 no regression: tris/draws/mem byte-identical, golden shadows not dimmed, no banding; FPS sweep of all 32 lines shows no systematic drop. NOT verifiable from pinned-clock evidence: midday sun character (captures only prove the golden end) and drift (code-plausible: mass crosses in ~8 min, two decorrelated layers). Accepted weaknesses logged to backlog: sun core rim still crisp (pasted-plate read at eye height), cloud-field tiling reads as stamped fans in upper sky, near-horizon cloud specks alias (confetti), two single-frame FPS dips (cemetery-midday 49, ranch-golden 51) within capture noise but noted."
-    }
-  ],
-  "outcome": "First production campaign of the new autonomous loop: fresh-critic visual discover pass picked the empty/cream sky as the highest-value visible gap; implemented elevation-driven palettes, fog-from-horizon, layered HDR sun, drifting FBM clouds; independently verified ACCEPT by critic-visual-1 on before/after captures. Backlog noted: sun rim feather, cloud tiling break, horizon speck aliasing."
+  "notes": [],
+  "evidence": [],
+  "outcome": null
 }

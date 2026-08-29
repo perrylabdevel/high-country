@@ -265,6 +265,49 @@
           "note": "20260829-R6: First production campaign of the new autonomous loop: fresh-critic visual discover pass picked the empty/cream sky as the highest-value visible gap; implemented elevation-driven palettes, fog-from-horizon, layered HDR sun, drifting FBM clouds; independently verified ACCEPT by critic-visual-1 on before/after captures. Backlog noted: sun rim feather, cloud tiling break, horizon speck aliasing."
         }
       ]
+    },
+    {
+      "id": "R7",
+      "title": "Sky finish: sun rim feather, cloud tiling break, horizon speck aliasing",
+      "status": "proposed",
+      "locked": false,
+      "observation": "Critic-visual-1 accepted R6 with three recorded weaknesses: the sun core rim is still a crisp pasted-plate edge against the halo (visible at eye height in timberCamp/burn golden frames); the two-layer FBM cloud field reads as stamped repeated fans in the upper sky (ranch/northernPines/westernRange); the smallest near-horizon cloud specks alias into confetti on flat-horizon views; two single-frame FPS dips (cemetery-midday 49, ranch-golden 51) sit within capture noise but correlate with sky-heavy frames.",
+      "playerExperience": "The sky stays believable at every vantage and time of day: the sun is a source of light rather than a pasted plate, cloud shapes never repeat recognisably, and no aliasing shimmers at the horizon during travel.",
+      "expectedBenefit": "Removes the three strongest remaining procedural tells in the sky (backlog from the first accepted visual campaign); protects the frame budget on sky-heavy views.",
+      "acceptance": [
+        "The sun core blends into its halo with no hard rim at any captured vantage, midday and golden",
+        "No visible fan/stamp repetition in the cloud field across the regression views of R6",
+        "No pixel-jagged cloud specks at the horizon in the flat-horizon views (elPaso/westernRange midday, lakeMercy golden)",
+        "No systematic FPS drop versus the R6 V1 sweep on the same 32-frame sets"
+      ],
+      "verification": [
+        "focused before/after captures on the R6 regression views",
+        "independent fresh visual critic",
+        "npm run check + build"
+      ],
+      "source": "Independent verification of R6 (critic-visual-1) backlog items; E9 capture sets are the before evidence.",
+      "attempts": [],
+      "files": [
+        "src/environment.js",
+        "src/main.js"
+      ],
+      "priority": 3,
+      "confidence": 0.85,
+      "cost": "S",
+      "risk": "S",
+      "deps": [
+        "R6"
+      ],
+      "evidenceRefs": [
+        "E9"
+      ],
+      "history": [
+        {
+          "date": "2026-08-29",
+          "action": "created",
+          "note": "created from the R6 verifier reported weaknesses, before they were lost to the accepted-campaign record"
+        }
+      ]
     }
   ]
 }
