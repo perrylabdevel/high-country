@@ -98,6 +98,48 @@ button {
   cursor: pointer;
 }
 .hidden { display: none !important; }
+#objective {
+  position: absolute;
+  left: 50%;
+  top: 52px;
+  transform: translateX(-50%);
+  max-width: min(560px, 80vw);
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 8px #000;
+}
+#objective::before {
+  content: "❖ ";
+  color: #c4a36a;
+}
+#objective.updated::after {
+  content: "";
+}
+#objective.updated {
+  animation: objective-pulse 1.8s ease-out;
+}
+@keyframes objective-pulse {
+  0% { color: #e8c36a; }
+  100% { color: #f4ead2; }
+}
+#toast {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  transform: translateX(-50%);
+  max-width: min(520px, 76vw);
+  text-align: center;
+  font-size: 15px;
+  font-style: italic;
+  color: #efe2c6;
+  text-shadow: 0 1px 8px #000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#toast.show {
+  opacity: 1;
+}
 #debug-chip,
 #debug-panel {
   pointer-events: auto;

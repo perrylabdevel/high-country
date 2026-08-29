@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "comment": "Living-requirements store. Mutated only through scripts/loop.mjs, which validates against scripts/loop/lib/validate.mjs and appends every material mutation to state/decisions.jsonl. Statuses: proposed, accepted, active, verified, rejected, deferred, retired. Priorities are 1 (highest) to 5. Costs are S/M/L. See docs/EVOLUTION.md for the mutation rules.",
+  "requirements": [
+    {
+      "id": "R1",
+      "title": "Smallest playable loop: Smoke on the North Wind",
+      "status": "verified",
+      "locked": false,
+      "observation": "The world is explorable and visually mature (audit pass 99 universal averages 3.8-4.3), but there is nothing to do: three NPCs each speak one static line, there are no objectives, no arrival events, no consequences, and no saved state. The game is a map-scale test bed (README), which violates pillars P4 and P5 and is the single largest player-facing gap.",
+      "playerExperience": "A first-time player who enters the world is given a purpose by a family member, travels to it, arrives at a place that responds, discovers something, returns, and sees the family's situation change because of what they did.",
+      "expectedBenefit": "Converts the project from a diorama into a game; every later Episode 1 requirement builds on this spine.",
+      "evidenceRefs": [
+        "E1",
+        "E2"
+      ],
+      "source": "Play inspection of the runnable build 2026-08-28: NPCs in src/main.js are static capsules with one line; there is no objective, waypoint, or mission state anywhere in src/.",
+      "acceptance": [
+        "A player who enters the world sees a current objective in the HUD until the loop is complete",
+        "Talking to Harlan Calder starts the loop and changes what the HUD asks for",
+        "Reaching the objective's location transitions the loop to a new stage with a new prompt",
+        "An examine interaction at the burn site yields a discovery recorded in game state",
+        "Reporting back to Nell Calder ends the loop, and Nell's and Harlan's dialogue afterward reflects the outcome",
+        "The full loop is traversable with a normal controller path: walk/ride, E to interact, no debug-only actions required in the acceptance route",
+        "A scripted browser probe drives all transitions headlessly and exits 0"
+      ],
+      "verification": [
+        "check:missions dry-build contract",
+        "browser play probe (scripts/probe-play.mjs)",
+        "independent fresh-context critic on the runnable build"
+      ],
+      "attempts": [],
+      "files": [
+        "src/main.js",
+        "src/missions.js",
+        "src/save.js",
+        "index.html",
+        "css/game.css"
+      ],
+      "priority": 1,
+      "confidence": 0.85,
+      "cost": "M",
+      "risk": "L",
+      "deps": [],
+      "history": [
+        {
+          "date": "2026-08-28",
+          "action": "created",
+          "note": "proposed by first autonomous inspection; accepted as the first campaign after ranking against travel-without-purpose and save/load gaps"
+        },
+        {
+          "date": "2026-08-29T03:56:55.857Z",
+          "action": "verified",
+          "note": "20260829-R1: R1 verified accepted by critic-fork-1. Smallest loop 'Smoke on the North Wind' playable end to end with real controls; 2 reviewer findings fixed post-verification, 2 deferred to R2 (save seam hardening)."
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "title": "Mission progress survives save/load and failure recovery",
+      "status": "proposed",
+      "locked": false,
+      "observation": "There is no save anywhere in src/. localStorage is used only for the dev speed tuning key. Pillar P8 makes save/load a production requirement; today a reload erases every interaction.",
+      "playerExperience": "A player who closes the tab mid-loop, or whose renderer dies, resumes where the story left off instead of starting over.",
+      "expectedBenefit": "Makes the loop from R1 durable and unlocks every later episode requirement, which all assume a save schema.",
+      "evidenceRefs": [],
+      "source": "grep for localStorage/save across src/ — only src/debug.js touches it.",
+      "acceptance": [
+        "Loop progress is autosaved on every stage transition",
+        "A reload restores the mission in the same stage with the same flags",
+        "A corrupt or version-mismatched save fails safe: the game boots fresh, the failure is logged, the player is not stuck",
+        "A deterministic round-trip test fails if a stage or flag is lost"
+      ],
+      "verification": [
+        "save round-trip probe",
+        "fault injection (corrupt the save, confirm recovery)"
+      ],
+      "attempts": [],
+      "files": [
+        "src/save.js",
+        "src/main.js"
+      ],
+      "priority": 2,
+      "confidence": 0.9,
+      "cost": "S",
+      "risk": "M",
+      "deps": [
+        "R1"
+      ],
+      "history": [
+        {
+          "date": "2026-08-28",
+          "action": "created",
+          "note": "split out of R1 so the loop itself lands first and save/load is verified independently"
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "title": "Travel with purpose: destinations are announced, legible, and findable",
+      "status": "proposed",
+      "locked": false,
+      "observation": "The 4000x5000 m map is rideable and richly dressed, but nothing tells a player where to go or why; the minimap shows geography only. First-time players see an open world with no invitation.",
+      "playerExperience": "When an objective names a place, the player can find it: the HUD names the destination, the minimap or world marks it, and legibility holds at 14.5 m/s gallop.",
+      "expectedBenefit": "Turns empty travel into meaningful travel (P5); multiplies the value of every future mission.",
+      "acceptance": [
+        "Every active objective resolves to a named, reachable place",
+        "A player unfamiliar with the map can reach the objective using only in-game affordances, verified by a traversal probe",
+        "No objective requires consulting the README or the repo"
+      ],
+      "verification": [
+        "route traversal probe",
+        "targeted visual review of marker legibility"
+      ],
+      "source": "Play inspection 2026-08-28: hud-hint and hud-place are the only guidance surfaces.",
+      "attempts": [],
+      "files": [
+        "src/minimap.js",
+        "src/main.js",
+        "src/missions.js"
+      ],
+      "priority": 2,
+      "confidence": 0.8,
+      "cost": "M",
+      "risk": "M",
+      "deps": [
+        "R1"
+      ],
+      "evidenceRefs": [],
+      "history": [
+        {
+          "date": "2026-08-28",
+          "action": "created",
+          "note": "proposed; may be satisfied by R1's initial HUD + marker affordance, in which case retire it with evidence"
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "title": "Dialogue is a conversation, not a poster",
+      "status": "proposed",
+      "locked": false,
+      "observation": "Each NPC stringifies one `line`; pressing E during dialogue closes it. No continuation, no branching, no state-aware content (docs/BACKLOG.md Episode-1 systems: relationship notes, reputation, clues, decisions).",
+      "playerExperience": "Talking to a character advances meaning: lines continue, choices appear where the story needs them, and post-mission dialogue reflects what happened.",
+      "expectedBenefit": "Prerequisite for P2 (family-centered drama) and for Episode 1's dialogue-set reuse plan.",
+      "acceptance": [
+        "Multi-line dialogue advances with the existing E/click affordance and exits on its last line",
+        "At least one dialogue is conditional on world state (mission stage or a discovered flag)",
+        "No dialogue reverts to stale text after a consequence changes it"
+      ],
+      "verification": [
+        "browser play probe of a two-line and a conditional dialogue"
+      ],
+      "source": "src/main.js npcs + openTalk/closeTalk.",
+      "attempts": [],
+      "files": [
+        "src/main.js",
+        "src/missions.js"
+      ],
+      "priority": 2,
+      "confidence": 0.85,
+      "cost": "S",
+      "risk": "S",
+      "deps": [
+        "R1"
+      ],
+      "evidenceRefs": [],
+      "history": [
+        {
+          "date": "2026-08-28",
+          "action": "created",
+          "note": "proposed; partially covered by R1's minimum (state-conditional lines on mission outcome) — resolve or split after R1 verifies"
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "title": "Arrival at a place is an event",
+      "status": "proposed",
+      "locked": false,
+      "observation": "placeLabel() changes a HUD string; nothing else responds to arrival. Pillar P1 says arriving should feel like an event; currently only proximity to an NPC does anything.",
+      "playerExperience": "Reaching a POI for the first time gives the player a moment: the place is named, and the world acknowledges arrival (beat, prompt, or hook for discovery).",
+      "acceptance": [
+        "First arrival at each of the 16 POIs produces a visible, non-blocking acknowledgement",
+        "Repeat visits do not repeat the fanfare",
+        "Does not regress the capture tooling (`?dev` hooks unaffected)"
+      ],
+      "verification": [
+        "browser play probe on two POIs",
+        "regression: npm run check"
+      ],
+      "source": "src/map.js placeLabel is label-only.",
+      "attempts": [],
+      "files": [
+        "src/map.js",
+        "src/main.js"
+      ],
+      "priority": 3,
+      "confidence": 0.8,
+      "cost": "S",
+      "risk": "S",
+      "deps": [],
+      "evidenceRefs": [],
+      "history": [
+        {
+          "date": "2026-08-28",
+          "action": "created",
+          "note": "proposed; overlaps R1's stage-arrival transitions — fold in or retire after R1 lands"
+        }
+      ]
+    }
+  ]
+}

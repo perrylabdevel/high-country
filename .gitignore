@@ -3,6 +3,8 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+# Loop evidence: tiny text probe logs referenced by state/evidence.json stay in git
+!audit/evidence/*.log
 .vscode/
 .idea/
 .env

@@ -1,0 +1,34 @@
+{
+  "comment": "Model/vendor-neutral role and routing configuration. Each role maps to a tier; the harness that runs the loop binds tiers to whatever models it has. The guard below is enforced by scripts/loop.mjs, not by convention.",
+  "tiers": {
+    "scout": {
+      "desc": "Cheapest capable tier. Read-only inspection, deterministic probes, targeted play routes, gap discovery. Receives only the context needed for its task; returns evidence and concise findings, not transcripts.",
+      "budget": "bounded per invocation; batch cheap look-ups"
+    },
+    "builder": {
+      "desc": "Cheap-to-middle tier for scoped implementation. One requirement per engagement. Must report failures and substitutions honestly (P9).",
+      "budget": "max 4 build/repair rounds per campaign"
+    },
+    "director": {
+      "desc": "Middle tier. Owns campaign state, priorities, dependency order, integration; accepts or rejects requirement mutations; prevents scope drift and duplicate work. Routes work to the cheapest capable role.",
+      "guard": "cannot approve its own implementation if it acted as builder"
+    },
+    "critic": {
+      "desc": "Independent middle tier. Evaluates the RUNNABLE ARTIFACT, never the builder's summary alone. Receives the requirement, acceptance conditions, before/after evidence, and references. Must form its initial judgement before reading the builder's reasoning.",
+      "guard": "must not be the same role/instance as the builder of the work it judges"
+    },
+    "expert": {
+      "desc": "Strongest, most expensive tier. Read-only and non-delegating. Only for: major architecture or cross-system decisions; hard physics/renderer/performance/state-consistency failures; a workstream still stuck after two materially different attempts; periodic milestone review.",
+      "guard": "diagnoses and recommends; cheaper agents implement and test"
+    }
+  },
+  "binding": {
+    "harness": "claude-code",
+    "notes": "Binding is per-harness and may be rewritten by any operator that records the change in state/decisions.jsonl. Defaults: scout/builder = cheaper subagent model or the main session with bounded context; critic = any agent with a fresh context that did not do the building (a general-purpose subagent spawned with requirement + evidence, not builder reasoning); director = the main session; expert = the strongest available model in read-only mode.",
+    "graderConstraint": "The vision-audit grader on this branch is routed through the Cursor picker (scripts/grade.mjs never calls an API). The living-requirements loop does NOT depend on it: deterministic checks and probe evidence are primary; visual review is reserved for genuinely perceptual questions."
+  },
+  "guard": {
+    "rule": "An acceptance decision recorded by scripts/loop.mjs campaign verify must name a verifier identity different from the builder identity recorded on the campaign. The CLI refuses otherwise.",
+    "rationale": "The builder must never be the sole grader of its own work (P9)."
+  }
+}
