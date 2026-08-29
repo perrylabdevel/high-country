@@ -676,8 +676,20 @@ async function boot() {
   }
 
   const npcs = [
-    { name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2, color: 0x5b3a24, line: "Smoke on the north wind. Too early, and too steady. If you ride, take the trail past the corral and keep the lake on your right." },
-    { name: "Nell Calder", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8, color: 0x7a3b1e, line: "Juniper is ready. That smoke is not a trash burn. We should be on the ridge before Silver Creek writes the story for us." },
+    {
+      name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2, color: 0x5b3a24,
+      line: [
+        "Smoke on the north wind. Too early, and too steady.",
+        "If you ride, take the trail past the corral and keep the lake on your right."
+      ]
+    },
+    {
+      name: "Nell Calder", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8, color: 0x7a3b1e,
+      line: [
+        "Juniper is ready. That smoke is not a trash burn.",
+        "We should be on the ridge before Silver Creek writes the story for us."
+      ]
+    },
     { name: "Wade Calder", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5, color: 0x6a4e32, line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing." }
   ];
 

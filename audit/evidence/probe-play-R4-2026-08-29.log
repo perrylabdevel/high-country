@@ -1,0 +1,22 @@
+probe: using server at http://127.0.0.1:8765 (spawned)
+PASS  enter: objective HUD shows the first objective — Find Harlan Calder at the ranch
+PASS  spawn: the player starts near the objective — 19 m from the ranch centre
+PASS  prompt: talking to Harlan is offered — E — Talk to Harlan Calder
+PASS  dialogue: Harlan speaks a two-line conversation — Smoke on the north wind. Too / If you ride, take the trail 
+PASS  transition: objective now points at the ridge — Ride the ridge trail north to the Ranch Overlook
+PASS  arrival: overlooking the burn line is an event — stage=2 flag={"sawTheLine":true}
+PASS  arrival: the world says what you see — The Ranch Overlook. Far to the north, a column of smoke stan
+PASS  prompt: glassing the smoke is offered — E — Glass the smoke
+PASS  reading: what you find is the discovery — Three columns, spaced even as fence posts, burning in a line
+PASS  discovery: the arson finding is recorded — {"sawTheLine":true,"sawArson":true}
+PASS  transition: the loop now asks you to return — Ride back and tell Nell what you saw
+PASS  prompt: Wade is addressable on the way home — E — Talk to Wade Calder
+PASS  dialogue: Wade reacts to what you carried back, pre-completion — You saw the line yourself? A mile, laid straight? Burners st
+PASS  prompt: Nell will hear the report — E — Talk to Nell Calder
+PASS  consequence: the loop completes — {"version":1,"mission":"smoke","stage":4,"done":true,"flags":{"sawTheLine":true,"sawArson":true,"loopComplete":true}}
+PASS  objective: completed loop is acknowledged — Loop complete — Smoke on the North Wind
+PASS  consequence: the family's dialogue changed — A fire line, laid by hand. Wade is saddling for town. We hol
+PASS  consequence: the changed dialogue persists — A fire line, laid by hand. Wade is saddling for town. We hol
+PASS  no page errors during the whole route
+
+probe-play: PASSED

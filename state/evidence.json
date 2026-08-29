@@ -54,5 +54,13 @@
     "path": "audit/evidence/probe-save-R2-2026-08-28.log",
     "summary": "CORRECTED (supersedes E5's counts): probe-save is 16/16 PASS exit 0, not 17/17; npm run check is 18 check:* scripts, not 19. Log updated to the post-fix cold run after the critic's findings were applied (autosave keyed off stage delta, hydrate-refusal logged, mounted field dropped, unknown flags filtered). probe-play re-run 17/17 after the same fixes.",
     "durable": true
+  },
+  {
+    "id": "E7",
+    "date": "2026-08-29T12:25:19.334Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-play-R4-2026-08-29.log",
+    "summary": "probe-play (R4 build) 19/19 PASS exit 0, cold run 2026-08-29: Harlan's two-line conversation advances and exits, mid-loop Wade conversation carries the sawArson discovery before completion, Nell report + persistence + all R1 beats still pass; no page errors. npm run check 18/18 including check:missions Wade conditional and multi-line array passthrough asserts.",
+    "durable": true
   }
 ]
