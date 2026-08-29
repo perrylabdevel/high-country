@@ -143,7 +143,7 @@
     {
       "id": "R4",
       "title": "Dialogue is a conversation, not a poster",
-      "status": "proposed",
+      "status": "deferred",
       "locked": false,
       "observation": "Each NPC stringifies one `line`; pressing E during dialogue closes it. No continuation, no branching, no state-aware content (docs/BACKLOG.md Episode-1 systems: relationship notes, reputation, clues, decisions).",
       "playerExperience": "Talking to a character advances meaning: lines continue, choices appear where the story needs them, and post-mission dialogue reflects what happened.",
@@ -157,7 +157,12 @@
         "browser play probe of a two-line and a conditional dialogue"
       ],
       "source": "src/main.js npcs + openTalk/closeTalk.",
-      "attempts": [],
+      "attempts": [
+        {
+          "approach": "20260829-R4",
+          "outcome": "deferred: Deferred by explicit operator instruction, not loop evidence: first-campaign requirement is a fresh-critic VISUAL campaign; old-pipeline visual commits do not satisfy it. R4 builder work preserved (tree checkpointed), verification intentionally not run. Resume R4 verification only after the visual campaign is accepted."
+        }
+      ],
       "files": [
         "src/main.js",
         "src/missions.js"

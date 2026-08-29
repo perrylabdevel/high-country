@@ -1,11 +1,11 @@
 {
-  "id": "20260829-R2",
-  "requirementId": "R2",
-  "stage": "accepted",
-  "startedAt": "2026-08-29T03:58:17.467Z",
+  "id": "20260829-R4",
+  "requirementId": "R4",
+  "stage": "deferred",
+  "startedAt": "2026-08-29T04:35:53.886Z",
   "rounds": 2,
   "builder": "claude-main-bugh",
-  "verifier": "critic-fork-2",
+  "verifier": null,
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
@@ -13,23 +13,16 @@
   },
   "notes": [
     {
-      "ts": "2026-08-29T04:04:17.650Z",
+      "ts": "2026-08-29T11:58:49.748Z",
       "stage": "implementing",
-      "text": "R2 implemented: src/save.js (injected-storage read/write, fail-safe parse), main.js boot restore + autosave on every stage transition and beforeunload, missions.hydrate hardened (stage clamp/flags validation/done normalisation), update() completion-toast precedence fix, check:save dry contract, probe-save browser probe (reload restore + torn write + version mismatch + impossible stage), probe driving helpers shared via scripts/probe/drive.mjs"
+      "text": "R4 plan: the multi-line affordance exists (advanceTalk + npc.line arrays) but no NPC conversation uses it and nothing is conditional on a DISCOVERED flag. Implement: Harlan and Nell openers become two-line speeches; Wade reacts to sawArson before the loop ends (post-loop lines already cover completion). Proof: check-missions additions (array passthrough, Wade pre/post conditionals) and probe-play asserts Harlan advances two lines and a mid-loop Wade conversation carries the discovery."
     },
     {
-      "ts": "2026-08-29T04:35:19.153Z",
+      "ts": "2026-08-29T12:44:45.254Z",
       "stage": "implementing",
-      "text": "Critic-fork-2 verdict ACCEPT (in fault injection: 3 self-invented defects each caught by check:save). Findings addressed: frame autosave now keys off mission state stage delta (closes silent-advance gap), refused hydrate logs '[save] save carried unusable mission state', dead player.mounted field removed from snapshot, hydrate filters flags through KNOWN_FLAGS derived from stage data; E5 overcounts corrected in E6. Deferred: none."
+      "text": "SUPERSEDED by director decision (human authority): the handoff requires the FIRST campaign under the new autonomous system to be a fresh-critic visual campaign; old-pipeline visual work does not satisfy it. R4 implementation is complete and self-evidenced (E7) but paused before independent verification. Tree checkpointed unverified on purpose — do not interpret R4 as accepted, and normal backlog ranking is suspended until the visual campaign is accepted."
     }
   ],
-  "evidence": [
-    {
-      "ts": "2026-08-29T04:35:28.051Z",
-      "verdict": "accept",
-      "verifier": "critic-fork-2",
-      "note": "Independent critic verified all 4 acceptance conditions on the runnable build: traced every transition to an autosave call, restored flags through a real boot (own playwright flag probe), ran 3 self-invented fault injections in a /tmp copy (all caught by check:save), cold-re-ran both probes and npm run check. Corrections applied: evidence counts fixed (E6), stage-delta autosave, hydrate refusal logging, mounted field dropped, unknown flags filtered."
-    }
-  ],
-  "outcome": "R2 verified accepted by critic-fork-2. Autosave on every stage transition + unload; reload restores stage, flags and pose; torn, foreign-version and impossible-stage saves all fail safe in browser and dry checks."
+  "evidence": [],
+  "outcome": "Deferred by explicit operator instruction, not loop evidence: first-campaign requirement is a fresh-critic VISUAL campaign; old-pipeline visual commits do not satisfy it. R4 builder work preserved (tree checkpointed), verification intentionally not run. Resume R4 verification only after the visual campaign is accepted."
 }

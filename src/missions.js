@@ -99,6 +99,19 @@ const KNOWN_FLAGS = (() => {
   return known;
 })();
 
+/**
+ * Lines keyed to a DISCOVERED flag rather than to a loop boundary: what a
+ * character says the moment you come back carrying the arson finding, before
+ * the family has been told. The POST_LOOP_LINES below take over once the
+ * loop completes, so Wade's reaction is two-stage, not static.
+ */
+const MIDLOOP_FLAGS = {
+  "Wade Calder": {
+    flag: "sawArson",
+    line: "You saw the line yourself? A mile, laid straight? Burners stack their logs in dome kilns. Nobody stacks an argument like that."
+  }
+};
+
 const POST_LOOP_LINES = {
   // Consequence stage: what the family does with the discovery. These replace
   // the calders' opening lines once the loop is complete, so the world reflects
@@ -242,6 +255,13 @@ export function createMissions() {
     const reply = s && s.reply && s.completeOn && s.completeOn.talk === npc.name;
     if (POST_LOOP_LINES[npc.name] && (state.done || reply)) {
       return [POST_LOOP_LINES[npc.name]];
+    }
+    // Carrying a discovery changes a conversation before the loop closes:
+    // Wade reacts to the arson finding the moment you have it, not only
+    // after you have told the family.
+    const mid = MIDLOOP_FLAGS[npc.name];
+    if (mid && state.flags[mid.flag]) {
+      return [mid.line];
     }
     if (Array.isArray(npc.line)) {
       return npc.line;

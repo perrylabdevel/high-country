@@ -59,8 +59,9 @@ async function main() {
     step("prompt: talking to Harlan is offered", /Talk to Harlan/.test(promptA), promptA);
     await page.keyboard.press("KeyE");
     await page.waitForTimeout(400);
-    const lines = await talkThrough({ expectSpeaker: "Harlan Calder", minLines: 1 });
-    step("dialogue: Harlan speaks", lines.length >= 1, lines.map((l) => l.body.slice(0, 28)).join(" / "));
+    const lines = await talkThrough({ expectSpeaker: "Harlan Calder", minLines: 2 });
+    step("dialogue: Harlan speaks a two-line conversation", lines.length >= 2,
+      lines.map((l) => l.body.slice(0, 28)).join(" / "));
     await page.waitForTimeout(600);
     step("transition: objective now points at the ridge", /Overlook/i.test(await objectiveText()), await objectiveText());
 
@@ -89,6 +90,18 @@ async function main() {
     step("discovery: the arson finding is recorded", found.state && found.state.flags.sawArson === true,
       JSON.stringify(found.state && found.state.flags));
     step("transition: the loop now asks you to return", /Nell/i.test(await objectiveText()), await objectiveText());
+
+    // --- Leg 4: ride back — Wade reacts before you have told the family ----
+    const wadeSpot = { x: POS.ranch.x - 28, z: POS.ranch.z + 27.5 };
+    await steerTo({ x: wadeSpot.x + 0.8, z: wadeSpot.z - 0.8 }, { arrive: 3.0, label: "Wade", timeout: 300000 });
+    const promptW = await page.evaluate(() => document.getElementById("prompt").textContent);
+    step("prompt: Wade is addressable on the way home", /Wade/.test(promptW), promptW);
+    await page.keyboard.press("KeyE");
+    await page.waitForTimeout(400);
+    const wade = await talkThrough({ expectSpeaker: "Wade Calder", minLines: 1 });
+    step("dialogue: Wade reacts to what you carried back, pre-completion",
+      /dome kilns/.test(wade[0].body), wade[0].body.slice(0, 60));
+    await page.waitForTimeout(400);
 
     // --- Leg 3: ride back and report ---------------------------------------
     const nellSpot = { x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8 };

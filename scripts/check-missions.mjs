@@ -70,6 +70,23 @@ ev = m.onExamined(exam);
 assert(m.state.flags.sawArson === true, "the reading records the arson discovery");
 assert(m.objective().includes("Nell"), "after the discovery, the loop asks you to report to Nell");
 
+// Carrying a discovery is itself a dialogue event: Wade reacts the moment
+// you have seen the arson, before you have told the family — not only in
+// the post-loop register.
+const wadeMid = m.dialogueFor({ name: "Wade Calder", line: "The Kovacs cousins worked our hay last year." });
+assert(wadeMid.length === 1 && /dome kilns/.test(wadeMid[0]),
+  "Wade reacts to the discovery mid-loop, not only after it");
+
+const wadeEarly = fresh().dialogueFor({ name: "Wade Calder", line: "The Kovacs cousins worked our hay last year." });
+assert(wadeEarly[0].startsWith("The Kovacs"),
+  "before you have seen anything, Wade still speaks his authored line");
+
+// An authored multi-line opener passes through untouched: advancing through
+// it is the dialogue box's job, not the mission's.
+const multi = fresh().dialogueFor({ name: "Test", line: ["first line", "second line"] });
+assert(multi.length === 2 && multi[1] === "second line",
+  "a multi-line opener advances by array, unedited");
+
 // The reporting conversation IS the moment of consequence: opening Nell's
 // dialogue on the report stage must already be her reaction, not her opener.
 const reportLine = m.dialogueFor({ name: "Nell Calder", line: "Juniper is ready." })[0];
