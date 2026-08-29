@@ -56,9 +56,15 @@ export const NAV = {
   CUT_COST: 3.2,
   KIND_COST: { stage: 1.0, road: 1.0, trail: 1.25, cut: 3.2, bridge: 1.1, gate: 1.1, poi: 1.0 },
   // A hop whose resolve pushes the mover more than this is walking the route
-  // *through* something, and the edge is dead for that mode.
+  // *through* something, and the edge is dead for that mode. 1.6 is measured,
+  // not guessed: with the world built, Silver Creek's street furniture pushes
+  // a road-riding horse 0.4-1.45 m sideways (hitch rails, false-front facades)
+  // while sliding along them — dropping those edges severed the town into 25
+  // components. Building interiors push 2.7-4.8 m and still drop. The global
+  // graph routes around things; only the local arrival leg (legClear, 2 m)
+  // demands a straight ungrazed line.
   BLOCK_COST: 40,
-  BLOCK_DROP: 0.6,
+  BLOCK_DROP: 1.6,
   // Edge failure memory: an edge a driver proved impassable leaves the search
   // for this long, and repeat failures age it out quadratically. 3 failures
   // = 12 minutes — long enough that a route search in the same session will
@@ -162,6 +168,45 @@ export function segmentCost(a, b, kind, mode) {
     pz = moved.z;
   }
   return cost;
+}
+
+/**
+ * Can a mover of `mode` walk the straight 2 m-sampled line from (ax, az) to
+ * (bx, bz)? Returns false on the first sample that is blocked, underwater, or
+ * steps more than `maxRise` metres of height — the "not separated by a
+ * wall/fence/cliff/water between the route and the destination" test.
+ *
+ * Both the graph builder (linkApproaches chooses which connector an approach
+ * ties to) and check-approaches (same test, asserted) use this one function:
+ * two walks of the leg would drift apart the first time someone tuned a
+ * threshold in one of them.
+ */
+export function legClear(ax, az, bx, bz, mode, { step = 2, drop = NAV.BLOCK_DROP, maxRise = 1.2, water = true } = {}) {
+  const dist = Math.hypot(bx - ax, bz - az);
+  const steps = Math.max(1, Math.ceil(dist / step));
+  let px = ax;
+  let pz = az;
+  let lastY = heightAt(ax, az);
+  for (let i = 1; i <= steps; i += 1) {
+    const t = i / steps;
+    const nx = ax + (bx - ax) * t;
+    const nz = az + (bz - az) * t;
+    const y = heightAt(nx, nz);
+    if (water && y < WATER) {
+      return false;
+    }
+    if (Math.abs(y - lastY) > maxRise) {
+      return false;
+    }
+    const moved = moveAndSlide(px, pz, nx - px, nz - pz, MODE_RADIUS[mode], null, lastY);
+    if (Math.hypot(moved.x - nx, moved.z - nz) > 0.05) {
+      return false;
+    }
+    px = moved.x;
+    pz = moved.z;
+    lastY = y;
+  }
+  return true;
 }
 
 /** Outside the playable world the graph simply does not exist. */

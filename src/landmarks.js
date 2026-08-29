@@ -605,13 +605,20 @@ export function createLandmarks(scene, maps = {}) {
     boxOnGround(group, gx, fort.z - fortDepth, 0.55, fortWallH + 2.6, 0.55, stone, false);
   }
   boxAt(group, fort.x, fort.z - fortDepth, 6.6, 0.55, 0.55, wood, false, fortWallH + 1.2);
-  // Closed leaves spanning the full 6 m opening: the two 2.7 m leaves left a
-  // gap that made the gate read as an open, off-center gap (F1).
-  for (const gx of [fort.x - 1.7, fort.x + 1.7]) {
+  // The leaves stand OPEN against the gateposts, hugging the inside of the
+  // wall line: closed leaves plus the full-width wall collider made the fort
+  // a physics prison — nav could not thread the gateway at all (the gate
+  // corridor check in check-approaches surfaced this as a hard failure).
+  // Open leaves leave the gateway centre clear and the gate still reads as a
+  // gate (posts + lintel remain).
+  for (const [gx, s] of [[fort.x - gateHalf - 1.6, -1], [fort.x + gateHalf + 1.6, 1]]) {
     boxAt(group, gx, fort.z - fortDepth + 0.08, 3.2, fortWallH + 0.25, 0.08, wood, false);
   }
   addBoxCollider(fort.x, fort.z + fortDepth, 14, 0.7);
-  addBoxCollider(fort.x, fort.z - fortDepth, 14, 0.7);
+  // North wall in two segments either side of a 6.4 m gateway at the gate
+  // node — the single 28 m collider spanned the gateway and walled the fort.
+  addBoxCollider(fort.x - (gateHalf + 0.2) - 5.4, fort.z - fortDepth, 5.4, 0.7);
+  addBoxCollider(fort.x + (gateHalf + 0.2) + 5.4, fort.z - fortDepth, 5.4, 0.7);
   addBoxCollider(fort.x - fortHalf, fort.z, 0.7, fortDepth);
   addBoxCollider(fort.x + fortHalf, fort.z, 0.7, fortDepth);
   boxAt(group, fort.x + 6, fort.z - 4, 6, 4.5, 6, stone);
