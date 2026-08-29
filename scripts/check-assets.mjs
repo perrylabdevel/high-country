@@ -17,6 +17,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import sharp from "sharp";
 
 function assert(cond, msg) {
   if (!cond) {
@@ -85,9 +86,57 @@ assert(
     `or the bundle was rebuilt without committing it:\n  ${wrong.join("\n  ")}`
 );
 
+// A tangent-space normal map is vector data, not a picture: its R/G channels
+// must average to ~127.5 or the whole surface is shaded with a constant tilt.
+// gravel's shipped as sRGB-encoded — mean R/G 183.9/183.3, a uniform 31.9 deg
+// tangent-space slope that survived to an 8x8 mip — so every road in the game
+// (splat channel A is gravel) was lit as a slope and the real gravel detail
+// rode on a DC term twice its own size. `pack-textures` now decodes such a map
+// and hard-errors on a bias it cannot explain; this pins the packed result.
+//
+// Only the intermediate .jpg can be read here: what ships is UASTC KTX2, which
+// needs a transcoder Node does not have, and `assets:bundle` drops any file
+// with a .ktx2 twin, so a fresh clone has neither. Checking the .jpg when it
+// is present covers every machine that has actually run pack-textures — which
+// is the only place the fault can be introduced.
+const NORMAL_MEAN_TOLERANCE = 12;
+const biased = [];
+let normalsChecked = 0;
+for (const file of await readdir(manifest.target).catch(() => [])) {
+  if (!/_normal\.jpg$/.test(file)) {
+    continue;
+  }
+  const { data, info } = await sharp(path.join(manifest.target, file))
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const px = info.width * info.height;
+  let r = 0;
+  let g = 0;
+  for (let i = 0; i < px; i += 1) {
+    r += data[i * info.channels];
+    g += data[i * info.channels + 1];
+  }
+  normalsChecked += 1;
+  const meanR = r / px;
+  const meanG = g / px;
+  if (Math.max(Math.abs(meanR - 127.5), Math.abs(meanG - 127.5)) > NORMAL_MEAN_TOLERANCE) {
+    const tilt = (Math.atan(Math.hypot(meanR / 127.5 - 1, meanG / 127.5 - 1)) * 180) / Math.PI;
+    biased.push(`${file}  mean R/G ${meanR.toFixed(1)}/${meanG.toFixed(1)} = ${tilt.toFixed(1)}deg constant tilt`);
+  }
+}
+assert(
+  biased.length === 0,
+  `normal maps have a net tilt — they are not tangent-space vector data, so ` +
+    `every surface using them is shaded as a slope:\n  ${biased.join("\n  ")}\n` +
+    `Re-run "npm run pack-textures" (PACK_ONLY=<set>), which decodes an ` +
+    `sRGB-encoded normal map, then re-bundle.`
+);
+
 console.log(JSON.stringify({
   manifestFiles: manifest.files.length,
   referencedInSource: referenced.size,
-  hashVerifiedLocally: hashed
+  hashVerifiedLocally: hashed,
+  normalMapsChecked: normalsChecked
 }, null, 2));
 console.log("PASS");

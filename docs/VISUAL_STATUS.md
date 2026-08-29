@@ -255,6 +255,82 @@ overturns 15–31 of the nominal fails each pass. Structural defects are gone;
 what remains is borderline material/lighting judgement plus a few fixed-camera
 angle limits (the rubric itself allows "cannot assess" for those).
 
+## Mip-contrast measurement (2026-08-28) — the hypothesis is half wrong
+
+The open item was: "at 28 m adobe samples a high mip where grain has averaged
+away, which would explain *close is fine, back up and it looks stamped* AND why
+adding brightness variation did nothing." It had never been run. It has now.
+
+**The distance half is confirmed.** At 1280×720 and a 62° vertical FOV, world
+metres per pixel is `2·d·tan(31°)/720`. Against each material's texel density
+(2048 px over its `makeTexturedMat` tiling), the sampled mip at 28 m is:
+
+| | adobe | wood | roof | rock | dirt | gravel | grass |
+|---|---|---|---|---|---|---|---|
+| tiling (m/repeat) | 1.6 | 1.8 | 1.4 | 2.2 | 8 | 10 | 6 |
+| mip at 28 m | **5.90** | **5.73** | **6.10** | **6.03** | 4.17 | 3.84 | 4.58 |
+| mip at 46 m | 6.62 | 6.45 | 6.81 | 6.74 | 4.88 | 4.56 | 5.30 |
+
+Building materials sit ~2 mip levels deeper than terrain at the same distance,
+purely because they tile 4–6× tighter in world space. A 2048² map at mip 6 is
+32×32, repeating every 1.8 m — at 28 m each repeat is ~38 px wide. A 10 m wall
+is 5½ copies of a 38-px blur. That is the *stamped* read, and it is a tiling
+choice, not a texture-quality problem.
+
+**The adobe half is falsified.** Adobe's albedo has no grain to lose:
+
+| mip | 0 | 3 | 5 | 6 | 7 |
+|---|---|---|---|---|---|
+| adobe contrast (levels/255) | **2.45** | 1.82 | 1.65 | 1.52 | 1.30 |
+| wood | 17.32 | 13.24 | 10.29 | 8.97 | 7.65 |
+| roof | 17.77 | 16.38 | 13.00 | 8.77 | **3.10** |
+| rock | 42.23 | 22.53 | 10.80 | **7.77** | 6.07 |
+
+Adobe is a **flat wash at mip 0** — stddev 2.45 of 255, under 1% contrast. It
+does not collapse by mip 4–5; it retains 62% at mip 6, because 62% of nearly
+nothing. **Adobe is not flat at distance, it is flat at every distance**, and
+the reason adding brightness variation did nothing is not the mip chain.
+
+Adobe's relief is entirely in its normal map, and *that* does collapse — mean
+tilt 2.35° → 0.82° at mip 6 (35%), 0.39° at mip 7. At `normalScale: 0.45` the
+starting 2.35° was already almost nothing. So adobe is flat close AND flatter
+far, by two independent mechanisms.
+
+**Where the prescribed fix does apply:** rock (42.2 → 7.8, 18% by mip 6) and
+roof (17.8 → 8.8 at mip 6, then off a cliff to 3.10 at mip 7) are genuine mip
+collapses. Those two want the detail-layer-that-holds-at-distance treatment.
+Adobe wants *any* albedo variation at all, at a feature size coarse enough to
+survive mip 6 — >5 cm, i.e. block and render variation, not grain. **These are
+two different fixes and they were being treated as one item.** Neither has been
+attempted; both remain open.
+
+The scripts are throwaway; the numbers above are the deliverable. Nothing in
+the renderer was changed for this measurement.
+
+## Shipped 2026-08-28 — gravel normal map was sRGB-encoded (correctness)
+
+Found by the measurement above, by running the instrument over all seven sets
+rather than the two the hypothesis named. `gravel/nor_gl.jpg` averaged
+(183.9, 183.3, 244.2) with mean `|n|` 1.147 — a constant **31.9° tangent-space
+tilt**, where every other set averages 127.5 with `|n|` 0.88–0.99. Gravel is
+splat channel A: **every road in the game** was shaded as a uniform slope.
+Full diagnosis and the fault-injection proof in HARD_WON 1.8.
+
+Shipped as a **correctness fix**, per `measured-experiment` ("a correctness bug
+ships on the evidence that it was wrong"), not on a fail count — and the honest
+note is that the appearance win is small: 6.9% / 9.5% of pixels moved at
+ironValley (mean 0.43 / 0.78 of 255, against a 0.034 re-capture floor), but the
+before and after frames look nearly the same. **Not graded.** A change this size
+sits far under the grader's ±11-fail floor, so a pass would have produced an
+uninterpretable number, not a result.
+
+Downstream: this is a prerequisite for the road-rut item, not a substitute for
+it. Measured at ironValley-golden the road ribbon is luma **0.703** against
+**0.455** for the ground beside it, with *higher* variation (sd 33.1 vs 15.7)
+and no clipping (max 210, 0% white). So a rut has contrast to work with — the
+road reads flat because it is a 1.5× brightness step in the same hue as its
+surroundings, not because it is blown out or un-lit.
+
 ## Next steps (when resumed)
 
 - The U2 tail has now resisted a dedicated procedural detail map, a

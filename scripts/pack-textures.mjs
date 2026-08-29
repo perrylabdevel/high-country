@@ -39,6 +39,77 @@ function assertFile(path, label) {
   }
 }
 
+/**
+ * Copy a tangent-space normal map, correcting one that was stored sRGB-encoded.
+ *
+ * A tangent-space normal map is vector data: its R/G channels must average to
+ * ~127.5 (no net tilt) and (r,g,b)*2-1 must be roughly unit length. Six of the
+ * seven Poly Haven sets in this project satisfy that as downloaded. `gravel`
+ * did not: mean RGB (183.9, 183.3, 244.2), mean |n| 1.147, a constant 31.9 deg
+ * tangent-space tilt that survived to an 8x8 mip. Decoding it as sRGB lands it
+ * exactly in the family (mean 126.2/125.5/231.6, |n| 0.939 +/- 0.096, against
+ * dirt's 0.954 +/- 0.076) — it had been through one extra sRGB encode.
+ *
+ * `pack-textures` used to `copyFileSync` the normal, so that bias went straight
+ * into the shipped KTX2 and every gravel surface — which is every road, the
+ * splat's channel A — was shaded as a uniform 32 deg slope. That both offsets
+ * the road's lighting from the terrain around it and halves the effective
+ * contrast of the real gravel detail riding on top of the DC term.
+ *
+ * Correct rather than throw, but never silently: an unrecognised deviation is
+ * a hard error, because silent substitution is how the wrong maps shipped
+ * before (HARD_WON 3.2). Byte-copy the good ones so their bundle hashes do not
+ * churn on a re-pack.
+ */
+const NORMAL_MEAN_TOLERANCE = 12;   // levels away from 127.5 that still reads as unbiased
+
+async function copyNormalMap(srcPath, destPath, name) {
+  const { data, info } = await sharp(srcPath).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const px = info.width * info.height;
+  const meanOf = (map) => {
+    let r = 0, g = 0;
+    for (let i = 0; i < px; i += 1) {
+      r += map(data[i * info.channels]);
+      g += map(data[i * info.channels + 1]);
+    }
+    return [r / px, g / px];
+  };
+  const bias = ([r, g]) => Math.max(Math.abs(r - 127.5), Math.abs(g - 127.5));
+
+  const asStored = meanOf((c) => c);
+  if (bias(asStored) <= NORMAL_MEAN_TOLERANCE) {
+    copyFileSync(srcPath, destPath);
+    return;
+  }
+
+  const toLinear = (c) => {
+    const n = c / 255;
+    return (n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4)) * 255;
+  };
+  const linearized = meanOf(toLinear);
+  if (bias(linearized) > NORMAL_MEAN_TOLERANCE) {
+    throw new Error(
+      `${name} normal map is biased (mean R/G ${asStored[0].toFixed(1)}/${asStored[1].toFixed(1)}, ` +
+      `expected ~127.5) and decoding it as sRGB does not fix it ` +
+      `(${linearized[0].toFixed(1)}/${linearized[1].toFixed(1)}). Inspect the source before packing.`
+    );
+  }
+
+  const out = Buffer.alloc(px * 3);
+  for (let i = 0; i < px; i += 1) {
+    for (let c = 0; c < 3; c += 1) {
+      out[i * 3 + c] = Math.round(toLinear(data[i * info.channels + c]));
+    }
+  }
+  await sharp(out, { raw: { width: info.width, height: info.height, channels: 3 } })
+    .jpeg({ quality: 95 })
+    .toFile(destPath);
+  console.warn(
+    `  ! ${name} normal was sRGB-encoded (mean R/G ${asStored[0].toFixed(1)}/${asStored[1].toFixed(1)}); ` +
+    `decoded to linear (${linearized[0].toFixed(1)}/${linearized[1].toFixed(1)})`
+  );
+}
+
 async function packSet(name) {
   const dir = join(srcRoot, name);
   const diff = join(dir, "diff.jpg");
@@ -54,7 +125,7 @@ async function packSet(name) {
 
   mkdirSync(destRoot, { recursive: true });
   copyFileSync(diff, join(destRoot, `${name}_2k_albedo.jpg`));
-  copyFileSync(normal, join(destRoot, `${name}_2k_normal.jpg`));
+  await copyNormalMap(normal, join(destRoot, `${name}_2k_normal.jpg`), name);
 
   const [aoBuf, roughBuf, dispBuf] = await Promise.all([
     sharp(ao).greyscale().raw().toBuffer({ resolveWithObject: true }),
@@ -108,12 +179,16 @@ const sets = existsSync(srcRoot)
   : [];
 
 const skip = new Set(["leaf"]);
+// PACK_ONLY=gravel[,rock] repacks a subset. A full re-pack rewrites every
+// KTX2, which churns the bundle hash for sets that did not change; when one
+// source is corrected, pack only that one so the diff stays legible.
+const only = process.env.PACK_ONLY ? new Set(process.env.PACK_ONLY.split(",").map((s) => s.trim())) : null;
 
 if (sets.length === 0) {
   console.warn("No texture sets in assets-src/textures/. Download sources first.");
 } else {
   for (const name of sets) {
-    if (skip.has(name)) {
+    if (skip.has(name) || (only && !only.has(name))) {
       continue;
     }
     await packSet(name);

@@ -192,6 +192,53 @@ config twice) to separate signal from noise — the eye alone could not see the
 every frame the audit grades, so it belongs in a measured pass, not a drive-by
 flip.
 
+### 1.8 A normal map that was sRGB-encoded — every road shaded as a 32° slope
+
+**Symptom:** none, directly. Nobody reported it. It was found while measuring
+something else (the mip-contrast question below), because that measurement
+walked the whole texture set instead of only the two maps the hypothesis named.
+
+**Cause:** `assets-src/textures/gravel/nor_gl.jpg` had been through one extra
+sRGB encode before it ever reached this repo. A tangent-space normal map is
+vector data: its R/G channels must average to ~127.5 (no net tilt) and
+`rgb*2-1` must be roughly unit length. Gravel averaged **(183.9, 183.3, 244.2)**
+with mean `|n|` **1.147** — a constant **31.9°** tangent-space tilt. The other
+six sets in the same download all averaged 127.5 with `|n|` 0.88–0.99.
+`pack-textures` `copyFileSync`'d the normal straight through, so the bias went
+into the shipped KTX2 untouched.
+
+Gravel is splat channel A, which is **every road in the game** plus the rail
+bed. `terrainMaterial` blends `gravel.normal` into the surface normal, so each
+road was lit as a uniform slope facing one world diagonal, and the real gravel
+detail (sd 0.22) rode on a DC term twice its own size — which is most of why a
+wheel rut "cannot catch light".
+
+**Proved rather than assumed.** Decoding the file as sRGB lands it exactly in
+the family: mean (126.2, 125.5, 231.6), `|n|` 0.939 ± 0.096, against dirt's
+0.954 ± 0.076. Doing the same to rock *widens* its spread (±0.097 → ±0.233), so
+the transform is specific to the one broken file, not a knob that flatters
+everything.
+
+**Fix:** `pack-textures` now detects a normal map whose R/G mean is off by more
+than 12 levels, decodes it to linear if that explains the bias, and **throws if
+it does not** — correcting silently is how the wrong maps shipped last time
+(3.2). Good maps are still `copyFileSync`'d byte-for-byte so their bundle
+hashes do not churn. `check:assets` pins the packed result; fault injection
+confirms it (restoring the old file exits 1 naming the file and the tilt).
+
+**Scale of the visual effect, measured, not claimed:** at ironValley the fix
+moves 6.9% (midday) / 9.5% (golden) of pixels by >1.5 levels, mean whole-frame
+0.43 / 0.78 of 255 — against a documented pinned-clock re-capture floor of
+0.034. Signal, comfortably. But the two frames look nearly the same to the eye,
+and the road still reads as a flat pale ribbon, because that ribbon is bright
+(luma 0.703 vs 0.455 for the ground beside it) rather than un-lit. **The
+correctness of the asset and the size of its appearance win are separate
+questions; this shipped on the first.**
+
+**The lesson is about measurement scope.** The hypothesis under test named two
+textures. Measuring all seven cost nothing extra and was the only reason this
+was found. When you build an instrument, run it across the whole set.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
