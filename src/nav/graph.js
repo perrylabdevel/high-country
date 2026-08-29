@@ -18,7 +18,8 @@
  */
 
 import { mapToWorld, samplePolyline, ROADS, BRIDGES, POS, headingVector } from "../map.js";
-import { NAV, segmentCost, inWorld } from "./costs.js";
+import { hasColliderNear } from "../collision.js";
+import { NAV, segmentCost, inWorld, legClear } from "./costs.js";
 
 /**
  * Gate crossings the graph may thread. Authored as offsets from a POS place so
@@ -67,6 +68,15 @@ export const NAV_CUTS = [
   {
     name: "hideout",
     pts: [[0.42, 0.1], [0.35, 0.08]]
+  },
+  // The iron valley floor. The trail serving it stops 125 m short of the
+  // camp on the valley rim; without this spur the camp approach has no node
+  // within the 60 m link radius and the valley is only ever scenery. The
+  // terminus stops short of the camp sheds — the full line's last samples ran
+  // between sheds 1 and 3, where every straight leg to the approach slid.
+  {
+    name: "valleyFloor",
+    pts: [[0.814, 0.594], [0.83475, 0.579]]
   },
   // The stamp mill rides the iron rail in the world's fiction; since the rail
   // is not traversable, the mill's switch is a dirt spur off ironTrail.
@@ -403,11 +413,42 @@ export function navGraph() {
 }
 
 /**
+ * Connectors near (x, z), nearest first, tie-break lowest id. Candidates for
+ * approach links: the nearest is tried first but not guaranteed — the leg,
+ * not the distance, decides (linkApproaches).
+ */
+function connectorsNear(nodes, x, z, maxDist) {
+  const hits = [];
+  for (const n of nodes) {
+    if (!CONNECTOR_KINDS.includes(n.kind)) {
+      continue;
+    }
+    const d = Math.hypot(n.x - x, n.z - z);
+    if (d <= maxDist && connectorStandable(n)) {
+      hits.push({ id: n.id, dist: d });
+    }
+  }
+  hits.sort((a, b) => a.dist - b.dist || a.id - b.id);
+  return hits;
+}
+
+function nearestConnectorIn(nodes, x, z, maxDist) {
+  const hits = connectorsNear(nodes, x, z, maxDist);
+  return hits.length ? { id: hits[0].id, dist: hits[0].dist } : null;
+}
+
+/**
  * Register the graph front doors for a set of approaches
  * ({ id, poi, x, z }[] in data order). Idempotent: re-linking is a no-op.
  * Returns one result per approach with the chosen node and its distance —
  * check-approaches turns a miss into a failure, so the diagnostic lives where
  * the data is validated, not buried in the builder.
+ *
+ * The tie-in node is the nearest connector the approach can actually be
+ * WALKED from (legClear, 2 m straight line, horse radius): roads were authored
+ * to POI centres, so several places have trail samples ending inside the very
+ * building they serve, and tying the hunting cabin's porch to a node on the
+ * far side of its own walls would hand the local stage a route through them.
  */
 export function linkApproaches(approaches) {
   const g = navGraph();
@@ -418,7 +459,14 @@ export function linkApproaches(approaches) {
       results.push({ id: ap.id, node: g.approachNodes.get(ap.id), dist: 0, ok: true });
       continue;
     }
-    const nb = nearestConnectorIn(g.nodes, ap.x, ap.z, NAV.SNAP_RADIUS);
+    let nb = null;
+    for (const cand of connectorsNear(g.nodes, ap.x, ap.z, NAV.SNAP_RADIUS)) {
+      const n = g.nodes[cand.id];
+      if (legClear(n.x, n.z, ap.x, ap.z, "horse")) {
+        nb = cand;
+        break;
+      }
+    }
     if (!nb) {
       results.push({ id: ap.id, node: -1, dist: Infinity, ok: false });
       continue;
@@ -462,20 +510,18 @@ export function approachNodeOf(approachId) {
 // is ~microseconds and needs no hash to stay correct. If nav ever grows real
 // traffic, this is where a grid goes — not into the builder.
 
-function nearestConnectorIn(nodes, x, z, maxDist) {
-  let best = -1;
-  let bestD = maxDist;
-  for (const n of nodes) {
-    if (!CONNECTOR_KINDS.includes(n.kind)) {
-      continue;
-    }
-    const d = Math.hypot(n.x - x, n.z - z);
-    if (d < bestD || (d === bestD && best >= 0 && n.id < best)) {
-      bestD = d;
-      best = n.id;
-    }
-  }
-  return best < 0 ? null : { id: best, dist: bestD };
+/**
+ * A connector standing inside solid world is not a link target. Roads and
+ * trails were authored to POI centres, so their last samples sit inside the
+ * very buildings they serve (the hunting cabin's trail dies at its heart,
+ * the mission's road under its own collider). Linking an approach to such a
+ * dead node hands the local stage a leg through the wall it was built to
+ * prevent. Colliders are empty in the graph-only check environment, where
+ * this filter is a no-op — with the world built (runtime, check-approaches)
+ * it is load-bearing.
+ */
+function connectorStandable(n) {
+  return !hasColliderNear(n.x, n.z, 1.2);
 }
 
 /** Every connector node within `radius`, ascending id — gate links want all of them. */
@@ -486,7 +532,7 @@ function connectorIdsWithin(nodes, x, z, radius) {
       continue;
     }
     const d = Math.hypot(n.x - x, n.z - z);
-    if (d <= radius) {
+    if (d <= radius && connectorStandable(n)) {
       hits.push({ id: n.id, dist: d });
     }
   }
@@ -499,13 +545,19 @@ function connectorIdsWithin(nodes, x, z, radius) {
  * Deterministic tie-break: nearest, then lowest id — two calls with the same
  * arguments snap the same way, which is what keeps route probes reproducible
  * (the probe asserts routes stay stable across runs via the graph check).
+ * `standable` drops nodes inside solid world (see connectorStandable) — route
+ * starts must not snap onto a node buried in the building the traveller stands
+ * beside, or every edge of the route's first hop prices impassable.
  */
-export function nearestNode(x, z, { kinds = null, maxDist = NAV.SNAP_RADIUS * 4 } = {}) {
+export function nearestNode(x, z, { kinds = null, maxDist = NAV.SNAP_RADIUS * 4, standable = false } = {}) {
   const g = navGraph();
   let best = -1;
   let bestD = maxDist;
   for (const n of g.nodes) {
     if (kinds && !kinds.includes(n.kind)) {
+      continue;
+    }
+    if (standable && !connectorStandable(n)) {
       continue;
     }
     const d = Math.hypot(n.x - x, n.z - z);

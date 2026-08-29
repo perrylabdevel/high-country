@@ -363,6 +363,30 @@ export function hasColliderNear(x, z, radius) {
   return found;
 }
 
+/**
+ * Distance to the nearest collider surface from (x, z), capped at `maxR`.
+ * Returns maxR when nothing stands within it.
+ *
+ * hasColliderNear answers "is something here"; arrival checks need "how much
+ * room is here" — an approach whose region is clear at r=4 but flanked by a
+ * wall at 4.1 m must read tighter than one standing in open yard. Approximate
+ * by probing the resolved direction: the signed nearest point of each
+ * candidate box to the query point, measured centre-outward.
+ */
+export function clearanceAt(x, z, maxR) {
+  ensureGrids();
+  let best = maxR;
+  forCollidersNear(boxGrid, x, z, maxR, (box) => {
+    const nx = Math.max(box.minX, Math.min(x, box.maxX));
+    const nz = Math.max(box.minZ, Math.min(z, box.maxZ));
+    best = Math.min(best, Math.hypot(x - nx, z - nz));
+  });
+  forCollidersNear(cylinderGrid, x, z, maxR, (cyl) => {
+    best = Math.min(best, Math.max(0, Math.hypot(x - cyl.x, z - cyl.z) - cyl.radius));
+  });
+  return best;
+}
+
 export function movementBlocked(x, z, dx, dz, radius, ignore = null, y = null) {
   const next = moveAndSlide(x, z, dx, dz, radius, ignore, y);
   return Math.hypot(next.x - (x + dx), next.z - (z + dz)) > 0.05;

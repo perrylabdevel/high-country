@@ -120,7 +120,10 @@ export const ROADS = [
       [0.06, 0.36],
       [0.1, 0.38],
       [0.14, 0.43],
-      [0.18, 0.48],
+      // The corner bends short of Barrett's house standing at the POI centre
+      // (0.18,0.48): the last edge into it crossed the house footprint and the
+      // impassable drop severed the whole western stage line from the network.
+      [0.1785, 0.4816],
       [0.22, 0.5],
       [0.3, 0.46],
       [0.36, 0.44],
@@ -128,13 +131,18 @@ export const ROADS = [
     ]
   },
   {
+    // The final leg hooks through the gap west of town and lands on the cross
+    // street's south end — the direct line into the town centre rides straight
+    // through the storefront blocks (the hotel at (225,-192): an edge priced
+    // impassable under BLOCK_DROP, severing the whole western map from town).
     name: "ranchTown",
     kind: "road",
     width: 6.5,
     pts: [
       [0.4, 0.44],
       [0.48, 0.49],
-      [0.56, 0.54]
+      [0.5375, 0.548],
+      [0.54756, 0.54919]
     ]
   },
   {
@@ -149,11 +157,15 @@ export const ROADS = [
     ]
   },
   {
+    // Leaves town on the cross street's south end (the town's roads sit inside
+    // the storefront rows; the centre itself is walled in by facades), then
+    // runs south-west over the open ground to the lake's west arm.
     name: "silverNorth",
     kind: "road",
     width: 6,
     pts: [
-      [0.56, 0.54],
+      [0.54756, 0.54919],
+      [0.525, 0.58],
       [0.5, 0.64],
       [0.44, 0.76],
       [0.46, 0.86],
@@ -163,25 +175,32 @@ export const ROADS = [
     ]
   },
   {
+    // The street itself, painted along the storefront axis (STREETS yaw 0.15
+    // in landmarks.js) instead of the old N-S diagonal that ran through the
+    // hotel: from the cross-street junction west of the storefront row,
+    // through the town centre, out the east end.
     name: "townMain",
     kind: "road",
     width: 7,
     lift: 0.11,
     pts: [
-      [0.548, 0.518],
+      [0.54764, 0.54149],
       [0.56, 0.54],
-      [0.572, 0.562]
+      [0.58101, 0.53746]
     ]
   },
   {
+    // The cross street as built (landmarks.js crossAlong -56, yaw 0.15+PI/2):
+    // it only opens to the south — its north leg ends inside the main
+    // storefront row, so it runs from the main-street junction south to the
+    // town gate that ranchTown, silverNorth and lakeShore all share.
     name: "townCross",
     kind: "road",
     width: 5.5,
     lift: 0.11,
     pts: [
-      [0.538, 0.552],
-      [0.56, 0.54],
-      [0.582, 0.528]
+      [0.54615, 0.54168],
+      [0.54756, 0.54919]
     ]
   },
   {
@@ -190,7 +209,9 @@ export const ROADS = [
     width: 3.2,
     pts: [
       [0.14, 0.5],
-      [0.12, 0.58],
+      // Sheep camp's hut stands at the POI centre the old corner sample hit;
+      // the impassable drop detached the entire western-range leg of this road.
+      [0.12625, 0.578],
       [0.22, 0.54],
       [0.32, 0.5],
       [0.4, 0.44]
@@ -238,28 +259,34 @@ export const ROADS = [
     pts: [
       [0.66, 0.36],
       [0.58, 0.3],
-      [0.64, 0.22],
+      // Bends short of the tribal-lands structure at the POI centre: the old
+      // corner sample sat inside it and the drop cut off the whole elPaso leg.
+      [0.6365, 0.2248],
       [0.72, 0.12],
       [0.84, 0.06]
     ]
   },
   {
+    // Starts at townMain's east end: leaving from the old centre start angled
+    // through the east row of lots and its first edge priced impassable.
     name: "ironTrail",
     kind: "trail",
     width: 3.2,
     pts: [
-      [0.56, 0.54],
+      [0.58101, 0.53746],
       [0.68, 0.56],
       [0.8, 0.58],
       [0.86, 0.64]
     ]
   },
   {
+    // Shares the town's southern cross-street gate with silverNorth, then
+    // diverges south-west down the shore toward the lake trail.
     name: "lakeShore",
     kind: "trail",
     width: 3,
     pts: [
-      [0.56, 0.54],
+      [0.54756, 0.54919],
       [0.54, 0.6],
       [0.5, 0.64]
     ]
@@ -271,7 +298,9 @@ export const ROADS = [
     pts: [
       [0.4, 0.44],
       [0.38, 0.52],
-      [0.38, 0.58],
+      // Ends at the cabin's south face, not its centre: the centre is inside
+      // the building, where the trail's last edge is unwalkable by definition.
+      [0.38, 0.5788],
       [0.46, 0.58]
     ]
   },
