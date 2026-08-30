@@ -27,8 +27,8 @@ import { readSave, writeSave } from "./save.js";
 import { POS, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
 import { resetNavGraph, navGraph, linkApproaches } from "./nav/graph.js";
-import { approachLinkRows, APPROACHES } from "./nav/arrivals.js";
-import { markEdgeBlocked, blockedEdges } from "./nav/search.js";
+import { approachLinkRows, APPROACHES, primaryApproach } from "./nav/arrivals.js";
+import { markEdgeBlocked, blockedEdges, routeTo } from "./nav/search.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
 import { STRUCTURES } from "./buildings/kit.js";
@@ -218,6 +218,7 @@ async function boot() {
         yaw: player.state.yaw,
         mounted: player.state.mounted
       },
+      horse: { x: horse.object.position.x, z: horse.object.position.z },
       place: placeEl.textContent
     });
     /**
@@ -420,6 +421,36 @@ async function boot() {
      * reflects the detour or the unreachable verdict.
      */
     window.__navBlockEdge = (a, b, reason = "probe") => markEdgeBlocked(a, b, reason);
+    /**
+     * The route the HUD would advertise for ANY place (not just the active
+     * objective): POI centre, arrival approach, and the planned polyline with
+     * the player's live pose as its origin. A probe following these waypoints
+     * is verifying the same affordance a player reads off the minimap — the
+     * game itself never moves the player.
+     */
+    window.__navTo = (poiId, mode) => {
+      const ap = primaryApproach(poiId);
+      if (!ap) {
+        return { poiId, status: "no-approach" };
+      }
+      const m = mode || (player.state.mounted ? "horse" : "walk");
+      const route = routeTo(player.object.position.x, player.object.position.z, ap, m);
+      return {
+        poiId,
+        name: POS[poiId] ? POS[poiId].name : poiId,
+        x: ap.x,
+        z: ap.z,
+        r: ap.r,
+        type: ap.type,
+        route: {
+          status: route.status,
+          length: route.length,
+          waypoints: route.waypoints,
+          blocked: route.blocked,
+          replans: route.replans
+        }
+      };
+    };
     window.__syncMaterialSettings = () => {
       updateSunOffset();
       syncEnvironmentIntensity(scene);

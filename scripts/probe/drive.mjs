@@ -197,6 +197,42 @@ export async function steerTo(target, { arrive = 5, timeout = 160000, label = ""
   throw new Error(`steering to ${label || target.x + "," + target.z} timed out`);
 }
 
+/**
+ * Follow a planned route waypoint by waypoint — the driver's answer to
+ * two-stage navigation. Each hop re-reads the live route between legs (the
+ * search replans as the player deviates or the blacklist grows), skips
+ * waypoints already behind the traveller, and walks the final approach at
+ * steerTo's closed loop. Waypoint hops get a distance-scaled timeout (a 400 m
+ * edge at probe pace needs minutes, not seconds); a wedged hop throws, which
+ * the caller may treat as "this approach failed" and move on.
+ */
+export async function steerRoute(route, { label = "", skipWithin = 14, pulse = null } = {}) {
+  if (!route || route.status !== "routed" || !route.waypoints.length) {
+    throw new Error(`steerRoute: no routed plan${route ? ` (status ${route.status})` : ""} for ${label || "leg"}`);
+  }
+  const wps = route.waypoints;
+  let done = 0;
+  for (let i = 0; i < wps.length; i += 1) {
+    const wp = wps[i];
+    const here = await gs();
+    const d = Math.hypot(wp.x - here.player.x, wp.z - here.player.z);
+    if (d <= (wp.kind === "approach" ? 4 : skipWithin)) {
+      done += 1;
+      continue;
+    }
+    // The approach point is the arrival, not a passthrough: tight arrive.
+    const arrive = wp.kind === "approach" ? 4 : Math.min(skipWithin, Math.max(7, d * 0.12));
+    await steerTo(wp, {
+      arrive,
+      label: `${label} wp${i}/${wps.length - 1}${wp.kind ? ` (${wp.kind}${wp.ref ? ` ${wp.ref}` : ""})` : ""}`,
+      timeout: Math.min(420000, Math.max(30000, 25000 + d * 1600)),
+      pulse
+    });
+    done += 1;
+  }
+  return { hops: done, of: wps.length };
+}
+
 /** Press E and hold while a dialogue is open, advancing line by line. */
 export async function talkThrough({ expectSpeaker, minLines = 1 } = {}) {
   const lines = [];
