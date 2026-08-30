@@ -1,0 +1,232 @@
+probe: using server at http://127.0.0.1:8794 (spawned)
+PASS  inventory loads (67 apertures)
+PASS  aperture ids unique
+PASS  every aperture has a POI
+PASS  traversable doors to walk (17)
+
+[door] ranchHouse.partition.west.door.0 (28 m away)
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=10m yaw=-0.24 err=-0.04 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=-0.22 err=0.07 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=10m dLast=11m yaw=-0.04 err=0.33 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=11m dLast=9m yaw=0.12 err=-0.26 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=-0.03 err=-0.15 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=-0.08 err=-0.08 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=-0.09 err=-0.04 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=10m yaw=-0.00 err=0.22 gain=60.0 shuffles=4
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=0.05 err=0.16 gain=60.0 shuffles=4
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=0.10 err=0.05 gain=60.0 shuffles=4
+  [trace] ranchHouse.partition.west.door.0 exterior d=10m dLast=11m yaw=0.04 err=-0.23 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=9m dLast=9m yaw=-0.11 err=-0.03 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=9m dLast=Infinitym yaw=0.92 err=1.15 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=9m dLast=9m yaw=0.96 err=0.30 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=4m dLast=4m yaw=0.94 err=-0.28 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior d=6m dLast=7m yaw=-5.38 err=-1.21 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=5m yaw=-6.25 err=-1.22 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-8.79 err=-1.79 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=2m dLast=2m yaw=-10.10 err=-1.19 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-14.39 err=-1.53 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-14.85 err=-1.60 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-16.29 err=-1.72 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=5m yaw=-18.55 err=-1.28 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-18.94 err=-1.39 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-21.57 err=-1.71 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=8m dLast=8m yaw=-25.98 err=-1.29 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-28.44 err=-1.93 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=2m dLast=3m yaw=-30.90 err=-1.31 gain=60.0 shuffles=6
+  [trace] ranchHouse.partition.west.door.0 exterior d=2m dLast=2m yaw=-31.13 err=-1.57 gain=60.0 shuffles=6
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-35.94 err=-1.69 gain=60.0 shuffles=7
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-37.53 err=-1.82 gain=60.0 shuffles=7
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-37.79 err=-1.79 gain=60.0 shuffles=7
+  [trace] ranchHouse.partition.west.door.0 exterior d=2m dLast=2m yaw=-39.67 err=-2.00 gain=60.0 shuffles=8
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-40.56 err=-2.02 gain=60.0 shuffles=8
+  [trace] ranchHouse.partition.west.door.0 exterior d=7m dLast=5m yaw=-42.38 err=-1.41 gain=60.0 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=7m dLast=7m yaw=-42.57 err=-1.34 gain=60.0 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=5m dLast=5m yaw=-43.79 err=-1.18 gain=60.0 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-46.83 err=-1.77 gain=60.0 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=3m yaw=-49.46 err=-2.08 gain=60.0 shuffles=10
+  [trace] ranchHouse.partition.west.door.0 exterior d=5m dLast=4m yaw=-50.29 err=-1.85 gain=60.0 shuffles=10
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-52.97 err=-1.57 gain=60.0 shuffles=11
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-54.01 err=-1.87 gain=60.0 shuffles=11
+  [trace] ranchHouse.partition.west.door.0 exterior d=3m dLast=3m yaw=-54.28 err=-1.88 gain=60.0 shuffles=11
+  [trace] ranchHouse.partition.west.door.0 exterior d=4m dLast=4m yaw=-58.21 err=-1.99 gain=60.0 shuffles=12
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=7m dLast=7m yaw=-58.73 err=1.44 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=6m dLast=6m yaw=-57.83 err=0.52 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-57.71 err=-0.16 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-57.83 err=-0.29 gain=60.0 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=6m dLast=6m yaw=-58.31 err=-0.49 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.41 err=-0.30 gain=60.0 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.03 err=0.49 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-57.87 err=0.19 gain=60.0 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=6m yaw=-58.18 err=-0.49 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.24 err=-0.42 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.29 err=-0.35 gain=60.0 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=6m dLast=7m yaw=-58.11 err=-0.47 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.29 err=-0.34 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.39 err=0.00 gain=60.0 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-57.96 err=0.36 gain=60.0 shuffles=6
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.29 err=0.19 gain=60.0 shuffles=7
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=6m dLast=7m yaw=-58.08 err=-0.47 gain=60.0 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-57.86 err=0.04 gain=60.0 shuffles=12
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=7m dLast=5m yaw=-58.02 err=-0.48 gain=60.0 shuffles=13
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.31 err=-0.27 gain=60.0 shuffles=13
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=5m dLast=5m yaw=-58.01 err=0.43 gain=60.0 shuffles=14
+staged retry ranchHouse.partition.west.door.0
+FAIL  walk through ranchHouse.partition.west.door.0 — steering to ranchHouse.partition.west.door.0 exterior timed out
+
+[door] barn.front.barn.0 (38 m away)
+  [trace] barn.front.barn.0 exterior d=34m dLast=34m yaw=-58.77 err=-0.41 gain=60.0 shuffles=0
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=1
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=1
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=1
+  [trace] barn.front.barn.0 exterior d=30m dLast=31m yaw=-59.03 err=-0.00 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior d=33m dLast=30m yaw=-59.03 err=-0.04 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior d=30m dLast=31m yaw=-59.04 err=-0.01 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.03 err=-0.01 gain=60.0 shuffles=6
+  [trace] barn.front.barn.0 exterior d=32m dLast=33m yaw=-59.04 err=-0.03 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior d=32m dLast=33m yaw=-59.04 err=-0.03 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior d=30m dLast=30m yaw=-59.04 err=0.00 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior d=31m dLast=32m yaw=-59.03 err=0.04 gain=60.0 shuffles=12
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.58 err=0.03 gain=60.0 shuffles=0
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.58 err=0.03 gain=60.0 shuffles=1
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.60 err=0.03 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.57 err=0.02 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.57 err=0.02 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=4
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.58 err=0.03 gain=60.0 shuffles=5
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=6
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=6
+  [trace] barn.front.barn.0 exterior detour d=18m dLast=18m yaw=-58.60 err=-0.07 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.57 err=0.02 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=8
+  [trace] barn.front.barn.0 exterior detour d=18m dLast=18m yaw=-58.60 err=-0.07 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.58 err=0.03 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.00 gain=60.0 shuffles=10
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.60 err=0.03 gain=60.0 shuffles=11
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.01 gain=60.0 shuffles=12
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.56 err=0.01 gain=60.0 shuffles=12
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=18m yaw=-58.61 err=-0.04 gain=60.0 shuffles=13
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.59 err=0.04 gain=60.0 shuffles=13
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-58.58 err=0.03 gain=60.0 shuffles=13
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=1
+  [trace] barn.front.barn.0 exterior detour d=19m dLast=17m yaw=-59.52 err=0.11 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.47 err=-0.00 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.48 err=-0.02 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.51 err=-0.04 gain=60.0 shuffles=2
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=18m yaw=-59.53 err=-0.02 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=3
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=18m yaw=-59.52 err=-0.03 gain=60.0 shuffles=5
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=5
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=5
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.02 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=7
+  [trace] barn.front.barn.0 exterior detour d=18m dLast=19m yaw=-59.50 err=0.10 gain=60.0 shuffles=8
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.48 err=0.05 gain=60.0 shuffles=8
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=9
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.49 err=-0.03 gain=60.0 shuffles=10
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=11
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.01 gain=60.0 shuffles=11
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.47 err=0.02 gain=60.0 shuffles=12
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.53 err=-0.02 gain=60.0 shuffles=13
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.47 err=0.03 gain=60.0 shuffles=14
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.50 err=-0.04 gain=60.0 shuffles=14
+  [trace] barn.front.barn.0 exterior detour d=17m dLast=17m yaw=-59.51 err=-0.04 gain=60.0 shuffles=14
+staged retry barn.front.barn.0
+FAIL  walk through barn.front.barn.0 — steering to barn.front.barn.0 exterior timed out
+  [trace] retreat d=25m dLast=25m yaw=-58.99 err=0.11 gain=60.0 shuffles=0
+  [trace] retreat d=25m dLast=25m yaw=-58.96 err=0.07 gain=60.0 shuffles=0
+  [trace] retreat d=28m dLast=28m yaw=-58.92 err=-0.01 gain=60.0 shuffles=1
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=1
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=2
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=2
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=2
+  [trace] retreat d=27m dLast=28m yaw=-58.90 err=-0.04 gain=60.0 shuffles=3
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=3
+  [trace] retreat d=26m dLast=26m yaw=-58.88 err=0.02 gain=60.0 shuffles=4
+  [trace] retreat d=25m dLast=26m yaw=-58.88 err=-0.00 gain=60.0 shuffles=4
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=4
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=4
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=4
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=5
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=5
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=5
+  [trace] retreat d=25m dLast=25m yaw=-58.91 err=0.01 gain=60.0 shuffles=5
+  [trace] retreat d=25m dLast=25m yaw=-58.88 err=-0.01 gain=60.0 shuffles=6
+
+[door] ranchGate.east.gate.0 (147 m away)
+  [trace] ranchGate.east.gate.0 exterior d=150m dLast=151m yaw=-58.16 err=0.00 gain=60.0 shuffles=1
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.16 err=0.01 gain=60.0 shuffles=1
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.16 err=0.01 gain=60.0 shuffles=1
+  [trace] ranchGate.east.gate.0 exterior d=151m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=4
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=4
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=5
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=5
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=6
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=6
+  [trace] ranchGate.east.gate.0 exterior d=151m dLast=148m yaw=-58.14 err=-0.02 gain=60.0 shuffles=7
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=7
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=8
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=8
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=9
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=9
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=10
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=10
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=10
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.02 gain=60.0 shuffles=11
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=-0.01 gain=60.0 shuffles=11
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=149m yaw=-58.14 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=148m yaw=-58.14 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior d=149m dLast=150m yaw=-58.14 err=-0.02 gain=60.0 shuffles=13
+  [trace] ranchGate.east.gate.0 exterior d=148m dLast=149m yaw=-58.14 err=-0.02 gain=60.0 shuffles=13
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.05 err=0.03 gain=60.0 shuffles=0
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.05 err=0.01 gain=60.0 shuffles=0
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.09 err=-0.01 gain=60.0 shuffles=1
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.08 err=0.02 gain=60.0 shuffles=2
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.07 err=0.01 gain=60.0 shuffles=2
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.11 err=-0.02 gain=60.0 shuffles=3
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.10 err=0.03 gain=60.0 shuffles=4
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.12 err=-0.01 gain=60.0 shuffles=5
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.12 err=-0.01 gain=60.0 shuffles=5
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.12 err=-0.01 gain=60.0 shuffles=5
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.10 err=0.03 gain=60.0 shuffles=6
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.09 err=0.01 gain=60.0 shuffles=6
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.13 err=-0.02 gain=60.0 shuffles=7
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.14 err=-0.01 gain=60.0 shuffles=9
+  [trace] ranchGate.east.gate.0 exterior detour d=76m dLast=77m yaw=-58.12 err=0.04 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.10 err=0.02 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.10 err=0.02 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.10 err=0.01 gain=60.0 shuffles=12
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=76m yaw=-58.12 err=-0.03 gain=60.0 shuffles=13
+  [trace] ranchGate.east.gate.0 exterior detour d=74m dLast=74m yaw=-58.13 err=-0.03 gain=60.0 shuffles=13
+staged retry ranchGate.east.gate.0
+FAIL  walk through ranchGate.east.gate.0 — still wedged after 15 shuffles near ranchGate.east.gate.0 exterior
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Target page, context or browser has been closed
+    at player (/Users/brian/Projects/high-country/scripts/probe-doors.mjs:58:27)
+    at /Users/brian/Projects/high-country/scripts/probe-doors.mjs:201:20
+
+Node.js v25.2.1

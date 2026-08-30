@@ -15,7 +15,7 @@
  * is classification, and the check owns it.
  */
 import { chromium } from "playwright";
-import { launchOptions, createStepper, enterWorld, steerTo, spawnPreviewServer } from "./probe/drive.mjs";
+import { launchOptions, createStepper, enterWorld, steerTo, steerRoute, spawnPreviewServer } from "./probe/drive.mjs";
 import { spawn } from "node:child_process";
 
 const BASE = process.env.CAPTURE_URL || "";
@@ -61,40 +61,86 @@ const player = () => page.evaluate(() => ({
 }));
 let here = await player();
 
+// Registry convention (src/buildings/apertures.js "normal points to the
+// exterior", and __apertureView's verified exterior captures stand at
+// center + normal*dist): the exterior point is on the +normal side. The first
+// draft negated the normal, which aimed every approach at the aperture's
+// INTERIOR — the walk then wedged on whatever wall lay beyond (the six town
+// lots' back walls), and only a lucky detour through the door gap ever
+// reached it. Getting this wrong didn't invent failures out of thin air; the
+// underlying closed-loop walks happened, but named the wrong side.
 const lineOf = (ap) => {
-  const out = { x: ap.center.x - ap.normal.x * 1.8, z: ap.center.z - ap.normal.z * 1.8 };
-  const into = { x: ap.center.x + ap.normal.x * 1.8, z: ap.center.z + ap.normal.z * 1.8 };
+  const out = { x: ap.center.x + ap.normal.x * 1.8, z: ap.center.z + ap.normal.z * 1.8 };
+  const into = { x: ap.center.x - ap.normal.x * 1.8, z: ap.center.z - ap.normal.z * 1.8 };
   const side = (p) => (p.x - ap.center.x) * ap.normal.x + (p.z - ap.center.z) * ap.normal.z;
   return { out, into, side };
 };
 
 /**
- * Straight approach with one honest round-the-obstacle detour: if the straight
- * line wedges (fence lines are colliders a shuffle cannot round), sidestep
- * laterally off the path's midpoint — real walking, real input — and try the
- * approach from there, then the other side. Bounded throughout.
+ * Straight approach with two honest recoveries before giving up:
+ * (1) the nav graph — a straight line to a far target wedges on whatever
+ *     fence, rail line, or ridge lies across it (run 12: the player pinned on
+ *     the cemetery's rail line 800 m from town and seven legs died at the
+ *     same spot); the authored route follows walkable edges and hops them
+ *     with the same closed loop;
+ * (2) the sidestep ladder — sidestep off the path's midpoint, real walking,
+ *     real input, then re-approach; recovery legs are distance-scaled so a
+ *     detour isn't given 90 s to cover 780 m.
  */
-async function approachAround(target, label, timeoutMs) {
-  // First attempt gets the distance-scaled budget. Recovery legs are short:
-  // a wedge that survives 90 s of sidestep-and-retry is structural (the target
-  // sits behind a wall — a partition's exterior point is inside the house), and
-  // the honest answer is to throw quickly so the staged approach can take over,
-  // not to burn ten minutes on ladder retries the geometry cannot satisfy.
+async function approachAround(target, ap, timeoutMs) {
+  const label = `${ap.id} exterior`;
   try {
-    return await steerTo(target, { arrive: 1.4, label, timeout: Math.min(timeoutMs, 120000) });
+    return await steerTo(target, { arrive: 1.4, label, timeout: Math.min(timeoutMs, 300000) });
   } catch (e) {
+    const p0 = await player();
+    const far = Math.hypot(target.x - p0.x, target.z - p0.z) > 60;
+    if (far) {
+      try {
+        // __navTo answers the same question the HUD/minimap affordance does:
+        // route the WALK from the live pose to the POI's arrival approach.
+        const nav = await page.evaluate((poi) => {
+          try {
+            return window.__navTo(poi, "walk");
+          } catch {
+            return null;
+          }
+        }, ap.poi);
+        const route = nav && nav.route;
+        if (route && route.status === "routed" && route.waypoints.length) {
+          console.log(
+            `nav route for ${label} via ${nav.name}: ${route.waypoints.length} hops, ${Math.round(route.length)} m` +
+            ` (straight-line from here: ${Math.round(Math.hypot(target.x - p0.x, target.z - p0.z))} m)`
+          );
+          await steerRoute(route, { label: `${ap.id} approach` });
+          const p1 = await player();
+          if (Math.hypot(target.x - p1.x, target.z - p1.z) < 60) {
+            return await steerTo(target, { arrive: 1.4, label: `${label} after route`, timeout: 150000 });
+          }
+          console.log(`nav route for ${label} ended far from the exterior point — falling through to the ladder`);
+        } else {
+          console.log(`nav has no route to ${ap.poi} (${route ? route.status : "no route"}) — using the sidestep ladder`);
+        }
+      } catch (e2) {
+        console.log(`nav route to ${ap.poi} failed: ${String(e2.message).slice(0, 140)}`);
+      }
+    }
     const p = await player();
-    const mid = { x: (p.x + target.x) / 2, z: (p.z + target.z) / 2 };
     const dx = target.x - p.x;
     const dz = target.z - p.z;
     const len = Math.hypot(dx, dz) || 1;
     const nx = -dz / len;
     const nz = dx / len;
+    // Anchor the sidesteps 12 m up the lane from WHERE THE PLAYER IS, not at
+    // the path midpoint: the wedge sits where the walk is happening (run 12
+    // pinned 15 m into an 800 m leg, and detours aimed at the 400 m midpoint
+    // could neither see nor clear it).
+    const anchor = { x: p.x + (dx / len) * 12, z: p.z + (dz / len) * 12 };
+    const head = Math.min(len, 400);
     for (const [sign, off] of [[1, 8], [-1, 8]]) {
       try {
-        await steerTo({ x: mid.x + nx * sign * off, z: mid.z + nz * sign * off },
-          { arrive: 2.4, label: `${label} detour`, timeout: 90000 });
-        await steerTo(target, { arrive: 1.4, label, timeout: 90000 });
+        await steerTo({ x: anchor.x + nx * sign * off, z: anchor.z + nz * sign * off },
+          { arrive: 2.4, label: `${label} detour`, timeout: Math.max(90000, head * 2100) });
+        await steerTo(target, { arrive: 1.4, label, timeout: Math.max(90000, head * 2100) });
         return true;
       } catch {
         // try the next sidestep
@@ -110,14 +156,14 @@ async function walkOne(ap) {
   const p = await player();
   const d = Math.hypot(out.x - p.x, out.z - p.z);
   const approachMs = Math.max(30000, Math.min(600000, d * 2100));
-  await approachAround(out, `${ap.id} exterior`, approachMs);
+  await approachAround(out, ap, approachMs);
   const atOut = await player();
-  const outsideOk = side(atOut) < -0.3;
+  const outsideOk = side(atOut) > 0.3;
   // Through: 3.6 m line, generous on purpose — a wedged door then reads as a
   // real defect, not a driver artifact. Never longer than 90 s.
   await steerTo(into, { arrive: 1.2, label: `${ap.id} through`, timeout: 90000 });
   const atIn = await player();
-  return { outsideOk, crossed: side(atIn) > 0.3, atIn };
+  return { outsideOk, crossed: side(atIn) < -0.3, atIn };
 }
 
 /**
@@ -137,16 +183,19 @@ async function stagedWalk(ap) {
     .map((c) => ({ c, d: Math.hypot(c.center.x - p0.x, c.center.z - p0.z) }))
     .sort((a, b) => a.d - b.d)[0].c;
   const { out, into, side } = lineOf(c);
-  if (side(p0) > 0) {
-    // Inside: step back out through the nearest reachable sibling.
+  if (side(p0) < 0) {
+    // Inside (−normal side per the registry convention): step back out through
+    // the nearest reachable sibling.
     await steerTo(out, { arrive: 1.4, label: `${c.id} exit`, timeout: 90000 });
   } else {
     // Outside: go in through the nearest sibling (a partition's exterior point
     // is interior; the house is entered by its own front door first). The
     // sibling crossing goes on the same stack so the later exit walks back out
     // through it — otherwise the player is left inside the house after the
-    // partition pass and its exit only reaches the entry room.
-    await steerTo(out, { arrive: 1.4, label: `${c.id} exterior`, timeout: 120000 });
+    // partition pass and its exit only reaches the entry room. The porch-side
+    // exterior leg gets the detour ladder like any other approach: a single
+    // porch post or barrel must not end the door's attempt.
+    await approachAround(out, c, 150000);
     await steerTo(into, { arrive: 1.2, label: `${c.id} enter`, timeout: 90000 });
     crossings.push(c);
   }
@@ -188,21 +237,52 @@ while (pending.length) {
       const c = crossings[crossings.length - 1];
       const { out, side } = lineOf(c);
       const p = await player();
-      if (side(p) <= 0) {
-        // Already on the far side — this entry already undid itself.
+      if (side(p) >= 0) {
+        // Already back on the exterior side — this entry already undid itself.
         crossings.pop();
         continue;
       }
-      await steerTo(out, { arrive: 1.6, label: `${c.id} exit`, timeout: 120000 });
+      await steerTo(out, { arrive: 1.6, label: `${c.id} exit`, timeout: 120000, escapeDiagonal: false });
       crossings.pop();
+    }
+  }
+
+  /**
+   * Restore "before every attempt the player stands OUTSIDE every built
+   * structure" — from the player's physical position, not just the crossing
+   * stack. Run 11 broke the stack's assumption a run earlier: a successful
+   * exit left the player beside the door, the next leg's approach hugged the
+   * building's face, and the player ended up INSIDE the bunkhouse (pinned on
+   * its north interior wall 6 m from the door, shuffling until the leg threw)
+   * — and every later leg then ran from in there. The stack only knows the
+   * apertures the probe itself crossed; it cannot see a wall slide that
+   * carried the player through a gap. So after unwinding the stack, demand
+   * the physical property: for each traversable aperture the player stands
+   * behind (interior side within its structure's local radius), walk out
+   * through the nearest such aperture — a partition's exit moves the player
+   * deeper in the house but still forward through a real gap, and the next
+   * iteration walks out the front door. Bounded to 4 rounds; a player who
+   * is still inside after that goes to the staged path as a named failure.
+   */
+  async function restoreOutside() {
+    await exitToOutside();
+    for (let guard = 0; guard < 4; guard += 1) {
+      const p = await player();
+      const trapped = toWalk
+        .map((a) => ({ a, ...lineOf(a), d: Math.hypot(a.center.x - p.x, a.center.z - p.z) }))
+        .filter((t) => t.side(p) < 0 && t.d < 14)
+        .sort((t, q) => t.d - q.d)[0];
+      if (!trapped) {
+        return;
+      }
+      console.log(`outside-invariant: player stands inside near ${trapped.a.id} — exiting through it`);
+      await steerTo(trapped.out, { arrive: 1.6, label: `${trapped.a.id} exit`, timeout: 120000, escapeDiagonal: false });
     }
   }
 
   let r = null;
   try {
-    if (crossings.length) {
-      await exitToOutside();
-    }
+    await restoreOutside();
     // Approach the exterior point. The final leg re-aims at the aperture, so
     // the walk-in crosses the plane frontally rather than clipping an edge.
     const attempt = await walkOne(ap);
@@ -213,9 +293,7 @@ while (pending.length) {
   } catch (err) {
     let staged = null;
     try {
-      if (crossings.length) {
-        await exitToOutside();
-      }
+      await restoreOutside();
       console.log(`staged retry ${ap.id}`);
       staged = await stagedWalk(ap);
     } catch (e2) {
@@ -236,7 +314,7 @@ while (pending.length) {
   }
   // Restore the exterior starting position (reverse traversal is evidence too).
   try {
-    await exitToOutside();
+    await restoreOutside();
   } catch (e2) {
     console.log(`exit after ${ap.id} wedged: ${e2.message}`);
   }

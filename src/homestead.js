@@ -2,8 +2,10 @@
 
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
+import { heightAt } from "./world.js";
 import { addBoxCollider } from "./collision.js";
 import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
+import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
@@ -50,6 +52,12 @@ function cemeteryFence(group, wood, stone) {
   addBoxCollider(cx + halfX, cz, 0.14, halfZ);
   addBoxCollider(cx - segMid, gateZ, segW / 2, 0.14);
   addBoxCollider(cx + segMid, gateZ, segW / 2, 0.14);
+  registerAperture({
+    structure: "cemeteryGate", side: "front", kind: "gate",
+    x: cx, y: heightAt(cx, gateZ) + 0.7, z: gateZ,
+    w: gap, h: 1.4, nx: 0, nz: 1, state: "traversable",
+    note: "fence gate gap between the two gatepost colliders"
+  });
 
   for (const [dx, dz] of [[-3.3, -2.2], [0.9, -2.6], [3.7, -1.9], [-1.2, -2.9]]) {
     boxAt(group, cx + dx, cz + dz, 0.32, 1.05, 0.16, stone);
@@ -102,6 +110,14 @@ function cabinPorch(group, wood, dark, stone) {
   boxAt(group, cabin.x + 0.60, doorZ, 0.12, 2.05, 0.1, wood, false);
   boxAt(group, cabin.x, doorZ, 1.32, 0.16, 0.1, wood, false, 2.05);
   boxAt(group, cabin.x, cabin.z - 3.05, 1.3, 0.18, 0.4, wood, false);
+  // Canonical aperture inventory: the cabin door is facade dressing on a
+  // solid block, declared here rather than implied by an absent collider.
+  registerAperture({
+    structure: "huntingCabin", side: "front", kind: "door",
+    x: cabin.x, y: heightAt(cabin.x, cabin.z - 2.85) + 1.03, z: cabin.z - 2.85,
+    w: 0.95, h: 2.05, nx: 0, nz: -1, state: "facade",
+    note: "no cabin interior; the door is dressing on a solid block"
+  });
 
   const pileX = cabin.x + 6.4;
   const pileZ = cabin.z + 0.8;

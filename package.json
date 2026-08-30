@@ -9,7 +9,7 @@
     "postinstall": "node scripts/copy-basis.mjs && node scripts/fetch-assets.mjs",
     "pack-textures": "node scripts/pack-textures.mjs",
     "bake:foliage": "node scripts/bake-foliage.mjs",
-    "check": "npm run check:grounding && npm run check:collision && npm run check:handedness && npm run check:debug && npm run check:settlements-dry && npm run check:needle && npm run check:missions && npm run check:save && npm run check:interiors && npm run check:map-layout && npm run check:roads && npm run check:buildings && npm run check:anchors && npm run check:vegetation && npm run check:grass-grounding && npm run check:prop-grounding && npm run check:assets &&     npm run check:instance-attrs && npm run check:nav-graph && npm run check:approaches && npm run check:routes",
+    "check": "npm run check:grounding && npm run check:collision && npm run check:handedness && npm run check:debug && npm run check:settlements-dry && npm run check:needle && npm run check:missions && npm run check:save && npm run check:interiors && npm run check:map-layout && npm run check:roads && npm run check:buildings && npm run check:anchors && npm run check:vegetation && npm run check:grass-grounding && npm run check:prop-grounding && npm run check:assets &&     npm run check:instance-attrs && npm run check:nav-graph && npm run check:approaches && npm run check:routes && npm run check:apertures",
     "check:grounding": "tsx scripts/check-grounding.mjs",
     "check:collision": "tsx scripts/check-collision.mjs",
     "check:handedness": "tsx scripts/check-handedness.mjs",
@@ -37,7 +37,8 @@
     "grade:selftest": "node scripts/grade.mjs --selftest",
     "assets:bundle": "node scripts/make-asset-bundle.mjs",
     "assets:fetch": "node scripts/fetch-assets.mjs",
-    "check:routes": "tsx scripts/check-routes.mjs"
+    "check:routes": "tsx scripts/check-routes.mjs",
+    "check:apertures": "tsx scripts/check-apertures.mjs"
   },
   "dependencies": {
     "lil-gui": "0.21.0",
