@@ -150,5 +150,61 @@
     "path": "audit/reports/aperture-campaign-2026-08-30.md",
     "summary": "Aperture campaign: corral fence found as a closed loop (no collider gap anywhere on its perimeter) while the declared ranch gate is a freestanding range gate ~170 m from it; its old note claimed a fence gap that was never constructed. Note corrected (declared-vs-constructed difference explained, nothing relabelled); the repair itself queued as R8. Observation -> proposed change: gate in the corral fence or documented seal; expected player benefit: fenced paddocks read as enterable horse property, and the range gate stops reading as an unfinished scene; evidence required: collision probe of the perimeter + walk-through of the new gap; decision: proposed as R8, P4.",
     "durable": true
+  },
+  {
+    "id": "E19",
+    "date": "2026-08-30T15:41:33.905Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run5.log",
+    "summary": "Door-walk driver root-cause chain (runs 2-5, logs /tmp/probe-doors-run{2..5}.log): (1) steerTo's gain clamp of 60 px/rad sits ~7x under the game's live look scale (~415 px/rad, self-calibrated), so any target approached from more than ~50 deg off-axis lagged the walk forever and the driver ORBITED the target until timeout — fixed with face-first steering (turn in place while |err|>0.9 rad, walk only once facing) and a 620 px/rad gain clamp; partition.west passed immediately after. (2) Successful crossings left the driver INSIDE structures, and the next door's straight approach wedged on interior walls — fixed with a crossing-stack invariant: after every attempt the probe walks back out the way it came (reverse traversal recorded as evidence); barn.front passed after. (3) Long rides freeze mid-heading with perfect aim and dead aim-drag: macOS steals kiosk-window focus mid-run and the occluded window's rAF collapses (~2 fps), which steerTo's progress test misreads as wedging (repo-documented failure mode; see launchOptions comment) — fixed by re-asserting page.bringToFront() every 5 s inside steerTo. All three are probe-infrastructure defects, not world geometry: the offline collision probe of the implicated lines (ranch-to-gate z=300 march, partition through-lines with interiors built) shows displacement 0.00-0.62 at worst, all walkable.",
+    "durable": false
+  },
+  {
+    "id": "E20",
+    "date": "2026-08-30T16:27:53.459Z",
+    "kind": "probe",
+    "path": null,
+    "summary": "probe lineOf convention: fourth driver defect - probe-doors negated the registry normal (apertures.js: normal points to the exterior; __apertureView verified exterior captures stand at center+normal*d). Offline collision march (/tmp/town-approach.mjs, /tmp/walk-fidelity.mjs, player-fidelity moveAndSlide at radius 0.42 with deck grounding): approach lanes on the +normal side are clear for the town lots; the old lane aimed at the aperture interior and wedged on back walls (sheriff/saloon/store at 6.8m, church door.1 additionally catches a pew row 1m inside). Prior functional side labels inverted; final pass set re-run on the corrected convention (probe-doors run 9, all 31 doors).",
+    "durable": true
+  },
+  {
+    "id": "E21",
+    "date": "2026-08-30T16:40:32.271Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run9-partial.log",
+    "summary": "run 9 ranch-cluster freeze: with the corrected lineOf the ranch partition/front legs pinned at 21-24m with aim converged and zero displacement. Dry-run marches (which omitted tree/rock/horse/NPC cylinder colliders - src/vegetation.js addCylinderCollider, src/horse.js parked horse, src/main.js npc collider) showed the same lanes clear, identifying un-modelled scatter as the pin environment. Driver remedied for run 10: escalating sidestep ladder in steerTo (0.7s strafes -> 1.3s -> 2s, still A/D real input) plus detour ladder on the staged sibling exterior leg. Run 9 partial log retained; full 31 re-run as run 10.",
+    "durable": true
+  },
+  {
+    "id": "E22",
+    "date": "2026-08-30T16:59:18.757Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run11-partial.log",
+    "summary": "Run-11 x/z trace diagnosed wedging driver legs as position-state failures, not wall defects: after a PASS the crossing-stack invariant (stack-based) let a leg's wall-hugging approach carry the player INSIDE the bunkhouse, where approach legs pinned on its north interior wall (at=(-379.4,307.4), z 307 wall = bunker north face at 306.8; clearance grid in /tmp/map-blocker.mjs output). Fix in probe-doors.mjs: restoreOutside() verifies 'outside every structure' from the player's physical side-of-plane checks after unwinding the stack (partition exits iterate to the front door; bounded 4 rounds). Run 12 = full 31 on that driver.",
+    "durable": true
+  },
+  {
+    "id": "E23",
+    "date": "2026-08-30T18:19:41.078Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run12-partial.log",
+    "summary": "Run 12 exposed the third probe-navigation scale: the player wedged on the cemetery's rail line at (-274.6,446.6), 800 m from Silver Creek, and seven successive legs (sheriff/hotel/store/church/saloon doors) died at the same spot — approachAround's sidestep ladder gave detour legs a flat 90 s to cover 780 m, structurally useless at route scale. Fix: far approaches (>60 m) now fall back to the nav graph (window.__navTo(poi,'walk'), same affordance the HUD/minimap advertises); waypoints walked hop-by-hop with drive.mjs steerRoute's closed loop, final 60 m handed to steerTo+the ladder; sidestep recovery legs now distance-scaled. Run 13 = full 31.",
+    "durable": true
+  },
+  {
+    "id": "E24",
+    "date": "2026-08-30T20:37:32.427Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run13.log",
+    "summary": "Run 13: nav routes FIRED for every far door (e.g. sheriff via Silver Creek: 49 hops/1053 m, elPasoTwoStory 205 hops cross-map — walked hop-by-hop and PASSED) but the cemetery rail line pinned the player at (-274.6,446.6) and wp0 of every route died there too: the shuffle's A/D strafe is perpendicular to FACING, so against a long fence run the player slides ALONG the rail line without ever leaving it (sim: straight lane wedged at (-285.4,446.6) clearance 0.45m in /tmp/pin274.mjs; 15 shuffles = 13 sample d oscillation around the pin). Fixes: (1) drive.mjs shuffles past #3 rotate the facing ~60deg off-bearing and walk a real diagonal so sidesteps cross rail lines instead of sliding along them; (2) approachAround sidesteps anchor 12 m up the lane from the player, not the 400 m midpoint. Run 14 = full 31.",
+    "durable": true
+  },
+  {
+    "id": "E25",
+    "date": "2026-08-30T21:18:14.269Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run15-partial.log",
+    "summary": "Runs 14-15 (diagonal-escape shuffle): the rotate-walk cleared the fence-pin class but REGRESSED post-pass restores — exits from inside the ranch house/barn now time out (steering ... exit timed out) instead of shuffling out through the door; the rotate-walk inside an interior pin presses the player into furniture faces. Run 13 remains the best full run: 24/31 PASS (every door class), 4 approach-wedge FAILs (ranchGate/sheriff x2/hotel.1), 4 budget-unverified elPaso doors. Next: scope the rotate-walk to APPROACH shuffles only, keep the plain strafe+backoff ladder for restoreOutside exits; run 16 = full 31.",
+    "durable": true
   }
 ]

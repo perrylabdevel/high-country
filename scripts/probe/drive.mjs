@@ -123,16 +123,27 @@ export function objectiveText() {
  * use this to catch pass-through affordances — a prompt that is only live
  * while the target is in interaction range, which a stop-and-look can miss.
  */
-export async function steerTo(target, { arrive = 5, timeout = 160000, label = "", pulse = null } = {}) {
+export async function steerTo(target, { arrive = 5, timeout = 160000, label = "", pulse = null, escapeDiagonal = true } = {}) {
   let gain = 300; // px per radian of yaw error; recalibrated against live look scale
   let lastDist = Infinity;
   let progressAt = Date.now();
   let shuffles = 0;
   const t0 = Date.now();
-  await page.keyboard.down("KeyW");
+  const keyDown = new Set(); // keys currently held — W is pressed only when walking
+  keyDown.add("KeyW");
   let sprinting = false;
+  // macOS takes keyboard focus away from the kiosk window mid-run (any system
+  // panel that fronts itself will do it), and the then-occluded window's rAF
+  // collapses to ~2 fps: rides stall, aim drags die, and every distance test
+  // reads "wedged". Re-assert the window periodically — cheap, and it recovers
+  // the run instead of miscasting a desktop event as a door defect.
+  let focusAt = 0;
   try {
     while (Date.now() - t0 < timeout) {
+      if (Date.now() - focusAt > 5000) {
+        await page.bringToFront();
+        focusAt = Date.now();
+      }
       const p = await gs();
       if (pulse && await pulse(p)) {
         return true;
@@ -156,16 +167,29 @@ export async function steerTo(target, { arrive = 5, timeout = 160000, label = ""
       const err = clamp(wrapPi(yawNeeded - p.player.yaw), -Math.PI, Math.PI);
       const before = p.player.yaw;
       const px = clamp(err * gain, -440, 440);
+      // Face-first: while the target sits well off-axis (>0.9 rad), walk
+      // nothing. Holding W with a large error made the driver orbit the target
+      // (the old gain clamp of 60 px/rad cannot close a >90 deg miss against
+      // the live look scale of ~415 px/rad — the aim lagged the walk forever).
+      // Turn in place first; re-press W once the facing is sane.
+      const walking = Math.abs(err) <= 0.9;
+      if (walking && !keyDown.has("KeyW")) {
+        await page.keyboard.down("KeyW");
+        keyDown.add("KeyW");
+      } else if (!walking && keyDown.has("KeyW")) {
+        await page.keyboard.up("KeyW");
+        keyDown.delete("KeyW");
+      }
       await dragAim(px);
       await page.waitForTimeout(150);
       const p2 = await gs();
       const turned = Math.abs(wrapPi(p2.player.yaw - before));
       if (Math.abs(err) > 0.05 && turned > 1e-4) {
-        gain = clamp(gain * 0.7 + 0.3 * (Math.abs(px) / turned), 1, 60);
+        gain = clamp(gain * 0.7 + 0.3 * (Math.abs(px) / turned), 1, 620);
       }
       // Stuck? The collider wedges us straight into an obstacle while W is held.
       if (process.env.HC_PROBE_TRACE && Math.random() < 0.08) {
-        console.error(`  [trace] ${label || "target"} d=${d.toFixed(0)}m dLast=${lastDist.toFixed(0)}m yaw=${p2.player.yaw.toFixed(2)} err=${err.toFixed(2)} gain=${gain.toFixed(1)} shuffles=${shuffles}`);
+        console.error(`  [trace] ${label || "target"} d=${d.toFixed(0)}m dLast=${lastDist.toFixed(0)}m at=(${p2.player.x.toFixed(1)},${p2.player.z.toFixed(1)}) yaw=${p2.player.yaw.toFixed(2)} err=${err.toFixed(2)} gain=${gain.toFixed(1)} shuffles=${shuffles}`);
       }
       if (lastDist - d < 0.2) {
         if (Date.now() - progressAt > 3200) {
@@ -173,16 +197,42 @@ export async function steerTo(target, { arrive = 5, timeout = 160000, label = ""
           if (shuffles > 14) {
             throw new Error(`still wedged after ${shuffles} shuffles near ${label || "target"}`);
           }
+          // Escalating sidestep ladder. A 0.7 s strafe clears a post edge but
+          // not a barrel or a porch-corner post you pinned dead centre — and a
+          // shuffle that cannot move the player is wasted budget. Small strafes
+          // alternate sides first; past 3 the sidestep grows long enough to
+          // walk clean around a single obstacle (still A/D with real input);
+          // the back-off leg keeps the resumption angled off the pin.
+          const longStrafe = shuffles > 5 ? 2000 : shuffles > 2 ? 1300 : 700;
           const dir = shuffles % 2 ? "KeyD" : "KeyA";
           await page.keyboard.up("KeyW");
+          keyDown.delete("KeyW");
           await page.keyboard.down(dir);
-          await page.waitForTimeout(700);
+          await page.waitForTimeout(longStrafe);
           await page.keyboard.up(dir);
           // Back off a touch, then face the target again and re-press W.
           await page.keyboard.down("KeyS");
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(longStrafe > 700 ? 600 : 500);
           await page.keyboard.up("KeyS");
+          // Past the small strafes the sidestep stops being parallel-to-the-
+          // obstacle: rotate the facing several ticks OFF the bearing and walk
+          // the diagonal for a moment. A strafe presses sideways relative to
+          // the FACING, which when aimed at a long fence run moves the player
+          // ALONG the fence forever (the cemetery rail line ate nine legs that
+          // way); a quarter-turn walk takes the player OFF the rail line, and
+          // the main loop re-aims at the target immediately after. OPT-IN for
+          // approach legs only: run 14/15 showed the same rotate-walk inside a
+          // room (post-pass exits) walks the player INTO the furniture pin
+          // instead of out of it, so exits keep the plain strafe ladder.
+          if (escapeDiagonal) {
+            const turnSign = shuffles % 3 === 0 ? -1 : 1;
+            await dragAim(turnSign * 430);
+            await page.keyboard.down("KeyW");
+            await page.waitForTimeout(1100);
+            await page.keyboard.up("KeyW");
+          }
           await page.keyboard.down("KeyW");
+          keyDown.add("KeyW");
           progressAt = Date.now();
         }
       } else {

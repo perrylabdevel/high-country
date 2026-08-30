@@ -1,0 +1,39 @@
+probe: using server at http://127.0.0.1:8794 (spawned)
+PASS  inventory loads (67 apertures)
+PASS  aperture ids unique
+PASS  every aperture has a POI
+PASS  traversable doors to walk (31)
+PASS  walk through blacksmith.front.bay.0
+PASS  walk through bunkhouse.front.door.0
+PASS  walk through ranchHouse.front.door.0
+FAIL  walk through ranchHouse.partition.west.door.0 — steering to ranchHouse.partition.west.door.0 exterior timed out
+FAIL  walk through ranchHouse.partition.east.door.0 — steering to ranchHouse.partition.east.door.0 exterior timed out
+PASS  walk through barn.right.barn.0
+FAIL  walk through barn.front.barn.0 — steering to barn.front.barn.0 exterior timed out
+FAIL  walk through ranchGate.east.gate.0 — steering to ranchGate.east.gate.0 through timed out
+FAIL  walk through cemeteryGate.front.gate.0 — still wedged after 15 shuffles near cemeteryGate.front.gate.0 exterior
+FAIL  walk through sheriff.front.door.1 — still wedged after 15 shuffles near sheriff.front.door.1 exterior
+FAIL  walk through sheriff.front.door.0 — steering to sheriff.front.door.0 exterior timed out
+PASS  walk through hotel.front.door.1
+PASS  walk through hotel.front.door.0
+PASS  walk through store.front.door.1
+FAIL  walk through store.front.door.0 — steering to store.front.door.0 exterior timed out
+FAIL  walk through church.front.door.1 — steering to church.front.door.1 exterior timed out
+FAIL  walk through church.front.door.0 — steering to church.front.door.0 exterior timed out
+FAIL  walk through saloon.front.door.1 — steering to saloon.front.door.1 exterior timed out
+FAIL  walk through saloon.front.door.0 — steering to saloon.front.door.0 exterior timed out
+PASS  walk through timberCabin.front.door.2
+PASS  walk through timberCabin.back.door.2
+PASS  walk through timberCabin.front.door.0
+PASS  walk through timberCabin.back.door.0
+PASS  walk through timberCabin.front.door.1
+FAIL  walk through timberCabin.back.door.1 — steering to timberCabin.back.door.1 exterior timed out
+PASS  walk through fortGrant.front.gate.0
+FAIL  walk through elPasoTwoStory.front.door.0 — still wedged after 15 shuffles near elPasoTwoStory.front.door.0 exterior
+FAIL  walk through elPasoShed.front.door.0 — still wedged after 15 shuffles near elPasoShed.front.door.0 exterior
+FAIL  walk through elPasoStore.front.door.0 — still wedged after 15 shuffles near elPasoStore.front.door.0 exterior
+FAIL  walk through elPasoCasa.front.door.0 — still wedged after 15 shuffles near elPasoCasa.front.door.0 exterior
+FAIL  walk through elPasoCasita.front.door.0 — still wedged after 15 shuffles near elPasoCasita.front.door.0 exterior
+PASS  aperture inventory identical after save/load
+
+probe-doors: 18 FAILED step(s)

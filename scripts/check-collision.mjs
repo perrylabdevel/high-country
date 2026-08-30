@@ -95,7 +95,10 @@ assert(
   "player should not walk through Fort Grant wall"
 );
 assert(
-  movementBlocked(POS.ranch.x - 28, POS.ranch.z + 18 - 9, 0, 5, HORSE_RADIUS),
+  // The bay corridor is now a real passage (the aperture check owns that
+  // contract), so this probe crosses the south WALL segment instead: the
+  // endpoint lands inside the wall collider itself, which must displace it.
+  movementBlocked(POS.ranch.x - 28, POS.ranch.z + 2, 6, 22, HORSE_RADIUS),
   "horse should not walk through the ranch barn"
 );
 

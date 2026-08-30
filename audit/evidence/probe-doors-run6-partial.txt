@@ -1,0 +1,285 @@
+probe: using server at http://127.0.0.1:8794 (spawned)
+PASS  inventory loads (67 apertures)
+PASS  aperture ids unique
+PASS  every aperture has a POI
+PASS  traversable doors to walk (31)
+
+[door] blacksmith.front.bay.0 (12 m away)
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.65 err=-0.02 gain=396.2 shuffles=0
+  [trace] blacksmith.front.bay.0 exterior d=6m dLast=7m yaw=1.93 err=0.02 gain=416.7 shuffles=2
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.67 err=-0.02 gain=411.4 shuffles=2
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.61 err=-0.01 gain=411.4 shuffles=2
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.52 err=0.02 gain=418.6 shuffles=3
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.89 err=-0.03 gain=418.8 shuffles=4
+  [trace] blacksmith.front.bay.0 exterior d=5m dLast=5m yaw=1.70 err=-0.04 gain=416.1 shuffles=4
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.25 err=-0.05 gain=396.5 shuffles=0
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=407.0 shuffles=1
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=407.0 shuffles=1
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=408.9 shuffles=2
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=408.9 shuffles=2
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=413.1 shuffles=3
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=413.1 shuffles=3
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=413.5 shuffles=4
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=413.5 shuffles=4
+  [trace] blacksmith.front.bay.0 exterior detour d=7m dLast=8m yaw=2.12 err=-0.00 gain=413.5 shuffles=5
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=416.2 shuffles=7
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=412.6 shuffles=8
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=412.6 shuffles=8
+  [trace] blacksmith.front.bay.0 exterior detour d=6m dLast=7m yaw=2.12 err=0.00 gain=411.6 shuffles=9
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=414.9 shuffles=9
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=414.9 shuffles=9
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=413.5 shuffles=10
+  [trace] blacksmith.front.bay.0 exterior detour d=8m dLast=5m yaw=2.42 err=0.18 gain=417.3 shuffles=12
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=416.6 shuffles=12
+  [trace] blacksmith.front.bay.0 exterior detour d=6m dLast=6m yaw=2.16 err=0.04 gain=415.9 shuffles=13
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=418.5 shuffles=13
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=418.5 shuffles=13
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=415.5 shuffles=14
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=5m yaw=2.24 err=0.00 gain=415.5 shuffles=14
+  [trace] blacksmith.front.bay.0 exterior detour d=5m dLast=6m yaw=0.10 err=0.02 gain=375.2 shuffles=0
+  [trace] blacksmith.front.bay.0 exterior d=7m dLast=7m yaw=2.43 err=0.26 gain=377.7 shuffles=0
+PASS  walk through blacksmith.front.bay.0
+  [trace] blacksmith.front.bay.0 exit d=3m dLast=Infinitym yaw=1.12 err=3.08 gain=335.0 shuffles=0
+
+[door] bunkhouse.front.door.0 (10 m away)
+  [trace] bunkhouse.front.door.0 exterior d=5m dLast=5m yaw=0.70 err=0.00 gain=387.2 shuffles=0
+  [trace] bunkhouse.front.door.0 exterior d=2m dLast=3m yaw=0.17 err=-0.16 gain=405.5 shuffles=0
+  [trace] bunkhouse.front.door.0 through d=3m dLast=3m yaw=-2.11 err=-2.07 gain=359.5 shuffles=0
+PASS  walk through bunkhouse.front.door.0
+
+[door] ranchHouse.partition.east.door.0 (28 m away)
+  [trace] ranchHouse.partition.east.door.0 exterior d=29m dLast=30m yaw=-0.91 err=-0.00 gain=374.9 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=374.9 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=-0.00 gain=390.2 shuffles=2
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=390.2 shuffles=3
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=390.2 shuffles=3
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=403.2 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior d=26m dLast=23m yaw=-0.88 err=-0.04 gain=403.2 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior d=24m dLast=24m yaw=-0.87 err=0.01 gain=403.2 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior d=24m dLast=25m yaw=-0.80 err=-0.01 gain=410.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=410.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=410.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=410.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=24m yaw=-0.84 err=0.03 gain=410.2 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.01 gain=410.2 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=416.9 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior d=24m dLast=24m yaw=-0.79 err=-0.01 gain=420.8 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exterior d=23m dLast=23m yaw=-0.84 err=0.00 gain=420.8 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=361.7 shuffles=0
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.25 err=0.02 gain=376.6 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=376.6 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.23 err=-0.00 gain=376.6 shuffles=2
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=388.5 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=388.5 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=388.5 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=16m dLast=16m yaw=-0.37 err=-0.01 gain=394.7 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=15m dLast=16m yaw=-0.37 err=0.00 gain=394.7 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=394.7 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=16m dLast=16m yaw=-0.36 err=-0.01 gain=401.0 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=15m dLast=16m yaw=-0.36 err=0.00 gain=401.0 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=401.0 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=401.0 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=401.0 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=-0.00 gain=401.0 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=401.0 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=404.9 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=404.9 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=15m dLast=15m yaw=-0.37 err=0.01 gain=409.6 shuffles=13
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=409.6 shuffles=13
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=15m yaw=-0.23 err=-0.00 gain=409.6 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=-0.00 gain=409.6 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-0.24 err=0.00 gain=409.6 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=-0.01 gain=374.8 shuffles=0
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=15m yaw=-1.44 err=-0.00 gain=374.8 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=374.8 shuffles=1
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=388.1 shuffles=3
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=16m dLast=14m yaw=-1.30 err=0.15 gain=398.7 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.40 err=-0.01 gain=398.7 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=398.7 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=398.7 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=398.7 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.33 err=-0.02 gain=404.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.43 err=-0.01 gain=404.2 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=16m dLast=16m yaw=-1.44 err=-0.00 gain=404.2 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=404.2 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.37 err=-0.01 gain=409.6 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.43 err=-0.01 gain=409.6 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=16m dLast=14m yaw=-1.44 err=-0.00 gain=409.6 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=409.6 shuffles=9
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.42 err=-0.01 gain=411.7 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=15m yaw=-1.44 err=-0.00 gain=411.7 shuffles=11
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.42 err=-0.01 gain=415.0 shuffles=12
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.44 err=0.00 gain=415.0 shuffles=13
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.34 err=-0.01 gain=416.4 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exterior detour d=14m dLast=14m yaw=-1.37 err=-0.01 gain=416.4 shuffles=14
+staged retry ranchHouse.partition.east.door.0
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=363.5 shuffles=0
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=363.5 shuffles=0
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=381.6 shuffles=2
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=381.6 shuffles=2
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=394.7 shuffles=5
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=394.7 shuffles=5
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=394.7 shuffles=5
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=6
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=6
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=6
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=404.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=-0.01 gain=409.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=409.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=409.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=409.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=409.7 shuffles=9
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=-0.01 gain=415.7 shuffles=10
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=415.7 shuffles=10
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=415.7 shuffles=10
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=415.7 shuffles=10
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=415.7 shuffles=10
+  [trace] ranchHouse.front.door.0 exit d=25m dLast=26m yaw=-1.13 err=0.00 gain=415.7 shuffles=11
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=415.7 shuffles=11
+  [trace] ranchHouse.front.door.0 exit d=24m dLast=24m yaw=-1.06 err=-0.02 gain=417.1 shuffles=12
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=-0.01 gain=418.7 shuffles=14
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=418.7 shuffles=14
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=418.7 shuffles=14
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=418.7 shuffles=14
+  [trace] ranchHouse.front.door.0 exit d=23m dLast=23m yaw=-1.11 err=0.00 gain=418.7 shuffles=14
+staged retry failed: still wedged after 15 shuffles near ranchHouse.front.door.0 exit
+FAIL  walk through ranchHouse.partition.east.door.0 — steering to ranchHouse.partition.east.door.0 exterior timed out
+
+[door] ranchHouse.front.door.0 (22 m away)
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=300.0 shuffles=0
+  [trace] ranchHouse.front.door.0 exterior d=25m dLast=26m yaw=-1.13 err=-0.00 gain=300.0 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=24m yaw=-1.12 err=0.01 gain=300.0 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=300.0 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior d=26m dLast=23m yaw=-1.06 err=0.08 gain=336.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=336.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=336.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=336.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior d=26m dLast=23m yaw=-1.13 err=-0.02 gain=336.4 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=336.4 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=360.6 shuffles=4
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=360.6 shuffles=4
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=360.6 shuffles=4
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=360.6 shuffles=4
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=378.1 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=378.1 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=378.1 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=-0.00 gain=378.1 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=378.1 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=378.1 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior d=23m dLast=23m yaw=-1.11 err=0.00 gain=378.1 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.50 err=0.00 gain=360.7 shuffles=0
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.50 err=0.00 gain=360.7 shuffles=0
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.02 gain=375.5 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=375.5 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=375.5 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=375.5 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.55 err=0.04 gain=387.7 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.01 gain=387.7 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=387.7 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=387.7 shuffles=4
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=394.5 shuffles=5
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=394.5 shuffles=5
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=394.5 shuffles=5
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=394.5 shuffles=5
+  [trace] ranchHouse.front.door.0 exterior detour d=16m dLast=16m yaw=-0.47 err=0.00 gain=394.5 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior detour d=15m dLast=16m yaw=-0.48 err=-0.00 gain=394.5 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=394.5 shuffles=6
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=399.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=399.9 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=16m dLast=17m yaw=-0.47 err=0.00 gain=399.9 shuffles=8
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=404.3 shuffles=9
+  [trace] ranchHouse.front.door.0 exterior detour d=15m dLast=16m yaw=-0.47 err=-0.00 gain=404.3 shuffles=10
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=404.3 shuffles=10
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=404.3 shuffles=10
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=406.2 shuffles=11
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=406.2 shuffles=11
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=406.2 shuffles=12
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=406.2 shuffles=12
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.03 gain=407.3 shuffles=13
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=407.3 shuffles=13
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=407.3 shuffles=13
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=407.3 shuffles=13
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-0.51 err=0.00 gain=407.3 shuffles=13
+  [trace] ranchHouse.front.door.0 exterior detour d=15m dLast=16m yaw=-1.71 err=-0.01 gain=380.6 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.63 err=0.01 gain=380.6 shuffles=1
+  [trace] ranchHouse.front.door.0 exterior detour d=15m dLast=16m yaw=-1.47 err=0.02 gain=391.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.51 err=-0.00 gain=391.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.51 err=-0.00 gain=391.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.52 err=-0.00 gain=391.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.52 err=-0.00 gain=391.4 shuffles=2
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.67 err=0.01 gain=398.5 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.67 err=0.01 gain=398.5 shuffles=3
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=15m yaw=-1.68 err=0.00 gain=412.3 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.64 err=0.01 gain=412.3 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.62 err=0.00 gain=412.3 shuffles=7
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.51 err=-0.00 gain=414.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.51 err=-0.00 gain=414.7 shuffles=8
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.65 err=0.01 gain=414.2 shuffles=9
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.64 err=0.01 gain=414.2 shuffles=9
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.67 err=0.01 gain=416.2 shuffles=11
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.66 err=0.01 gain=416.2 shuffles=11
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.64 err=0.01 gain=416.2 shuffles=11
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.51 err=-0.00 gain=416.8 shuffles=12
+  [trace] ranchHouse.front.door.0 exterior detour d=14m dLast=14m yaw=-1.63 err=0.00 gain=415.9 shuffles=13
+staged retry ranchHouse.front.door.0
+  [trace] ranchHouse.partition.east.door.0 exit d=25m dLast=25m yaw=-0.76 err=0.00 gain=359.9 shuffles=0
+  [trace] ranchHouse.partition.east.door.0 exit d=25m dLast=25m yaw=-0.76 err=0.00 gain=359.9 shuffles=0
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=-0.00 gain=374.5 shuffles=2
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=-0.00 gain=374.5 shuffles=2
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=374.5 shuffles=3
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=-0.00 gain=390.1 shuffles=4
+  [trace] ranchHouse.partition.east.door.0 exit d=24m dLast=25m yaw=-0.87 err=0.01 gain=390.1 shuffles=5
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=403.9 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=403.9 shuffles=6
+  [trace] ranchHouse.partition.east.door.0 exit d=25m dLast=26m yaw=-0.88 err=-0.00 gain=403.9 shuffles=7
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=413.7 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=413.7 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=413.7 shuffles=8
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.2 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.2 shuffles=10
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.2 shuffles=11
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.2 shuffles=11
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.2 shuffles=11
+  [trace] ranchHouse.partition.east.door.0 exit d=24m dLast=24m yaw=-0.82 err=-0.02 gain=417.9 shuffles=12
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.9 shuffles=12
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.9 shuffles=12
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.9 shuffles=12
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=417.9 shuffles=13
+  [trace] ranchHouse.partition.east.door.0 exit d=24m dLast=25m yaw=-0.79 err=0.00 gain=419.0 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=419.0 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=419.0 shuffles=14
+  [trace] ranchHouse.partition.east.door.0 exit d=23m dLast=23m yaw=-0.84 err=0.00 gain=419.0 shuffles=14
+staged retry failed: still wedged after 15 shuffles near ranchHouse.partition.east.door.0 exit
+FAIL  walk through ranchHouse.front.door.0 — steering to ranchHouse.front.door.0 exterior timed out
+
+[door] ranchHouse.partition.west.door.0 (28 m away)
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=357.8 shuffles=0
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=357.8 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=357.8 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=357.8 shuffles=1
+  [trace] ranchHouse.partition.west.door.0 exterior d=32m dLast=33m yaw=-0.97 err=-0.00 gain=379.2 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=379.2 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=379.2 shuffles=2
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=32m yaw=-1.02 err=0.01 gain=379.2 shuffles=3
+  [trace] ranchHouse.partition.west.door.0 exterior d=32m dLast=33m yaw=-0.97 err=-0.00 gain=396.3 shuffles=4
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=32m yaw=-1.01 err=-0.01 gain=396.3 shuffles=4
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=32m yaw=-1.02 err=0.01 gain=396.3 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=396.3 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=396.3 shuffles=5
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=404.2 shuffles=6
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=404.2 shuffles=7
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=-0.00 gain=409.4 shuffles=8
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=-0.00 gain=409.4 shuffles=8
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=409.4 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=409.4 shuffles=9
+  [trace] ranchHouse.partition.west.door.0 exterior d=32m dLast=33m yaw=-0.96 err=0.00 gain=414.3 shuffles=10
+  [trace] ranchHouse.partition.west.door.0 exterior d=31m dLast=31m yaw=-1.02 err=0.00 gain=414.3 shuffles=10
+  [trace] ranchHouse.partition.west.door.0 exterior detour d=18m dLast=18m yaw=-0.59 err=0.00 gain=361.8 shuffles=0

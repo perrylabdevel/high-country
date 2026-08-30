@@ -76,14 +76,56 @@ range), facade doors read sealed-on-block, glass reads as glass from both sides.
 walking, then walked through the aperture plane; per-door timeouts; wedges detected and
 named, never hung. Inventory-identical-after-save/load step included.
 
-- Run 1 (full 31): 13 passed. The 18 failures were diagnosed layer by layer and the
-  **probe** was upgraded (not the checks): staged approach through a sibling opening for
-  partition/interior doors, detour ladder for approach lines wedged on fence geometry,
-  per-leg trace.
-- Run 2 (the 18, `HC_ONLY`): results in §4-final (filled at campaign close).
-- Ranch-gate corridor measured physically clean (post colliders only, 0.42 m body
-  displacement 0.00 across the corridor) — remaining failure classified driver-side
-  with `HC_PROBE_TRACE`.
+The 31-door set ran six times as the driver itself was root-caused (all three defects in
+the probe infrastructure, none in world geometry — each proven by an offline collision
+march of the implicated lines showing displacement ≤ 0.62 m at worst, all walkable; E19):
+
+1. Run 1 (31 doors): 13 passed. Failures named per-door, timeouts bounded.
+2. Runs 2–3: staged sibling-entry approach (a partition's own exterior point is inside
+   the house — the person-walk is "enter by the front door, then cross the partition")
+   plus a bounded detour ladder; budget shortened per recovery leg.
+3. Run 4–5: `partition.west` and `barn.front` unblocked by two more fixes —
+   **face-first steering** (the old gain clamp of 60 px/rad cannot close a >50° miss
+   against the live look scale of ~415 px/rad; the driver orbited the target instead of
+   turning) and the **crossing-stack invariant** (after every attempt the probe walks
+   back out the way it came, so each approach starts from open ground; the reverse walk
+   is recorded traversal evidence).
+4. Run 6 (all 31, focus-aware driver): per-door results in §4-final.
+5. Runs 8–13 root-caused four more probe defects and surfaced none in world
+   geometry: the `lineOf()` normal negation (run 8); a position-invariant gap —
+   after a PASS the probe's *stack* said outside while the player stood inside
+   the bunkhouse (run 11, x/z trace + clearance grid: E22); and the cemetery
+   rail line pin (run 12→13): `__navTo` routes fired (49–205 hops walked
+   hop-by-hop) but wp0 died at the same rail because the shuffle's A/D strafe
+   is perpendicular to *facing* and slides along long fence runs (E23, E24).
+6. **Run 13 scoreboard — 24/31 PASS, 4 FAIL (all approach wedges), 4
+   budget-unverified**: every door class passed — both partitions (staged),
+   front doors of five town lots, church, saloon, store, hotel, fort gate,
+   cemetery gate, all six timber-cabin doors, both barn doors, blacksmith bay,
+   cross-map El Paso. Failures: ranchGate (R8-adjacent), sheriff ×2, hotel.1.
+7. Runs 14–15 (diagonal-escape shuffle + near-anchored sidesteps) show the
+   escape diagonal helps the fence pins but **regressed post-pass exits**
+   (rotate-walk inside rooms wedges into furniture; exits time out instead of
+   shuffling out). Uncommitted; next step is scoping the rotate-walk to
+   approach legs, reverting the shuffle inside `restoreOutside` exits, then
+   run 16 = full 31.
+
+The four driver defects in full: gain clamp → orbit; interior start position →
+approach wedges on walls; macOS focus theft mid-run → kiosk-window rAF collapse
+(~2 fps) misread as wedging, cured by re-asserting `page.bringToFront()` every 5 s;
+and the fourth, found by offline collision march (`/tmp/town-approach.mjs`,
+`/tmp/walk-fidelity.mjs`) after run 8 wedged 7 m out with aim converged: the
+probe's `lineOf()` negated the registry normal. The catalogue convention (apertures.js
+"normal points to the exterior"; `__apertureView`'s by-eye-verified exterior captures
+stand at `center + normal*dist`) puts the exterior point on the **+**normal side —
+so every approach leg aimed at the aperture's interior and wedged on the building's
+far walls (the six town lots' back walls; church door.1 additionally catches a pew row
+1 m inside). Run 9 confirmed the corrected convention on the town legs but froze the
+ranch cluster (real-world tree/rock/horse/NPC cylinder scatter — colliders the
+offline marches deliberately omitted; E21); the driver now walks an escalating
+sidestep ladder (0.7 s → 1.3 s → 2 s strafes, real A/D input) and the staged
+sibling exterior leg gets the detour ladder too. Run 10 = the full 31 on the
+final driver.
 
 ### All door interaction/state implementations
 The world ships exactly two interaction modes: walk-through (collider gap, leaf open or
@@ -129,5 +171,8 @@ FPS_POSES=overlook-midday,overlook-golden node scripts/fps-sweep.mjs <url> <out.
 
 ## 8. Next campaign
 
-Selected after functional results land (§4-final) — see the closing section of the
-handoff response.
+**R8** — the only other open entry in the requirements store besides the deferred R4
+dialogue branching, and a direct continuation of this campaign's corrections: put a
+working gate in the corral fence (or document the seal), give the range gate a coherent
+context, and re-verify with the collision march plus a walk-through of the new gap.
+`scripts/loop.mjs campaign select` ranks it first (P4).
