@@ -1,0 +1,288 @@
+probe: using server at http://127.0.0.1:8766 (spawned)
+PASS  announce: the destination line names the place, range, bearing, and the approach — High Country Ranch · 10 m west · via the yard
+PASS  leg1: Harlan is addressable from the announced place — E — Talk to Harlan Calder — after 2 stop(s)
+PASS  leg1: E opens the conversation — {"dialogue":"","speaker":"Harlan Calder"}
+PASS  leg1: talking to the family starts the loop — stage=1 objective=Ride the ridge trail north to the Ranch Overlook
+    [hunt 3] player=(-398.1, 306.6) wedged=0 timedOut=1 prompt=""
+    [hunt 4] player=(-400.1, 306.2) wedged=0 timedOut=1 prompt=""
+    [hunt 5] player=(-401.8, 303.8) wedged=0 timedOut=1 prompt=""
+    [hunt 6] player=(-400.9, 300.9) wedged=0 timedOut=1 prompt=""
+    [hunt 7] player=(-397.1, 299.6) wedged=0 timedOut=1 prompt="E — Talk to Harlan Calder"
+    [hunt 8] player=(-394.4, 300.8) wedged=0 timedOut=1 prompt="E — Talk to Harlan Calder"
+    [hunt 9] player=(-391.7, 299.6) wedged=0 timedOut=1 prompt=""
+    [hunt 11] player=(-391.8, 308.7) wedged=0 timedOut=2 prompt=""
+    [hunt 12] player=(-396.7, 312.2) wedged=0 timedOut=2 prompt=""
+    [hunt 13] player=(-402.6, 311.0) wedged=0 timedOut=2 prompt=""
+    [hunt 14] player=(-406.2, 304.6) wedged=0 timedOut=2 prompt=""
+    [hunt 15] player=(-403.8, 299.6) wedged=0 timedOut=2 prompt=""
+    [hunt 16] player=(-398.0, 296.6) wedged=0 timedOut=2 prompt=""
+    [hunt 17] player=(-397.0, 292.6) wedged=0 timedOut=2 prompt=""
+    [hunt 18] player=(-395.2, 291.6) wedged=0 timedOut=2 prompt=""
+    [hunt 19] player=(-392.4, 292.4) wedged=0 timedOut=2 prompt=""
+    [hunt 20] player=(-389.8, 294.3) wedged=0 timedOut=2 prompt=""
+    [hunt 21] player=(-388.6, 298.1) wedged=0 timedOut=2 prompt=""
+    [hunt 23] player=(-402.1, 292.2) wedged=0 timedOut=3 prompt=""
+    [hunt 25] player=(-406.0, 294.4) wedged=0 timedOut=4 prompt=""
+    [hunt 26] player=(-407.6, 296.8) wedged=0 timedOut=4 prompt=""
+    [hunt 33] player=(-400.3, 314.3) wedged=0 timedOut=10 prompt=""
+    [hunt 34] player=(-398.5, 316.3) wedged=0 timedOut=10 prompt=""
+    [hunt 35] player=(-394.9, 316.4) wedged=0 timedOut=10 prompt=""
+    [hunt 36] player=(-392.8, 315.3) wedged=0 timedOut=10 prompt=""
+PASS  mount: the hint's E mounts the horse — mounted=true
+    [ride] Ranch overlook (route): 758 m to go at (-390, 313)
+    [ride] Ranch overlook (route): 767 m to go at (-389, 323)
+    [ride] Ranch overlook (route): 758 m to go at (-406, 308)
+    [ride] Ranch overlook (route): 764 m to go at (-389, 320)
+    [ride] Ranch overlook (route): 758 m to go at (-408, 307)
+    [ride] Ranch overlook (route): 763 m to go at (-390, 318)
+    [ride] Ranch overlook (route): 758 m to go at (-409, 307)
+    [ride] Ranch overlook (route): 763 m to go at (-390, 319)
+    [ride] Ranch overlook (route): 757 m to go at (-409, 306)
+    [ride] Ranch overlook (route): 762 m to go at (-390, 318)
+    [ride] Ranch overlook (route): 756 m to go at (-410, 304)
+    [ride] Ranch overlook (route): 764 m to go at (-390, 319)
+    [ride] Ranch overlook (route): 765 m to go at (-420, 310)
+    [ride] Ranch overlook (route): 760 m to go at (-395, 314)
+    [ride] Ranch overlook (route): 749 m to go at (-411, 297)
+    [ride] Ranch overlook (route): 715 m to go at (-408, 262)
+    [ride] Ranch overlook (route): 740 m to go at (-426, 281)
+    [ride] Ranch overlook (route): 711 m to go at (-405, 258)
+    [ride] Ranch overlook (route): 735 m to go at (-424, 277)
+    [ride] Ranch overlook (route): 711 m to go at (-404, 259)
+    [ride] Ranch overlook (route): 736 m to go at (-425, 278)
+    [ride] Ranch overlook (route): 710 m to go at (-404, 258)
+    [ride] Ranch overlook (route): 696 m to go at (-409, 241)
+    [ride] Ranch overlook (route): 678 m to go at (-416, 219)
+    [ride] Ranch overlook (route): 660 m to go at (-421, 197)
+    [ride] Ranch overlook (route): 641 m to go at (-425, 175)
+    [ride] Ranch overlook (route): 623 m to go at (-429, 153)
+    [ride] Ranch overlook (route): 654 m to go at (-434, 185)
+    [ride] Ranch overlook (route): 639 m to go at (-422, 174)
+    [ride] Ranch overlook (route): 620 m to go at (-426, 151)
+    [ride] Ranch overlook (route): 605 m to go at (-433, 131)
+    [ride] Ranch overlook (route): 587 m to go at (-438, 108)
+    [ride] Ranch overlook (route): 571 m to go at (-443, 87)
+    [ride] Ranch overlook (route): 588 m to go at (-426, 116)
+    [ride] Ranch overlook (route): 590 m to go at (-442, 109)
+    [ride] Ranch overlook (route): 572 m to go at (-446, 86)
+    [ride] Ranch overlook (route): 586 m to go at (-427, 113)
+    [ride] Ranch overlook (route): 590 m to go at (-442, 109)
+    [ride] Ranch overlook (route): 573 m to go at (-446, 87)
+    [ride] Ranch overlook (route): 588 m to go at (-427, 115)
+    [ride] Ranch overlook (route): 591 m to go at (-443, 109)
+    [ride] Ranch overlook (route): 572 m to go at (-447, 86)
+    [ride] Ranch overlook (route): 588 m to go at (-427, 115)
+    [ride] Ranch overlook (route): 591 m to go at (-444, 109)
+    [ride] Ranch overlook (route): 572 m to go at (-447, 86)
+    [ride] Ranch overlook (route): 588 m to go at (-427, 115)
+    [ride] Ranch overlook (route): 590 m to go at (-445, 107)
+    [ride] Ranch overlook (route): 573 m to go at (-447, 87)
+    [ride] Ranch overlook (route): 555 m to go at (-448, 65)
+    [ride] Ranch overlook (route): 538 m to go at (-451, 43)
+    [ride] Ranch overlook (route): 522 m to go at (-456, 21)
+    [ride] Ranch overlook (route): 507 m to go at (-460, -1)
+    [ride] Ranch overlook (route): 535 m to go at (-464, 31)
+    [ride] Ranch overlook (route): 519 m to go at (-453, 20)
+    [ride] Ranch overlook (route): 503 m to go at (-457, -2)
+    [ride] Ranch overlook (route): 491 m to go at (-463, -23)
+    [ride] Ranch overlook (route): 477 m to go at (-469, -45)
+    [ride] Ranch overlook (route): 464 m to go at (-473, -67)
+    [ride] Ranch overlook (route): 451 m to go at (-478, -89)
+    [ride] Ranch overlook (route): 461 m to go at (-462, -60)
+    [ride] Ranch overlook (route): 467 m to go at (-477, -66)
+    [ride] Ranch overlook (route): 454 m to go at (-481, -89)
+    [ride] Ranch overlook (route): 459 m to go at (-462, -63)
+    [ride] Ranch overlook (route): 467 m to go at (-477, -66)
+    [ride] Ranch overlook (route): 455 m to go at (-483, -89)
+    [ride] Ranch overlook (route): 437 m to go at (-481, -113)
+    [ride] Ranch overlook (route): 422 m to go at (-480, -134)
+    [ride] Ranch overlook (route): 407 m to go at (-480, -157)
+    [ride] Ranch overlook (route): 418 m to go at (-469, -127)
+    [ride] Ranch overlook (route): 424 m to go at (-483, -134)
+    [ride] Ranch overlook (route): 409 m to go at (-484, -159)
+    [ride] Ranch overlook (route): 418 m to go at (-470, -128)
+    [ride] Ranch overlook (route): 425 m to go at (-484, -135)
+    [ride] Ranch overlook (route): 410 m to go at (-484, -158)
+    [ride] Ranch overlook (route): 418 m to go at (-470, -129)
+    [ride] Ranch overlook (route): 425 m to go at (-485, -135)
+    [ride] Ranch overlook (route): 410 m to go at (-484, -158)
+    [ride] Ranch overlook (route): 395 m to go at (-482, -179)
+    [ride] Ranch overlook (route): 382 m to go at (-480, -202)
+    [ride] Ranch overlook (route): 370 m to go at (-480, -224)
+    [ride] Ranch overlook (route): 377 m to go at (-470, -194)
+    [ride] Ranch overlook (route): 384 m to go at (-484, -203)
+    [ride] Ranch overlook (route): 373 m to go at (-484, -225)
+    [ride] Ranch overlook (route): 360 m to go at (-481, -247)
+    [ride] Ranch overlook (route): 365 m to go at (-470, -216)
+    [ride] Ranch overlook (route): 373 m to go at (-486, -226)
+    [ride] Ranch overlook (route): 362 m to go at (-484, -247)
+    [ride] Ranch overlook (route): 351 m to go at (-481, -269)
+    [ride] Ranch overlook (route): 340 m to go at (-480, -294)
+    [ride] Ranch overlook (route): 334 m to go at (-480, -315)
+    [ride] Ranch overlook (route): 333 m to go at (-469, -284)
+    [ride] Ranch overlook (route): 344 m to go at (-485, -294)
+    [ride] Ranch overlook (route): 337 m to go at (-484, -315)
+    [ride] Ranch overlook (route): 329 m to go at (-481, -337)
+    [ride] Ranch overlook (route): 324 m to go at (-480, -360)
+    [ride] Ranch overlook (route): 321 m to go at (-480, -383)
+    [ride] Ranch overlook (route): 309 m to go at (-469, -392)
+    [ride] Ranch overlook (route): 311 m to go at (-469, -368)
+    [ride] Ranch overlook (route): 308 m to go at (-468, -399)
+    [ride] Ranch overlook (route): 285 m to go at (-445, -398)
+    [ride] Ranch overlook (route): 316 m to go at (-475, -385)
+    [ride] Ranch overlook (route): 307 m to go at (-466, -401)
+    [ride] Ranch overlook (route): 318 m to go at (-477, -383)
+    [ride] Ranch overlook (route): 307 m to go at (-467, -401)
+    [ride] Ranch overlook (route): 319 m to go at (-478, -383)
+    [ride] Ranch overlook (route): 306 m to go at (-466, -401)
+    [ride] Ranch overlook (route): 285 m to go at (-445, -398)
+    [ride] Ranch overlook (route): 263 m to go at (-423, -396)
+    [ride] Ranch overlook (route): 239 m to go at (-399, -396)
+    [ride] Ranch overlook (route): 216 m to go at (-376, -396)
+    [ride] Ranch overlook (route): 193 m to go at (-353, -396)
+    [ride] Ranch overlook (route): 227 m to go at (-386, -386)
+    [ride] Ranch overlook (route): 215 m to go at (-375, -402)
+    [ride] Ranch overlook (route): 238 m to go at (-397, -403)
+    [ride] Ranch overlook (route): 216 m to go at (-375, -393)
+    [ride] Ranch overlook (route): 194 m to go at (-354, -395)
+    [ride] Ranch overlook (route): 171 m to go at (-330, -397)
+    [ride] Ranch overlook (route): 203 m to go at (-363, -406)
+    [ride] Ranch overlook (route): 194 m to go at (-353, -392)
+    [ride] Ranch overlook (route): 169 m to go at (-329, -394)
+    [ride] Ranch overlook (route): 149 m to go at (-308, -396)
+    [ride] Ranch overlook (route): 125 m to go at (-285, -398)
+    [ride] Ranch overlook (route): 103 m to go at (-262, -398)
+    [ride] Ranch overlook (route): 79 m to go at (-238, -399)
+    [ride] Ranch overlook (route): 58 m to go at (-217, -399)
+    [ride] Ranch overlook (route): 89 m to go at (-249, -410)
+    [ride] Ranch overlook (route): 80 m to go at (-239, -396)
+    [ride] Ranch overlook (route): 57 m to go at (-216, -396)
+    [ride] Ranch overlook (route): 89 m to go at (-249, -408)
+    [ride] Ranch overlook (route): 80 m to go at (-239, -394)
+    [ride] Ranch overlook (route): 57 m to go at (-216, -396)
+    [ride] Ranch overlook (route): 88 m to go at (-248, -409)
+    [ride] Ranch overlook (route): 81 m to go at (-239, -395)
+    [ride] Ranch overlook (route): 58 m to go at (-216, -396)
+    [ride] Ranch overlook (route): 89 m to go at (-249, -408)
+    [ride] Ranch overlook (route): 81 m to go at (-239, -395)
+    [ride] Ranch overlook (route): 58 m to go at (-216, -396)
+    [ride] Ranch overlook (route: overlook.overlook): 34 m to go at (-193, -399)
+    [ride] Ranch overlook (approach): 11 m to go at (-171, -405)
+PASS  leg2: arriving at the announced place is an event — objective=Glass the smoke from the overlook
+PASS  leg2: the world announces what you arrived at — The Ranch Overlook. Far to the north, a column of smoke stan
+PASS  leg2: the target line still resolves the loop's next place — Ranch overlook · 0 m east · via the vantage
+PASS  leg2: the announced range shrank across the ride — Ranch overlook · 0 m east · via the vantage
+PASS  dismount: off the horse at the overlook — true
+PASS  leg3: the examination is offered at the announced place — E — Glass the smoke
+PASS  leg3: the discovery is recorded — flag sawArson
+    [ride] High Country Ranch (route): 764 m to go at (-161, -407)
+    [ride] High Country Ranch (route): 762 m to go at (-177, -410)
+    [ride] High Country Ranch (route): 750 m to go at (-194, -403)
+    [ride] High Country Ranch (route): 741 m to go at (-217, -400)
+    [ride] High Country Ranch (route): 734 m to go at (-240, -399)
+    [ride] High Country Ranch (route): 729 m to go at (-263, -398)
+    [ride] High Country Ranch (route): 724 m to go at (-286, -398)
+    [ride] High Country Ranch (route): 720 m to go at (-308, -397)
+    [ride] High Country Ranch (route): 717 m to go at (-331, -397)
+    [ride] High Country Ranch (route): 714 m to go at (-354, -396)
+    [ride] High Country Ranch (route): 713 m to go at (-377, -396)
+    [ride] High Country Ranch (route): 712 m to go at (-400, -395)
+    [ride] High Country Ranch (route): 711 m to go at (-422, -395)
+    [ride] High Country Ranch (route): 712 m to go at (-445, -395)
+    [ride] High Country Ranch (route): 713 m to go at (-468, -394)
+    [ride] High Country Ranch (route): 701 m to go at (-476, -382)
+    [ride] High Country Ranch (route): 680 m to go at (-479, -360)
+    [ride] High Country Ranch (route): 658 m to go at (-480, -338)
+    [ride] High Country Ranch (route): 635 m to go at (-480, -315)
+    [ride] High Country Ranch (route): 613 m to go at (-480, -293)
+    [ride] High Country Ranch (route): 590 m to go at (-480, -270)
+    [ride] High Country Ranch (route): 568 m to go at (-480, -247)
+    [ride] High Country Ranch (route): 545 m to go at (-480, -224)
+    [ride] High Country Ranch (route): 523 m to go at (-480, -202)
+    [ride] High Country Ranch (route): 501 m to go at (-480, -179)
+    [ride] High Country Ranch (route): 478 m to go at (-480, -157)
+    [ride] High Country Ranch (route): 456 m to go at (-480, -134)
+    [ride] High Country Ranch (route): 433 m to go at (-480, -111)
+    [ride] High Country Ranch (route): 412 m to go at (-477, -90)
+    [ride] High Country Ranch (route): 389 m to go at (-473, -67)
+    [ride] High Country Ranch (route): 367 m to go at (-469, -46)
+    [ride] High Country Ranch (route): 344 m to go at (-465, -23)
+    [ride] High Country Ranch (route): 322 m to go at (-460, -1)
+    [ride] High Country Ranch (route): 299 m to go at (-456, 21)
+    [ride] High Country Ranch (route): 277 m to go at (-452, 43)
+    [ride] High Country Ranch (route): 255 m to go at (-447, 64)
+    [ride] High Country Ranch (route): 232 m to go at (-443, 86)
+    [ride] High Country Ranch (route): 210 m to go at (-438, 108)
+    [ride] High Country Ranch (route): 187 m to go at (-434, 131)
+    [ride] High Country Ranch (route): 165 m to go at (-430, 152)
+    [ride] High Country Ranch (route): 143 m to go at (-425, 174)
+    [ride] High Country Ranch (route): 120 m to go at (-421, 197)
+    [ride] High Country Ranch (route): 98 m to go at (-416, 219)
+    [ride] High Country Ranch (route): 75 m to go at (-414, 242)
+    [ride] High Country Ranch (route): 44 m to go at (-416, 273)
+    [ride] High Country Ranch (route): 53 m to go at (-407, 263)
+    [ride] High Country Ranch (route): 45 m to go at (-418, 273)
+    [ride] High Country Ranch (route): 30 m to go at (-421, 289)
+    [ride] High Country Ranch (route): 20 m to go at (-411, 296)
+PASS  leg4: the target line announces the return place — High Country Ranch · 0 m southwest · via the yard
+    [hunt 2] player=(-399.9, 304.9) wedged=0 timedOut=0 prompt=""
+    [hunt 3] player=(-399.2, 304.4) wedged=0 timedOut=0 prompt=""
+    [hunt 5] player=(-402.5, 299.6) wedged=0 timedOut=1 prompt=""
+    [hunt 6] player=(-400.6, 296.9) wedged=0 timedOut=1 prompt=""
+    [hunt 7] player=(-400.1, 296.2) wedged=0 timedOut=1 prompt=""
+    [hunt 8] player=(-396.5, 296.8) wedged=0 timedOut=1 prompt=""
+    [hunt 9] player=(-394.1, 295.3) wedged=0 timedOut=1 prompt=""
+    [hunt 11] player=(-399.1, 290.7) wedged=0 timedOut=2 prompt=""
+    [hunt 12] player=(-406.1, 292.9) wedged=0 timedOut=2 prompt=""
+    [hunt 15] player=(-399.3, 306.6) wedged=0 timedOut=4 prompt=""
+    [hunt 17] player=(-390.1, 308.3) wedged=0 timedOut=5 prompt=""
+    [hunt 18] player=(-390.3, 307.4) wedged=0 timedOut=5 prompt=""
+    [hunt 19] player=(-389.1, 303.6) wedged=0 timedOut=5 prompt=""
+    [hunt 20] player=(-388.2, 300.9) wedged=0 timedOut=5 prompt=""
+    [hunt 21] player=(-386.9, 297.2) wedged=0 timedOut=5 prompt=""
+    [hunt 30] player=(-393.7, 309.8) wedged=0 timedOut=13 prompt=""
+    [hunt 31] player=(-396.0, 311.6) wedged=0 timedOut=13 prompt=""
+    [hunt 32] player=(-398.8, 312.2) wedged=0 timedOut=13 prompt=""
+    [hunt 33] player=(-402.5, 312.0) wedged=0 timedOut=13 prompt=""
+    [hunt 34] player=(-405.1, 311.1) wedged=0 timedOut=13 prompt=""
+    [hunt 35] player=(-407.6, 309.5) wedged=0 timedOut=13 prompt=""
+    [hunt 36] player=(-409.7, 307.3) wedged=0 timedOut=13 prompt=""
+    [hunt 37] player=(-411.2, 304.5) wedged=0 timedOut=13 prompt=""
+    [hunt 38] player=(-412.2, 300.7) wedged=0 timedOut=13 prompt=""
+    [hunt 39] player=(-412.0, 297.6) wedged=0 timedOut=13 prompt=""
+    [hunt 40] player=(-411.1, 294.5) wedged=0 timedOut=13 prompt=""
+    [hunt 41] player=(-412.6, 291.9) wedged=0 timedOut=13 prompt=""
+    [hunt 42] player=(-412.3, 288.8) wedged=0 timedOut=13 prompt=""
+    [hunt 43] player=(-409.1, 285.2) wedged=0 timedOut=13 prompt=""
+    [hunt 44] player=(-405.7, 284.5) wedged=0 timedOut=13 prompt=""
+    [hunt 45] player=(-401.0, 284.0) wedged=0 timedOut=13 prompt=""
+    [hunt 46] player=(-397.3, 284.2) wedged=0 timedOut=13 prompt=""
+    [hunt 51] player=(-415.5, 294.9) wedged=0 timedOut=17 prompt=""
+    [hunt 52] player=(-417.1, 299.9) wedged=0 timedOut=17 prompt=""
+    [hunt 53] player=(-415.7, 303.3) wedged=0 timedOut=17 prompt=""
+    [hunt 54] player=(-414.4, 306.7) wedged=0 timedOut=17 prompt=""
+    [hunt 55] player=(-411.8, 310.9) wedged=0 timedOut=17 prompt=""
+    [hunt 56] player=(-409.1, 313.3) wedged=0 timedOut=17 prompt=""
+    [hunt 57] player=(-405.5, 315.2) wedged=0 timedOut=17 prompt=""
+    [hunt 58] player=(-401.3, 316.1) wedged=0 timedOut=17 prompt=""
+    [hunt 59] player=(-396.6, 315.8) wedged=0 timedOut=17 prompt=""
+    [hunt 60] player=(-393.0, 314.5) wedged=0 timedOut=17 prompt=""
+    [hunt 61] player=(-389.2, 310.5) wedged=0 timedOut=17 prompt=""
+    [hunt 62] player=(-386.8, 308.9) wedged=0 timedOut=17 prompt=""
+    [hunt 63] player=(-384.4, 304.9) wedged=0 timedOut=17 prompt=""
+    [hunt 64] player=(-383.7, 300.9) wedged=0 timedOut=17 prompt=""
+    [hunt 65] player=(-381.3, 299.2) wedged=0 timedOut=17 prompt=""
+    [hunt 66] player=(-379.9, 295.6) wedged=0 timedOut=17 prompt=""
+    [hunt 67] player=(-381.5, 290.7) wedged=0 timedOut=17 prompt=""
+    [hunt 68] player=(-385.6, 287.3) wedged=0 timedOut=17 prompt=""
+    [hunt 71] player=(-382.0, 305.7) wedged=0 timedOut=19 prompt=""
+    [hunt 72] player=(-381.6, 309.3) wedged=0 timedOut=19 prompt=""
+    [hunt 73] player=(-384.9, 314.1) wedged=0 timedOut=19 prompt=""
+PASS  leg4: Nell is addressable from the announced place — E — Talk to Nell Calder
+PASS  leg4: the report conversation is the consequence beat — A fire line, laid by hand. Wade is saddling for town. We hol
+PASS  completing: the loop closes with no place to point at — {"version":1,"mission":"smoke","stage":4,"done":true,"flags":{"sawTheLine":true,"sawArson":true,"loopComplete":true}}
+PASS  completing: the destination line retires with the loop
+PASS  no page errors during the whole route
+route: 2427s — High Country Ranch(hunt,2 hunt) -> talk-reacquire(hunt,1 hunt) -> Juniper(hunt,37 hunt) -> Ranch overlook(place, from 758m) -> Ranch overlook(place, from 1m) -> talk-reacquire(hunt,1 hunt) -> High Country Ranch(place, from 764m) -> High Country Ranch(hunt,74 hunt) -> talk-reacquire(hunt,1 hunt)
+
+probe-travel: PASSED

@@ -1,0 +1,24 @@
+error when starting preview server:
+Error: Port 8766 is already in use
+    at httpServerStart (file:///Users/brian/Projects/high-country/node_modules/vite/dist/node/chunks/node.js:11656:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async preview (file:///Users/brian/Projects/high-country/node_modules/vite/dist/node/chunks/node.js:35778:2)
+    at async CAC.<anonymous> (file:///Users/brian/Projects/high-country/node_modules/vite/dist/node/cli.js:807:18)
+probe: using server at http://127.0.0.1:8766 (pre-existing on the port — verify it serves this repo's dist/)
+PASS  announce: the destination line names the place, range, bearing, and the approach — High Country Ranch · 10 m west · via the yard
+    [hunt 2] player=(-397.5, 304.4) wedged=0 timedOut=0 prompt=""
+    [hunt 3] player=(-400.3, 303.0) wedged=0 timedOut=0 prompt=""
+    [hunt 4] player=(-402.2, 302.4) wedged=0 timedOut=0 prompt=""
+    [hunt 5] player=(-404.0, 300.2) wedged=0 timedOut=0 prompt=""
+PASS  leg1: Harlan is addressable from the announced place — E — Talk to Harlan Calder — after 6 stop(s)
+PASS  leg1: E opens the conversation — {"dialogue":"","speaker":"Harlan Calder"}
+PASS  leg1: talking to the family starts the loop — stage=1 objective=Ride the ridge trail north to the Ranch Overlook
+    [hunt 3] player=(-399.6, 304.6) wedged=0 timedOut=1 prompt=""
+    [hunt 4] player=(-401.8, 304.1) wedged=0 timedOut=1 prompt=""
+    [hunt 5] player=(-403.5, 301.1) wedged=0 timedOut=1 prompt=""
+    [hunt 6] player=(-400.0, 298.7) wedged=0 timedOut=1 prompt=""
+    [hunt 7] player=(-398.2, 297.2) wedged=0 timedOut=1 prompt=""
+    [hunt 8] player=(-394.5, 298.4) wedged=0 timedOut=1 prompt="E — Talk to Harlan Calder"
+    [hunt 12] player=(-407.6, 301.1) wedged=0 timedOut=4 prompt=""
+PASS  mount: the hint's E mounts the horse — mounted=true
+probe-travel: FAILED — ride to Ranch overlook stalled at 758 m (best 754 m; player (-390, 313) even after a back-off rescue)

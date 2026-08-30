@@ -59,7 +59,9 @@ async function shot(name) {
 }
 
 async function navTo(poiId, mode) {
-  return page.evaluate((id, m) => window.__navTo(id, m), poiId, mode || null);
+  // evaluate takes ONE extra argument in this Playwright: pass the pair as an
+  // array (the two-argument form throws "Too many arguments").
+  return page.evaluate(([id, m]) => window.__navTo(id, m), [poiId, mode || null]);
 }
 
 function placeLabel() {
@@ -137,7 +139,12 @@ async function runLeg(to, label) {
       walked = true;
     }
   }
-  await steerTo({ x: plan.x, z: plan.z }, {
+  // Gate threshold: aim a handlebar-width south of the anchor — dead-on
+  // along the post line wedges the horse against the east post's face (the
+  // slide has no tangential component); 1.6 m off-centre is still inside
+  // the anchor's arrival region.
+  const aimPt = plan.type === "gate" ? { x: plan.x, z: plan.z + 1.6 } : { x: plan.x, z: plan.z };
+  await steerTo(aimPt, {
     arrive: Math.max(2.2, plan.r * 0.6),
     label: `${label} final approach (${plan.type})`,
     timeout: walked ? 120000 : 60000

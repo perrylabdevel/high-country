@@ -1,0 +1,19 @@
+probe: using server at http://127.0.0.1:8767 (spawned)
+PASS  mount: the probe rides the legs — mounted=true
+PASS  leg: ranch -> ranchGate — arrived — inRegion=true label="Ranch gate" want="Ranch gate" hops=12/12 (12)
+PASS  leg: ranchGate -> overlook — arrived — inRegion=true label="Ranch overlook" want="Ranch overlook" hops=52/52 (52)
+PASS  leg: overlook -> huntingCabin — arrived — inRegion=true label="Hunting cabin" want="Hunting cabin" hops=16/16 (16)
+    [transit] to fortGrant: arrived — inRegion=true label="Abandoned Fort Grant" want="Abandoned Fort Grant" hops=102/102 (102)
+    [steerRoute] fortGrant -> westernRange wp2/143 (stage): hop failed — rider at (-1588, 590) mounted=true target (-1588, 581) d=9 — sidestep and retry
+PASS  leg: fortGrant -> westernRange — arrived — inRegion=true label="Western Range" want="Western Range" hops=144/144 (144)
+    [steerRoute] transit to silverCreek wp18/116 (trail): hop failed — rider at (-1463, -380) mounted=true target (-1474, -379) d=11 — sidestep and retry
+    [steerRoute] transit to silverCreek wp19/116 (trail): hop failed — rider at (-1459, -361) mounted=true target (-1453, -369) d=9 — sidestep and retry
+    [transit] to silverCreek: arrived — inRegion=true label="Silver Creek" want="Silver Creek" hops=117/117 (117)
+    [steerRoute] silverCreek -> lakeMercy wp1/14 (road): hop failed — rider at (235, -194) mounted=true target (224, -202) d=14 — sidestep and retry
+FAIL  leg: silverCreek -> lakeMercy — failed — steering to silverCreek -> lakeMercy wp1/14 (road) retry timed out
+    [transit] to mines: arrived — inRegion=true label="Silver Strike Mines" want="Silver Strike Mines" hops=62/62 (62)
+PASS  leg: mines -> stampMill — arrived — inRegion=true label="Stamp mill" want="Stamp mill" hops=32/32 (32)
+PASS  journey: >=5/6 legs arrived — ranch -> ranchGate: arrived · ranchGate -> overlook: arrived · overlook -> huntingCabin: arrived · fortGrant -> westernRange: arrived · silverCreek -> lakeMercy: failed · mines -> stampMill: arrived
+PASS  no page errors during the whole journey
+
+probe-routes: 1 FAILED step(s)

@@ -1,17 +1,45 @@
 {
   "id": "20260829-R3",
   "requirementId": "R3",
-  "stage": "selected",
+  "stage": "accepted",
   "startedAt": "2026-08-29T13:18:33.377Z",
-  "rounds": 0,
-  "builder": null,
-  "verifier": null,
+  "rounds": 4,
+  "builder": "probe-driver-R5",
+  "verifier": "fresh-critic-R3-2026-08-29",
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
     "maxMinutes": 120
   },
-  "notes": [],
-  "evidence": [],
-  "outcome": null
+  "notes": [
+    {
+      "ts": "2026-08-29T13:24:40.694Z",
+      "stage": "planned",
+      "text": "R3 plan: inspect today's only guidance surfaces (hud-hint, hud-place, minimap). Implement the smallest coherent change that makes the active objective a named, findable place: objective text resolves to a place name; the minimap renders a readable marker at the active objective's location; an on-screen bearing indicator gives direction at gallop; arrival already fires placeLabel. Acceptance proof: traversal probe starts UN familiar with the map and reaches the objective using only these affordances (closed-loop steering, no debug warp); check contract extended; marker legibility checked on targeted captures; independent critic."
+    },
+    {
+      "ts": "2026-08-29T14:26:31.431Z",
+      "stage": "implementing",
+      "text": "Implementation: mission stages carry placeId; missions.objectivePlace() resolves the active stage to a named POI ({name,x,z}), the same object the HUD target line (#objective-target: name + rounded range + 8-word bearing) and the minimap objective marker (paintObjective: ring + name label, edge chevron when off-view) render — one resolved place, three guidance surfaces reading it. New acceptance probe scripts/probe-travel.mjs: starts unfamiliar, uses ONLY the announced line + objectivePlace: reaches Harlan by expanding-ring hunt around the announced place, talks (E), mounts Juniper per the HUD hint, rides the announced places to the overlook (arrival event + toast), glasses the smoke, rides home and reports to Nell; target line retires when the loop closes. check-missions gains the place-resolution contract block."
+    },
+    {
+      "ts": "2026-08-30T00:27:32.919Z",
+      "stage": "implementing",
+      "text": "R3 ride-probe stall root-caused: cabinTrail's POI-centre start bore straight through the ranch house and ended at its 0.9 m front door, which a horse wedges against forever; edge pricing only surcharges a collider crossing, so the graph plotted through the house. Fix: bend the trail west around the house. Routes from every yard pose now clear; check chain green."
+    },
+    {
+      "ts": "2026-08-30T06:06:34.135Z",
+      "stage": "implementing",
+      "text": "steerRoute wedge root-caused with a traced live repro: an arrival inside the fort skipped the gate node at 14 m and the next hop's aim line clipped the wall's west end; the slide pinned the horse perpendicular to the wall face (err=0.00, d frozen at 9 m for 30 s) and steerTo's re-aim drag cancelled every shuffle's turn, while the retry's arrive-9 waive marked the hop done from 9 m short. Fixes: tail rule skips waypoints that step away from the leg's destination; gate nodes skip at 1.8 m only (chokepoints are threaded, not skipped); a wedged hop near a gate re-threads the gap at arrive 2.2 before re-centring. Headless full-world greedy walk and slope sampling both pass the same stretch, so the blocker was driver dynamics, not world geometry."
+    }
+  ],
+  "evidence": [
+    {
+      "ts": "2026-08-30T04:01:24.814Z",
+      "verdict": "accept",
+      "verifier": "fresh-critic-R3-2026-08-29",
+      "note": "VERDICT: accept. All three criteria SUPPORT with line-cited evidence: (1) objectivePlace resolves each stage to placeId+approach (ranch.yard, overlook.overlook face 0); destination lines announce 'High Country Ranch - 10 m west - via the yard' and 'Ranch overlook - 0 m east - via the vantage'. (2) probe-travel run 9: 18 PASS / 0 FAIL - announce, talk, mount, ridden route with shrinking range (758 m to approach 11 m), arrival event + toast, glass beat (sawArson), return by name, Nell report, loop done:true, destination line retires, no page errors; screenshots confirm live rendering. (3) Probe drives only keyboard E/W/S/A/D and reads HUD/DOM; page.evaluate read-only; no teleport. Verifier not the builder (independent fresh agent). Caveat noted: earlier runs 5-8 failed on probe-side approach-tail steering; passing run supersedes; dismount-and-walk recovery is a player-replicable affordance."
+    }
+  ],
+  "outcome": "accepted"
 }

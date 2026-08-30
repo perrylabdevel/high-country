@@ -1,0 +1,16 @@
+probe: using server at http://127.0.0.1:8767 (spawned)
+PASS  mount: the probe rides the legs — mounted=true
+PASS  leg: ranch -> ranchGate — arrived — inRegion=true label="Ranch gate" want="Ranch gate" hops=12/12 (12)
+    [steerRoute] ranchGate -> overlook wp0/51 (stage): hop failed — sidestep and retry
+PASS  leg: ranchGate -> overlook — arrived — inRegion=true label="Ranch overlook" want="Ranch overlook" hops=52/52 (52)
+PASS  leg: overlook -> huntingCabin — arrived — inRegion=true label="Hunting cabin" want="Hunting cabin" hops=16/16 (16)
+    [transit] to fortGrant: arrived — inRegion=true label="Abandoned Fort Grant" want="Abandoned Fort Grant" hops=102/102 (102)
+    [steerRoute] fortGrant -> westernRange wp2/143 (stage): hop failed — sidestep and retry
+    [steerRoute] fortGrant -> westernRange wp3/143 (stage): hop failed — sidestep and retry
+FAIL  leg: fortGrant -> westernRange — failed — steering to fortGrant -> westernRange wp3/143 (stage) retry timed out
+    [steerRoute] transit to silverCreek wp1/109 (stage): hop failed — sidestep and retry
+    [transit] to silverCreek: failed — steering to transit to silverCreek wp1/109 (stage) retry timed out
+FAIL  journey: >=5/6 legs arrived — ranch -> ranchGate: arrived · ranchGate -> overlook: arrived · overlook -> huntingCabin: arrived · fortGrant -> westernRange: failed · silverCreek -> lakeMercy: skipped · silverCreek -> lakeMercy: skipped · mines -> stampMill: skipped
+PASS  no page errors during the whole journey
+
+probe-routes: 2 FAILED step(s)

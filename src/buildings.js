@@ -599,8 +599,11 @@ export function createRanch(maps = {}) {
   addBoxCollider(ox - 16, oz - 4, 0.7, 0.45);
 
   // ---------------- Trough ----------------
-  groundBox(ox + 11, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
-  addBoxCollider(ox + 11, oz + 16, 1.4, 0.5);
+  // 13.5, not 11: a trough 1.25 m from the hitching rail leaves a gap a horse
+  // (0.78 m radius) cannot pass, and a rider mounting at the rail rides into
+  // the pocket between rail and trough with nothing but a wall ahead.
+  groundBox(ox + 13.5, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
+  addBoxCollider(ox + 13.5, oz + 16, 1.4, 0.5);
 
   return group;
 }
