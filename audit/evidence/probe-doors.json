@@ -1,0 +1,180 @@
+{
+  "startedAt": "2026-08-30T13:31:19.630Z",
+  "minutes": 49.2,
+  "traversable": 31,
+  "perDoor": [
+    {
+      "id": "blacksmith.front.bay.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "bunkhouse.front.door.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "ranchHouse.front.door.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "ranchHouse.partition.west.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to ranchHouse.partition.west.door.0 exterior timed out"
+    },
+    {
+      "id": "ranchHouse.partition.east.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to ranchHouse.partition.east.door.0 exterior timed out"
+    },
+    {
+      "id": "barn.right.barn.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "barn.front.barn.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to barn.front.barn.0 exterior timed out"
+    },
+    {
+      "id": "ranchGate.east.gate.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to ranchGate.east.gate.0 through timed out"
+    },
+    {
+      "id": "cemeteryGate.front.gate.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near cemeteryGate.front.gate.0 exterior"
+    },
+    {
+      "id": "sheriff.front.door.1",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near sheriff.front.door.1 exterior"
+    },
+    {
+      "id": "sheriff.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to sheriff.front.door.0 exterior timed out"
+    },
+    {
+      "id": "hotel.front.door.1",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "hotel.front.door.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "store.front.door.1",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "store.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to store.front.door.0 exterior timed out"
+    },
+    {
+      "id": "church.front.door.1",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to church.front.door.1 exterior timed out"
+    },
+    {
+      "id": "church.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to church.front.door.0 exterior timed out"
+    },
+    {
+      "id": "saloon.front.door.1",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to saloon.front.door.1 exterior timed out"
+    },
+    {
+      "id": "saloon.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to saloon.front.door.0 exterior timed out"
+    },
+    {
+      "id": "timberCabin.front.door.2",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "timberCabin.back.door.2",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "timberCabin.front.door.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "timberCabin.back.door.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "timberCabin.front.door.1",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "timberCabin.back.door.1",
+      "exterior": false,
+      "traversed": false,
+      "error": "steering to timberCabin.back.door.1 exterior timed out"
+    },
+    {
+      "id": "fortGrant.front.gate.0",
+      "exterior": true,
+      "traversed": true
+    },
+    {
+      "id": "elPasoTwoStory.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near elPasoTwoStory.front.door.0 exterior"
+    },
+    {
+      "id": "elPasoShed.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near elPasoShed.front.door.0 exterior"
+    },
+    {
+      "id": "elPasoStore.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near elPasoStore.front.door.0 exterior"
+    },
+    {
+      "id": "elPasoCasa.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near elPasoCasa.front.door.0 exterior"
+    },
+    {
+      "id": "elPasoCasita.front.door.0",
+      "exterior": false,
+      "traversed": false,
+      "error": "still wedged after 15 shuffles near elPasoCasita.front.door.0 exterior"
+    }
+  ]
+}

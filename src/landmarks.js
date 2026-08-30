@@ -33,6 +33,7 @@ import {
   post
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
+import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function mat(color, extra = {}) {
@@ -94,7 +95,17 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
   const west = wallX({ length: d, height: eave, thickness: T, material: adobe });
   mate(west, "wallSide", face(st, "left"));
   mate(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }), "base", anchorsOf(st).get("wallTop"));
-  const glass = mat(0xf0d9a0, { emissive: 0x6a4018, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.1 });
+  // Glass passes light (see the same material in buildings.js): a pane you
+  // cannot see through presents the outdoors as a flat glowing panel from
+  // inside, and the window's contract is glass-in-wall, not lamp shade.
+  const glass = mat(0xcfe0d8, {
+    transparent: true,
+    opacity: 0.32,
+    emissive: 0x6a4018,
+    emissiveIntensity: 0.12,
+    roughness: 0.15,
+    metalness: 0.0
+  });
   function glazeWindows(wall) {
     (wall.userData.openings || []).forEach((o, i) => {
       if ((o.fromFloor || 0) < 0.5) {
@@ -523,7 +534,10 @@ export function createLandmarks(scene, maps = {}) {
     const northDoor = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: dark });
     mate(northDoor, "frame", anchorsOf(north).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
     collide(cabin, cx, cz, 0, [
-      { x: 0, z: -2.5, halfX: 3.5, halfZ: T / 2 },
+      // The north door got its own opening cut, so its wall segment gets the
+      // matching gap — a north door sealed by its own collider was exactly
+      // the geometry-open/physics-shut class the aperture check names.
+      { x: 0, z: -2.5, halfX: 3.5, halfZ: T / 2, openings: [{ x: 0, w: 1.2 }] },
       { x: 0, z: 2.5, halfX: 3.5, halfZ: T / 2, openings: [{ x: 0, w: 1.2 }] },
       { x: 3.5, z: 0, halfX: T / 2, halfZ: 2.5 },
       { x: -3.5, z: 0, halfX: T / 2, halfZ: 2.5 }
@@ -621,6 +635,12 @@ export function createLandmarks(scene, maps = {}) {
   addBoxCollider(fort.x + (gateHalf + 0.2) + 5.4, fort.z - fortDepth, 5.4, 0.7);
   addBoxCollider(fort.x - fortHalf, fort.z, 0.7, fortDepth);
   addBoxCollider(fort.x + fortHalf, fort.z, 0.7, fortDepth);
+  registerAperture({
+    structure: "fortGrant", side: "front", kind: "gate",
+    x: fort.x, y: heightAt(fort.x, fort.z - fortDepth) + fortWallH / 2, z: fort.z - fortDepth,
+    w: 6.4, h: fortWallH, nx: 0, nz: -1, state: "traversable",
+    note: "north gateway between the segment colliders; arrival approach 'gate'"
+  });
   boxAt(group, fort.x + 6, fort.z - 4, 6, 4.5, 6, stone);
 
   // Iron Valley — a coherent industrial complex at the region center (the
@@ -722,6 +742,15 @@ export function createLandmarks(scene, maps = {}) {
   boxOnGround(group, mission.x - 0.98, mission.z - 4.15, 0.12, 2.15, 0.12, dark, false);
   boxOnGround(group, mission.x - 1.5, mission.z - 4.15, 1.28, 0.16, 0.12, dark, false, 2.15);
   addBoxCollider(mission.x, mission.z, 5.2, 4.2);
+  // The door register: this doorway is dressing on a sealed adobe block, and
+  // it says so in the canonical aperture inventory instead of relying on the
+  // collider to speak for it.
+  registerAperture({
+    structure: "mission", side: "front", kind: "door",
+    x: mission.x - 1.5, y: heightAt(mission.x - 1.5, mission.z - 4.06) + 1.075, z: mission.z - 4.06,
+    w: 1.05, h: 2.15, nx: 0, nz: -1, state: "facade",
+    note: "no mission interior; door is facade dressing on the sealed adobe block"
+  });
   addBoxCollider(campX, mission.z - 4.8, 2.0, 0.8);
   boxAt(group, POS.vipers.x, POS.vipers.z, 7, 3, 5, rust);
   boxAt(group, POS.hideout.x, POS.hideout.z, 6, 2.6, 5, dark);

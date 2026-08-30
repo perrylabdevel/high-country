@@ -31,6 +31,7 @@ import {
   wheelOn
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
+import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function groundY(x, z) {
@@ -53,12 +54,18 @@ export function createRanch(maps = {}) {
   const stone = hasMaps
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
     : new THREE.MeshStandardNodeMaterial({ map: rockTexture(), roughness: 0.95, color: 0x8a8478 });
+  // Glass must actually pass light: an opaque pane turns every window into a
+  // lamp shade — from inside, the yard reads as a flat glowing panel. Real
+  // tint + transparency keeps a day-lit sheen while the world shows through
+  // both ways; the faint emissive stays for dusk warmth.
   const glass = new THREE.MeshStandardNodeMaterial({
-    color: 0xf0d9a0,
+    color: 0xcfe0d8,
+    transparent: true,
+    opacity: 0.32,
     emissive: 0x6a4018,
-    emissiveIntensity: 0.35,
-    roughness: 0.2,
-    metalness: 0.1
+    emissiveIntensity: 0.12,
+    roughness: 0.15,
+    metalness: 0.0
   });
 
   const group = new THREE.Group();
@@ -346,10 +353,14 @@ export function createRanch(maps = {}) {
   const barnRoof = gableRoof({ w: BW, d: BD, pitch: 0.5, overhang: 0.45, eave: BEAVE, material: roof });
   mate(barnRoof, "base", anchorsOf(barn).get("wallTop"));
 
-  const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: 0, material: wood });
+  // Barn doors hang open like every other walkable door in the kit: a leaf
+  // drawn shut on an opening the colliders leave open reads as a wall a
+  // player must phase through — the visual/physics mismatch the aperture
+  // check names, on the wide-passage class this time.
+  const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: Math.PI / 2, material: wood });
   barnDoor.userData.class = "barn";
   mate(barnDoor, "frame", anchorsOf(barnSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
-  const barnEastDoor = doorLeaf({ width: 3.0, height: 3.5, thickness: 0.18, hinge: -1.5, swing: 0, material: wood });
+  const barnEastDoor = doorLeaf({ width: 3.0, height: 3.5, thickness: 0.18, hinge: -1.5, swing: Math.PI / 2, material: wood });
   barnEastDoor.userData.class = "barn";
   mate(barnEastDoor, "frame", anchorsOf(barnEast).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
@@ -359,8 +370,11 @@ export function createRanch(maps = {}) {
     { x: BW / 2, z: 0, halfX: T / 2, halfZ: BD / 2, openings: [{ x: 0, w: 3.0 }] },
     { x: -BW / 2, z: 0, halfX: T / 2, halfZ: BD / 2 }
   ]);
-  // Solid body collider so a large step (horse) can't tunnel through the walls.
-  addBoxCollider(barnX, barnZ, BW / 2, BD / 2);
+  // No solid body collider here: it re-sealed the bays the perimeter ring just
+  // opened — the bays stood open in geometry and shut in physics, and the
+  // aperture check catches a body circle blocked in a declared traversable
+  // bay. The perimeter ring above is the anti-tunnel protection; the bays are
+  // genuine passages and their interior is enterable ground.
   group.add(barn);
 
   // ---------------- Bunkhouse ----------------
@@ -437,8 +451,11 @@ export function createRanch(maps = {}) {
   const smithRoof = gableRoof({ w: SW, d: SD, pitch: 0.5, overhang: 0.45, eave: SEAVE, material: roof });
   mate(smithRoof, "base", anchorsOf(smith).get("wallTop"));
 
+  // Same open-leaf rule as the barn: the bay's collider gap is a real
+  // passage, so its leaf hangs open — a shut leaf would present the bay as
+  // sealed while the body walks straight through it.
   const smithBay = doorLeaf({
-    width: 2.4, height: 2.6, thickness: 0.18, hinge: -1.2, swing: 0, material: darkWood
+    width: 2.4, height: 2.6, thickness: 0.18, hinge: -1.2, swing: Math.PI / 2, material: darkWood
   });
   smithBay.userData.class = "bay";
   mate(smithBay, "frame", anchorsOf(smithSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
@@ -540,6 +557,12 @@ export function createRanch(maps = {}) {
     addBoxCollider(gx, gateZ, 0.2, 0.2);
   }
   groundBox(gateX + 4, gateZ, 9, 0.35, 0.35, darkWood, 5.5 - 0.175);
+  registerAperture({
+    structure: "ranchGate", side: "east", kind: "gate",
+    x: gateX + 4, y: heightAt(gateX + 4, gateZ) + 2.55, z: gateZ,
+    w: 7.6, h: 5.3, nx: 1, nz: 0, state: "traversable",
+    note: "freestanding range gate on the ride-in trail; arrival approach 'gate'. NOT part of the corral fence — that rectangle (ox+12..42, oz+28..48) is a closed loop with no gate (R8)"
+  });
 
   // ---------------- Hitching rail ----------------
   groundBox(ox + 8, oz + 14, 0.16, 1.1, 3.4, darkWood);

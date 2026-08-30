@@ -1,0 +1,1900 @@
+{
+  "summary": {
+    "total": 67,
+    "byKind": {
+      "door": 45,
+      "window": 16,
+      "barn": 2,
+      "bay": 1,
+      "gate": 3
+    },
+    "byState": {
+      "traversable": 20,
+      "window": 16,
+      "facade": 20,
+      "shell": 11
+    },
+    "failures": 0
+  },
+  "apertures": [
+    {
+      "id": "ranchHouse.front.door.0",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -400,
+        "y": 17.25,
+        "z": 299
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "ranchHouse.front.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.35,
+      "height": 1.5,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.35,
+        "height": 1.5
+      },
+      "center": {
+        "x": -406.4,
+        "y": 17.85,
+        "z": 299
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "ranchHouse.front.window.1",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.35,
+      "height": 1.5,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.35,
+        "height": 1.5
+      },
+      "center": {
+        "x": -393.4,
+        "y": 17.85,
+        "z": 299
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "ranchHouse.front.window.2",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 3.6,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -406.4,
+        "y": 20.5,
+        "z": 299
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "ranchHouse.front.window.3",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 3.6,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -393.4,
+        "y": 20.5,
+        "z": 299
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "ranchHouse.back.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 3.6,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -399.25,
+        "y": 20.5,
+        "z": 286.65
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "ranchHouse.back.window.1",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 3.6,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -405.75,
+        "y": 20.5,
+        "z": 286.65
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "ranchHouse.left.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "left",
+      "width": 1.3,
+      "height": 1.5,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.3,
+        "height": 1.5
+      },
+      "center": {
+        "x": -410.5,
+        "y": 17.85,
+        "z": 291.45
+      },
+      "normal": {
+        "x": -1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.left.window.1",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "left",
+      "width": 1.3,
+      "height": 1.5,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.3,
+        "height": 1.5
+      },
+      "center": {
+        "x": -410.5,
+        "y": 17.85,
+        "z": 296.85
+      },
+      "normal": {
+        "x": -1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.right.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "right",
+      "width": 1.3,
+      "height": 1.5,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.3,
+        "height": 1.5
+      },
+      "center": {
+        "x": -388,
+        "y": 17.85,
+        "z": 290.85
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.right.window.1",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "right",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 3.6,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -388,
+        "y": 20.5,
+        "z": 290.85
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.partition.west.door.0",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "partition.west",
+      "width": 0.92,
+      "height": 2.03,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -404,
+        "y": 17.34,
+        "z": 291.05
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.partition.east.door.0",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "partition.east",
+      "width": 0.92,
+      "height": 2.03,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -394.8,
+        "y": 17.34,
+        "z": 291.85
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchEll.right.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "right",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -384,
+        "y": 17.8,
+        "z": 281.65
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchEll.back.window.0",
+      "poi": "ranch",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 1.25,
+      "height": 1.4,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.25,
+        "height": 1.4
+      },
+      "center": {
+        "x": -389.8,
+        "y": 17.8,
+        "z": 275.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "barn.front.barn.0",
+      "poi": "ranch",
+      "kind": "barn",
+      "class": "barn",
+      "side": "front",
+      "width": 3.5,
+      "height": 4,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 3.5,
+        "height": 4,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -428,
+        "y": 18.2,
+        "z": 324
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "barn.right.barn.0",
+      "poi": "ranch",
+      "kind": "barn",
+      "class": "barn",
+      "side": "right",
+      "width": 3,
+      "height": 3.5,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 3,
+        "height": 3.5,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -420,
+        "y": 17.95,
+        "z": 318
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "bunkhouse.front.door.0",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -374,
+        "y": 17.25,
+        "z": 313.25
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "blacksmith.front.bay.0",
+      "poi": "ranch",
+      "kind": "bay",
+      "class": "bay",
+      "side": "front",
+      "width": 2.4,
+      "height": 2.6,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 2.4,
+        "height": 2.6,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -382,
+        "y": 17.5,
+        "z": 320.5
+      },
+      "normal": {
+        "x": 1.2246467991473532e-16,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "sheriff.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 183.81,
+        "y": 16.89,
+        "z": -202.93
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "sheriff.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 183.79,
+        "y": 16.89,
+        "z": -202.82
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "newspaper.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 197.65,
+        "y": 16.95,
+        "z": -200.84
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "doctor.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 211.49,
+        "y": 16.99,
+        "z": -198.75
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "hotel.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 225.34,
+        "y": 17.07,
+        "z": -196.65
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "hotel.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 225.32,
+        "y": 17.07,
+        "z": -196.55
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "store.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 239.18,
+        "y": 17.13,
+        "z": -194.56
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "store.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 239.16,
+        "y": 17.13,
+        "z": -194.45
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 253.02,
+        "y": 17.18,
+        "z": -192.47
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 253,
+        "y": 17.18,
+        "z": -192.36
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 266.86,
+        "y": 17.3,
+        "z": -190.38
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 266.85,
+        "y": 17.3,
+        "z": -190.27
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "blacksmith.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 280.71,
+        "y": 17.38,
+        "z": -188.29
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "livery.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 294.55,
+        "y": 17.38,
+        "z": -186.19
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.0",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 211.34,
+        "y": 17.02,
+        "z": -219.76
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 225.19,
+        "y": 17.07,
+        "z": -217.67
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.2",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 239.03,
+        "y": 17.11,
+        "z": -215.57
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.3",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 252.87,
+        "y": 17.11,
+        "z": -213.48
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.4",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 266.71,
+        "y": 17.08,
+        "z": -211.39
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.5",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 218.19,
+        "y": 16.8,
+        "z": -176.22
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.6",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 232.11,
+        "y": 16.85,
+        "z": -174.62
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.7",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 245.88,
+        "y": 16.98,
+        "z": -172.03
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.8",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 259.79,
+        "y": 17.14,
+        "z": -170.43
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "streetLot.front.door.9",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 181.89,
+        "y": 17.1,
+        "z": -237.1
+      },
+      "normal": {
+        "x": 0.9887710779360424,
+        "y": 0,
+        "z": 0.14943813247359894
+      }
+    },
+    {
+      "id": "streetLot.front.door.10",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 180.29,
+        "y": 16.73,
+        "z": -223.18
+      },
+      "normal": {
+        "x": 0.9887710779360424,
+        "y": 0,
+        "z": 0.14943813247359894
+      }
+    },
+    {
+      "id": "streetLot.front.door.11",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 177.71,
+        "y": 16.57,
+        "z": -209.41
+      },
+      "normal": {
+        "x": 0.9887710779360424,
+        "y": 0,
+        "z": 0.14943813247359894
+      }
+    },
+    {
+      "id": "streetLot.front.door.12",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 176.11,
+        "y": 16.52,
+        "z": -195.5
+      },
+      "normal": {
+        "x": 0.9887710779360424,
+        "y": 0,
+        "z": 0.14943813247359894
+      }
+    },
+    {
+      "id": "streetLot.front.door.13",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "blockout lot — no interior shell; the leaf and frame are facade dressing",
+      "traversable": false,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": 173.52,
+        "y": 16.59,
+        "z": -181.73
+      },
+      "normal": {
+        "x": 0.9887710779360424,
+        "y": 0,
+        "z": 0.14943813247359894
+      }
+    },
+    {
+      "id": "timberCabin.back.door.0",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "back",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -812,
+        "y": 33.44,
+        "z": -1594.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "timberCabin.front.door.0",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -812,
+        "y": 33.44,
+        "z": -1589.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "timberCabin.back.door.1",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "back",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -786,
+        "y": 34.61,
+        "z": -1608.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "timberCabin.front.door.1",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -786,
+        "y": 34.61,
+        "z": -1603.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "timberCabin.back.door.2",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "back",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -800,
+        "y": 33.31,
+        "z": -1586.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "timberCabin.front.door.2",
+      "poi": "timberCamp",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "timber-camp cabin dressing — south door enters an open shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -800,
+        "y": 33.31,
+        "z": -1581.5
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "elPasoCasa.front.door.0",
+      "poi": "elPaso",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "El Paso Verde facade house — walk-through shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.7278759594743864
+      },
+      "glass": null,
+      "center": {
+        "x": 1360,
+        "y": 31.19,
+        "z": 2205.9
+      },
+      "normal": {
+        "x": -1.2246467991473532e-16,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "elPasoTwoStory.front.door.0",
+      "poi": "elPaso",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "El Paso Verde facade house — walk-through shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.7278759594743864
+      },
+      "glass": null,
+      "center": {
+        "x": 1352.48,
+        "y": 31.06,
+        "z": 2200.65
+      },
+      "normal": {
+        "x": 0.996240588195683,
+        "y": 0,
+        "z": -0.08662961636484212
+      }
+    },
+    {
+      "id": "elPasoTwoStory.front.window.0",
+      "poi": "elPaso",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.85,
+      "height": 1,
+      "fromFloor": 3.15,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.85,
+        "height": 1
+      },
+      "center": {
+        "x": 1352.67,
+        "y": 33.66,
+        "z": 2202.8
+      },
+      "normal": {
+        "x": 0.996240588195683,
+        "y": 0,
+        "z": -0.08662961636484212
+      }
+    },
+    {
+      "id": "elPasoTwoStory.front.window.1",
+      "poi": "elPaso",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.85,
+      "height": 1,
+      "fromFloor": 3.15,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.85,
+        "height": 1
+      },
+      "center": {
+        "x": 1352.3,
+        "y": 33.66,
+        "z": 2198.51
+      },
+      "normal": {
+        "x": 0.996240588195683,
+        "y": 0,
+        "z": -0.08662961636484212
+      }
+    },
+    {
+      "id": "elPasoTwoStory.right.window.0",
+      "poi": "elPaso",
+      "kind": "window",
+      "class": null,
+      "side": "right",
+      "width": 0.9,
+      "height": 1.1,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 1.1
+      },
+      "center": {
+        "x": 1348.18,
+        "y": 31.46,
+        "z": 2197.31
+      },
+      "normal": {
+        "x": -0.0866296163648419,
+        "y": 0,
+        "z": -0.996240588195683
+      }
+    },
+    {
+      "id": "elPasoCasita.front.door.0",
+      "poi": "elPaso",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "El Paso Verde facade house — walk-through shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.7278759594743864
+      },
+      "glass": null,
+      "center": {
+        "x": 1367.97,
+        "y": 31.16,
+        "z": 2201.9
+      },
+      "normal": {
+        "x": -0.9728062146853668,
+        "y": 0,
+        "z": -0.23162052730603988
+      }
+    },
+    {
+      "id": "elPasoStore.front.door.0",
+      "poi": "elPaso",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "El Paso Verde facade house — walk-through shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.7278759594743864
+      },
+      "glass": null,
+      "center": {
+        "x": 1361.06,
+        "y": 31.1,
+        "z": 2193.27
+      },
+      "normal": {
+        "x": -0.1559625734730109,
+        "y": 0,
+        "z": 0.987762965329069
+      }
+    },
+    {
+      "id": "elPasoStore.right.window.0",
+      "poi": "elPaso",
+      "kind": "window",
+      "class": null,
+      "side": "right",
+      "width": 0.9,
+      "height": 1.1,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 1.1
+      },
+      "center": {
+        "x": 1365.85,
+        "y": 31.5,
+        "z": 2191.19
+      },
+      "normal": {
+        "x": 0.987762965329069,
+        "y": 0,
+        "z": 0.15596257347301112
+      }
+    },
+    {
+      "id": "elPasoShed.front.door.0",
+      "poi": "elPaso",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "shell",
+      "note": "El Paso Verde facade house — walk-through shell, no interior room",
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.7278759594743864
+      },
+      "glass": null,
+      "center": {
+        "x": 1348.08,
+        "y": 31.12,
+        "z": 2211.47
+      },
+      "normal": {
+        "x": 0.7203202134914809,
+        "y": 0,
+        "z": -0.6936416870658708
+      }
+    },
+    {
+      "id": "ranchGate.east.gate.0",
+      "poi": "ranchGate",
+      "kind": "gate",
+      "class": null,
+      "side": "east",
+      "width": 7.6,
+      "height": 5.3,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": "freestanding range gate on the ride-in trail; arrival approach 'gate'. NOT part of the corral fence — that rectangle (ox+12..42, oz+28..48) is a closed loop with no gate (R8)",
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -556,
+        "y": 18.5,
+        "z": 300
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "fortGrant.front.gate.0",
+      "poi": "fortGrant",
+      "kind": "gate",
+      "class": null,
+      "side": "front",
+      "width": 6.4,
+      "height": 3.2,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": "north gateway between the segment colliders; arrival approach 'gate'",
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -1600,
+        "y": 95.94,
+        "z": 588
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "mission.front.door.0",
+      "poi": "mission",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 1.05,
+      "height": 2.15,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "no mission interior; door is facade dressing on the sealed adobe block",
+      "traversable": false,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -1.5,
+        "y": 25.85,
+        "z": 1895.94
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "cemeteryGate.front.gate.0",
+      "poi": "cemetery",
+      "kind": "gate",
+      "class": null,
+      "side": "front",
+      "width": 2.4,
+      "height": 1.4,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": "fence gate gap between the two gatepost colliders",
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -280,
+        "y": 20.01,
+        "z": 454
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "huntingCabin.front.door.0",
+      "poi": "huntingCabin",
+      "kind": "door",
+      "class": null,
+      "side": "front",
+      "width": 0.95,
+      "height": 2.05,
+      "fromFloor": 0,
+      "state": "facade",
+      "note": "no cabin interior; the door is dressing on a solid block",
+      "traversable": false,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -480,
+        "y": 19.69,
+        "z": -402.85
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    }
+  ]
+}
