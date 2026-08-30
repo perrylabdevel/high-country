@@ -322,6 +322,200 @@ function paintFrame(ctx) {
   ctx.fillText("surveyed from the ranch", DISPLAY / 2, DISPLAY - 16);
 }
 
+/**
+ * The active objective's destination on the chart: a double-ringed gold
+ * marker with its name when in view, or an edge chevron pointing outward
+ * when the destination lies beyond the current zoom window. This is the
+ * findability affordance for R3 — before it, the chart showed geography
+ * only and an unfamiliar player had no way to see where an objective is.
+ */
+const MARK = "#b8902f";
+
+/**
+ * Display pixels per world metre at the current zoom, evaluated for the frame's
+ * player position — the conversion the approach circle and route stroke need to
+ * stay honest when the wheel changes the magnification mid-ride.
+ */
+function metresToPx(playerX, playerZ) {
+  const view = viewWindow(playerX, playerZ);
+  return (DISPLAY / view.vw) * (W / WORLD.width);
+}
+
+// Approach glyphs pick up a colour by type so a porch, a gate and a shoreline
+// read differently at map scale — same ink family the chart already uses.
+const APPROACH_COLOR = {
+  yard: "#8a5a2b",
+  gate: "#5d3a14",
+  street: "#9a6a30",
+  door: "#6b4423",
+  porch: "#6b4423",
+  hitch: "#55524a",
+  dock: "#3a606e",
+  camp: "#7c6a3a",
+  trailhead: "#5d6e3a",
+  overlook: "#a8542a"
+};
+
+/**
+ * The planned route under the objective marker: the graph's polyline to the
+ * approach, stroked thin and dashed so it reads as counsel ("this is the way")
+ * rather than a rail. Subsampled to <=40 points; blocked edges the failure
+ * memory crossed out are ticked red so a driver can see where the plan says
+ * NOT to go.
+ */
+function paintRoute(ctx, target, playerX, playerZ) {
+  const route = target.route;
+  if (!route || route.status !== "routed" || !route.waypoints.length) {
+    return;
+  }
+  const px = metresToPx(playerX, playerZ);
+  const pts = route.waypoints;
+  const step = Math.max(1, Math.ceil(pts.length / 40));
+  ctx.save();
+  ctx.lineWidth = 1.3;
+  ctx.strokeStyle = "rgba(122, 82, 40, 0.8)";
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  let started = false;
+  for (let i = 0; i < pts.length; i += step) {
+    const w = pts[i];
+    // Skip vertices far outside the visible slice: without this a whole-map
+    // route keeps a live stroke spanning coordinates the canvas clamps, which
+    // painted phantom chords across the chart.
+    const c = displayPoint(w.x, w.z, playerX, playerZ);
+    if (c.x < -DISPLAY || c.x > DISPLAY * 2 || c.y < -DISPLAY || c.y > DISPLAY * 2) {
+      started = false;
+      continue;
+    }
+    if (!started) {
+      ctx.moveTo(c.x, c.y);
+      started = true;
+    } else {
+      ctx.lineTo(c.x, c.y);
+    }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (const b of route.blockedPts ?? []) {
+    const a = displayPoint(b.ax, b.az, playerX, playerZ);
+    const c = displayPoint(b.bx, b.bz, playerX, playerZ);
+    ctx.strokeStyle = "rgba(158, 42, 28, 0.9)";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(c.x, c.y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/**
+ * The arrival anchor under the objective: a fine circle at the approach's
+ * arrival radius (the region you can actually stand in), a diamond at the
+ * anchor point, and a facing tick when the data declares one. The POI centre
+ * keeps its gold ring below — this is the second, more precise promise.
+ */
+function paintApproach(ctx, approach, playerX, playerZ) {
+  const p = displayPoint(approach.x, approach.z, playerX, playerZ);
+  const rPx = approach.r * metresToPx(playerX, playerZ);
+  const color = APPROACH_COLOR[approach.type] || MARK;
+  ctx.save();
+  // The region circle: hairline so it reads as "ground", not a fence.
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.75;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, rPx, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  // Diamond marker, oriented with the chart.
+  ctx.fillStyle = color;
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 4.2);
+  ctx.lineTo(p.x + 4.2, p.y);
+  ctx.lineTo(p.x, p.y + 4.2);
+  ctx.lineTo(p.x - 4.2, p.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // Facing tick: a 3 px nub on the anchor pointing where a visitor should look.
+  if (typeof approach.face === "number") {
+    const hx = Math.sin(approach.face);
+    const hz = -Math.cos(approach.face);
+    // World heading to canvas: x maps straight across, z maps to +y (south is
+    // down on a north-up chart).
+    ctx.beginPath();
+    ctx.moveTo(p.x + hx * 5, p.y + hz * 5);
+    ctx.lineTo(p.x + hx * 9, p.y + hz * 9);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function paintObjective(ctx, target, playerX, playerZ) {
+  paintRoute(ctx, target, playerX, playerZ);
+  if (target.approach) {
+    paintApproach(ctx, target.approach, playerX, playerZ);
+  }
+  const p = displayPoint(target.x, target.z, playerX, playerZ);
+  const m = 30;
+  const cx = Math.min(DISPLAY - m, Math.max(m, p.x));
+  const cy = Math.min(DISPLAY - m, Math.max(m, p.y));
+  ctx.save();
+  ctx.textAlign = "center";
+  if (cx !== p.x || cy !== p.y) {
+    // Off the visible slice: a chevron pinned to the frame edge, aimed at
+    // the destination, so the marker is findable at any zoom level.
+    const ang = Math.atan2(p.y - cy, p.x - cx);
+    ctx.translate(cx, cy);
+    ctx.rotate(ang);
+    ctx.fillStyle = MARK;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(11, 0);
+    ctx.lineTo(-5, 7);
+    ctx.lineTo(-5, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.translate(p.x, p.y);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#f4ead2";
+    ctx.lineWidth = 4.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 5.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = MARK;
+    ctx.beginPath();
+    ctx.arc(0, 0, 5.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = INK;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    // Name under the marker, with the same parchment halo the map labels use.
+    ctx.font = "8px Palatino, Georgia, serif";
+    ctx.fillStyle = MARK;
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(226, 208, 164, 0.9)";
+    ctx.shadowBlur = 3;
+    ctx.fillText(target.name, 0, 17);
+  }
+  ctx.restore();
+}
+
 function paintChart(canvas) {
   const ctx = canvas.getContext("2d");
   paintParchment(ctx);
@@ -398,6 +592,14 @@ export function createMinimap() {
   // Last known player state so a wheel zoom can repaint immediately instead
   // of waiting for the next frame's update().
   const last = { x: 0, z: 0, yaw: 0 };
+  // The active objective's destination ({ name, x, z }) or null. Set by the
+  // frame loop from missions.objectivePlace() — nothing here reads mission
+  // state directly, so the chart stays decoupled from the loop.
+  let target = null;
+
+  function setObjective(next) {
+    target = next;
+  }
 
   function show() {
     root.classList.remove("hidden");
@@ -420,6 +622,9 @@ export function createMinimap() {
     paintCompass(ctx);
     paintYou(ctx, 0, 0, yaw);
     ctx.restore();
+    if (target) {
+      paintObjective(ctx, target, x, z);
+    }
     paintFrame(ctx);
   }
 
@@ -441,5 +646,5 @@ export function createMinimap() {
     }
   }, { passive: false });
 
-  return { show, toggleSize, update };
+  return { show, toggleSize, update, setObjective };
 }

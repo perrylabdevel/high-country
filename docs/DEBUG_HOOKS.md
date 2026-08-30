@@ -41,6 +41,20 @@ look exactly as invisible.
 | `__groundLines(on, span, step)` | The terrain surface itself: a grid on `meshHeightAt` plus 12 cm pins at each intersection, depth-tested. Reads the ground line the cover hides. |
 | `__heightAt(x, z)` | The bilinear height model. Note this is *not* where the ground is drawn — `meshHeightAt` is. |
 
+## Navigation
+
+Two-stage navigation: the graph routes across the map, an arrival approach is
+where a place can actually be reached (`src/nav/`). The player is never steered
+by the game — these hooks expose the plan and its memory of failure so a probe
+or a designer can verify the guidance against the terrain it will be walked on.
+
+| Hook | What it does |
+| --- | --- |
+| `__nav()` | Read-only diagnostics: graph build summary (`nodes`/`edges`/`drops`/`components`), the live edge blacklist with reasons, and the route currently advertised for the active objective. |
+| `__navOverlay(on, { radius = 260 })` | The system on the ground: dim graph edges, red segments where the failure memory blacklisted a crossing, a disc at every arrival approach, and the current objective's approach in **gold** with its facing tick. Call again to rebuild; `(false)` clears. |
+| `__navBlockEdge(a, b, reason)` | Write failure memory: node ids from `__nav()`'s graph diagnostics. The game has no autopilot, so in shipped play nothing ever calls this — a scripted run uses it after a move proves an edge physically dead. The next `__nav().route` shows the detour or the unreachable verdict. |
+| `__missions().objectivePlace` | The active objective's destination: POI centre (`name/x/z`), the arrival approach (`approach`), and with a pose, the planned `route` (`waypoints`, last is the approach point; `blocked`/`blockedPts`; `status`). |
+
 ## Camera and capture
 
 | Hook | What it does |

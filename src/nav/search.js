@@ -43,6 +43,18 @@ export function markEdgeBlocked(a, b, reason) {
   rec.fails += 1;
   rec.reason = reason;
   rec.until = clock() + Math.min(4, rec.fails) * NAV.EDGE_TTL;
+  // Where the edge sits on the ground, captured at failure time. The minimap
+  // paints blocked crossings from these and the overlay ticks them red; both
+  // consumers stay decoupled from the graph tables.
+  const g = navGraph();
+  if (g.nodes[a]) {
+    rec.ax = g.nodes[a].x;
+    rec.az = g.nodes[a].z;
+  }
+  if (g.nodes[b]) {
+    rec.bx = g.nodes[b].x;
+    rec.bz = g.nodes[b].z;
+  }
   blocked.set(key, rec);
   blockedVersion += 1;
   return rec;
@@ -141,6 +153,7 @@ export function routeTo(x, z, approach, mode) {
       cost: 0,
       replans: 0,
       blocked: [],
+      blockedPts: [],
       searchMs: 0,
       component: -1
     };
@@ -163,6 +176,7 @@ export function routeTo(x, z, approach, mode) {
       cost: 0,
       replans: 0,
       blocked: [],
+      blockedPts: [],
       searchMs: 0,
       component: -1
     };
@@ -201,6 +215,7 @@ export function routeTo(x, z, approach, mode) {
     cost: result.cost,
     replans: count,
     blocked: result.blocked,
+    blockedPts: result.blockedPts ?? [],
     searchMs,
     component: g.comp[goalNode]
   };
@@ -272,6 +287,11 @@ function astarRoute(g, start, goal, approach, mode) {
   }
 
   const blocked = blockedEdges().map((rec) => rec.key);
+  // The same blacklist as ground coordinates (edges marked before this route's
+  // graph build have no coords and are skipped): what the minimap ticks red.
+  const blockedPts = blockedEdges().flatMap((rec) => {
+    return rec.ax === undefined ? [] : [{ ax: rec.ax, az: rec.az, bx: rec.bx, bz: rec.bz }];
+  });
 
   if (!closed[goal]) {
     // Unreachable WITH diagnostics — not a shrug. The route matrix turns
@@ -282,6 +302,7 @@ function astarRoute(g, start, goal, approach, mode) {
       waypoints: [],
       cost: 0,
       blocked,
+      blockedPts,
       startComponent: g.comp[start],
       goalComponent: g.comp[goal]
     };
@@ -307,5 +328,5 @@ function astarRoute(g, start, goal, approach, mode) {
     return { id, x: n.x, z: n.z, kind: n.kind, ref: n.ref };
   });
   waypoints.push({ id: -1, x: approach.x, z: approach.z, kind: "approach", ref: approach.id });
-  return { status: "routed", waypoints, cost: gCost[goal], blocked };
+  return { status: "routed", waypoints, cost: gCost[goal], blocked, blockedPts };
 }

@@ -14,8 +14,23 @@ import { chromium } from "playwright";
 export { chromium };
 
 export function launchOptions() {
+  // The game's frame loop is rAF-driven. A headed window that ends up
+  // occluded by other windows gets its rAF throttled to ~1fps — the DOM
+  // still receives keydowns (so probes read prompts fine) but the frame
+  // loop consumes input taps too late or never. Force full-speed frames
+  // regardless of visibility, or scripted input becomes nondeterministic.
+  const args = [
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    // Kiosk: this window is the whole screen, so nothing can occlude it. This
+    // is the only reliable cure for macOS's native occlusion rAF throttle
+    // (no flag disables it): an occluded window runs the frame loop at ~2fps,
+    // where the dt clamp makes a 700m ride take hours instead of minutes.
+    "--kiosk"
+  ];
   if (process.env.PLAYWRIGHT_CHROMIUM) {
-    return { executablePath: process.env.PLAYWRIGHT_CHROMIUM };
+    return { executablePath: process.env.PLAYWRIGHT_CHROMIUM, args };
   }
   try {
     const bundled = chromium.executablePath();
@@ -23,7 +38,9 @@ export function launchOptions() {
       // Headed on macOS: headless Chromium has no Metal GPU process, so
       // requestAdapter() returns null and the game silently runs WebGL2
       // (see scripts/capture-poi.mjs for the long version of this story).
-      return process.platform === "darwin" ? { headless: false } : {};
+      return process.platform === "darwin"
+        ? { headless: false, args }
+        : { args };
     }
   } catch {
     // fall through
@@ -100,8 +117,13 @@ export function objectiveText() {
  * Closed-loop drive to (x, z). Faces the bearing with mouse deltas calibrated
  * on the live look gain, holds W (+Shift when far), shuffles sideways when the
  * collider wedges us, and stops inside `arrive` metres.
+ *
+ * `pulse(p)` runs on every displacement poll with the fresh probe state; if
+ * it returns true the drive stops immediately (keyboard released). Callers
+ * use this to catch pass-through affordances — a prompt that is only live
+ * while the target is in interaction range, which a stop-and-look can miss.
  */
-export async function steerTo(target, { arrive = 5, timeout = 160000, label = "" } = {}) {
+export async function steerTo(target, { arrive = 5, timeout = 160000, label = "", pulse = null } = {}) {
   let gain = 300; // px per radian of yaw error; recalibrated against live look scale
   let lastDist = Infinity;
   let progressAt = Date.now();
@@ -112,6 +134,9 @@ export async function steerTo(target, { arrive = 5, timeout = 160000, label = ""
   try {
     while (Date.now() - t0 < timeout) {
       const p = await gs();
+      if (pulse && await pulse(p)) {
+        return true;
+      }
       const dx = target.x - p.player.x;
       const dz = target.z - p.player.z;
       const d = Math.hypot(dx, dz);
@@ -218,6 +243,10 @@ export async function enterWorld(url, pageForBind) {
   await pageForBind.evaluate(() => document.getElementById("btn-enter").click());
   await pageForBind.waitForFunction(() => document.getElementById("title").classList.contains("hidden"),
     null, { timeout: 15000 });
+  // A background or occluded window throttles the rAF frame loop to ~1fps or
+  // pauses it, and blur wipes buffered input taps (input.js clearKeys) — so
+  // every probe interaction starts by putting the window front and focused.
+  await pageForBind.bringToFront();
   await pageForBind.waitForTimeout(1200);
 }
 

@@ -18,6 +18,8 @@
  * serialize()/hydrate() pair below is the seam it will use.
  */
 import { POS } from "./map.js";
+import { primaryApproach, arrivalState } from "./nav/arrivals.js";
+import { routeTo } from "./nav/search.js";
 
 /**
  * Where you stand on the overlook to read the smoke. The POI centre is the
@@ -34,13 +36,20 @@ const MISSIONS = [
       {
         id: "find-harlan",
         objective: "Find Harlan Calder at the ranch",
+        placeId: "ranch",
         completeOn: { talk: "Harlan Calder" }
       },
       {
         id: "ride-ridge",
         objective: "Ride the ridge trail north to the Ranch Overlook",
+        placeId: "overlook",
         completeOn: {
-          arrive: { x: POS.overlook.x, z: POS.overlook.z, r: 45 },
+          // Arrivals with an approachId complete through the arrival table,
+          // not the radius: the overlook approach is the ground that FACES the
+          // smoke. The radius alone once completed anywhere on the ridge,
+          // including the far side, where the whole point of the climb — the
+          // view — is behind the player.
+          arrive: { x: POS.overlook.x, z: POS.overlook.z, r: 45, approachId: "overlook.overlook" },
           onEnter: {
             flag: "sawTheLine",
             toast:
@@ -51,6 +60,7 @@ const MISSIONS = [
       {
         id: "glass-smoke",
         objective: "Glass the smoke from the overlook",
+        placeId: "overlook",
         examine: {
           x: GLASS_SPOT.x,
           z: GLASS_SPOT.z,
@@ -68,6 +78,7 @@ const MISSIONS = [
       {
         id: "report-nell",
         objective: "Ride back and tell Nell what you saw",
+        placeId: "ranch",
         completeOn: { talk: "Nell Calder" },
         // The conversation itself is the consequence beat: she answers what
         // you saw, instead of her opener and the reaction on separate visits.
@@ -172,31 +183,52 @@ export function createMissions() {
 
   /**
    * Per-frame: proximity stages complete on their own the moment the player
-   * stands inside their radius. Returns an event for main.js to surface
+   * stands inside their region. Returns an event for main.js to surface
    * (a toast), or null.
+   *
+   * The optional third argument carries what the frame knows about the pose
+   * and the world in front of the player: `mode` (walk/horse — the arrival
+   * gate it prices ground with) and `interact` (the interaction the frame
+   * actually offers, when one is live). Stages completing `approachId` need
+   * both: distance alone is insufficient by construction — five metres from
+   * a target through a solid wall is not arrival, and neither is standing on
+   * ground the arrival table refuses.
    */
-  function update(x, z) {
+  function update(x, z, { mode = "walk", interact = null } = {}) {
     const s = stage();
     if (!s || !s.completeOn || !s.completeOn.arrive) {
       return null;
     }
     const a = s.completeOn.arrive;
-    if (Math.hypot(x - a.x, z - a.z) <= a.r) {
-      // Arrival flavour lives alongside `arrive` in the stage data, not
-      // inside it — `onEnter` is the stage's own entrance event.
-      const enter = s.completeOn.onEnter;
-      if (enter) {
-        setFlag(enter.flag);
+    if (a.approachId) {
+      // Arrival through the arrival table — in the declared region, on
+      // standable ground, not pressed through a collider.
+      const st = arrivalState(s.placeId, { x, z }, { mode });
+      if (!st.arrived || st.approachId !== a.approachId) {
+        return null;
       }
-      const ev = advance();
-      // A completing stage's own entrance flavour yields to the loop's
-      // completion event — dropping that toast would hide the payoff.
-      if (ev) {
-        return ev;
+      // A stage that needs an interaction in hand only completes while that
+      // interaction is live this frame — "I was standing next to it when I
+      // looked away" does not count.
+      if (a.interact && interact !== a.interact) {
+        return null;
       }
-      return enter && enter.toast ? { toast: enter.toast } : null;
+    } else if (Math.hypot(x - a.x, z - a.z) > a.r) {
+      return null;
     }
-    return null;
+    // Arrival flavour lives alongside `arrive` in the stage data, not
+    // inside it — `onEnter` is the stage's own entrance event.
+    const enter = s.completeOn.onEnter;
+    if (enter) {
+      setFlag(enter.flag);
+    }
+    const ev = advance();
+    // A completing stage's own entrance flavour yields to the loop's
+    // completion event — dropping that toast would hide the payoff.
+    if (ev) {
+      return ev;
+    }
+    return enter && enter.toast ? { toast: enter.toast } : null;
   }
 
   /** A player talked to an NPC and their dialogue reached its end. */
@@ -277,6 +309,49 @@ export function createMissions() {
     return s ? s.objective : mission.title;
   }
 
+  /**
+   * Where the active objective actually lives, so guidance surfaces (HUD
+   * target line, minimap marker, probes) and the graph share one answer.
+   * Null when the loop is complete or a stage has no place (data-driven:
+   * the check contract asserts every stage that needs one has one).
+   *
+   * Two-stage navigation keeps the stages honest here: `name/x/z` stay the
+   * POI centre (the ring, the label, the place semantics) while `approach`
+   * is the arrival anchor the player can actually close on — Lake Mercy's
+   * centre is lakebed, the fort's centre is inside its walls, and no amount
+   * of radius makes either one a destination. Passing a pose adds `route`
+   * (the graph's planned polyline to the approach); without a pose the
+   * shape stays routed-free so headless callers can assert it dry.
+   */
+  function objectivePlace(pose, { mode = "horse" } = {}) {
+    if (state.done) {
+      return null;
+    }
+    const s = stage();
+    const p = s && s.placeId ? POS[s.placeId] : null;
+    if (!p) {
+      return null;
+    }
+    const place = { name: p.name, x: p.x, z: p.z, placeId: s.placeId };
+    const approach = primaryApproach(s.placeId);
+    if (!approach) {
+      return place;
+    }
+    place.approach = {
+      id: approach.id,
+      type: approach.type,
+      x: approach.x,
+      z: approach.z,
+      r: approach.r,
+      face: typeof approach.face === "number" ? approach.face : null,
+      dismount: Boolean(approach.dismount)
+    };
+    if (pose) {
+      place.route = routeTo(pose.x, pose.z, approach, mode);
+    }
+    return place;
+  }
+
   function serialize() {
     return { version: 1, mission: state.mission, stage: state.stage, done: state.done, flags: { ...state.flags } };
   }
@@ -314,5 +389,5 @@ export function createMissions() {
     return true;
   }
 
-  return { state, update, onTalk, examineAt, onExamined, dialogueFor, objective, serialize, hydrate };
+  return { state, update, onTalk, examineAt, onExamined, dialogueFor, objective, objectivePlace, serialize, hydrate };
 }

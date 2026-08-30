@@ -123,6 +123,24 @@ button {
   0% { color: #e8c36a; }
   100% { color: #f4ead2; }
 }
+/* The destination line under the objective: name, range and bearing, live.
+   Slightly smaller and gold so it reads as an annotation of the objective,
+   not a second objective. */
+#objective-target {
+  position: absolute;
+  left: 50%;
+  top: 74px;
+  transform: translateX(-50%);
+  max-width: min(560px, 80vw);
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #c4a36a;
+  text-shadow: 0 1px 6px #000;
+}
+#objective-target::before {
+  content: "◇ ";
+}
 #toast {
   position: absolute;
   left: 50%;
