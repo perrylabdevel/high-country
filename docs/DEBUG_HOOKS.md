@@ -53,6 +53,7 @@ or a designer can verify the guidance against the terrain it will be walked on.
 | `__nav()` | Read-only diagnostics: graph build summary (`nodes`/`edges`/`drops`/`components`), the live edge blacklist with reasons, and the route currently advertised for the active objective. |
 | `__navOverlay(on, { radius = 260 })` | The system on the ground: dim graph edges, red segments where the failure memory blacklisted a crossing, a disc at every arrival approach, and the current objective's approach in **gold** with its facing tick. Call again to rebuild; `(false)` clears. |
 | `__navBlockEdge(a, b, reason)` | Write failure memory: node ids from `__nav()`'s graph diagnostics. The game has no autopilot, so in shipped play nothing ever calls this — a scripted run uses it after a move proves an edge physically dead. The next `__nav().route` shows the detour or the unreachable verdict. |
+| `__navTo(poiId, mode)` | The route the HUD would advertise for ANY place: POI centre, arrival approach (`type/x/z/r`), and the planned polyline from the live player pose. This is what the driven route probes follow — the same affordance a player reads off the minimap, not a steering backdoor. |
 | `__missions().objectivePlace` | The active objective's destination: POI centre (`name/x/z`), the arrival approach (`approach`), and with a pose, the planned `route` (`waypoints`, last is the approach point; `blocked`/`blockedPts`; `status`). |
 
 ## Camera and capture
