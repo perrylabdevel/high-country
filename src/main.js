@@ -24,7 +24,7 @@ import { createPlayer } from "./player.js";
 import { createHorse } from "./horse.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
-import { POS, placeLabel, headingVector } from "./map.js";
+import { POS, placeAt, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
 import { resetNavGraph, navGraph, linkApproaches } from "./nav/graph.js";
 import { approachLinkRows, APPROACHES, primaryApproach } from "./nav/arrivals.js";
@@ -45,6 +45,7 @@ import { createMaterialPanel } from "./dev/panel.ts";
 import Stats from "stats.js";
 
 const placeEl = document.getElementById("hud-place");
+const placeNoteEl = document.getElementById("hud-place-note");
 const hintEl = document.getElementById("hud-hint");
 const promptEl = document.getElementById("prompt");
 const dialogueEl = document.getElementById("dialogue");
@@ -875,6 +876,14 @@ async function boot() {
   // never asked to recover anything (pillar P8).
   const saved = readSave();
   const restored = saved && saved.missions ? missions.hydrate(saved.missions) : false;
+  // R5: places the player has already stood in. Persisted with the save so
+  // "first arrival" means first across the whole run, not first this
+  // session — a fanfare replayed for a place the save proves you've been
+  // would break acceptance 2. The place you boot into is marked here too
+  // (below), so reloading never announces where you already are.
+  const visitedPlaces = new Set(
+    saved && Array.isArray(saved.visited) ? saved.visited : []
+  );
   if (saved && saved.missions && !restored) {
     // Schema-valid but unhydrgatable (a stage this build's mission data no
     // longer contains): say so, then fall through to a fresh story — the
@@ -905,9 +914,40 @@ async function boot() {
     }
   }
 
+  // Whichever place the player boots into — the fresh-game ranch or a
+  // restored pose anywhere on the map — is where they already are, not a
+  // place they just arrived at. Seed it as visited so the first frame
+  // doesn't announce it; the next genuinely new place still gets its
+  // arrival.
+  const bootPlace = placeAt(player.object.position.x, player.object.position.z);
+  if (bootPlace) {
+    visitedPlaces.add(bootPlace.id);
+  }
+
+  /**
+   * R5: "Arrival at a place is an event." A small, non-blocking flourish on
+   * the place label the first time the player stands in each POS region:
+   * the label pulses gold and a "· first visit" note fades in beside it,
+   * then both quiet down. Deliberately NOT the toast lane — missions own
+   * that, and an arrival should never cover up a line of dialogue.
+   */
+  let arrivalTimer = null;
+  function announceArrival(place) {
+    placeEl.classList.remove("first");
+    void placeEl.offsetWidth; // retrigger the pulse on back-to-back firsts
+    placeEl.classList.add("first");
+    placeNoteEl.classList.remove("hidden");
+    clearTimeout(arrivalTimer);
+    arrivalTimer = setTimeout(() => {
+      placeEl.classList.remove("first");
+      placeNoteEl.classList.add("hidden");
+    }, 4200);
+  }
+
   function snapshot() {
     return {
       missions: missions.serialize(),
+      visited: [...visitedPlaces],
       // `mounted` is deliberately absent: a reload always returns you to
       // standing beside your saved spot, on foot, horse parked where it was —
       // remounting is one E press, and a mounted restore would have to solve
@@ -1329,7 +1369,17 @@ async function boot() {
       advanceTalk();
     }
 
-    placeEl.textContent = placeLabel(player.object.position.x, player.object.position.z);
+    // Place label plus the R5 first-arrival flourish. placeAt and
+    // placeLabel read the same table, so the fanfare and the name never
+    // disagree about which place the player is in.
+    const curPlace = placeAt(player.object.position.x, player.object.position.z);
+    placeEl.textContent = curPlace
+      ? curPlace.name
+      : placeLabel(player.object.position.x, player.object.position.z);
+    if (curPlace && !visitedPlaces.has(curPlace.id)) {
+      visitedPlaces.add(curPlace.id);
+      announceArrival(curPlace);
+    }
     if (started) {
       setObjective(missions.objective());
     }
