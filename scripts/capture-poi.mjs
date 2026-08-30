@@ -16,6 +16,7 @@
 import { existsSync } from "node:fs";
 import { chromium } from "playwright";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const BASE = process.argv[2] || "http://127.0.0.1:8765";
 const OUT = process.argv[3] || "audit/current";
@@ -41,7 +42,9 @@ if (BACKEND !== "webgpu" && OUT === "audit/current") {
 // dist: how far back to stand. height: camera height above local ground.
 // heading: degrees, direction the camera looks from (0 = looking north).
 // aim: height above ground of the point looked at.
-const AUDIT_POIS = [
+// Exported so the sky-campaign FPS sweep can walk the exact same 32 vantage ×
+// light poses — a sweep over a copied table would drift from the evidence set.
+export const AUDIT_POIS = [
   { id: "ranch", dist: 46, height: 13, heading: 150, aim: 5 },
   // Frame the sheriff–doctor storefront run at eye level from its street-facing
   // side. The town-center aerial view hid these false fronts behind the nearer
@@ -124,7 +127,7 @@ const EYE_POIS = CLOSE_POIS.map((p) => ({ ...p, height: 1.65, level: true }));
 
 const POIS = MODE === "close" ? CLOSE_POIS : MODE === "eye" ? EYE_POIS : AUDIT_POIS;
 
-const LIGHTS = [
+export const LIGHTS = [
   { name: "midday", hdri: "midday", elevation: 62, azimuth: -120 },
   { name: "golden", hdri: "golden", elevation: 9, azimuth: -78 }
 ];
@@ -400,7 +403,10 @@ async function main() {
   console.log(`\n${writtenFiles.length} screenshots written to ${OUT}/`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run only when executed directly: the FPS sweep imports the vantage tables.
+if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

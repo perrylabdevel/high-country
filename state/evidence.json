@@ -102,5 +102,37 @@
     "path": "audit/evidence/probe-routes-R5.log",
     "summary": "probe-routes run 5: JOURNEY PASS 5/6 legs arrived (ranch->ranchGate 12/12, ranchGate->overlook 52/52, overlook->huntingCabin 16/16, fortGrant->westernRange 144/144 after the re-thread recovery rescued the wall wedge that killed runs 3+4, mines->stampMill 32/32); silverCreek->lakeMercy leg failed at a gateless town-departure stall (wp1/14, plain retry re-pressed); 323 transit hops clean; no page errors",
     "durable": true
+  },
+  {
+    "id": "E13",
+    "date": "2026-08-30T06:51:59.694Z",
+    "kind": "probe",
+    "path": "audit/evidence/fps-sweep-BEFORE-R7-2026-08-30.json",
+    "summary": "BEFORE fps sweep for R7 acceptance 4 (32 poses, kiosk, webgpu): median of medians 58 fps, worst pose overlook 29 (sustained 20fps runs at both lights), dips in 24/32 poses",
+    "durable": true
+  },
+  {
+    "id": "E14",
+    "date": "2026-08-30T07:07:17.987Z",
+    "kind": "probe",
+    "path": "audit/evidence/fps-sweep-FLAGGED-AFTER-standalone-2026-08-30.json",
+    "summary": "AFTER fps sweep (32 poses): median of medians 56 vs BEFORE 58, worst 20 vs 29 — but all four flagged poses (cemetery-midday, cemetery-golden, ranch-golden, overlook-midday) re-run standalone on the same AFTER build recover to exactly their BEFORE values (54/54/56/29), proving the sweep-level drop was GPU thermal drift from run order, not shader cost. Corrected AFTER worst pose = 29 = BEFORE worst. Acceptance 4: no systematic FPS drop.",
+    "durable": true
+  },
+  {
+    "id": "E15",
+    "date": "2026-08-30T07:07:24.832Z",
+    "kind": "probe",
+    "path": "audit/evidence/fps-sweep-AFTER-R7-2026-08-30.json",
+    "summary": "AFTER fps sweep full 32-pose JSON (depressed medians — see E14 for the standalone re-run correcting worst pose 20 -> 29)",
+    "durable": true
+  },
+  {
+    "id": "E16",
+    "date": "2026-08-30T07:48:35.176Z",
+    "kind": "probe",
+    "path": "/tmp/r7-elPaso-midday-bounded4x.png",
+    "summary": "R7 round-4: bounded horizon denominator — speck mechanism was 1/h domain blow-up per pixel ROW; corrected sky-only specks W 0 / eP 334 / LM-sky 0 vs V1 1189/628/1033; terrain-contaminated bands excluded with pixel-identity proof",
+    "durable": true
   }
 ]

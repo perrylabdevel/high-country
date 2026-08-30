@@ -274,7 +274,7 @@
     {
       "id": "R7",
       "title": "Sky finish: sun rim feather, cloud tiling break, horizon speck aliasing",
-      "status": "proposed",
+      "status": "verified",
       "locked": false,
       "observation": "Critic-visual-1 accepted R6 with three recorded weaknesses: the sun core rim is still a crisp pasted-plate edge against the halo (visible at eye height in timberCamp/burn golden frames); the two-layer FBM cloud field reads as stamped repeated fans in the upper sky (ranch/northernPines/westernRange); the smallest near-horizon cloud specks alias into confetti on flat-horizon views; two single-frame FPS dips (cemetery-midday 49, ranch-golden 51) sit within capture noise but correlate with sky-heavy frames.",
       "playerExperience": "The sky stays believable at every vantage and time of day: the sun is a source of light rather than a pasted plate, cloud shapes never repeat recognisably, and no aliasing shimmers at the horizon during travel.",
@@ -311,6 +311,11 @@
           "date": "2026-08-29",
           "action": "created",
           "note": "created from the R6 verifier reported weaknesses, before they were lost to the accepted-campaign record"
+        },
+        {
+          "date": "2026-08-30T08:00:33.768Z",
+          "action": "verified",
+          "note": "20260830-R7: accepted"
         }
       ]
     }
