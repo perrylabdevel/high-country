@@ -220,18 +220,20 @@ export function createSky(scene) {
   // thin fragments — speck counts roughly DOUBLED. Scale the low octave up to
   // the full field's range (n1: 1+.55+.3025+.166 = 2.02; n2: 1+.5+.25 = 1.75)
   // so the fade only trades detail for size.
-  const n2lo = mx_fractal_noise_float(vec3(d2, 11.9), 1, 2.4, 0.5).mul(1.75).mul(0.5).add(0.5);
-  // Spectral fade keyed on ELEVATION, not plen. The first window
-  // (smoothstep(3, 9, plen)) was a bug that produced the stretched look the
-  // player rejected: plen = 3·tan(zenith angle), so it is 3 AT ZENITH and
-  // larger everywhere else — the mix was >=0 across the whole visible sky,
-  // dissolving all high-octave mackerel detail into one stretched low field
-  // with only the warp for shape. The aliasing the fade exists for lives
-  // where the domain's vertical row rate outruns the pixels: h < ~0.35. Fade
-  // over 0.28..0.55 so mid-sky keeps V1's fine texture and the horizon deck
-  // still dissolves.
-  const skyFade = smoothstep(0.28, 0.55, dirV.y).oneMinus();
-  const n2 = mix(n2hi, n2lo, skyFade);
+  const n2md = mx_fractal_noise_float(vec3(d2, 11.9), 2, 2.4, 0.5).mul(1.1667).mul(0.5).add(0.5);
+  // Spectral fade keyed on ELEVATION, not plen, and fading toward TWO
+  // octaves, not one. The first window (smoothstep(3, 9, plen)) was a bug
+  // that produced the stretched look the player rejected: plen =
+  // 3·tan(zenith angle), so it is 3 AT ZENITH and larger everywhere else —
+  // the mix covered the whole visible sky and dissolved all mackerel detail
+  // into one stretched smear. But going all the way to 1 octave also read
+  // as "smeared on": the small 3rd/4th-octave puffs are where cloud detail
+  // lives, and they alias only where the row rate beats the pixels: octave 4
+  // (10.65x) from h<0.3, octave 3 from h<0.2. The window targets the aliased
+  // band only — full detail everywhere above h=0.32, 2-octave deck below
+  // h=0.17 — leaving the sqrt bound to finish the last few rows.
+  const skyFade = smoothstep(0.17, 0.32, dirV.y).oneMinus();
+  const n2 = mix(n2hi, n2md, skyFade);
   // Domain warp off the cirrus field (no extra noise calls): the radial
   // stretch made every cumulus elongate along the SAME axis, so the upper sky
   // read as repeated stamped fans. Offsetting the cumulus domain by the
@@ -243,8 +245,8 @@ export function createSky(scene) {
   const warp = n2.sub(0.5);
   const d1 = p.add(vec2(warp.mul(1.6), warp.mul(-1.1))).add(vec2(drift, drift.mul(0.4)));
   const n1hi = mx_fractal_noise_float(vec3(d1, 7.3), 4, 2.2, 0.55).mul(0.5).add(0.5);
-  const n1lo = mx_fractal_noise_float(vec3(d1, 7.3), 1, 2.2, 0.55).mul(2.02).mul(0.5).add(0.5);
-  const n1 = mix(n1hi, n1lo, skyFade);
+  const n1md = mx_fractal_noise_float(vec3(d1, 7.3), 2, 2.2, 0.55).mul(1.303).mul(0.5).add(0.5);
+  const n1 = mix(n1hi, n1md, skyFade);
   const cumulus = smoothstep(mix(0.82, 0.44, cover), mix(0.93, 0.58, cover), n1);
   const cirrus = smoothstep(0.6, 0.72, n2).mul(0.38);
   const cloudAmt = clamp(cirrus.add(cumulus), 0, 1).mul(smoothstep(0.02, 0.16, h));
