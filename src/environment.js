@@ -158,6 +158,16 @@ export function createSky(scene) {
   const warm = uniform(0);
   const skySunDir = uniform(new THREE.Vector3(0, 1, 0));
   const cover = uniform(0.45);
+  // Cloud-shape dials (R7b). Constants are baked into the TSL node graph at
+  // build time — only uniforms can move live — so the player-tunable dials
+  // (cloud scale, warp shear, fade window, horizon bound) are uniforms fed
+  // from the material panel, like `cover` above.
+  const cloudScale = uniform(3.0);
+  const cloudWarpX = uniform(1.6);
+  const cloudWarpY = uniform(-1.1);
+  const cloudFadeLo = uniform(0.17);
+  const cloudFadeHi = uniform(0.32);
+  const cloudBoundK = uniform(0.08);
 
   const dirV = normalize(positionLocal);
   const h = dirV.y;
@@ -210,8 +220,8 @@ export function createSky(scene) {
   // h_eff = sqrt(h^2 + k^2), k=0.08: zero row rate exactly at the horizon
   // (dh_eff/dh -> 0), ~0.19 units/row at h=0.1 (features ~5px), and within
   // 1% of the raw domain by h=0.5 — no knee, mid-sky untouched.
-  const denom = dirV.y.mul(dirV.y).add(0.0064).sqrt().max(0.035);
-  const p = vec2(dirV.x, dirV.z).div(denom).mul(3.0);
+  const denom = dirV.y.mul(dirV.y).add(cloudBoundK.mul(cloudBoundK)).sqrt().max(0.035);
+  const p = vec2(dirV.x, dirV.z).div(denom).mul(cloudScale);
   const d2 = vec2(p.x.mul(0.22), p.y.add(p.x.mul(0.35))).add(vec2(drift.mul(1.7), 3.7));
   const n2hi = mx_fractal_noise_float(vec3(d2, 11.9), 3, 2.4, 0.5).mul(0.5).add(0.5);
   // mx_fractal_noise_float does NOT normalize: an N-octave call spans
@@ -232,7 +242,7 @@ export function createSky(scene) {
   // (10.65x) from h<0.3, octave 3 from h<0.2. The window targets the aliased
   // band only — full detail everywhere above h=0.32, 2-octave deck below
   // h=0.17 — leaving the sqrt bound to finish the last few rows.
-  const skyFade = smoothstep(0.17, 0.32, dirV.y).oneMinus();
+  const skyFade = smoothstep(cloudFadeLo, cloudFadeHi, dirV.y).oneMinus();
   const n2 = mix(n2hi, n2md, skyFade);
   // Domain warp off the cirrus field (no extra noise calls): the radial
   // stretch made every cumulus elongate along the SAME axis, so the upper sky
@@ -243,7 +253,7 @@ export function createSky(scene) {
   // full field mid-fade showed doubled half-contrast shapes (measured: the
   // speck doubling above).
   const warp = n2.sub(0.5);
-  const d1 = p.add(vec2(warp.mul(1.6), warp.mul(-1.1))).add(vec2(drift, drift.mul(0.4)));
+  const d1 = p.add(vec2(warp.mul(cloudWarpX), warp.mul(cloudWarpY))).add(vec2(drift, drift.mul(0.4)));
   const n1hi = mx_fractal_noise_float(vec3(d1, 7.3), 4, 2.2, 0.55).mul(0.5).add(0.5);
   const n1md = mx_fractal_noise_float(vec3(d1, 7.3), 2, 2.2, 0.55).mul(1.303).mul(0.5).add(0.5);
   const n1 = mix(n1hi, n1md, skyFade);
@@ -305,5 +315,8 @@ export function createSky(scene) {
     scene.fog.color.copy(bot.value);
   }
 
-  return { sun, hemi, sky, sunMesh, updateSun, cover };
+  return {
+    sun, hemi, sky, sunMesh, updateSun, cover,
+    cloudScale, cloudWarpX, cloudWarpY, cloudFadeLo, cloudFadeHi, cloudBoundK
+  };
 }
