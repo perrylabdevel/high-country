@@ -1325,8 +1325,7 @@ async function boot() {
     skyRig.cloudScale.value = materialSettings.cloudScale;
     skyRig.cloudWarpX.value = materialSettings.cloudWarpX;
     skyRig.cloudWarpY.value = materialSettings.cloudWarpY;
-    skyRig.cloudFadeLo.value = materialSettings.cloudFadeLo;
-    skyRig.cloudFadeHi.value = materialSettings.cloudFadeHi;
+    skyRig.cloudDetailBias.value = materialSettings.cloudDetailBias;
     skyRig.cloudBoundK.value = materialSettings.cloudBoundK;
   }
   updateSunOffset();
