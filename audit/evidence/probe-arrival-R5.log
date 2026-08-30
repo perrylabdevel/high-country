@@ -1,0 +1,11 @@
+probe: using server at http://127.0.0.1:8769 (spawned)
+PASS  boot: no fanfare for the starting place — note visible=false pulse=false
+PASS  first arrival: label pulse fired at ranchGate — {"pulse":true,"note":true}
+PASS  first arrival: 'first visit' note visible
+PASS  flourish expires on its own
+PASS  repeat visit: no second fanfare at ranchGate — pulse=false
+PASS  second POI: flourish fired at overlook
+PASS  no page errors during the whole journey
+PASS  save: visited set persisted — ranch,ranchGate,huntingCabin,overlook
+
+probe-arrival: PASSED

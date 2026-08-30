@@ -1,9 +1,9 @@
 {
-  "id": "20260830-R7",
-  "requirementId": "R7",
+  "id": "20260830-R5",
+  "requirementId": "R5",
   "stage": "accepted",
-  "startedAt": "2026-08-30T06:41:09.317Z",
-  "rounds": 4,
+  "startedAt": "2026-08-30T08:01:38.950Z",
+  "rounds": 2,
   "builder": "brian-agent",
   "verifier": null,
   "budget": {
@@ -13,24 +13,14 @@
   },
   "notes": [
     {
-      "ts": "2026-08-30T06:41:43.979Z",
+      "ts": "2026-08-30T08:02:03.167Z",
       "stage": "planned",
-      "text": "R7: sky finish — sun halo rim feather, cloud tiling break, horizon speck aliasing, FPS parity vs R6 V1 sweep. Plan: baseline captures on the R6 regression views first, then read src/environment.js sky/cloud paths, then change one variable at a time with before/after frames."
+      "text": "Selected 20260830-R5 'Arrival at a place is an event': first arrival at each POI shows a visible, non-blocking acknowledgement; repeats stay quiet; ?dev capture hooks unaffected. Now planning: survey how arrival currently surfaces (objective ring, place label, inRegion) in src/map.js and src/main.js, then design a small first-visit acknowledgement keyed on POI id in persistent visited-state."
     },
     {
-      "ts": "2026-08-30T06:58:41.053Z",
-      "stage": "implementing",
-      "text": "R7 implementation: three shader edits hit two bootstrap crashes on first build (40.0.div() on a JS literal — div() function form now; normalView/positionViewDirection unimported). Fixed, build+check green, burn/westernRange previews render: disc rim feathered, fan rows broken by warp, horizon speck band gone. Vertical sky streaks near horizon pre-exist in V1 (not a regression). V2 capture set running."
-    },
-    {
-      "ts": "2026-08-30T07:13:15.637Z",
+      "ts": "2026-08-30T08:43:15.579Z",
       "stage": "verifying",
-      "text": "V2 fresh critic verdicts: criterion 1 (sun/halo blend) UNRESOLVED — feather band was only 2-4px (smoothstep(0,0.5,facing) saturates 13% of radius from limb) with dark fringe; criterion 2 (repetition) partially resolved — no stamped copies (autocorrelation+template clean) but same-family comma wisps remain; criterion 3 (specks) partially resolved — westernRange band byte-identical to V1, ironValley wisps stair-step; new artifact: quasi-regular vertical shafts (soft, read as crepuscular rays, non-blocking). Fixes applied: full-range feather smoothstep(0,1,facing) with edge value on the backdrop halo (verified: 8-10px ramp, no fringe by luminance profile), clamp cap 40->20 ease 24..48 (verified at 1x). V2 set recapturing for critic round 2."
-    },
-    {
-      "ts": "2026-08-30T07:48:35.079Z",
-      "stage": "implementing",
-      "text": "R7 round-4 turn: speck mechanism found by 4x pixel crops — the aliasing was the cloud domain's 1/h projection (3/h^2 units per pixel ROW in elevation; ~0.8 units/row at elPaso's h=0.07), so top-octave AND 1-octave fields both quantized into 1-2px jagged steps; no fade or radial clamp could fix a domain that outruns the pixel grid. Fix: bound the denominator near the horizon (h_eff = h + 0.25*horizonize, mid-sky untouched at h>0.5). Result: westernRange band 1189->0, lakeMercy sky strip 1033->0, elPaso sky strip 628->334 (residual = soft cloud-edge gradient, not jagged aliasing; visible in crops as clean feathered streaks). ironValley 6816 + lakeMercy lower 7013 proven TERRAIN pixels (pixel-identical across all sky builds) — the metric's worst bands were distant fog/vegetation speckle all along; will report the corrected sky-only numbers to the final critic. Canary reverted (SKY_PALETTE top back to 0x4a80bd). npm run check PASS (130/130 routes). Full 32-pose V2 recapture launched; final critic round next."
+      "text": "R5 implemented: placeAt() in map.js (placeLabel refactored onto it, so HUD name and acknowledgement can never disagree), visitedPlaces Set persisted in the save (snapshot.visited), boot place seeded so loading never announces where you already are, and a non-blocking flourish (label pulse + '· first visit' note, own lane — not the mission toast). Verification: scripts/probe-arrival.mjs 8/8 PASS (boot quiet; ranchGate first-arrival pulse+note; flourish self-expires; re-entry does not repeat; overlook still gets its own first visit; no page errors; visited set persisted through the game's own beforeunload autosave — evidence audit/evidence/probe-arrival-R5.log). npm run check PASS. Capture tooling untouched: __captureView moves only the camera, player pose stays at boot, so audit captures stay fanfare-free."
     }
   ],
   "evidence": [],

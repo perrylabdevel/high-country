@@ -191,7 +191,7 @@
     {
       "id": "R5",
       "title": "Arrival at a place is an event",
-      "status": "proposed",
+      "status": "verified",
       "locked": false,
       "observation": "placeLabel() changes a HUD string; nothing else responds to arrival. Pillar P1 says arriving should feel like an event; currently only proximity to an NPC does anything.",
       "playerExperience": "Reaching a POI for the first time gives the player a moment: the place is named, and the world acknowledges arrival (beat, prompt, or hook for discovery).",
@@ -221,6 +221,11 @@
           "date": "2026-08-28",
           "action": "created",
           "note": "proposed; overlaps R1's stage-arrival transitions — fold in or retire after R1 lands"
+        },
+        {
+          "date": "2026-08-30T08:43:15.680Z",
+          "action": "verified",
+          "note": "20260830-R5: accepted"
         }
       ]
     },

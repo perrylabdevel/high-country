@@ -16,3 +16,5 @@
 {"ts":"2026-08-30T06:40:05.812Z","action":"campaign-close","actor":"director","subject":"R3","summary":"20260829-R3 closed accepted. accepted","evidence":[]}
 {"ts":"2026-08-30T06:41:09.317Z","action":"select","actor":"director","subject":"R7","summary":"Campaign 20260830-R7 selected R7 (Sky finish: sun rim feather, cloud tiling break, horizon speck aliasing). Ranked over 2 eligible.","evidence":[]}
 {"ts":"2026-08-30T08:00:33.769Z","action":"campaign-close","actor":"director","subject":"R7","summary":"20260830-R7 closed accepted. accepted","evidence":[]}
+{"ts":"2026-08-30T08:01:38.950Z","action":"select","actor":"director","subject":"R5","summary":"Campaign 20260830-R5 selected R5 (Arrival at a place is an event). Ranked over 1 eligible.","evidence":[]}
+{"ts":"2026-08-30T08:43:15.681Z","action":"campaign-close","actor":"director","subject":"R5","summary":"20260830-R5 closed accepted. accepted","evidence":[]}

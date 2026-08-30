@@ -630,7 +630,14 @@ export function biomeAt(x, z) {
   return "valley";
 }
 
-export function placeLabel(x, z) {
+/**
+ * The POS place containing (x, z), nearest border first — or null out in
+ * open country. placeLabel builds its label from this, and the R5
+ * first-arrival acknowledgement keys its "have I stood here before" state
+ * off the same call, so the HUD text and the fanfare can never disagree
+ * about where the player is.
+ */
+export function placeAt(x, z) {
   let best = null;
   let bestD = Infinity;
   for (const place of Object.values(POS)) {
@@ -640,8 +647,13 @@ export function placeLabel(x, z) {
       best = place;
     }
   }
-  if (best) {
-    return best.name;
+  return best;
+}
+
+export function placeLabel(x, z) {
+  const place = placeAt(x, z);
+  if (place) {
+    return place.name;
   }
   const biome = biomeAt(x, z);
   const names = {
