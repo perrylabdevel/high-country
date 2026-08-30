@@ -201,19 +201,17 @@ export function createSky(scene) {
   // mid-sky, which reads as softer cumulus, not less cloud.
   // Denominator bound (the actual speck mechanism, found by cropping the R7
   // bands at 4x): 1/h blows up at 3/h^2 units per pixel ROW in the elevation
-  // direction — ~0.8 units/row at h=0.07 — so even the 1-octave field has
-  // sub-pixel features vertically and quantizes into 1-2px jagged steps. No
-  // octave choice or spectral fade can fix a domain that outruns the pixel
-  // grid, and plen-clamping it radially manufactured swirl rings. Bounding the
-  // DENOMINATOR does: +0.25 near the horizon caps the row rate at ~0.04
-  // units/row (features ~25px instead of ~1px), and it is gated by elevation
-  // so the mid-sky the earlier critic passed is untouched (h>0.5 keeps the
-  // exact V1 domain).
-  const horizonize = smoothstep(0.1, 0.5, dirV.y).oneMinus();
-  const p = vec2(dirV.x, dirV.z)
-    .div(dirV.y.max(0.035).add(horizonize.mul(0.25)))
-    .mul(3.0);
-  const plen = p.length();
+  // direction, so even the 1-octave field quantizes into 1-2px jagged steps
+  // near the horizon. But the blow-up is ALSO the perspective stretch — the
+  // full-strength bound (+0.25, gated to h<0.5) read as overstretched soft
+  // masses with no horizon compression left. And a smoothstep-gated shelf
+  // kneed the domain: rows in the gate got different compression and the
+  // deck marbled into waves. So the bound is the C1-continuous sqrt form
+  // h_eff = sqrt(h^2 + k^2), k=0.08: zero row rate exactly at the horizon
+  // (dh_eff/dh -> 0), ~0.19 units/row at h=0.1 (features ~5px), and within
+  // 1% of the raw domain by h=0.5 — no knee, mid-sky untouched.
+  const denom = dirV.y.mul(dirV.y).add(0.0064).sqrt().max(0.035);
+  const p = vec2(dirV.x, dirV.z).div(denom).mul(3.0);
   const d2 = vec2(p.x.mul(0.22), p.y.add(p.x.mul(0.35))).add(vec2(drift.mul(1.7), 3.7));
   const n2hi = mx_fractal_noise_float(vec3(d2, 11.9), 3, 2.4, 0.5).mul(0.5).add(0.5);
   // mx_fractal_noise_float does NOT normalize: an N-octave call spans
@@ -223,7 +221,17 @@ export function createSky(scene) {
   // the full field's range (n1: 1+.55+.3025+.166 = 2.02; n2: 1+.5+.25 = 1.75)
   // so the fade only trades detail for size.
   const n2lo = mx_fractal_noise_float(vec3(d2, 11.9), 1, 2.4, 0.5).mul(1.75).mul(0.5).add(0.5);
-  const n2 = mix(n2hi, n2lo, smoothstep(3.0, 9.0, plen));
+  // Spectral fade keyed on ELEVATION, not plen. The first window
+  // (smoothstep(3, 9, plen)) was a bug that produced the stretched look the
+  // player rejected: plen = 3·tan(zenith angle), so it is 3 AT ZENITH and
+  // larger everywhere else — the mix was >=0 across the whole visible sky,
+  // dissolving all high-octave mackerel detail into one stretched low field
+  // with only the warp for shape. The aliasing the fade exists for lives
+  // where the domain's vertical row rate outruns the pixels: h < ~0.35. Fade
+  // over 0.28..0.55 so mid-sky keeps V1's fine texture and the horizon deck
+  // still dissolves.
+  const skyFade = smoothstep(0.28, 0.55, dirV.y).oneMinus();
+  const n2 = mix(n2hi, n2lo, skyFade);
   // Domain warp off the cirrus field (no extra noise calls): the radial
   // stretch made every cumulus elongate along the SAME axis, so the upper sky
   // read as repeated stamped fans. Offsetting the cumulus domain by the
@@ -236,7 +244,7 @@ export function createSky(scene) {
   const d1 = p.add(vec2(warp.mul(1.6), warp.mul(-1.1))).add(vec2(drift, drift.mul(0.4)));
   const n1hi = mx_fractal_noise_float(vec3(d1, 7.3), 4, 2.2, 0.55).mul(0.5).add(0.5);
   const n1lo = mx_fractal_noise_float(vec3(d1, 7.3), 1, 2.2, 0.55).mul(2.02).mul(0.5).add(0.5);
-  const n1 = mix(n1hi, n1lo, smoothstep(3.0, 9.0, plen));
+  const n1 = mix(n1hi, n1lo, skyFade);
   const cumulus = smoothstep(mix(0.82, 0.44, cover), mix(0.93, 0.58, cover), n1);
   const cirrus = smoothstep(0.6, 0.72, n2).mul(0.38);
   const cloudAmt = clamp(cirrus.add(cumulus), 0, 1).mul(smoothstep(0.02, 0.16, h));
