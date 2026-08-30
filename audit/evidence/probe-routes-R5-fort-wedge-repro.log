@@ -1,0 +1,217 @@
+probe: using server at http://127.0.0.1:8768 (spawned)
+  [trace] d=4m dLast=4m yaw=0.68 err=0.46 gain=60.0 shuffles=0
+  [trace] d=2m dLast=2m yaw=6.24 err=2.08 gain=60.0 shuffles=0
+  [trace] d=5m dLast=5m yaw=8.38 err=1.90 gain=60.0 shuffles=0
+  [trace] d=3m dLast=2m yaw=10.61 err=1.89 gain=60.0 shuffles=1
+  [trace] d=7m dLast=5m yaw=12.95 err=1.40 gain=60.0 shuffles=2
+  [trace] d=2m dLast=2m yaw=18.59 err=1.81 gain=60.0 shuffles=2
+  [trace] d=2m dLast=2m yaw=19.23 err=2.27 gain=60.0 shuffles=2
+  [trace] d=5m dLast=4m yaw=24.89 err=1.79 gain=60.0 shuffles=3
+  [trace] d=5m dLast=5m yaw=25.14 err=1.74 gain=60.0 shuffles=3
+  [trace] d=6m dLast=7m yaw=26.12 err=1.22 gain=60.0 shuffles=4
+  [trace] d=2m dLast=2m yaw=34.36 err=2.03 gain=60.0 shuffles=0
+  [trace] d=3m dLast=4m yaw=41.71 err=1.51 gain=60.0 shuffles=1
+  [trace] d=5m dLast=6m yaw=48.73 err=1.01 gain=60.0 shuffles=2
+  [trace] d=2m dLast=2m yaw=50.68 err=2.11 gain=60.0 shuffles=2
+  [trace] d=2m dLast=2m yaw=54.22 err=1.62 gain=60.0 shuffles=3
+  [trace] d=4m dLast=3m yaw=55.61 err=1.88 gain=60.0 shuffles=3
+  [trace] d=4m dLast=4m yaw=59.05 err=1.36 gain=60.0 shuffles=4
+  [trace] d=3m dLast=3m yaw=59.94 err=1.70 gain=60.0 shuffles=4
+  [trace] d=3m dLast=3m yaw=60.44 err=1.71 gain=60.0 shuffles=4
+  [trace] d=2m dLast=3m yaw=60.90 err=1.66 gain=60.0 shuffles=4
+  [trace] d=2m dLast=2m yaw=62.71 err=1.95 gain=60.0 shuffles=4
+  [trace] d=4m dLast=4m yaw=64.30 err=2.11 gain=60.0 shuffles=4
+  [trace] d=3m dLast=4m yaw=67.00 err=0.83 gain=60.0 shuffles=0
+  [trace] d=2m dLast=2m yaw=67.79 err=1.84 gain=60.0 shuffles=0
+  [trace] d=3m dLast=3m yaw=73.85 err=2.00 gain=60.0 shuffles=1
+  [trace] d=7m dLast=5m yaw=76.10 err=1.37 gain=60.0 shuffles=2
+  [trace] d=3m dLast=3m yaw=80.46 err=1.94 gain=60.0 shuffles=2
+mount: true
+pose after mount: {
+  x: -389.5999999999999,
+  z: 313.2,
+  mounted: true,
+  yaw: 84.69119999999994
+}
+transit plan: routed 73 wps
+  [trace] d=17m dLast=Infinitym yaw=87.47 err=-2.14 gain=60.0 shuffles=0
+  [trace] d=14m dLast=15m yaw=87.07 err=-0.79 gain=60.0 shuffles=0
+  [trace] d=13m dLast=15m yaw=86.28 err=-0.11 gain=60.0 shuffles=0
+  [trace] d=7m dLast=9m yaw=86.34 err=0.04 gain=60.0 shuffles=0
+  [trace] d=26m dLast=28m yaw=86.38 err=0.02 gain=60.0 shuffles=0
+  [trace] d=25m dLast=27m yaw=86.40 err=0.00 gain=300.0 shuffles=0
+  [trace] d=15m dLast=17m yaw=86.40 err=0.00 gain=300.0 shuffles=0
+  [trace] d=16m dLast=17m yaw=86.40 err=0.00 gain=300.0 shuffles=0
+  [trace] d=10m dLast=13m yaw=86.33 err=-0.00 gain=60.0 shuffles=0
+  [trace] d=14m dLast=15m yaw=86.80 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=30m dLast=Infinitym yaw=86.79 err=-0.01 gain=300.0 shuffles=0
+  [trace] d=25m dLast=26m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=23m dLast=24m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=15m dLast=16m yaw=86.79 err=0.00 gain=300.0 shuffles=0
+  [trace] d=28m dLast=29m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=21m dLast=23m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=18m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=24m dLast=26m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=15m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=12m dLast=13m yaw=86.79 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=21m dLast=24m yaw=86.90 err=0.04 gain=60.0 shuffles=0
+  [trace] d=12m dLast=14m yaw=86.92 err=0.04 gain=60.0 shuffles=0
+  [trace] d=28m dLast=30m yaw=86.95 err=0.01 gain=300.0 shuffles=0
+  [trace] d=23m dLast=25m yaw=86.96 err=0.00 gain=300.0 shuffles=0
+  [trace] d=18m dLast=21m yaw=86.96 err=0.00 gain=300.0 shuffles=0
+  [trace] d=30m dLast=Infinitym yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=11m dLast=13m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=16m dLast=17m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=12m dLast=13m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=8m dLast=9m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=20m dLast=21m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=18m dLast=20m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=15m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=9m dLast=11m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=26m dLast=27m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=24m dLast=26m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=27m dLast=28m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=18m yaw=86.95 err=0.00 gain=300.0 shuffles=0
+  [trace] d=25m dLast=26m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=20m dLast=22m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=11m dLast=13m yaw=86.95 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=19m dLast=21m yaw=86.18 err=-0.24 gain=60.0 shuffles=0
+  [trace] d=21m dLast=23m yaw=85.86 err=-0.04 gain=60.0 shuffles=0
+  [trace] d=16m dLast=18m yaw=85.85 err=-0.03 gain=60.0 shuffles=0
+  [trace] d=14m dLast=16m yaw=85.84 err=-0.03 gain=60.0 shuffles=0
+  [trace] d=14m dLast=16m yaw=85.89 err=0.00 gain=300.0 shuffles=0
+  [trace] d=11m dLast=12m yaw=85.89 err=0.00 gain=300.0 shuffles=0
+  [trace] d=23m dLast=25m yaw=85.89 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=18m yaw=85.89 err=0.00 gain=300.0 shuffles=0
+  [trace] d=28m dLast=29m yaw=85.89 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=20m yaw=85.49 err=-0.11 gain=60.0 shuffles=0
+  [trace] d=11m dLast=13m yaw=85.44 err=-0.10 gain=60.0 shuffles=0
+  [trace] d=27m dLast=30m yaw=85.36 err=-0.02 gain=60.0 shuffles=0
+  [trace] d=25m dLast=27m yaw=85.36 err=-0.02 gain=60.0 shuffles=0
+  [trace] d=8m dLast=9m yaw=85.34 err=-0.02 gain=60.0 shuffles=0
+  [trace] d=28m dLast=Infinitym yaw=85.35 err=0.01 gain=300.0 shuffles=0
+  [trace] d=23m dLast=24m yaw=85.35 err=0.00 gain=300.0 shuffles=0
+  [trace] d=16m dLast=17m yaw=85.35 err=0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=15m yaw=85.35 err=0.00 gain=300.0 shuffles=0
+  [trace] d=28m dLast=29m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=19m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=9m dLast=10m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=18m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=14m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=16m dLast=18m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=25m dLast=26m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=9m dLast=11m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=8m dLast=9m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=26m dLast=27m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=20m dLast=22m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=15m dLast=17m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=21m dLast=23m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=20m dLast=21m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=17m dLast=19m yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=24m dLast=25m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=14m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=10m dLast=12m yaw=85.36 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=29m dLast=Infinitym yaw=85.36 err=0.00 gain=300.0 shuffles=0
+  [trace] d=9m dLast=10m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=15m dLast=17m yaw=85.39 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=19m dLast=21m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=11m dLast=12m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=10m dLast=11m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=28m dLast=29m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=21m dLast=22m yaw=85.39 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=12m dLast=13m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=28m dLast=29m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=25m dLast=27m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=15m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=9m dLast=10m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=19m dLast=20m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=16m dLast=17m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=13m dLast=14m yaw=85.39 err=0.00 gain=300.0 shuffles=0
+  [trace] d=15m dLast=16m yaw=85.39 err=-0.00 gain=300.0 shuffles=0
+  [trace] d=14m dLast=14m yaw=85.25 err=-0.22 gain=60.0 shuffles=0
+  [trace] d=6m dLast=8m yaw=88.82 err=0.86 gain=60.0 shuffles=0
+  [trace] d=6m dLast=6m yaw=89.21 err=0.40 gain=60.0 shuffles=0
+  [trace] d=6m dLast=6m yaw=89.44 err=0.14 gain=60.0 shuffles=0
+  [trace] d=6m dLast=6m yaw=89.48 err=0.09 gain=60.0 shuffles=1
+  [trace] d=7m dLast=6m yaw=89.53 err=0.02 gain=60.0 shuffles=2
+  [trace] d=6m dLast=6m yaw=89.54 err=0.01 gain=60.0 shuffles=2
+  [trace] d=6m dLast=6m yaw=89.54 err=-0.01 gain=60.0 shuffles=3
+transit: { hops: 73, of: 73 }
+pose at fort: {
+  x: -1601.6497102701821,
+  z: 590.3095980436602,
+  mounted: true,
+  yaw: 89.50559999999975
+}
+pose after pause+remount: {
+  x: -1599.619021439081,
+  z: 590.2490846469462,
+  mounted: true,
+  yaw: 89.50559999999975
+}
+westernRange plan: routed 144 wps
+  wp0 (-1600,600) kind=stage
+  wp1 (-1600,588) kind=gate
+  wp2 (-1588,581) kind=stage
+  wp3 (-1575,562) kind=stage
+  wp4 (-1563,542) kind=stage
+  wp5 (-1551,523) kind=stage
+  [trace] d=9m dLast=10m yaw=88.79 err=-0.53 gain=60.0 shuffles=0
+  [trace] d=9m dLast=9m yaw=88.59 err=-0.75 gain=60.0 shuffles=0
+  [trace] d=9m dLast=9m yaw=88.05 err=-0.12 gain=60.0 shuffles=1
+  [trace] d=9m dLast=9m yaw=88.03 err=-0.11 gain=60.0 shuffles=1
+  [trace] d=9m dLast=9m yaw=88.01 err=-0.08 gain=60.0 shuffles=1
+  [trace] d=9m dLast=9m yaw=87.96 err=-0.00 gain=60.0 shuffles=2
+  [trace] d=9m dLast=9m yaw=87.96 err=-0.00 gain=60.0 shuffles=2
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=2
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=3
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=3
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=3
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=4
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=5
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=5
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=5
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=5
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=6
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=6
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=7
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=7
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=7
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=8
+  [trace] d=9m dLast=9m yaw=87.96 err=0.01 gain=60.0 shuffles=9
+    [steerRoute] fort->westernRange(first4) wp2/4 (stage): hop failed — rider at (-1588, 589) mounted=true target (-1588, 581) d=9 — sidestep and retry
+  [trace] d=30m dLast=30m yaw=88.31 err=0.07 gain=60.0 shuffles=0
+  [trace] d=31m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=3
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=3
+  [trace] d=30m dLast=31m yaw=88.36 err=0.01 gain=60.0 shuffles=4
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=6
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=6
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=7
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=7
+  [trace] d=31m dLast=31m yaw=88.36 err=0.01 gain=60.0 shuffles=8
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=8
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=8
+  [trace] d=31m dLast=31m yaw=88.36 err=0.01 gain=60.0 shuffles=9
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=9
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=9
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=9
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=10
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=11
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=12
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=13
+  [trace] d=30m dLast=30m yaw=88.36 err=0.01 gain=60.0 shuffles=14
+    [steerRoute] fort->westernRange(first4) wp3/4 (stage): hop failed — rider at (-1587, 589) mounted=true target (-1575, 562) d=30 — sidestep and retry
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=1
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=1
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=2
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=2
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=4
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=4
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=5
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=5
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=8
+  [trace] d=31m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=10
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=10
+  [trace] d=30m dLast=30m yaw=88.37 err=0.00 gain=300.0 shuffles=11
+LEG WEDGE REPRODUCED: steering to fort->westernRange(first4) wp3/4 (stage) retry timed out
+final pose: { x: -1587.48, z: 589.48, mounted: true, yaw: 88.37039999999962 }

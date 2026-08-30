@@ -292,11 +292,19 @@ export const ROADS = [
     ]
   },
   {
+    // Bends west around the ranch house instead of bearing through it: the
+    // centre start was fine for the yard, but a straight line from there to
+    // the second point crosses every wall of the house and ends at its 0.9 m
+    // front door — a gap a rider can slip through and a horse (1.56 m across)
+    // wedges against forever. The edge pricing only surcharges a collider
+    // crossing, so the graph happily plotted through the house.
     name: "cabinTrail",
     kind: "trail",
     width: 2.6,
     pts: [
       [0.4, 0.44],
+      [0.39675, 0.44],
+      [0.3965, 0.454],
       [0.38, 0.52],
       // Ends at the cabin's south face, not its centre: the centre is inside
       // the building, where the trail's last edge is unwalkable by definition.

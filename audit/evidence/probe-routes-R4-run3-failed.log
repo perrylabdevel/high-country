@@ -1,0 +1,13 @@
+probe: using server at http://127.0.0.1:8767 (spawned)
+PASS  mount: the probe rides the legs — mounted=true
+PASS  leg: ranch -> ranchGate — arrived — inRegion=true label="Ranch gate" want="Ranch gate" hops=12/12 (12)
+PASS  leg: ranchGate -> overlook — arrived — inRegion=true label="Ranch overlook" want="Ranch overlook" hops=52/52 (52)
+FAIL  leg: overlook -> huntingCabin — failed — steering to overlook -> huntingCabin wp1/15 (trail) timed out
+    [transit] to fortGrant: arrived — inRegion=true label="Abandoned Fort Grant" want="Abandoned Fort Grant" hops=114/114 (114)
+PASS  leg: fortGrant -> westernRange — arrived — inRegion=true label="Western Range" want="Western Range" hops=144/144 (144)
+    [transit] to silverCreek: arrived — inRegion=true label="Silver Creek" want="Silver Creek" hops=117/117 (117)
+FAIL  leg: silverCreek -> lakeMercy — failed — steering to silverCreek -> lakeMercy wp1/14 (road) timed out
+    [transit] to mines: failed — keyboard.up: Target page, context or browser has been closed
+FAIL  journey: >=5/6 legs arrived — ranch -> ranchGate: arrived · ranchGate -> overlook: arrived · overlook -> huntingCabin: failed · fortGrant -> westernRange: arrived · silverCreek -> lakeMercy: failed · mines -> stampMill: skipped · mines -> stampMill: skipped
+PASS  no page errors during the whole journey
+probe-routes: FAILED — page.screenshot: Target page, context or browser has been closed

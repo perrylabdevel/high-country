@@ -78,5 +78,29 @@
     "path": "audit/visual-campaign-V1",
     "summary": "R6 before/after capture sets: BEFORE = audit/visual-campaign-V0 (+ -eye, 2026-08-29, pre-change build): flat cream gradient sky, hard-edged flat white disc, zero clouds, bluish fog mismatching sky horizon. AFTER = audit/visual-campaign-V1 (+ -eye, current build): warm amber golden gradient with layered sun (HDR core + halo), blue midday with drifting FBM clouds, fog hue matching sky horizon. 32 audit + 32 eye frames per set; captures regenerated after round-1 self-repair (cloud domain scale, HDR sun core).",
     "durable": true
+  },
+  {
+    "id": "E10",
+    "date": "2026-08-30T03:59:48.892Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-travel-R3-2026-08-29.log",
+    "summary": "R3 regression probe-travel passes end to end on the nav/arrival rework: ride from the ranch yard to the Ranch Overlook arrival approach (route-followed waypoints, arrival event at the approach, stage transition), glass beat, and the ride home by name; loop closes and the destination line retires. Route tail fix and stall-guard walk-in keep the driven probe honest; two failed earlier runs archived as -run5/-run7/-run8 logs.",
+    "durable": true
+  },
+  {
+    "id": "E11",
+    "date": "2026-08-30T06:06:43.249Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-routes-R5-fort-wedge-repro.log",
+    "summary": "Traced live repro of the steerRoute fort-wall wedge (run 4): transit 73/73 hops, wp2 wedged err=0.00 d frozen 9 m, retry waive -> wp3 re-press; final pose in the wall pocket matches run 4's failure",
+    "durable": true
+  },
+  {
+    "id": "E12",
+    "date": "2026-08-30T06:39:58.316Z",
+    "kind": "probe",
+    "path": "audit/evidence/probe-routes-R5.log",
+    "summary": "probe-routes run 5: JOURNEY PASS 5/6 legs arrived (ranch->ranchGate 12/12, ranchGate->overlook 52/52, overlook->huntingCabin 16/16, fortGrant->westernRange 144/144 after the re-thread recovery rescued the wall wedge that killed runs 3+4, mines->stampMill 32/32); silverCreek->lakeMercy leg failed at a gateless town-departure stall (wp1/14, plain retry re-pressed); 323 transit hops clean; no page errors",
+    "durable": true
   }
 ]

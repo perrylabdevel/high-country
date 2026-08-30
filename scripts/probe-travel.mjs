@@ -302,6 +302,7 @@ async function rideToPlace({ timeout = 900000 } = {}) {
   let fails = 0;
   let rescued = false;
   let ridden = null;
+  let walked = false;
   while (Date.now() - t0 < timeout) {
     const live = await placeOf();
     if (!live || !live.approach) {
@@ -322,9 +323,30 @@ async function rideToPlace({ timeout = 900000 } = {}) {
       if (rescued) {
         throw new Error(`ride to ${place.name} stalled at ${Math.round(d)} m (best ${Math.round(bestD)} m; player (${here.player.x.toFixed(0)}, ${here.player.z.toFixed(0)}) even after a back-off rescue)`);
       }
-      // One rescue: the mount point can wedge the horse against a fence or
-      // the horse's own collider — back off, sidestep, re-aim once.
       rescued = true;
+      bestAt = Date.now();
+      // Near the marker and not closing: get off and walk, which is what a
+      // player does when the horse will not close the last stretch. The dither
+      // that brings the guard here is a stream of SUCCEEDING hops that net
+      // nothing — from the south side the route's next waypoint lies north of
+      // the approach, from the north side it lies south, and each hop resets
+      // the failed-hop recovery — so the guard, not the sidestep, is the
+      // trigger that must end it. Docks stay mounted: their walk-in is the
+      // shore band's own problem.
+      if (d < 25 && live.approach.type !== "dock" && (await dismount())) {
+        try {
+          await steerTo({ x: live.approach.x, z: live.approach.z }, {
+            arrive: Math.max(2.5, live.approach.r * 0.5),
+            label: `${place.name} on foot`,
+            timeout: 90000
+          });
+          continue;
+        } catch {
+          // the walk wedged too: fall through onto the back-off below
+        }
+      }
+      // Back off from whatever wedged the hop: the mount point can pin the
+      // horse against a fence or the horse's own collider.
       await page.keyboard.down("KeyS");
       await page.waitForTimeout(1500);
       await page.keyboard.up("KeyS");
@@ -351,6 +373,15 @@ async function rideToPlace({ timeout = 900000 } = {}) {
     if (rt && rt.status === "routed" && rt.waypoints.length) {
       for (const w of rt.waypoints) {
         if (Math.hypot(w.x - s.player.x, w.z - s.player.z) > 14) {
+          // Skip tail waypoints that step AWAY from the marker: polylines end
+          // at the approach through its graph node, which can sit on the ridge
+          // above — the node is legitimately behind the player now. Chasing it
+          // produces the two-pole see-saw (north node, south node, repeat,
+          // every hop "succeeding" and resetting the sidestep counter); a
+          // player reading the trail near the marker just closes on it.
+          if (d < 40 && Math.hypot(w.x - live.approach.x, w.z - live.approach.z) > d) {
+            continue;
+          }
           wp = w;
           break;
         }
@@ -381,6 +412,26 @@ async function rideToPlace({ timeout = 900000 } = {}) {
       // A wedged or timed-out hop is not a failed ride: sidestep off the
       // collider (what a player does), then re-read the marker and carry on.
       fails += 1;
+      const now = (await gs());
+      console.log(`    [ride] hop ${fails} failed at (${now.player.x.toFixed(0)}, ${now.player.z.toFixed(0)}) mounted=${now.player.mounted} target (${live.approach.x.toFixed(0)}, ${live.approach.z.toFixed(0)}) wp (${wp.x.toFixed(0)},${wp.z.toFixed(0)})${rt && rt.status === "routed" ? "" : " [no route]"}`);
+      // Close range, mounted steering wedging twice: the walk-off handled
+      // above covers most of this; the sidestep still de-wedges a distant
+      // pin (a fence rail, the horse's own collider) before the retry.
+      if (!walked && fails >= 2 && d < 18 && live.approach.type !== "dock") {
+        walked = true;
+        if (await dismount()) {
+          try {
+            await steerTo({ x: live.approach.x, z: live.approach.z }, {
+              arrive: Math.max(2.5, live.approach.r * 0.5),
+              label: `${live.name} on foot`,
+              timeout: 90000
+            });
+            continue;
+          } catch {
+            // the walk wedged too: fall through onto the sidestep below
+          }
+        }
+      }
       const side = fails % 2 ? "KeyA" : "KeyD";
       await page.keyboard.down(side);
       await page.waitForTimeout(1200);
