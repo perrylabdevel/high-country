@@ -310,7 +310,7 @@ function cmdReport() {
 function cmdResume() {
   const c = campaign();
   if (c && !CLOSED.includes(c.stage)) {
-    const r = loadReq(c.requirementId);
+    const r = requirements().find((q) => q.id === c.requirementId);
     printBrief(r, c);
     console.log(`resume: node scripts/loop.mjs campaign note --stage <stage> --text "..." (rounds used: ${c.rounds})`);
   } else {

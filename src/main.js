@@ -24,8 +24,11 @@ import { createPlayer } from "./player.js";
 import { createHorse } from "./horse.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
-import { POS, placeLabel } from "./map.js";
+import { POS, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
+import { resetNavGraph, navGraph, linkApproaches } from "./nav/graph.js";
+import { approachLinkRows, APPROACHES } from "./nav/arrivals.js";
+import { markEdgeBlocked, blockedEdges } from "./nav/search.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
 import { STRUCTURES } from "./buildings/kit.js";
@@ -48,6 +51,7 @@ const dialogueEl = document.getElementById("dialogue");
 const speakerEl = document.getElementById("dialogue-speaker");
 const bodyEl = document.getElementById("dialogue-body");
 const objectiveEl = document.getElementById("objective");
+const targetEl = document.getElementById("objective-target");
 const toastEl = document.getElementById("toast");
 const titleEl = document.getElementById("title");
 const enterBtn = document.getElementById("btn-enter");
@@ -203,6 +207,10 @@ async function boot() {
     window.__missions = () => ({
       state: missions.serialize(),
       objective: missions.objective(),
+      objectivePlace: missions.objectivePlace(
+        { x: player.object.position.x, z: player.object.position.z },
+        { mode: player.state.mounted ? "horse" : "walk" }
+      ),
       player: {
         x: player.object.position.x,
         y: player.object.position.y,
@@ -308,6 +316,110 @@ async function boot() {
       groundLines.frustumCulled = false;
       scene.add(groundLines);
     };
+    /**
+     * The navigation system, drawn on the ground. __groundLines for roads of
+     * the mind: dim graph edges everywhere in range, red segments where the
+     * failure memory has blacklisted a crossing, an ink disc at every arrival
+     * approach, and the current objective's approach in gold with its facing
+     * tick — the same answer the HUD line and the minimap diamond give, where
+     * a driver can verify it against the terrain. Call again to rebuild after
+     * the world or the blacklist changes; `__navOverlay(false)` clears.
+     */
+    let navOverlay = null;
+    window.__navOverlay = (on, { radius = 260 } = {}) => {
+      if (navOverlay) {
+        scene.remove(navOverlay);
+        navOverlay.geometry.dispose();
+        navOverlay.material.dispose();
+        navOverlay = null;
+      }
+      if (!on) {
+        return;
+      }
+      const c = camera.position;
+      const g = navGraph();
+      const y = (x, z) => heightAt(x, z) + 0.25;
+      const segs = { edge: [], blocked: [], approach: [], face: [], gold: [] };
+      const push = (arr, ax, ay, az, bx, by, bz) => arr.push(ax, ay, az, bx, by, bz);
+      for (const e of g.edges) {
+        const a = g.nodes[e.a];
+        const b = g.nodes[e.b];
+        if (Math.hypot((a.x + b.x) / 2 - c.x, (a.z + b.z) / 2 - c.z) > radius) {
+          continue;
+        }
+        push(segs.edge, a.x, y(a.x, a.z), a.z, b.x, y(b.x, b.z), b.z);
+      }
+      const objective = missions.objectivePlace({ x: c.x, z: c.z }, { mode: "horse" });
+      const requiredId = objective && objective.approach ? objective.approach.id : null;
+      for (const ap of APPROACHES) {
+        if (Math.hypot(ap.x - c.x, ap.z - c.z) > radius) {
+          continue;
+        }
+        const ay = y(ap.x, ap.z);
+        for (let i = 0; i < 24; i += 1) {
+          const t0 = (i / 24) * Math.PI * 2;
+          const t1 = ((i + 1) / 24) * Math.PI * 2;
+          const arr = ap.id === requiredId ? segs.gold : segs.approach;
+          push(arr, ap.x + Math.cos(t0) * ap.r, ay, ap.z + Math.sin(t0) * ap.r,
+            ap.x + Math.cos(t1) * ap.r, ay, ap.z + Math.sin(t1) * ap.r);
+        }
+        if (typeof ap.face === "number") {
+          const hY = headingVector(ap.face);
+          push(segs.face, ap.x, ay, ap.z, ap.x + hY.x * 3, ay, ap.z + hY.z * 3);
+        }
+      }
+      for (const rec of blockedEdges()) {
+        if (rec.ax === undefined || Math.hypot(rec.ax - c.x, rec.az - c.z) > radius) {
+          continue;
+        }
+        push(segs.blocked, rec.ax, y(rec.ax, rec.az), rec.az, rec.bx, y(rec.bx, rec.bz), rec.bz);
+      }
+      const pts = [];
+      const colors = [];
+      const tint = { edge: [0.35, 0.3, 0.24], blocked: [0.75, 0.16, 0.1], approach: [0.2, 0.2, 0.2], face: [0.2, 0.2, 0.2], gold: [0.85, 0.66, 0.2] };
+      for (const [name, arr] of Object.entries(segs)) {
+        for (const v of arr) {
+          pts.push(v);
+        }
+        for (let i = 0; i < arr.length / 3; i += 1) {
+          colors.push(...tint[name]);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+      navOverlay = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicNodeMaterial({ vertexColors: true, fog: false })
+      );
+      navOverlay.frustumCulled = false;
+      scene.add(navOverlay);
+    };
+    /**
+     * Read-only navigation diagnostics for probes: the build summary, the live
+     * edge blacklist, and the route the HUD currently advertises. Nothing here
+     * mutates state — the blacklist is only written by the movement paths that
+     * prove an edge dead.
+     */
+    window.__nav = () => ({
+      graph: navGraph().diagnostics,
+      blocked: blockedEdges().map((rec) => ({ key: rec.key, a: rec.a, b: rec.b, reason: rec.reason, fails: rec.fails })),
+      approaches: APPROACHES.length,
+      route: (() => {
+        const op = missions.objectivePlace({ x: player.object.position.x, z: player.object.position.z },
+          { mode: player.state.mounted ? "horse" : "walk" });
+        return op && op.route ? { status: op.route.status, length: op.route.length, replans: op.route.replans, waypoints: op.route.waypoints.length } : null;
+      })()
+    });
+    /**
+     * The failure memory's only writer: the move that proved an edge dead. The
+     * game has no autopilot to walk into walls on the player's behalf, so in
+     * shipped play no edge is ever blacklisted by the frame loop — this hook
+     * (node ids from __nav's graph diagnostics) is how a scripted run feeds a
+     * genuinely impassable crossing back into the search. Next __nav().route
+     * reflects the detour or the unreachable verdict.
+     */
+    window.__navBlockEdge = (a, b, reason = "probe") => markEdgeBlocked(a, b, reason);
     window.__syncMaterialSettings = () => {
       updateSunOffset();
       syncEnvironmentIntensity(scene);
@@ -590,6 +702,15 @@ async function boot() {
   horse = createHorse();
   scene.add(horse.object);
 
+  // The nav graph prices every edge against the real world, so it builds
+  // once the colliders exist (check-approaches dry-builds in this same
+  // order; a graph built before createIndustry would price all its collider
+  // passes vacuous and route riders through mill sheds). Sub-50 ms measured,
+  // done once here so the first target line already has a route.
+  resetNavGraph();
+  navGraph();
+  linkApproaches(approachLinkRows());
+
   if (isDev) {
     // Built after the world so it can see every mesh. Also driveable from a
     // capture script: window.__xray(2) for the see-through pass.
@@ -799,6 +920,57 @@ async function boot() {
     objectiveEl.classList.add("updated");
   }
 
+  // Compass words for the target line, clockwise from north (-Z).
+  const BEARING_WORDS = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+  function bearingWord(dx, dz) {
+    const a = Math.atan2(dx, -dz);
+    const i = Math.round(a / (Math.PI / 4));
+    return BEARING_WORDS[((i % 8) + 8) % 8];
+  }
+
+  /**
+   * The destination line under the objective plus the chart marker: the two
+   * findability surfaces for the active objective. Computed live from the
+   * mission's resolved place so the numbers always describe where the loop
+   * currently wants you, not a cached position.
+   *
+   * The range and the bearing read to the APPROACH, not the centre — the
+   * line's number must agree with what a player can close (five metres from
+   * a lakebed centre is not five metres from the lake). `via the <type>` is
+   * the two-stage navigation sentence: it says where the arrival happens, so
+   * "Ranch overlook · via the vantage" tells you the ride ends at the
+   * facing-ground, not on some mathematical point on the ridge.
+   */
+  const VIA_WORDS = {
+    yard: "the yard",
+    gate: "the gate",
+    street: "the main street",
+    dock: "the shore",
+    door: "the door",
+    porch: "the porch",
+    hitch: "the hitching rail",
+    camp: "the camp",
+    trailhead: "the trailhead",
+    overlook: "the vantage"
+  };
+  function updateTargetLine(px, pz) {
+    const pose = { x: px, z: pz, mode: player.state.mounted ? "horse" : "walk" };
+    const op = started ? missions.objectivePlace(pose, { mode: pose.mode }) : null;
+    minimap.setObjective(op);
+    const dest = op && op.approach ? op.approach : op;
+    let text = "";
+    if (op) {
+      const range = Math.round(Math.hypot(dest.x - px, dest.z - pz) / 10) * 10;
+      text = `${op.name} · ${range} m ${bearingWord(dest.x - px, dest.z - pz)}`;
+      if (op.approach && VIA_WORDS[op.approach.type]) {
+        text += ` · via ${VIA_WORDS[op.approach.type]}`;
+      }
+    }
+    if (targetEl.textContent !== text) {
+      targetEl.textContent = text;
+    }
+  }
+
   function setTitleCamera() {
     const r = POS.ranch;
     camera.position.set(r.x - 72, heightAt(r.x - 72, r.z + 95) + 18, r.z + 95);
@@ -840,7 +1012,11 @@ async function boot() {
   }
 
   function setPrompt(text) {
+    // Clear the text when hiding: a hidden element with stale text read as a
+    // live interaction affordance to scripted players (probe-travel), and a
+    // stale visible prompt can outlive its target by one frame at low fps.
     if (!text) {
+      promptEl.textContent = "";
       promptEl.classList.add("hidden");
       return;
     }
@@ -1094,7 +1270,12 @@ async function boot() {
       // The autosave keys off the stage delta, not off the event: an arrival
       // whose next stage carries no entrance event legitimately returns null.
       const stageAtFrameStart = missions.state.stage;
-      const missionEv = missions.update(player.object.position.x, player.object.position.z);
+      const live = nearestInteract();
+      const missionEv = missions.update(
+        player.object.position.x,
+        player.object.position.z,
+        { mode: player.state.mounted ? "horse" : "walk", interact: live ? live.kind : null }
+      );
       if (missionEv && missionEv.toast) {
         showToast(missionEv.toast);
       }
@@ -1121,6 +1302,7 @@ async function boot() {
     if (started) {
       setObjective(missions.objective());
     }
+    updateTargetLine(player.object.position.x, player.object.position.z);
     minimap.update(player.object.position.x, player.object.position.z, player.state.yaw);
     debug.update(player);
     if (structureLabels) {

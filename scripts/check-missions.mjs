@@ -1,5 +1,6 @@
 import { POS } from "../src/map.js";
 import { createMissions } from "../src/missions.js";
+import { primaryApproach } from "../src/nav/arrivals.js";
 
 function assert(cond, msg) {
   if (!cond) {
@@ -32,6 +33,36 @@ assert(Math.abs(dist(OVERLOOK, GLASS) - 9) < 0.01, "the glassing spot sits 9 m p
 
 const fresh = () => createMissions();
 
+// --- Objective destinations resolve to named, reachable places -------------
+// R3: every guidance surface (HUD target line, minimap marker, probes) reads
+// the same resolved place. A stage that loses its placeId, or a placeId that
+// does not name a POI, breaks the loop's findability contract here.
+{
+  let mm = fresh();
+  assert(mm.objectivePlace() && mm.objectivePlace().name === "High Country Ranch",
+    "stage 1 resolves to the named ranch place");
+  mm.onTalk("Harlan Calder");
+  const st2 = mm.objectivePlace();
+  assert(st2 && st2.name === "Ranch overlook", "stage 2 resolves to the named overlook");
+  assert(dist(st2, OVERLOOK) < 0.01, "the resolved overlook place sits at the overlook POI");
+  // The place the loop asks for is always reachable ground, never a point in
+  // the void: distance from player spawn stays under a day's ride.
+  assert(dist(st2, { x: POS.ranch.x, z: POS.ranch.z }) < 2000, "the overlook destination is within the rideable territory");
+  // The stage completes on its arrival approach, not the centre: the glassing
+  // ground IS the approach (GLASS_SPOT), so arrival and examination share the
+  // one honest spot on the ridge.
+  mm.update(GLASS.x, GLASS.z);
+  assert(mm.state.stage === 2, "arriving on the outlook approach advances to the glass stage");
+  mm.onExamined(mm.examineAt(GLASS.x, GLASS.z));
+  assert(mm.state.stage >= 3, "glassing advanced the loop");
+  const st4 = mm.objectivePlace();
+  assert(st4 && st4.name === "High Country Ranch", "the report stage resolves back to the ranch");
+  // The name is the one the world announces on arrival — the label the player
+  // sees in the HUD must match the place name on the marker.
+  const namesOk = [mm.objectivePlace()].every((p) => typeof p.name === "string" && p.name.length > 0);
+  assert(namesOk, "resolved places always carry a displayable name");
+}
+
 // --- The walk a player takes ----------------------------------------------
 let m = createMissions();
 assert(m.objective() === "Find Harlan Calder at the ranch", "stage 1 objective should name Harlan");
@@ -48,8 +79,8 @@ assert(m.objective().includes("Overlook"), "after Harlan, the objective points a
 const short = { x: OVERLOOK.x, z: OVERLOOK.z + 46 };
 assert(m.update(short.x, short.z) === null, "46 m short of the overlook, the ridge stage must not complete");
 assert(m.objective().includes("Overlook"), "still travelling at 46 m out");
-// …standing inside it does.
-ev = m.update(OVERLOOK.x, OVERLOOK.z);
+// …standing on the glassing ground — the overlook approach — does.
+ev = m.update(GLASS.x, GLASS.z);
 assert(ev && typeof ev.toast === "string" && ev.toast.length > 0, "arrival at the overlook emits an event");
 assert(m.state.flags.sawTheLine === true, "arrival sets the sawTheLine flag");
 assert(m.objective().includes("Glass"), "after arrival, the objective asks you to read the smoke");
@@ -118,6 +149,84 @@ assert(opening.length === 1 && opening[0] === "Smoke on the north wind.", "pre-l
   // One metre outside the arrival radius must NOT complete the stage.
   assert(t.update(OVERLOOK.x, OVERLOOK.z + 46) === null, "46 m out must not trigger arrival");
   assert(t.state.stage === 1, "still travelling one metre outside");
+}
+
+// --- Two-stage navigation: the objective carries its arrival anchor -------
+// Every stage destination that has approaches resolves to one, and the anchor
+// is honest: inside the POI's own radius (a "doorstep" forty miles from the
+// place it serves would be a routing bug, not an approach), with a stable
+// shape the HUD, the minimap and the probes can share.
+{
+  const apShape = ["id", "type", "x", "z", "r", "face", "dismount"];
+  let mm = fresh();
+  for (let stage = 0; stage < 4; stage += 1) {
+    const place = mm.objectivePlace();
+    assert(place, `stage ${stage + 1} resolves a place`);
+    assert(place.placeId && POS[place.placeId], `stage ${stage + 1} names a real POI`);
+    const approach = primaryApproach(place.placeId);
+    if (approach) {
+      const ap = place.approach;
+      assert(ap, `stage ${stage + 1}'s place exposes its arrival approach`);
+      assert(JSON.stringify(Object.keys(ap)) === JSON.stringify(apShape),
+        `stage ${stage + 1}'s approach shape is stable for consumers`);
+      assert(ap.id === approach.id, "the exposed approach is the place's primary anchor");
+      assert(dist(ap, POS[place.placeId]) <= POS[place.placeId].radius,
+        `${ap.id} stands inside its own POI's radius`);
+      assert(ap.r > 0, "the arrival region has a positive radius");
+    }
+    // Advance to the next stage by whichever gate this stage declares.
+    const st = mm.state.stage;
+    const cur = mm.objectivePlace();
+    if (st === 0) {
+      mm.onTalk("Harlan Calder");
+    } else if (st === 1) {
+      mm.update(cur.approach.x, cur.approach.z);
+    } else if (st === 2) {
+      mm.onExamined(mm.examineAt(GLASS.x, GLASS.z));
+    } else if (st === 3) {
+      mm.onTalk("Nell Calder");
+    }
+    assert(mm.state.stage === st + 1, `stage ${st + 1} advanced through its own gate`);
+  }
+}
+
+// The centre is not the destination: standing at the overlook POI centre is
+// 9 m off the glassing ground, and the ridge stage must refuse to complete
+// there — that is the whole point of re-basing the stage onto the approach.
+{
+  const t = fresh();
+  t.onTalk("Harlan Calder");
+  assert(t.update(OVERLOOK.x, OVERLOOK.z) === null,
+    "the overlook centre does not complete the approach-gated stage");
+  assert(t.state.stage === 1, "still travelling while off the approach ground");
+  // 40 m off the approach in open terrain — wrong ground, however close the
+  // POI ring says you are.
+  assert(t.update(GLASS.x + 40, GLASS.z) === null,
+    "40 m off the approach, the ridge stage must not complete");
+  assert(t.state.stage === 1, "40 m off is still travelling");
+}
+
+// With a pose, the objective carries the planned route; dry (no pose), the
+// shape stays the same minus the route so headless callers can assert it.
+{
+  const t = fresh();
+  const dry = t.objectivePlace();
+  assert(dry && dry.approach && !("route" in dry), "no pose, no route — the dry shape stays route-free");
+  const routed = t.objectivePlace({ x: POS.ranch.x, z: POS.ranch.z }, { mode: "horse" });
+  assert(routed.approach && routed.route, "a pose adds the planned route");
+  const r = routed.route;
+  assert(["routed", "unreachable", "no-approach"].includes(r.status), "route status is one of the three honest verdicts");
+  assert(Array.isArray(r.waypoints) && Array.isArray(r.blocked) && Array.isArray(r.blockedPts),
+    "route carries waypoints and the blacklist as arrays");
+  assert(typeof r.length === "number" && typeof r.searchMs === "number" && typeof r.replans === "number",
+    "route diagnostics are numeric");
+  if (r.status === "routed") {
+    const last = r.waypoints[r.waypoints.length - 1];
+    assert(last && last.kind === "approach" && dist(last, routed.approach) < 0.01,
+      "a routed plan ENDS at the approach point, never the POI centre");
+    assert(Math.abs(last.x - routed.approach.x) < 0.01 && Math.abs(last.z - routed.approach.z) < 0.01,
+      "the final waypoint is the approach anchor itself");
+  }
 }
 
 // --- Persistence seam: serialize/hydrate round trip -----------------------

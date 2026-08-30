@@ -31,7 +31,10 @@ function memoryStorage() {
 function fullLoop() {
   const m = createMissions();
   m.onTalk("Harlan Calder");
-  const ev = m.update(POS.overlook.x, POS.overlook.z);
+  // Arrival stands on the overlook approach (the glassing ground), not the
+  // POI centre: the stage completes through the arrival table, 9 m past the
+  // centre where the view actually is.
+  const ev = m.update(POS.overlook.x, POS.overlook.z - 9);
   assert(ev && ev.toast, "arrival yields an event");
   const exam = m.examineAt(POS.overlook.x, POS.overlook.z - 9);
   m.onExamined(exam);
@@ -62,8 +65,9 @@ function fullLoop() {
   assert(rev.hydrate(mid.serialize()) === true, "mid-mission snapshot hydrates");
   assert(rev.objective() === "Ride the ridge trail north to the Ranch Overlook", "restored to the travelling stage");
 
-  // And the restored run CONTINUES: it is not a sealed checkpoint.
-  const ev = rev.update(POS.overlook.x, POS.overlook.z);
+  // And the restored run CONTINUES: it is not a sealed checkpoint. Arrival
+  // stands on the overlook approach, the glassing ground 9 m past the centre.
+  const ev = rev.update(POS.overlook.x, POS.overlook.z - 9);
   assert(ev && rev.state.stage === 2, "a restored mid-run can still complete its stage");
 }
 
