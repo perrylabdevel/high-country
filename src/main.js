@@ -32,6 +32,7 @@ import { markEdgeBlocked, blockedEdges, routeTo } from "./nav/search.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
 import { STRUCTURES } from "./buildings/kit.js";
+import { enumerateApertures, apertureTraversable } from "./buildings/apertures.js";
 import { lookingAtStructure } from "./buildings/lookingAt.js";
 import { createStructureLabels } from "./dev/structureLabels.js";
 import { createXray } from "./dev/xray.js";
@@ -198,6 +199,53 @@ async function boot() {
     window.__materialSettings = materialSettings;
     window.__POS = POS;
     window.__heightAt = heightAt;
+    /**
+     * The canonical aperture inventory (src/buildings/apertures.js), re-derived
+     * after a reset — the same records the deterministic aperture check reads.
+     * `__apertureView(id, dist, height)` hands back a capture pose facing the
+     * opening from `dist` metres out along its exterior normal, camera at
+     * mid-aperture height, so scripts/capture-apertures.mjs frames every door
+     * and window by id with no geometry knowledge of its own.
+     */
+    window.__apertures = () => {
+      // No reset here: the world build itself registered the declared gates
+      // and facade doors (marking the cache stale), and resetting after that
+      // build would wipe DECLARED — the exact geometry-open/physics-shut
+      // blindness the check harness hit first. Enumerate is cached; a rebuilt
+      // world re-enumerates through resetApertureEnumeration() in tests.
+      return enumerateApertures().map((a) => ({
+        id: a.id,
+        poi: a.poi,
+        structure: a.structure,
+        side: a.side,
+        kind: a.kind,
+        state: a.state,
+        interior: Boolean(a.structureRef?.userData.habitable),
+        note: a.note,
+        width: a.width,
+        height: a.height,
+        fromFloor: a.fromFloor,
+        traversable: apertureTraversable(a),
+        leaf: a.leaf ? { width: a.leaf.width, height: a.leaf.height, swing: a.leaf.swing } : null,
+        glass: a.glass ? { width: a.glass.width, height: a.glass.height } : null,
+        center: { x: a.center.x, y: a.center.y, z: a.center.z },
+        normal: { x: a.normal.x, y: a.normal.y, z: a.normal.z }
+      }));
+    };
+    window.__apertureView = (id, dist = 5.5, height = null) => {
+      const a = enumerateApertures().find((x) => x.id === id);
+      if (!a) {
+        return null;
+      }
+      const camY = height ?? a.center.y;
+      const px = a.center.x + a.normal.x * dist;
+      const pz = a.center.z + a.normal.z * dist;
+      const py = Math.max(camY, heightAt(px, pz) + 1.4);
+      return {
+        px, py, pz,
+        tx: a.center.x, ty: a.center.y, tz: a.center.z
+      };
+    };
     /**
      * Play-probe instrument (scripts/probe-play.mjs). The mission FSM's state
      * and objective as the frame loop last wrote them, plus the player pose —

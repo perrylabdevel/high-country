@@ -134,5 +134,21 @@
     "path": "/tmp/r7-elPaso-midday-bounded4x.png",
     "summary": "R7 round-4: bounded horizon denominator — speck mechanism was 1/h domain blow-up per pixel ROW; corrected sky-only specks W 0 / eP 334 / LM-sky 0 vs V1 1189/628/1033; terrain-contaminated bands excluded with pixel-identity proof",
     "durable": true
+  },
+  {
+    "id": "E17",
+    "date": "2026-08-30T14:48:14.481Z",
+    "kind": "fps-subset-ab",
+    "path": "/tmp/fps-ov-opaque.json",
+    "summary": "Overlook-pose A/B on the aperture-fix build: opaque glass 21/21 fps vs transparent 21/21 fps, identical subset (FPS_POSES=overlook-midday,overlook-golden, fresh preview server, /tmp/fps-ov-transp.json for the transparent side). Glass transparency is causally cleared as the cause of the overlook dips; the steady ~50 ms frame times pin both builds at the same wall, and the pose sat at 21 fps in the full campaign sweep too — 8 fps under the E14-era standalone 29 is measurement-condition variance, not the material change.",
+    "durable": false
+  },
+  {
+    "id": "E18",
+    "date": "2026-08-30T15:14:35.655Z",
+    "kind": "observation",
+    "path": "audit/reports/aperture-campaign-2026-08-30.md",
+    "summary": "Aperture campaign: corral fence found as a closed loop (no collider gap anywhere on its perimeter) while the declared ranch gate is a freestanding range gate ~170 m from it; its old note claimed a fence gap that was never constructed. Note corrected (declared-vs-constructed difference explained, nothing relabelled); the repair itself queued as R8. Observation -> proposed change: gate in the corral fence or documented seal; expected player benefit: fenced paddocks read as enterable horse property, and the range gate stops reading as an unfinished scene; evidence required: collision probe of the perimeter + walk-through of the new gap; decision: proposed as R8, P4.",
+    "durable": true
   }
 ]

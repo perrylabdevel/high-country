@@ -165,7 +165,7 @@ export async function steerTo(target, { arrive = 5, timeout = 160000, label = ""
       }
       // Stuck? The collider wedges us straight into an obstacle while W is held.
       if (process.env.HC_PROBE_TRACE && Math.random() < 0.08) {
-        console.error(`  [trace] d=${d.toFixed(0)}m dLast=${lastDist.toFixed(0)}m yaw=${p2.player.yaw.toFixed(2)} err=${err.toFixed(2)} gain=${gain.toFixed(1)} shuffles=${shuffles}`);
+        console.error(`  [trace] ${label || "target"} d=${d.toFixed(0)}m dLast=${lastDist.toFixed(0)}m yaw=${p2.player.yaw.toFixed(2)} err=${err.toFixed(2)} gain=${gain.toFixed(1)} shuffles=${shuffles}`);
       }
       if (lastDist - d < 0.2) {
         if (Date.now() - progressAt > 3200) {

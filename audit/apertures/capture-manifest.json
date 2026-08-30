@@ -1,0 +1,1434 @@
+{
+  "base": "http://127.0.0.1:8765",
+  "backend": "webgpu",
+  "apertureCount": 67,
+  "lights": [
+    "midday",
+    "golden"
+  ],
+  "pageErrors": [],
+  "results": [
+    {
+      "id": "ranchHouse.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "ranchHouse.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.1-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.2",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.2-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.2",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.2-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.3",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.3-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.3",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.front.window.3-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.back.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.back.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.back.window.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.back.window.1-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.left.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.left.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.left.window.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.left.window.1-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.right.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.right.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.right.window.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchHouse.right.window.1-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.partition.west.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "ranchHouse.partition.west.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.partition.east.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "ranchHouse.partition.east.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchEll.right.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchEll.right.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchEll.back.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "ranchEll.back.window.0-midday-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "barn.front.barn.0",
+      "kind": "barn",
+      "state": "traversable",
+      "light": "midday",
+      "file": "barn.front.barn.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "barn.right.barn.0",
+      "kind": "barn",
+      "state": "traversable",
+      "light": "midday",
+      "file": "barn.right.barn.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "bunkhouse.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "bunkhouse.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "blacksmith.front.bay.0",
+      "kind": "bay",
+      "state": "traversable",
+      "light": "midday",
+      "file": "blacksmith.front.bay.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "sheriff.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "sheriff.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "sheriff.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "sheriff.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "newspaper.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "newspaper.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "doctor.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "doctor.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "hotel.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "hotel.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "hotel.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "hotel.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "store.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "store.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "store.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "store.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "church.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "church.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "church.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "church.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "saloon.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "saloon.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "saloon.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "midday",
+      "file": "saloon.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "blacksmith.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "blacksmith.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "livery.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "livery.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.1",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.2",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.2-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.3",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.3-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.4",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.4-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.5",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.5-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.6",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.6-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.7",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.7-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.8",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.8-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.9",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.9-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.10",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.10-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.11",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.11-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.12",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.12-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.13",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "streetLot.front.door.13-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.back.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.1",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.back.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.1",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.front.door.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.2",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.back.door.2-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.2",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "timberCabin.front.door.2-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoCasa.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "elPasoCasa.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "elPasoTwoStory.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "elPasoTwoStory.front.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "elPasoTwoStory.front.window.1-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "elPasoTwoStory.right.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoCasita.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "elPasoCasita.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoStore.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "elPasoStore.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoStore.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "midday",
+      "file": "elPasoStore.right.window.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoShed.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "midday",
+      "file": "elPasoShed.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchGate.east.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "midday",
+      "file": "ranchGate.east.gate.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "fortGrant.front.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "midday",
+      "file": "fortGrant.front.gate.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "mission.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "mission.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "cemeteryGate.front.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "midday",
+      "file": "cemeteryGate.front.gate.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "huntingCabin.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "midday",
+      "file": "huntingCabin.front.door.0-midday.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "ranchHouse.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.1-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.2",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.2-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.2",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.2-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.3",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.3-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.front.window.3",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.front.window.3-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.back.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.back.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.back.window.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.back.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.back.window.1-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.left.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.left.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.left.window.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.left.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.left.window.1-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.right.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.right.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.right.window.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.right.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchHouse.right.window.1-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.partition.west.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "ranchHouse.partition.west.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchHouse.partition.east.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "ranchHouse.partition.east.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchEll.right.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchEll.right.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchEll.back.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchEll.back.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "ranchEll.back.window.0-golden-interior.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "barn.front.barn.0",
+      "kind": "barn",
+      "state": "traversable",
+      "light": "golden",
+      "file": "barn.front.barn.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "barn.right.barn.0",
+      "kind": "barn",
+      "state": "traversable",
+      "light": "golden",
+      "file": "barn.right.barn.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "bunkhouse.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "bunkhouse.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "blacksmith.front.bay.0",
+      "kind": "bay",
+      "state": "traversable",
+      "light": "golden",
+      "file": "blacksmith.front.bay.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "sheriff.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "sheriff.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "sheriff.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "sheriff.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "newspaper.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "newspaper.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "doctor.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "doctor.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "hotel.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "hotel.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "hotel.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "hotel.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "store.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "store.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "store.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "store.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "church.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "church.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "church.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "church.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "saloon.front.door.0",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "saloon.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "saloon.front.door.1",
+      "kind": "door",
+      "state": "traversable",
+      "light": "golden",
+      "file": "saloon.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "blacksmith.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "blacksmith.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "livery.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "livery.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.1",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.2",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.2-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.3",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.3-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.4",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.4-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.5",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.5-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.6",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.6-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.7",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.7-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.8",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.8-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.9",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.9-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.10",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.10-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.11",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.11-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.12",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.12-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "streetLot.front.door.13",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "streetLot.front.door.13-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.back.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.1",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.back.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.1",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.front.door.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.back.door.2",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.back.door.2-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "timberCabin.front.door.2",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "timberCabin.front.door.2-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoCasa.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "elPasoCasa.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "elPasoTwoStory.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "elPasoTwoStory.front.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.front.window.1",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "elPasoTwoStory.front.window.1-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoTwoStory.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "elPasoTwoStory.right.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoCasita.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "elPasoCasita.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoStore.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "elPasoStore.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoStore.right.window.0",
+      "kind": "window",
+      "state": "window",
+      "light": "golden",
+      "file": "elPasoStore.right.window.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "elPasoShed.front.door.0",
+      "kind": "door",
+      "state": "shell",
+      "light": "golden",
+      "file": "elPasoShed.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "ranchGate.east.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "golden",
+      "file": "ranchGate.east.gate.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "fortGrant.front.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "golden",
+      "file": "fortGrant.front.gate.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "mission.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "mission.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "cemeteryGate.front.gate.0",
+      "kind": "gate",
+      "state": "traversable",
+      "light": "golden",
+      "file": "cemeteryGate.front.gate.0-golden.png",
+      "results": [],
+      "status": "OK"
+    },
+    {
+      "id": "huntingCabin.front.door.0",
+      "kind": "door",
+      "state": "facade",
+      "light": "golden",
+      "file": "huntingCabin.front.door.0-golden.png",
+      "results": [],
+      "status": "OK"
+    }
+  ]
+}

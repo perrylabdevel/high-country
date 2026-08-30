@@ -323,6 +323,45 @@
           "note": "20260830-R7: accepted"
         }
       ]
+    },
+    {
+      "id": "R8",
+      "priority": 4,
+      "confidence": 0.9,
+      "cost": "M",
+      "risk": "L",
+      "title": "Corral fence is a closed loop with no gate; the range gate stands ~170 m away",
+      "status": "proposed",
+      "locked": false,
+      "source": "Door/window aperture campaign 2026-08-30: fenceRun geometry vs POS.ranchGate in src/buildings.js; aperture note claimed a fence gap that is not constructed.",
+      "observation": "The corral fence (fenceRun 12,28..42,48 offsets from POS.ranch) is four colliding rail lines forming a completed rectangle: a player cannot enter the paddock at any point, and phasing through is forbidden by the verification contract. The aperture ranchGate.east.gate.0 is posts+crossbeam at POS.ranchGate with a 7.6 m collider gap about 170 m west — a freestanding range gate on the ride-in trail, not a gap in this fence, though its old note claimed \"post gap in the entry fence\". The note has been corrected; the aperture itself is real, traversable, and walk-verified. No gameplay content sits inside the corral rectangle, so the gateless loop is a world-promise gap, not a blocker.",
+      "playerExperience": "A fenced paddock reads as horse property; a rider who tries to enter finds no gate and must give up. The range gate stands in open grass connected to nothing, which reads as an unfinished scene rather than a destination.",
+      "expectedBenefit": "The ranch fences agree with the world promises: a working gate in the corral fence (or a documented reason there is none) and a coherent context for the range gate (fence line, trail width, or approach geometry).",
+      "acceptance": [
+        "The corral rectangle has at least one collider gap a body can walk through, or the corral is documented as deliberately sealed",
+        "The range gate stands in a coherent context — not freestanding in open grass",
+        "check-apertures still passes 67/67 with the fence/gate notes accurate"
+      ],
+      "verification": [
+        "collision probe of the fence rectangle perimeter showing the gap location",
+        "walk-through of the new gap by scripts/probe-doors.mjs (register the gap as an aperture if it becomes an entry)",
+        "re-run of the 31-door functional set still passing"
+      ],
+      "history": [
+        {
+          "date": "2026-08-30",
+          "event": "proposed from the aperture campaign; ranchGate note corrected in src/buildings.js"
+        }
+      ],
+      "evidenceRefs": [
+        "E17"
+      ],
+      "files": [
+        "src/buildings.js",
+        "src/buildings/apertures.js"
+      ],
+      "deps": [],
+      "attempts": []
     }
   ]
 }
