@@ -43,8 +43,7 @@ export function createMaterialPanel(options: {
   folders.clouds.add(materialSettings, "cloudScale", 1, 8, 0.1).name("scale").onChange(options.onSun);
   folders.clouds.add(materialSettings, "cloudWarpX", 0, 4, 0.05).name("warp east").onChange(options.onSun);
   folders.clouds.add(materialSettings, "cloudWarpY", -4, 0, 0.05).name("warp shear").onChange(options.onSun);
-  folders.clouds.add(materialSettings, "cloudFadeLo", 0, 1, 0.01).name("fade low").onChange(options.onSun);
-  folders.clouds.add(materialSettings, "cloudFadeHi", 0, 1, 0.01).name("fade high").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudDetailBias", 0.25, 4, 0.05).name("detail bias").onChange(options.onSun);
   folders.clouds.add(materialSettings, "cloudBoundK", 0, 0.3, 0.005).name("horizon bound").onChange(options.onSun);
 
   folders.terrain = gui.addFolder("Terrain");

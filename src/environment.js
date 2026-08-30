@@ -8,9 +8,9 @@
  */
 import * as THREE from "three/webgpu";
 import {
-  clamp, dot, mix, mx_fractal_noise_float, normalView, normalize,
-  positionLocal, positionViewDirection, pow, smoothstep, time, uniform,
-  vec2, vec3
+  clamp, dFdx, dFdy, dot, float, length, max, mix, mx_fractal_noise_float,
+  normalView, normalize, positionLocal, positionViewDirection, pow, smoothstep,
+  time, uniform, vec2, vec3
 } from "three/tsl";
 import { WORLD, heightAt, bakeHeightfield, grassTexture } from "./world.js";
 import { biomeAt, roadFactor, lakeFactor, creekFactor } from "./map.js";
@@ -160,13 +160,17 @@ export function createSky(scene) {
   const cover = uniform(0.45);
   // Cloud-shape dials (R7b). Constants are baked into the TSL node graph at
   // build time — only uniforms can move live — so the player-tunable dials
-  // (cloud scale, warp shear, fade window, horizon bound) are uniforms fed
+  // (cloud scale, warp shear, detail bias, horizon bound) are uniforms fed
   // from the material panel, like `cover` above.
   const cloudScale = uniform(3.0);
   const cloudWarpX = uniform(1.6);
   const cloudWarpY = uniform(-1.1);
-  const cloudFadeLo = uniform(0.17);
-  const cloudFadeHi = uniform(0.32);
+  // Multiplier on the derived Nyquist thresholds below. 1 = drop each octave
+  // exactly where it stops resolving; >1 holds detail past that (sharper, and
+  // it will beat); <1 drops it early (smoother, blander). Replaces the R7b
+  // cloudFadeLo/cloudFadeHi elevation window, which was mispositioned — see
+  // the fade comment further down.
+  const cloudDetailBias = uniform(1.0);
   const cloudBoundK = uniform(0.08);
 
   const dirV = normalize(positionLocal);
@@ -231,19 +235,54 @@ export function createSky(scene) {
   // the full field's range (n1: 1+.55+.3025+.166 = 2.02; n2: 1+.5+.25 = 1.75)
   // so the fade only trades detail for size.
   const n2md = mx_fractal_noise_float(vec3(d2, 11.9), 2, 2.4, 0.5).mul(1.1667).mul(0.5).add(0.5);
-  // Spectral fade keyed on ELEVATION, not plen, and fading toward TWO
-  // octaves, not one. The first window (smoothstep(3, 9, plen)) was a bug
-  // that produced the stretched look the player rejected: plen =
-  // 3·tan(zenith angle), so it is 3 AT ZENITH and larger everywhere else —
-  // the mix covered the whole visible sky and dissolved all mackerel detail
-  // into one stretched smear. But going all the way to 1 octave also read
-  // as "smeared on": the small 3rd/4th-octave puffs are where cloud detail
-  // lives, and they alias only where the row rate beats the pixels: octave 4
-  // (10.65x) from h<0.3, octave 3 from h<0.2. The window targets the aliased
-  // band only — full detail everywhere above h=0.32, 2-octave deck below
-  // h=0.17 — leaving the sqrt bound to finish the last few rows.
-  const skyFade = smoothstep(cloudFadeLo, cloudFadeHi, dirV.y).oneMinus();
-  const n2 = mix(n2hi, n2md, skyFade);
+  // Spectral fade keyed on the SCREEN-SPACE SAMPLING RATE, not elevation.
+  //
+  // Two elevation-keyed windows failed before this. The first
+  // (smoothstep(3, 9, plen)) covered the whole visible sky, because plen =
+  // 3·tan(zenith angle) is 3 AT ZENITH and larger everywhere else, and it
+  // dissolved all mackerel detail into one stretched smear. The second
+  // (smoothstep(0.17, 0.32, dirV.y)) aimed at the horizon band instead, and
+  // measurement on real frames showed it sat ~11 degrees BELOW the damage:
+  // vertical feature height crosses 8 px at h=0.50 (30 deg elevation) and
+  // 5 px at h=0.34, both while that fade was still exactly 0. Turning it off
+  // entirely moved horizon row-beat by 0.9% while handing back 14% of the
+  // contrast it cost — it was paying for detail and buying no smoothness.
+  //
+  // Octave count was never the lever the elevation windows treated it as:
+  // the 1/sqrt(h^2+k^2) magnification multiplies the row rate ~23x by h=0.1,
+  // where dropping two octaves divides the top frequency by only 4.8. What
+  // matters is the footprint the rasteriser samples, and dFdx/dFdy report it
+  // directly, in noise units per pixel. An octave at frequency f starts to
+  // beat once rate·f passes some fixed pixels-per-cycle budget, so each
+  // field's window is DERIVED from its own lacunarity and octave count rather
+  // than tuned by eye — and it tracks camera pitch, FOV and resolution for
+  // free, which no constant in elevation can do. What that budget is, is the
+  // one number here that measurement had to supply:
+  //
+  // Pixels per nominal octave cycle at which that octave stops resolving.
+  // Textbook Nyquist is 2, and 2 measured WORSE than the elevation window it
+  // replaced (horizon row-beat +7%, contrast -8%): thresholded fBm carries
+  // energy far above its nominal frequency, because smoothstep() hardens each
+  // edge and manufactures harmonics the octave number knows nothing about. A
+  // bias sweep at 1280x720 put the knee at 20 px/cycle and flat below it —
+  // 0.05x and 0.02x land within 0.5% of each other on beat-per-contrast, so
+  // 20 is the point where the horizon band is fully served and mid-sky detail
+  // is not yet being eaten. Re-derive by sweeping cloudDetailBias, not by eye.
+  const PX_PER_CYCLE = 20;
+  const aliasRate = (lacunarity, octaves) =>
+    1 / (PX_PER_CYCLE * lacunarity ** (octaves - 1));
+  // Worst axis, not the average: a domain stretched 4:1 aliases on its short
+  // axis while the long one is still resolving comfortably.
+  const sampleRate = (d) => max(length(dFdx(d)), length(dFdy(d)));
+  const detailFade = (d, lacunarity, hiOct, loOct) =>
+    smoothstep(
+      float(aliasRate(lacunarity, hiOct)).mul(cloudDetailBias),
+      float(aliasRate(lacunarity, loOct)).mul(cloudDetailBias),
+      sampleRate(d)
+    );
+  // n2: 3 octaves at lacunarity 2.4 — full detail holds to rate 0.0087, the
+  // 2-octave field to rate 0.0208.
+  const n2 = mix(n2hi, n2md, detailFade(d2, 2.4, 3, 2));
   // Domain warp off the cirrus field (no extra noise calls): the radial
   // stretch made every cumulus elongate along the SAME axis, so the upper sky
   // read as repeated stamped fans. Offsetting the cumulus domain by the
@@ -256,7 +295,11 @@ export function createSky(scene) {
   const d1 = p.add(vec2(warp.mul(cloudWarpX), warp.mul(cloudWarpY))).add(vec2(drift, drift.mul(0.4)));
   const n1hi = mx_fractal_noise_float(vec3(d1, 7.3), 4, 2.2, 0.55).mul(0.5).add(0.5);
   const n1md = mx_fractal_noise_float(vec3(d1, 7.3), 2, 2.2, 0.55).mul(1.303).mul(0.5).add(0.5);
-  const n1 = mix(n1hi, n1md, skyFade);
+  // n1: 4 octaves at lacunarity 2.2 — full detail holds to rate 0.0047, the
+  // 2-octave field to rate 0.0227. Its own rate, not n2's: the warp above
+  // shears d1 away from d2, so the two fields cross Nyquist at different
+  // elevations and a shared fade would be wrong for one of them.
+  const n1 = mix(n1hi, n1md, detailFade(d1, 2.2, 4, 2));
   const cumulus = smoothstep(mix(0.82, 0.44, cover), mix(0.93, 0.58, cover), n1);
   const cirrus = smoothstep(0.6, 0.72, n2).mul(0.38);
   const cloudAmt = clamp(cirrus.add(cumulus), 0, 1).mul(smoothstep(0.02, 0.16, h));
@@ -317,6 +360,6 @@ export function createSky(scene) {
 
   return {
     sun, hemi, sky, sunMesh, updateSun, cover,
-    cloudScale, cloudWarpX, cloudWarpY, cloudFadeLo, cloudFadeHi, cloudBoundK
+    cloudScale, cloudWarpX, cloudWarpY, cloudDetailBias, cloudBoundK
   };
 }

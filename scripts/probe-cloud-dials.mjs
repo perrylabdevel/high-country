@@ -29,11 +29,11 @@ function shoot(path, settings) {
 
 await shoot("/tmp/dials-default.png", {
   cloudScale: 3, cloudWarpX: 1.6, cloudWarpY: -1.1,
-  cloudFadeLo: 0.17, cloudFadeHi: 0.32, cloudBoundK: 0.08
+  cloudDetailBias: 1, cloudBoundK: 0.08
 });
 await shoot("/tmp/dials-swing.png", {
   cloudScale: 8, cloudWarpX: 3.5, cloudWarpY: -3.0,
-  cloudFadeLo: 0.35, cloudFadeHi: 0.7, cloudBoundK: 0.25
+  cloudDetailBias: 3.5, cloudBoundK: 0.25
 });
 await browser.close();
 console.log("captured /tmp/dials-default.png /tmp/dials-swing.png");
