@@ -15,7 +15,7 @@ export function createMaterialPanel(options: {
   onWater?: () => void;
 } = {}) {
   const gui = new GUI({ title: "Materials", closeFolders: true });
-  const folders: { env?: GUI; terrain?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
+  const folders: { env?: GUI; clouds?: GUI; terrain?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
   const onTerrain = options.onTerrain || (() => {});
   const onQuality = options.onQuality || onTerrain;
   const onWater = options.onWater || (() => {});
@@ -37,6 +37,15 @@ export function createMaterialPanel(options: {
   folders.env.add(materialSettings, "sunAzimuth", -180, 180, 0.5).name("sun azimuth").onChange(options.onSun);
   folders.env.add(materialSettings, "fogDensity", 0, 0.002, 0.00001).name("fog").onChange(options.onFog);
   folders.env.add(materialSettings, "cloudCover", 0, 1, 0.01).name("cloud cover").onChange(options.onSun);
+
+  // R7b cloud-shape dials: live uniforms in the TSL sky graph (environment.js).
+  folders.clouds = gui.addFolder("Clouds");
+  folders.clouds.add(materialSettings, "cloudScale", 1, 8, 0.1).name("scale").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudWarpX", 0, 4, 0.05).name("warp east").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudWarpY", -4, 0, 0.05).name("warp shear").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudFadeLo", 0, 1, 0.01).name("fade low").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudFadeHi", 0, 1, 0.01).name("fade high").onChange(options.onSun);
+  folders.clouds.add(materialSettings, "cloudBoundK", 0, 0.3, 0.005).name("horizon bound").onChange(options.onSun);
 
   folders.terrain = gui.addFolder("Terrain");
   folders.terrain.add(materialSettings, "grassTiling", 1, 40, 0.1).onChange(onTerrain);

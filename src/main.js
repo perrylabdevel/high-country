@@ -1274,6 +1274,12 @@ async function boot() {
     // and the fog colour the distant terrain fades into.
     skyRig.updateSun(materialSettings.sunElevation, sunOffset);
     skyRig.cover.value = materialSettings.cloudCover;
+    skyRig.cloudScale.value = materialSettings.cloudScale;
+    skyRig.cloudWarpX.value = materialSettings.cloudWarpX;
+    skyRig.cloudWarpY.value = materialSettings.cloudWarpY;
+    skyRig.cloudFadeLo.value = materialSettings.cloudFadeLo;
+    skyRig.cloudFadeHi.value = materialSettings.cloudFadeHi;
+    skyRig.cloudBoundK.value = materialSettings.cloudBoundK;
   }
   updateSunOffset();
 
