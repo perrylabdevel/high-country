@@ -164,7 +164,14 @@ export function routeTo(x, z, approach, mode) {
   // "the whole map is unreachable" — the destination's front door is where you
   // END, not where you begin (the scratch run that found this routed to a
   // ranch-side door 19 m away instead of the road 24 m away).
-  const start = nearestNode(x, z, { kinds: CONNECTOR_KINDS, maxDist: 240, standable: true });
+  const start = nearestNode(x, z, {
+    kinds: CONNECTOR_KINDS,
+    maxDist: 240,
+    standable: true,
+    // The rider → graph-node opening leg must be walkable, not merely the
+    // shortest: a straight hop across a building is not a route (run 17).
+    clearFrom: { x, z, mode }
+  });
   if (!start) {
     return {
       placeId: approach.poi,

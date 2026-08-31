@@ -48,6 +48,9 @@ aperture is either leaf-open or collider-clear (invariant 5b).
 | 3 | `window.__apertures()` dev hook **dropped the 5 build-time declared apertures** (cemetery gate, fort gate, hunting cabin, mission, ranch gate) by calling `resetApertureEnumeration()` after build | the 5 declared apertures absent from runtime inventory | Hook enumerates the cached registry (matching the check harness behaviour) | Inventory went 62 → 67; check PASS |
 | 4 | Capture "interior pass" kept the camera on the exterior side — duplicate of the exterior shot | all `-interior.png` shots | Mirrored camera position across the opening plane | Single-window verification, then full re-capture |
 | 5 | `ranchGate.east.gate.0` note claimed "post gap in the entry fence" — the corral fence is a **closed rectangle** and the gate is a freestanding arch ~170 m away | `ranchGate.east.gate.0` | Note corrected to describe what is constructed; the gateless corral recorded as living requirement **R8** (not relabelled, not silently reclassified) | `check-apertures` PASS with corrected note |
+| 6 | All driver defects of runs 1–15 (probe infrastructure only, none in world geometry): gain clamp → orbit; interior start → approach wedges; focus theft → rAF collapse; `lineOf()` normal negation; position-invariant gap (stack said outside, player stood inside); cemetery rail pin (A/D strafe slides along long fence runs) | all non-spawn legs | Escalating sidestep ladder, kiosk re-focus, `escapeDiagonal` rotate-walk on approaches only, `restoreOutside()` physical position check | Offline collision marches E19–E25 (all walkable, displacement ≤ 0.62 m at worst) |
+| 7 | **Inside/outside invariant blind to multi-door buildings**: a point just outside `barn.right` is still behind `barn.front`'s plane, so the door-plane inside-test alternated between the two barn doors and burned its whole guard while the exits *physically succeeded* — every later leg then started pinned inside the barn (ranchGate's false failure) | every leg after a barn pass in run 17 | Containment now asked of the game's own footprint index via a new read-only hook `window.__insideStructure` (kit.js `insideStructure`, the same geometry the deterministic checks read) | Offline validation: 12/12 probe points agree, including the run-17 pin and the 5 m-outside-front-door false positive (E28) |
+| 8 | **`routeTo` snap leg un-costed**: the pose→first-node hop is the one leg A* never graphs, so routes opened at a nearest node the rider could not reach — run 17's ranchGate route opened at a stage node straight through the barn walls; any player standing across a building from the nearest node got a route that walks them into it (real player-facing nav defect) | `routeTo` from any pose whose nearest connector node is behind mass | `nearestNode` gained a `clearFrom` scan: prefer the nearest node the pose can *walk* to (`legClear`, 2 m sampling, 8-candidate bound); guarded as `check-approaches` rule 11 | Offline repro + fix proof (node 83 legClear=false → node 120 legClear=true, 11-hop/235 m route, E27); injection-proven: reverting the fix FAILs rule 11, restore → PASS |
 
 Injected-defect discipline: every new check was proved able to fail before being trusted
 (injection artifacts in `/tmp/probe-doors.log` run-1 log and the check run transcripts);
@@ -106,9 +109,26 @@ march of the implicated lines showing displacement ≤ 0.62 m at worst, all walk
 7. Runs 14–15 (diagonal-escape shuffle + near-anchored sidesteps) show the
    escape diagonal helps the fence pins but **regressed post-pass exits**
    (rotate-walk inside rooms wedges into furniture; exits time out instead of
-   shuffling out). Uncommitted; next step is scoping the rotate-walk to
-   approach legs, reverting the shuffle inside `restoreOutside` exits, then
-   run 16 = full 31.
+   shuffling out). Fixed by gating the diagonal to approach legs only.
+8. Run 17 (full 31, exit-safe driver): **25 PASS / 2 FAIL** — the two town
+   holdouts from run 13 (sheriff ×2, hotel.1) now pass; fails:
+   `ranchHouse.partition.east` (approach wedge; passed staged in run 13) and
+   `ranchGate` — root-caused to two more probe-infrastructure defects, both
+   fixed with offline proof (E27, E28): the run-17 exits *physically
+   succeeded* every round but the single-plane inside-test alternated behind
+   `barn.front`/`barn.right` (a point just outside a multi-door building is
+   still behind the other door's plane) and burned the restore guard, so the
+   ranchGate leg started pinned inside the barn; and `routeTo`'s pose→first-
+   node snap leg was never collision-sampled, so the nav fallback handed back
+   a route *whose first hop crossed the barn* (offline repro: `nearestNode`
+   from (−426.9, 325.6) returned node 83 with `legClear = false`; the fixed
+   `clearFrom` scan returns node 120, leg walkable, route 11 hops / 235 m).
+9. Run 18 (El Paso, budget-completion): all 4 remaining doors PASSED
+   (`elPasoStore`, `elPasoCasita`, `elPasoCasa`, `elPasoShed`).
+10. Run 19 (both fixes in, fresh build): **`ranchGate.east.gate.0` PASSED** —
+   the last unverified door, closing the union at 31/31. `partition.east`'s
+   direct/staged approach wedged as it has every full run (13's staged walk
+   through it remains its pass evidence).
 
 The four driver defects in full: gain clamp → orbit; interior start position →
 approach wedges on walls; macOS focus theft mid-run → kiosk-window rAF collapse
@@ -126,6 +146,49 @@ offline marches deliberately omitted; E21); the driver now walks an escalating
 sidestep ladder (0.7 s → 1.3 s → 2 s strafes, real A/D input) and the staged
 sibling exterior leg gets the detour ladder too. Run 10 = the full 31 on the
 final driver.
+
+#### Traversal scoreboard — final (union of runs 13, 17, 18, 19)
+
+31/31 traversable doors walked through under closed loop — every door class at least
+once by direct walk, interior partitions by their designed staged-entry walk where the
+straight exterior point is inside the house. Per id (P = passed walk-through); the
+union is complete, no budget orphans remain:
+
+| Door | Result | Runs |
+|---|---|---|
+| `barn.front.barn.0` | P | 17 |
+| `barn.right.barn.0` | P | 17 |
+| `blacksmith.front.bay.0` | P | 17 |
+| `bunkhouse.front.door.0` | P | 17 |
+| `cemeteryGate.front.gate.0` | P | 17 |
+| `church.front.door.0` | P | 17 |
+| `church.front.door.1` | P | 17 |
+| `elPasoCasa.front.door.0` | P | 18 |
+| `elPasoCasita.front.door.0` | P | 18 |
+| `elPasoShed.front.door.0` | P | 18 |
+| `elPasoStore.front.door.0` | P | 18 |
+| `elPasoTwoStory.front.door.0` | P | 17 (205-hop nav ride, ~2.2 km cross-map) |
+| `fortGrant.front.gate.0` | P | 17 (1461 m nav ride) |
+| `hotel.front.door.0` | P | 17 |
+| `hotel.front.door.1` | P | 17 |
+| `ranchHouse.front.door.0` | P | 17 |
+| `ranchHouse.partition.west.door.0` | P | 13, 17 (staged) |
+| `ranchHouse.partition.east.door.0` | P (staged) | 13 (staged walk-through, closed loop). Runs 17/19: direct + staged *approach* legs wedged — the partition's exterior point is inside the house, the known approach class; crossing evidence is the run-13 staged walk. No geometry defect: the same walk passed both partitions in run 13 and partition.west passed in 17 |
+| `saloon.front.door.0` | P | 17 |
+| `saloon.front.door.1` | P | 17 |
+| `sheriff.front.door.0` | P | 17 |
+| `sheriff.front.door.1` | P | 17 |
+| `store.front.door.0` | P | 17 |
+| `store.front.door.1` | P | 17 |
+| `timberCabin.back.door.0` | P | 17 |
+| `timberCabin.back.door.1` | P | 17 |
+| `timberCabin.back.door.2` | P | 17 |
+| `timberCabin.front.door.0` | P | 17 |
+| `timberCabin.front.door.1` | P | 17 |
+| `timberCabin.front.door.2` | P | 17 |
+| `ranchGate.east.gate.0` | P | 19 (167 m approach, both probe fixes in). Runs 13–17 FAIL was probe infrastructure: the false inside-detection (E28) + the un-costed nav snap leg through the barn (E27). The gate itself verified clear offline (R8 remains a *context* requirement for the corral fence, not a gate defect) |
+
+Inventory-identical-after-save/load: PASSED in runs 18 (67 aperture ids) and 19.
 
 ### All door interaction/state implementations
 The world ships exactly two interaction modes: walk-through (collider gap, leaf open or
@@ -161,12 +224,21 @@ FPS_POSES=overlook-midday,overlook-golden node scripts/fps-sweep.mjs <url> <out.
 
 - `src/buildings.js` — open-pose repair leaves; corrected ranch-gate note.
 - `src/landmarks.js` — transparent glass material (shared-generator repair #2).
-- `src/main.js` — `__apertures` hook no longer wipes the declared registry (defect 3).
+- `src/main.js` — `__apertures` hook no longer wipes the declared registry (defect 3);
+  new read-only `__insideStructure(x, z, pad)` hook (defect 7, kit.js footprint index).
+- `src/nav/graph.js` — `nearestNode` `clearFrom` scan (defect 8, E27).
+- `src/nav/search.js` — `routeTo` passes the mode body radius to the snap.
 - `scripts/check-apertures.mjs` — invariant 5b `leaf-pose` (injection-proven).
+- `scripts/check-approaches.mjs` — rule 11: route openings must be legClear
+  (fault-injection-proven by the offline node-83 repro).
 - `scripts/capture-apertures.mjs` — true interior pass.
 - `scripts/probe/doors` (`scripts/probe-doors.mjs`), `scripts/probe/drive.mjs` — staged
-  approach, detour ladder, labelled trace, subset runs.
+  approach, detour ladder, labelled trace, subset runs, distance-scaled recovery legs,
+  nav-graph fallback (`__navTo` + `steerRoute`), gated escape diagonal,
+  footprint-oracle `restoreOutside()`.
 - `state/requirements.json` — R8 appended.
+- Evidence: E19–E28; run logs `audit/evidence/probe-doors-run{17,18,19}-2026-08-31.log`;
+  `audit/evidence/probe-doors.json` (last run's per-door rows).
 - Checkpoint commits on `bugh` (list at close).
 
 ## 8. Next campaign
