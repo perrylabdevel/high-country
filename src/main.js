@@ -31,7 +31,7 @@ import { approachLinkRows, APPROACHES, primaryApproach } from "./nav/arrivals.js
 import { markEdgeBlocked, blockedEdges, routeTo } from "./nav/search.js";
 import { createMinimap } from "./minimap.js";
 import { createDebug, debugBlocksGame } from "./debug.js";
-import { STRUCTURES } from "./buildings/kit.js";
+import { STRUCTURES, insideStructure } from "./buildings/kit.js";
 import { enumerateApertures, apertureTraversable } from "./buildings/apertures.js";
 import { lookingAtStructure } from "./buildings/lookingAt.js";
 import { createStructureLabels } from "./dev/structureLabels.js";
@@ -232,6 +232,13 @@ async function boot() {
         normal: { x: a.normal.x, y: a.normal.y, z: a.normal.z }
       }));
     };
+    /**
+     * Read-only footprint test (kit.js `insideStructure`) so probes can ask
+     * "physically inside a built structure's yard-excluded footprint?" from
+     * the game's own geometry instead of re-deriving walls, for outside
+     * invariants after a doorway walk.
+     */
+    window.__insideStructure = (x, z, pad = 0.5) => insideStructure(x, z, pad);
     window.__apertureView = (id, dist = 5.5, height = null) => {
       const a = enumerateApertures().find((x) => x.id === id);
       if (!a) {

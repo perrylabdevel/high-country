@@ -206,5 +206,37 @@
     "path": "/tmp/probe-doors-run15-partial.log",
     "summary": "Runs 14-15 (diagonal-escape shuffle): the rotate-walk cleared the fence-pin class but REGRESSED post-pass restores — exits from inside the ranch house/barn now time out (steering ... exit timed out) instead of shuffling out through the door; the rotate-walk inside an interior pin presses the player into furniture faces. Run 13 remains the best full run: 24/31 PASS (every door class), 4 approach-wedge FAILs (ranchGate/sheriff x2/hotel.1), 4 budget-unverified elPaso doors. Next: scope the rotate-walk to APPROACH shuffles only, keep the plain strafe+backoff ladder for restoreOutside exits; run 16 = full 31.",
     "durable": true
+  },
+  {
+    "id": "E26",
+    "date": "2026-08-31T18:02:12.878Z",
+    "kind": "probe",
+    "path": "/tmp/probe-doors-run17.log",
+    "summary": "Run 17 (gated diagonal escape + front-door-preferring exits + non-fatal restores): 25 PASS / 2 FAIL, budget then exhausted. NEW passes this run: sheriff.front.door.0/.1 (failed every run since 8 — the diagonal shuffle broke the cemetery-rail pin), hotel.front.door.1, fortGrant.front.gate.0 (1461 m nav ride, 115 hops), elPasoTwoStory.front.door.0 (205-hop cross-map ride, ~2200 m). Remaining FAILs: ranchHouse.partition.east approach timeout (passed staged in run 13) and ranchGate.east.gate.0 (wedged 15 shuffles near (-435,320) despite ladder+diagonal — suspect R8-adjacent real obstruction at the freestanding gate, needs dedicated offline march). Unverified by budget: 4 elPaso doors -> run 18 is HC_ONLY for exactly those.",
+    "durable": true
+  },
+  {
+    "id": "E27",
+    "date": "2026-08-31T18:22:03.990Z",
+    "kind": "defect",
+    "path": "src/nav/graph.js",
+    "summary": "nav routeTo snap leg: pose→first-node leg was never collision-sampled, so routes opened at a nearest node the rider could not actually reach — run 17's route to ranchGate opened with a straight hop through the barn walls (pinned the driver 11 legs); offline repro: nearestNode from (−426.9,325.6) returned node 83 whose legClear=false; fix: nearestNode clearFrom option prefers the nearest node the pose can WALK to (legClear, 8-candidate scan), regression-guarded as check-approaches rule 11",
+    "durable": true
+  },
+  {
+    "id": "E28",
+    "date": "2026-08-31T18:22:19.633Z",
+    "kind": "fix",
+    "path": "scripts/probe-doors.mjs",
+    "summary": "probe outside-invariant: door-plane side tests cannot distinguish inside from beside-a-wall (run 17 exits physically succeeded every round yet the single-plane test alternated behind barn.front/barn.right and burned the whole guard, then every later leg started inside the barn). Fix 1: containment comes from the game's own footprint index via new read-only window.__insideStructure hook (kit.js insideStructure, pad 0.5); offline validation: 12/12 probe points agree including the run-17 pin and the 5m-outside-front-door false positive. Fix 2: nav fallback in approachAround benefits from the E27 snap-leg fix so route openings no longer cross the barn",
+    "durable": true
+  },
+  {
+    "id": "E29",
+    "date": "2026-08-31T18:41:11.629Z",
+    "kind": "verify",
+    "path": "audit/reports/aperture-campaign-2026-08-30.md",
+    "summary": "run 19 (both probe fixes in, fresh build): ranchGate.east.gate.0 PASSED — closes the 31/31 union of traversable doors walked through closed-loop (runs 13+17+18+19; no budget orphans). partition.east approach wedged as in every full run (13's staged walk-through remains its evidence). Inventory-identical-after-save/load PASS (67 ids). Logs: audit/evidence/probe-doors-run{17,18,19}-2026-08-31.log",
+    "durable": true
   }
 ]

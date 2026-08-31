@@ -1,0 +1,354 @@
+probe: using server at http://127.0.0.1:8794 (spawned)
+PASS  inventory loads (67 apertures)
+PASS  aperture ids unique
+PASS  every aperture has a POI
+PASS  traversable doors to walk (4)
+
+[door] elPasoStore.front.door.0 (2570 m away)
+  [trace] elPasoStore.front.door.0 exterior d=2561m dLast=2562m at=(-387.4,324.5) yaw=2.39 err=0.00 gain=377.8 shuffles=0
+  [trace] elPasoStore.front.door.0 exterior d=2558m dLast=2558m at=(-386.6,327.4) yaw=2.39 err=0.00 gain=377.8 shuffles=0
+  [trace] elPasoStore.front.door.0 exterior d=2550m dLast=2550m at=(-388.6,340.9) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2544m dLast=2545m at=(-388.5,348.5) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2527m dLast=2527m at=(-376.4,361.3) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2516m dLast=2517m at=(-369.3,368.9) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2491m dLast=2492m at=(-352.2,387.0) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2490m dLast=2491m at=(-351.2,388.1) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2444m dLast=2445m at=(-319.8,421.4) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2435m dLast=2436m at=(-313.8,427.8) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2421m dLast=2421m at=(-303.6,438.6) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2412m dLast=2413m at=(-297.6,444.9) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2401m dLast=2402m at=(-290.2,452.8) yaw=2.39 err=-0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2395m dLast=2396m at=(-286.1,457.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2393m dLast=2394m at=(-285.1,458.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2386m dLast=2387m at=(-280.0,463.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2373m dLast=2374m at=(-271.1,472.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2370m dLast=2372m at=(-268.8,475.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2350m dLast=2351m at=(-255.2,489.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2347m dLast=2347m at=(-252.7,492.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2326m dLast=2326m at=(-238.4,507.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2323m dLast=2324m at=(-236.5,509.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2294m dLast=2294m at=(-216.2,530.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2270m dLast=2271m at=(-199.5,548.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2267m dLast=2268m at=(-198.5,549.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2260m dLast=2261m at=(-192.9,555.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2244m dLast=2244m at=(-181.8,566.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2242m dLast=2243m at=(-180.6,567.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2238m dLast=2239m at=(-177.5,571.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2236m dLast=2237m at=(-176.3,572.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2231m dLast=2231m at=(-173.0,575.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2222m dLast=2223m at=(-166.9,582.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2214m dLast=2214m at=(-160.8,588.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2197m dLast=2199m at=(-149.7,600.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2193m dLast=2194m at=(-146.4,603.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2186m dLast=2186m at=(-141.6,608.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2163m dLast=2164m at=(-126.3,625.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2158m dLast=2158m at=(-122.4,629.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2154m dLast=2155m at=(-120.0,631.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2146m dLast=2147m at=(-114.4,637.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2137m dLast=2138m at=(-108.1,644.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2136m dLast=2137m at=(-107.6,644.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2123m dLast=2124m at=(-98.8,654.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2111m dLast=2112m at=(-90.7,662.6) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2111m dLast=2111m at=(-90.2,663.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2109m dLast=2110m at=(-89.0,664.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2100m dLast=2100m at=(-82.7,671.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2059m dLast=2060m at=(-54.4,700.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2057m dLast=2058m at=(-52.9,702.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2043m dLast=2044m at=(-44.0,711.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2036m dLast=2037m at=(-38.7,717.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2032m dLast=2033m at=(-36.2,720.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2031m dLast=2031m at=(-35.0,721.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2027m dLast=2027m at=(-32.4,724.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2017m dLast=2018m at=(-25.6,731.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=2009m dLast=2010m at=(-20.1,737.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1981m dLast=1982m at=(-0.8,757.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1955m dLast=1956m at=(16.8,776.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1944m dLast=1945m at=(24.7,784.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1924m dLast=1925m at=(38.0,798.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1918m dLast=1919m at=(42.5,803.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1915m dLast=1915m at=(44.6,805.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1911m dLast=1912m at=(47.3,808.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1906m dLast=1907m at=(50.5,811.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1894m dLast=1895m at=(59.1,820.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1892m dLast=1893m at=(60.3,822.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1881m dLast=1881m at=(69.0,829.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1879m dLast=1879m at=(70.1,831.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1870m dLast=1871m at=(75.7,837.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1864m dLast=1864m at=(80.5,842.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1858m dLast=1859m at=(84.4,846.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1853m dLast=1854m at=(87.8,849.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1839m dLast=1840m at=(97.5,860.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1828m dLast=1829m at=(105.1,868.1) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1820m dLast=1821m at=(110.7,874.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1789m dLast=1790m at=(132.4,896.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1762m dLast=1763m at=(150.2,915.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1755m dLast=1756m at=(155.0,920.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1744m dLast=1745m at=(162.5,928.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1742m dLast=1742m at=(164.3,930.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1741m dLast=1742m at=(165.0,931.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1732m dLast=1733m at=(170.9,937.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1729m dLast=1729m at=(173.3,940.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1725m dLast=1726m at=(176.0,942.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1716m dLast=1717m at=(181.8,949.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1715m dLast=1716m at=(182.4,949.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1685m dLast=1686m at=(203.1,971.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1679m dLast=1680m at=(207.2,975.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1666m dLast=1666m at=(216.7,985.8) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1658m dLast=1659m at=(222.0,991.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1639m dLast=1640m at=(234.5,1004.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1602m dLast=1603m at=(260.7,1032.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1601m dLast=1602m at=(261.1,1032.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1598m dLast=1599m at=(263.3,1035.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1589m dLast=1590m at=(269.4,1041.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1542m dLast=1543m at=(301.5,1075.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1532m dLast=1533m at=(308.7,1083.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1492m dLast=1494m at=(335.5,1111.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1479m dLast=1480m at=(344.7,1121.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1468m dLast=1469m at=(352.7,1129.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1459m dLast=1461m at=(358.7,1135.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1430m dLast=1431m at=(378.8,1157.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1427m dLast=1428m at=(381.0,1159.2) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1412m dLast=1414m at=(390.9,1169.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1370m dLast=1371m at=(420.0,1200.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1367m dLast=1368m at=(422.2,1202.8) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1353m dLast=1354m at=(431.8,1212.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1302m dLast=1303m at=(466.6,1249.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1294m dLast=1295m at=(472.5,1255.8) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1290m dLast=1291m at=(475.5,1259.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1271m dLast=1272m at=(488.7,1273.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1264m dLast=1265m at=(493.2,1277.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1251m dLast=1252m at=(501.9,1286.9) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1247m dLast=1248m at=(504.8,1290.0) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1185m dLast=1186m at=(547.3,1334.8) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1160m dLast=1161m at=(564.3,1352.8) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1155m dLast=1156m at=(567.7,1356.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1150m dLast=1151m at=(571.5,1360.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1139m dLast=1140m at=(579.1,1368.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1137m dLast=1138m at=(580.3,1369.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1128m dLast=1129m at=(586.6,1376.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1096m dLast=1097m at=(608.4,1399.3) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1092m dLast=1093m at=(611.6,1402.7) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1075m dLast=1076m at=(622.8,1414.5) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior d=1067m dLast=1068m at=(628.4,1420.4) yaw=2.38 err=0.00 gain=397.4 shuffles=1
+nav route for elPasoStore.front.door.0 exterior via El Paso Verde: 48 hops, 1089 m (straight-line from here: 1060 m)
+  [trace] elPasoStore.front.door.0 approach wp0/47 (trail) d=37m dLast=37m at=(624.7,1432.5) yaw=3.99 err=0.00 gain=378.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp0/47 (trail) d=18m dLast=19m at=(610.8,1444.8) yaw=3.99 err=0.00 gain=378.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp0/47 (trail) d=17m dLast=18m at=(609.8,1445.7) yaw=3.99 err=0.00 gain=378.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp1/47 (trail) d=26m dLast=Infinitym at=(602.2,1452.4) yaw=3.15 err=-1.17 gain=334.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp1/47 (trail) d=22m dLast=22m at=(603.5,1456.5) yaw=2.82 err=0.00 gain=371.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp1/47 (trail) d=21m dLast=22m at=(603.6,1456.9) yaw=2.82 err=0.00 gain=371.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp1/47 (trail) d=20m dLast=21m at=(603.9,1457.9) yaw=2.82 err=0.00 gain=371.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp1/47 (trail) d=15m dLast=16m at=(605.5,1462.6) yaw=2.82 err=0.00 gain=371.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=30m dLast=30m at=(608.2,1470.5) yaw=2.63 err=-0.00 gain=359.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=26m dLast=27m at=(606.9,1477.1) yaw=2.46 err=-0.00 gain=387.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=26m dLast=26m at=(607.3,1477.5) yaw=2.46 err=-0.00 gain=387.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=22m dLast=23m at=(609.5,1480.2) yaw=2.46 err=-0.00 gain=387.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=16m dLast=17m at=(613.0,1484.6) yaw=2.46 err=-0.00 gain=387.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp2/47 (trail) d=10m dLast=10m at=(617.2,1489.8) yaw=2.46 err=-0.00 gain=387.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp3/47 (trail) d=30m dLast=30m at=(619.4,1492.4) yaw=2.55 err=0.00 gain=335.8 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp3/47 (trail) d=25m dLast=25m at=(618.9,1499.6) yaw=2.37 err=0.00 gain=376.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp3/47 (trail) d=12m dLast=13m at=(627.7,1508.6) yaw=2.37 err=0.00 gain=376.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp4/47 (trail) d=30m dLast=30m at=(631.3,1512.3) yaw=2.53 err=0.00 gain=336.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp6/47 (trail) d=20m dLast=23m at=(658.9,1566.2) yaw=2.20 err=-0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp6/47 (trail) d=10m dLast=12m at=(667.9,1572.7) yaw=2.20 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp7/47 (trail) d=27m dLast=27m at=(671.6,1575.4) yaw=2.52 err=0.02 gain=360.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp7/47 (trail) d=25m dLast=25m at=(667.2,1584.5) yaw=2.16 err=-0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp7/47 (trail) d=22m dLast=23m at=(669.0,1585.7) yaw=2.16 err=-0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp8/47 (trail) d=26m dLast=26m at=(681.6,1600.7) yaw=2.32 err=-0.00 gain=389.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp8/47 (trail) d=17m dLast=18m at=(688.0,1606.6) yaw=2.32 err=-0.00 gain=389.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp9/47 (trail) d=30m dLast=30m at=(695.3,1613.4) yaw=2.52 err=0.00 gain=364.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp9/47 (trail) d=21m dLast=22m at=(698.3,1623.2) yaw=2.36 err=-0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp9/47 (trail) d=20m dLast=21m at=(699.0,1623.9) yaw=2.36 err=-0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp9/47 (trail) d=13m dLast=14m at=(703.9,1628.9) yaw=2.36 err=-0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=30m dLast=30m at=(708.4,1633.4) yaw=2.53 err=0.00 gain=337.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=30m dLast=30m at=(708.4,1633.4) yaw=2.53 err=0.00 gain=337.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=30m dLast=30m at=(708.4,1633.4) yaw=2.53 err=0.00 gain=337.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=30m dLast=30m at=(705.2,1637.3) yaw=2.40 err=-0.23 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=25m dLast=25m at=(708.6,1640.7) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=23m dLast=24m at=(709.8,1641.9) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=21m dLast=22m at=(711.4,1643.6) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=14m dLast=14m at=(716.3,1648.5) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=14m dLast=14m at=(716.7,1648.9) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=13m dLast=14m at=(717.1,1649.3) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=12m dLast=12m at=(717.8,1650.0) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=11m dLast=11m at=(718.5,1650.8) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp10/47 (trail) d=10m dLast=11m at=(718.8,1651.1) yaw=2.36 err=0.00 gain=377.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp11/47 (trail) d=30m dLast=30m at=(721.2,1653.4) yaw=2.53 err=0.00 gain=337.4 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp11/47 (trail) d=30m dLast=30m at=(721.2,1653.4) yaw=2.53 err=0.00 gain=337.4 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp11/47 (trail) d=31m dLast=30m at=(717.5,1656.3) yaw=2.60 err=-1.19 gain=361.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp11/47 (trail) d=11m dLast=12m at=(731.3,1670.7) yaw=2.37 err=0.00 gain=376.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=30m dLast=30m at=(734.2,1673.6) yaw=2.53 err=0.00 gain=337.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=30m dLast=30m at=(734.2,1673.6) yaw=2.53 err=0.00 gain=337.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=30m dLast=30m at=(734.2,1673.6) yaw=2.53 err=0.00 gain=337.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=30m dLast=30m at=(734.2,1673.6) yaw=2.53 err=0.00 gain=337.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=27m dLast=28m at=(732.9,1679.5) yaw=2.37 err=-0.00 gain=376.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=13m dLast=14m at=(742.7,1689.5) yaw=2.36 err=0.00 gain=376.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp12/47 (trail) d=10m dLast=11m at=(744.7,1691.5) yaw=2.36 err=0.00 gain=376.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp13/47 (trail) d=31m dLast=31m at=(746.7,1693.5) yaw=2.52 err=0.00 gain=335.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp13/47 (trail) d=31m dLast=31m at=(746.7,1693.5) yaw=2.52 err=0.00 gain=335.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp13/47 (trail) d=31m dLast=31m at=(746.7,1693.5) yaw=2.52 err=0.00 gain=335.0 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp13/47 (trail) d=24m dLast=24m at=(747.9,1701.7) yaw=2.37 err=-0.00 gain=375.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp13/47 (trail) d=18m dLast=18m at=(752.2,1706.1) yaw=2.37 err=0.00 gain=375.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp14/47 (trail) d=28m dLast=30m at=(757.9,1719.0) yaw=2.37 err=-0.00 gain=376.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp14/47 (trail) d=26m dLast=26m at=(759.7,1720.8) yaw=2.37 err=-0.00 gain=376.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp14/47 (trail) d=24m dLast=25m at=(760.9,1722.1) yaw=2.37 err=-0.00 gain=376.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp14/47 (trail) d=11m dLast=13m at=(772.5,1733.9) yaw=2.37 err=0.00 gain=376.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp15/47 (trail) d=11m dLast=12m at=(784.6,1751.1) yaw=2.54 err=-0.10 gain=393.5 shuffles=2
+  [trace] elPasoStore.front.door.0 approach wp16/47 (trail) d=29m dLast=29m at=(780.1,1762.0) yaw=2.29 err=-0.40 gain=358.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp16/47 (trail) d=25m dLast=27m at=(783.9,1764.9) yaw=2.21 err=-0.00 gain=372.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp17/47 (trail) d=30m dLast=Infinitym at=(797.7,1775.2) yaw=2.41 err=0.29 gain=335.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp17/47 (trail) d=27m dLast=28m at=(796.7,1781.6) yaw=2.32 err=-0.00 gain=389.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp17/47 (trail) d=19m dLast=20m at=(802.3,1786.8) yaw=2.32 err=-0.00 gain=389.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp18/47 (trail) d=30m dLast=30m at=(810.8,1794.7) yaw=2.52 err=0.00 gain=361.4 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp18/47 (trail) d=24m dLast=25m at=(811.9,1803.8) yaw=2.32 err=-0.00 gain=388.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp18/47 (trail) d=18m dLast=19m at=(815.8,1807.4) yaw=2.32 err=-0.00 gain=388.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp19/47 (trail) d=30m dLast=Infinitym at=(824.0,1815.1) yaw=2.46 err=0.20 gain=335.8 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp19/47 (trail) d=30m dLast=30m at=(824.0,1815.1) yaw=2.51 err=0.06 gain=366.4 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp19/47 (trail) d=26m dLast=27m at=(823.0,1821.7) yaw=2.34 err=0.00 gain=391.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=30m dLast=30m at=(837.0,1835.2) yaw=2.52 err=0.05 gain=361.8 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=30m dLast=30m at=(837.0,1835.2) yaw=2.52 err=0.00 gain=361.8 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=26m dLast=26m at=(836.3,1842.0) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=24m dLast=25m at=(837.6,1843.3) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=23m dLast=24m at=(838.0,1843.7) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=23m dLast=23m at=(838.4,1844.1) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=19m dLast=19m at=(841.3,1846.9) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=16m dLast=16m at=(843.6,1849.1) yaw=2.34 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp20/47 (trail) d=10m dLast=11m at=(847.7,1853.2) yaw=2.35 err=0.00 gain=388.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp21/47 (trail) d=30m dLast=30m at=(849.5,1855.0) yaw=2.52 err=0.00 gain=366.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp21/47 (trail) d=30m dLast=30m at=(849.5,1855.0) yaw=2.52 err=0.00 gain=366.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp21/47 (trail) d=30m dLast=30m at=(849.5,1855.0) yaw=2.52 err=0.00 gain=366.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp21/47 (trail) d=22m dLast=23m at=(851.5,1864.5) yaw=2.35 err=0.00 gain=390.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp21/47 (trail) d=9m dLast=9m at=(861.8,1874.5) yaw=2.35 err=0.00 gain=390.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp22/47 (trail) d=31m dLast=31m at=(862.3,1875.0) yaw=2.52 err=0.00 gain=366.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp22/47 (trail) d=29m dLast=29m at=(859.9,1880.3) yaw=2.35 err=-0.00 gain=390.9 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp22/47 (trail) d=16m dLast=17m at=(869.0,1889.2) yaw=2.35 err=-0.00 gain=390.9 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp24/47 (trail) d=30m dLast=30m at=(894.1,1909.8) yaw=2.10 err=0.03 gain=338.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp24/47 (trail) d=30m dLast=30m at=(894.1,1909.8) yaw=2.10 err=0.00 gain=338.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp24/47 (trail) d=30m dLast=30m at=(892.9,1915.0) yaw=1.92 err=-0.03 gain=377.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp24/47 (trail) d=15m dLast=16m at=(906.4,1920.0) yaw=1.92 err=-0.00 gain=377.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=30m dLast=30m at=(913.8,1922.7) yaw=2.07 err=0.05 gain=336.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=30m dLast=30m at=(913.8,1922.7) yaw=2.08 err=0.00 gain=336.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=30m dLast=30m at=(913.8,1922.7) yaw=2.08 err=0.00 gain=336.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=14m dLast=14m at=(927.9,1933.3) yaw=1.91 err=0.00 gain=376.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=9m dLast=10m at=(931.8,1934.6) yaw=1.91 err=0.00 gain=376.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp25/47 (trail) d=8m dLast=8m at=(933.4,1935.2) yaw=1.91 err=0.00 gain=376.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp27/47 (trail) d=30m dLast=30m at=(953.8,1947.9) yaw=2.07 err=0.05 gain=361.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp27/47 (trail) d=30m dLast=30m at=(953.8,1947.9) yaw=2.08 err=0.00 gain=361.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp27/47 (trail) d=19m dLast=19m at=(963.0,1956.7) yaw=1.90 err=-0.00 gain=389.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp27/47 (trail) d=14m dLast=14m at=(967.4,1958.2) yaw=1.90 err=-0.00 gain=389.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp27/47 (trail) d=13m dLast=14m at=(968.0,1958.4) yaw=1.90 err=-0.00 gain=389.2 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp28/47 (trail) d=30m dLast=30m at=(973.5,1960.3) yaw=2.08 err=0.00 gain=366.6 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp28/47 (trail) d=30m dLast=31m at=(972.9,1965.7) yaw=1.90 err=-0.01 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp28/47 (trail) d=18m dLast=19m at=(983.2,1969.2) yaw=1.90 err=-0.00 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp29/47 (trail) d=30m dLast=30m at=(993.7,1972.8) yaw=2.08 err=0.00 gain=361.2 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp29/47 (trail) d=20m dLast=21m at=(1001.4,1981.1) yaw=1.90 err=-0.00 gain=389.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp30/47 (trail) d=30m dLast=30m at=(1013.8,1985.4) yaw=2.08 err=0.00 gain=363.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp30/47 (trail) d=30m dLast=30m at=(1013.8,1985.4) yaw=2.08 err=0.00 gain=363.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp30/47 (trail) d=30m dLast=30m at=(1013.8,1985.4) yaw=2.08 err=0.00 gain=363.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp30/47 (trail) d=20m dLast=20m at=(1021.9,1993.9) yaw=1.90 err=0.00 gain=389.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp31/47 (trail) d=30m dLast=30m at=(1033.9,1997.9) yaw=2.07 err=0.05 gain=364.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp31/47 (trail) d=30m dLast=30m at=(1033.9,1997.9) yaw=2.08 err=0.00 gain=364.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp31/47 (trail) d=25m dLast=26m at=(1037.0,2004.6) yaw=1.90 err=-0.00 gain=389.9 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp31/47 (trail) d=16m dLast=16m at=(1045.7,2007.6) yaw=1.90 err=-0.00 gain=389.9 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp31/47 (trail) d=15m dLast=15m at=(1046.8,2008.0) yaw=1.90 err=-0.00 gain=389.9 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp32/47 (trail) d=30m dLast=30m at=(1053.6,2010.3) yaw=2.08 err=0.00 gain=360.2 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp32/47 (trail) d=31m dLast=30m at=(1051.2,2015.0) yaw=2.07 err=-1.21 gain=377.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp33/47 (trail) d=28m dLast=28m at=(1074.1,2028.6) yaw=1.90 err=-0.00 gain=391.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp33/47 (trail) d=18m dLast=19m at=(1083.2,2031.8) yaw=1.90 err=-0.00 gain=391.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp33/47 (trail) d=12m dLast=13m at=(1089.2,2033.8) yaw=1.90 err=-0.00 gain=391.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp33/47 (trail) d=11m dLast=11m at=(1090.2,2034.2) yaw=1.90 err=-0.00 gain=391.0 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp34/47 (trail) d=30m dLast=30m at=(1093.5,2035.3) yaw=2.08 err=0.00 gain=366.2 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp34/47 (trail) d=29m dLast=30m at=(1093.0,2040.7) yaw=1.90 err=-0.00 gain=391.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp34/47 (trail) d=28m dLast=29m at=(1094.1,2041.1) yaw=1.90 err=-0.00 gain=391.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp34/47 (trail) d=16m dLast=17m at=(1105.2,2044.9) yaw=1.90 err=-0.00 gain=391.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp34/47 (trail) d=9m dLast=9m at=(1112.3,2047.4) yaw=1.90 err=-0.00 gain=391.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp35/47 (trail) d=30m dLast=30m at=(1113.7,2047.8) yaw=2.08 err=0.00 gain=360.9 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp35/47 (trail) d=25m dLast=26m at=(1116.9,2054.6) yaw=1.90 err=-0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp35/47 (trail) d=21m dLast=21m at=(1120.7,2055.9) yaw=1.90 err=-0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp35/47 (trail) d=16m dLast=17m at=(1125.0,2057.4) yaw=1.90 err=-0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp35/47 (trail) d=8m dLast=8m at=(1133.1,2060.1) yaw=1.90 err=0.00 gain=388.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=30m dLast=30m at=(1133.7,2060.3) yaw=2.08 err=0.00 gain=362.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=30m dLast=30m at=(1133.7,2060.3) yaw=2.08 err=0.00 gain=362.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=28m dLast=29m at=(1134.1,2066.2) yaw=1.90 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=27m dLast=27m at=(1135.2,2066.6) yaw=1.90 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=24m dLast=25m at=(1137.6,2067.4) yaw=1.90 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=18m dLast=18m at=(1143.6,2069.8) yaw=1.88 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp36/47 (trail) d=17m dLast=17m at=(1144.8,2070.1) yaw=1.88 err=0.00 gain=388.6 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp37/47 (trail) d=30m dLast=30m at=(1153.6,2072.9) yaw=2.07 err=0.00 gain=367.4 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp37/47 (trail) d=16m dLast=17m at=(1165.3,2082.5) yaw=1.90 err=0.00 gain=390.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp37/47 (trail) d=15m dLast=16m at=(1165.9,2082.7) yaw=1.90 err=0.00 gain=390.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp37/47 (trail) d=10m dLast=10m at=(1171.4,2084.6) yaw=1.90 err=0.00 gain=390.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp38/47 (trail) d=30m dLast=30m at=(1173.4,2085.2) yaw=2.08 err=0.00 gain=362.2 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp38/47 (trail) d=25m dLast=26m at=(1176.9,2092.1) yaw=1.90 err=-0.00 gain=389.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp38/47 (trail) d=22m dLast=23m at=(1179.4,2093.0) yaw=1.90 err=-0.00 gain=389.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp38/47 (trail) d=20m dLast=21m at=(1181.2,2093.6) yaw=1.90 err=-0.00 gain=389.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp38/47 (trail) d=10m dLast=11m at=(1191.1,2097.0) yaw=1.90 err=-0.00 gain=389.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp39/47 (trail) d=30m dLast=30m at=(1193.6,2097.8) yaw=2.07 err=0.05 gain=365.1 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp39/47 (trail) d=28m dLast=29m at=(1193.6,2103.5) yaw=1.90 err=-0.00 gain=390.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp39/47 (trail) d=26m dLast=27m at=(1195.8,2104.2) yaw=1.90 err=-0.00 gain=390.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp39/47 (trail) d=21m dLast=21m at=(1201.1,2106.1) yaw=1.90 err=-0.00 gain=390.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp39/47 (trail) d=10m dLast=11m at=(1210.7,2109.3) yaw=1.90 err=-0.00 gain=390.5 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp40/47 (trail) d=21m dLast=22m at=(1220.6,2118.3) yaw=1.90 err=0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp40/47 (trail) d=18m dLast=19m at=(1223.4,2119.3) yaw=1.90 err=0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp40/47 (trail) d=12m dLast=12m at=(1229.5,2121.4) yaw=1.90 err=0.00 gain=388.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp41/47 (trail) d=30m dLast=30m at=(1233.5,2122.7) yaw=2.08 err=0.00 gain=367.9 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp41/47 (trail) d=26m dLast=26m at=(1236.4,2129.4) yaw=1.90 err=0.00 gain=391.3 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=30m dLast=30m at=(1253.8,2135.3) yaw=2.08 err=0.00 gain=335.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=30m dLast=30m at=(1253.8,2135.3) yaw=2.08 err=0.00 gain=335.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=30m dLast=30m at=(1253.8,2135.3) yaw=2.08 err=0.00 gain=335.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=30m dLast=30m at=(1253.8,2135.3) yaw=2.08 err=0.00 gain=335.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=26m dLast=26m at=(1256.2,2141.8) yaw=1.90 err=0.00 gain=375.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp42/47 (trail) d=20m dLast=21m at=(1261.5,2143.6) yaw=1.90 err=0.00 gain=375.8 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp43/47 (trail) d=30m dLast=30m at=(1273.9,2147.9) yaw=2.08 err=0.00 gain=361.3 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp43/47 (trail) d=23m dLast=24m at=(1278.5,2155.2) yaw=1.90 err=-0.00 gain=388.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp43/47 (trail) d=20m dLast=21m at=(1281.5,2156.2) yaw=1.90 err=-0.00 gain=388.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp43/47 (trail) d=17m dLast=18m at=(1284.4,2157.2) yaw=1.90 err=-0.00 gain=388.4 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp44/47 (trail) d=24m dLast=24m at=(1298.3,2167.6) yaw=1.90 err=0.00 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp44/47 (trail) d=18m dLast=18m at=(1303.8,2169.5) yaw=1.90 err=0.00 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp44/47 (trail) d=10m dLast=11m at=(1311.0,2171.9) yaw=1.90 err=0.00 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp44/47 (trail) d=9m dLast=10m at=(1311.6,2172.1) yaw=1.90 err=0.00 gain=391.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp45/47 (trail) d=30m dLast=Infinitym at=(1314.1,2173.0) yaw=2.03 err=0.18 gain=335.5 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp45/47 (trail) d=15m dLast=16m at=(1326.6,2183.1) yaw=1.89 err=-0.00 gain=388.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp45/47 (trail) d=11m dLast=12m at=(1330.3,2184.3) yaw=1.89 err=-0.00 gain=388.1 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=26m dLast=26m at=(1333.7,2185.5) yaw=1.44 err=-0.02 gain=358.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=26m dLast=26m at=(1333.7,2185.5) yaw=1.44 err=-0.00 gain=358.7 shuffles=0
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=20m dLast=21m at=(1341.9,2188.3) yaw=1.23 err=-0.00 gain=386.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=16m dLast=17m at=(1345.6,2187.1) yaw=1.23 err=-0.00 gain=386.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=15m dLast=16m at=(1346.2,2186.8) yaw=1.23 err=-0.00 gain=386.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp46/47 (poi elPaso.trailhead) d=9m dLast=9m at=(1352.5,2184.6) yaw=1.23 err=-0.00 gain=386.7 shuffles=1
+  [trace] elPasoStore.front.door.0 approach wp47/47 (approach elPaso.trailhead) d=6m dLast=8m at=(1357.1,2186.5) yaw=0.52 err=-0.03 gain=374.3 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior after route d=7m dLast=8m at=(1356.4,2190.4) yaw=2.47 err=-0.10 gain=413.3 shuffles=1
+  [trace] elPasoStore.front.door.0 exterior after route d=1m dLast=3m at=(1360.3,2194.8) yaw=1.97 err=0.00 gain=411.5 shuffles=1
+PASS  walk through elPasoStore.front.door.0
+  [trace] elPasoStore.front.door.0 exit d=2m dLast=4m at=(1360.9,2193.8) yaw=-3.00 err=-0.03 gain=387.9 shuffles=0
+
+[door] elPasoCasita.front.door.0 (9 m away)
+  [trace] elPasoCasita.front.door.0 exterior d=9m dLast=Infinitym at=(1360.9,2194.0) yaw=-3.54 err=-0.76 gain=334.8 shuffles=0
+  [trace] elPasoCasita.front.door.0 exterior d=9m dLast=9m at=(1360.9,2194.0) yaw=-3.76 err=0.00 gain=358.1 shuffles=0
+  [trace] elPasoCasita.front.door.0 exterior d=9m dLast=9m at=(1360.9,2194.0) yaw=-3.76 err=0.00 gain=358.1 shuffles=0
+  [trace] elPasoCasita.front.door.0 exterior d=2m dLast=3m at=(1365.2,2201.2) yaw=-4.45 err=0.00 gain=402.3 shuffles=1
+  [trace] elPasoCasita.front.door.0 through d=4m dLast=4m at=(1365.5,2201.3) yaw=-4.47 err=-0.00 gain=300.0 shuffles=0
+  [trace] elPasoCasita.front.door.0 through d=4m dLast=4m at=(1365.5,2201.3) yaw=-4.47 err=-0.00 gain=300.0 shuffles=0
+  [trace] elPasoCasita.front.door.0 through d=5m dLast=6m at=(1366.3,2204.5) yaw=-5.24 err=-0.18 gain=375.2 shuffles=1
+PASS  walk through elPasoCasita.front.door.0
+
+[door] elPasoCasa.front.door.0 (8 m away)
+  [trace] elPasoCasa.front.door.0 exterior d=8m dLast=8m at=(1367.6,2201.8) yaw=-8.15 err=-0.00 gain=358.0 shuffles=0
+  [trace] elPasoCasa.front.door.0 through d=5m dLast=6m at=(1357.0,2204.8) yaw=-10.22 err=-0.01 gain=394.7 shuffles=1
+PASS  walk through elPasoCasa.front.door.0
+
+[door] elPasoShed.front.door.0 (12 m away)
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1345.8,2209.9) yaw=-15.91 err=-0.08 gain=384.8 shuffles=1
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1344.9,2210.8) yaw=-16.47 err=-0.00 gain=409.1 shuffles=2
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1344.9,2210.8) yaw=-16.48 err=0.00 gain=409.1 shuffles=2
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1344.4,2211.2) yaw=-16.87 err=0.64 gain=411.5 shuffles=3
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1344.9,2210.8) yaw=-16.49 err=0.02 gain=420.8 shuffles=3
+  [trace] elPasoShed.front.door.0 through d=3m dLast=3m at=(1344.9,2210.8) yaw=-16.50 err=0.03 gain=419.9 shuffles=6
+PASS  walk through elPasoShed.front.door.0
+  [trace] elPasoShed.front.door.0 exit d=2m dLast=3m at=(1348.7,2210.8) yaw=-11.76 err=0.05 gain=390.2 shuffles=0
+outside-invariant: player stands inside near elPasoCasa.front.door.0 — exiting through it
+  [trace] elPasoCasa.front.door.0 exit d=13m dLast=13m at=(1348.8,2210.8) yaw=-11.53 err=0.00 gain=360.6 shuffles=0
+  [trace] elPasoCasa.front.door.0 exit d=6m dLast=7m at=(1354.1,2206.2) yaw=-11.42 err=0.12 gain=405.7 shuffles=1
+PASS  aperture inventory identical after save/load
+
+probe-doors: PASSED

@@ -266,23 +266,64 @@ while (pending.length) {
    */
   async function restoreOutside() {
     await exitToOutside();
-    for (let guard = 0; guard < 4; guard += 1) {
+    for (let guard = 0; guard < 6; guard += 1) {
       const p = await player();
-      const trapped = toWalk
-        .map((a) => ({ a, ...lineOf(a), d: Math.hypot(a.center.x - p.x, a.center.z - p.z) }))
-        .filter((t) => t.side(p) < 0 && t.d < 14)
-        .sort((t, q) => t.d - q.d)[0];
-      if (!trapped) {
+      // Door-plane side tests can't tell "inside" from "beside the wall on
+      // the far side of the footprint": run 17's barn exit walked the player
+      // out through barn.right, which still left them behind barn.front's
+      // plane, so every later leg (ranchGate) started pinned against the
+      // barn's interior wall. Ask the game's own footprint index instead
+      // (kit.js insideStructure, yawed per structure) — the same geometry the
+      // deterministic checks read — no probe-side wall re-derivation.
+      const inside = await page.evaluate(({ px, pz }) => {
+        try {
+          return window.__insideStructure(px, pz, 0.5);
+        } catch (err) {
+          return null;
+        }
+      }, { px: p.x, pz: p.z });
+      if (inside === null) {
+        console.log("outside-invariant: __insideStructure hook unavailable — skipping position restore");
         return;
       }
-      console.log(`outside-invariant: player stands inside near ${trapped.a.id} — exiting through it`);
-      await steerTo(trapped.out, { arrive: 1.6, label: `${trapped.a.id} exit`, timeout: 120000, escapeDiagonal: false });
+      if (!inside) {
+        return;
+      }
+      const doors = toWalk
+        .map((a) => ({ a, ...lineOf(a), d: Math.hypot(a.center.x - p.x, a.center.z - p.z) }))
+        .filter((t) => t.d < 30)
+        .sort((t, q) => t.d - q.d);
+      // Prefer a real exterior door over any partition: a partition's
+      // "exterior" is the next room, and run 16 cascaded when the rescue kept
+      // picking partition.east (nearest by centre) and wedging on furniture
+      // inside its out-room — every later door then failed on the exit leg.
+      // A front door's out is verified outside by the walkOne that crossed it.
+      const pick = doors.find((t) => !/partition/.test(t.a.id)) || doors[0];
+      if (!pick) {
+        throw new Error(`restoreOutside: __insideStructure says the player is inside at (${p.x.toFixed(1)},${p.z.toFixed(1)}) but no traversable aperture is within 30 m`);
+      }
+      console.log(`outside-invariant: player stands inside ${pick.a.structure} near ${pick.a.id} — exiting through it`);
+      try {
+        await steerTo(pick.out, { arrive: 1.6, label: `${pick.a.id} exit`, timeout: 120000, escapeDiagonal: false });
+      } catch (e) {
+        // This candidate's gap wedged; try the next nearest trap on the next
+        // round rather than failing every later door with the same throw.
+        console.log(`outside-invariant: exit via ${pick.a.id} wedged (${String(e.message).slice(0, 80)})`);
+      }
     }
+    throw new Error("restoreOutside: player still inside a structure after the exit ladder");
   }
 
   let r = null;
   try {
-    await restoreOutside();
+    try {
+      await restoreOutside();
+    } catch (e0) {
+      // A wedged restore is not this door's failure — name it, then still
+      // attempt the door (its approach may route around, and the staged path
+      // below handles an interior start honestly).
+      console.log(`restore before ${ap.id} failed: ${String(e0.message).slice(0, 120)} — attempting anyway`);
+    }
     // Approach the exterior point. The final leg re-aims at the aperture, so
     // the walk-in crosses the plane frontally rather than clipping an edge.
     const attempt = await walkOne(ap);
@@ -293,7 +334,11 @@ while (pending.length) {
   } catch (err) {
     let staged = null;
     try {
-      await restoreOutside();
+      try {
+        await restoreOutside();
+      } catch (e3) {
+        console.log(`restore before staged retry failed: ${String(e3.message).slice(0, 120)}`);
+      }
       console.log(`staged retry ${ap.id}`);
       staged = await stagedWalk(ap);
     } catch (e2) {

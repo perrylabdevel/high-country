@@ -549,10 +549,9 @@ function connectorIdsWithin(nodes, x, z, radius) {
  * starts must not snap onto a node buried in the building the traveller stands
  * beside, or every edge of the route's first hop prices impassable.
  */
-export function nearestNode(x, z, { kinds = null, maxDist = NAV.SNAP_RADIUS * 4, standable = false } = {}) {
+export function nearestNode(x, z, { kinds = null, maxDist = NAV.SNAP_RADIUS * 4, standable = false, clearFrom = null } = {}) {
   const g = navGraph();
-  let best = -1;
-  let bestD = maxDist;
+  const cands = [];
   for (const n of g.nodes) {
     if (kinds && !kinds.includes(n.kind)) {
       continue;
@@ -561,10 +560,31 @@ export function nearestNode(x, z, { kinds = null, maxDist = NAV.SNAP_RADIUS * 4,
       continue;
     }
     const d = Math.hypot(n.x - x, n.z - z);
-    if (d < bestD || (d === bestD && best >= 0 && n.id < best)) {
-      bestD = d;
-      best = n.id;
+    if (d < maxDist) {
+      cands.push({ id: n.id, d, n });
     }
   }
-  return best < 0 ? null : { id: best, dist: bestD };
+  if (!cands.length) {
+    return null;
+  }
+  // Nearest first, id tie-break — the same winner the old scan produced.
+  cands.sort((a, b) => a.d - b.d || a.id - b.id);
+  if (clearFrom) {
+    // The pose→first-node snap leg is the one leg routeTo never graphs, so a
+    // rider standing on the far side of a building from the nearest node got
+    // a route whose first instruction walked them into it (run 17: pinned
+    // inside the barn; the route to the ranch gate opened with a hop from
+    // (−427, 326) to a stage node straight through the barn walls). Prefer
+    // the nearest node the pose can ACTUALLY reach in a straight line —
+    // legClear samples the leg every 2 m with the mode's body radius —
+    // scanning a bounded few; if none of them is reachable the graph can't
+    // help from here either way, so the plain nearest node stands.
+    for (const c of cands.slice(0, 8)) {
+      if (legClear(x, z, c.n.x, c.n.z, clearFrom.mode)) {
+        return { id: c.id, dist: c.d };
+      }
+    }
+  }
+  const best = cands[0];
+  return { id: best.id, dist: best.d };
 }

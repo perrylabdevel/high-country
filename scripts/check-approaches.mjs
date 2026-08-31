@@ -253,6 +253,28 @@ for (const p of Object.values(POS)) {
   check(route.waypoints.length >= 2 && route.length > 0, `route to ${p.id} carries no waypoints`);
 }
 
+// --- rule 11: the snap leg opens the route with a REAL step -------------------
+// The pose→first-node leg is the one leg of a route A* never costs, so the
+// nearest-node snap used to open routes whose first instruction walked the
+// rider into a building (run 17: pinned inside the ranch barn, the route to
+// the ranch gate opened at a stage node straight through its walls). Route
+// openings from poses deliberately parked beside known mass must be legClear
+// — the same 2 m sampling rule 6 demands between a node and its approach.
+const { legClear: snapLegClear } = await import("../src/nav/costs.js");
+const snapProbe = { x: POS.ranch.x - 26.9, z: POS.ranch.z + 25.6 };
+const gateAp = primaryApproach("ranchGate") || Object.values(POS).map((p) => primaryApproach(p.id)).find((a) => a && /gate/i.test(a.id));
+if (check(Boolean(gateAp), "no gate approach exists for the snap-leg probe")) {
+  const snapRoute = routeTo(snapProbe.x, snapProbe.z, gateAp, "walk");
+  check(snapRoute.status === "routed" && snapRoute.waypoints.length >= 1,
+    `snap-leg probe: no route from (${snapProbe.x},${snapProbe.z}) to ${gateAp.id} (${snapRoute.status})`);
+  const w0 = snapRoute.waypoints[0];
+  if (w0) {
+    // The opening waypoint may be behind a wall only if you can still WALK to it.
+    check(snapLegClear(snapProbe.x, snapProbe.z, w0.x, w0.z, "walk"),
+      `route from (${snapProbe.x},${snapProbe.z}) opens at (${w0.x.toFixed(0)},${w0.z.toFixed(0)}) through un-walkable ground — the snap leg is not collision-sampled`);
+  }
+}
+
 if (failures.length) {
   console.error(failures.map((f) => "  - " + f).join("\n"));
   throw new Error(`check-approaches: ${failures.length} failure(s)`);

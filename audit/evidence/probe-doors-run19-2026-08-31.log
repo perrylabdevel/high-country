@@ -1,0 +1,15 @@
+probe: using server at http://127.0.0.1:8794 (spawned)
+PASS  inventory loads (67 apertures)
+PASS  aperture ids unique
+PASS  every aperture has a POI
+PASS  traversable doors to walk (2)
+
+[door] ranchHouse.partition.east.door.0 (26 m away)
+staged retry ranchHouse.partition.east.door.0
+FAIL  walk through ranchHouse.partition.east.door.0 — steering to ranchHouse.partition.east.door.0 exterior timed out
+
+[door] ranchGate.east.gate.0 (167 m away)
+PASS  walk through ranchGate.east.gate.0
+PASS  aperture inventory identical after save/load
+
+probe-doors: 1 FAILED step(s)
