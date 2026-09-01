@@ -76,11 +76,49 @@ export const TEXTURE_SETS = {
     tiling: 1.6,
     heightBias: 0
   },
+  /**
+   * Interior floors, porch decks and any laid boarding.
+   *
+   * This is a FLOOR texture — short planks with staggered butt joints — and it
+   * is right for that and wrong for everything else. It used to clad the
+   * exterior walls too, which is why they read as a repeating grid no sampling
+   * trick could fix: a wall tiled with it showed three superimposed regular
+   * patterns (the plank rows, the butt joints, and the 1.8 m tile repeat), and
+   * domain warping, per-cell rotation and stochastic sampling all attack only
+   * the third. The first two are IN the image. Walls take `siding` now.
+   */
   wood: {
     albedo: "/textures/wood_2k_albedo.ktx2",
     normal: "/textures/wood_2k_normal.ktx2",
     orm: "/textures/wood_2k_orm.ktx2",
     tiling: 1.8,
+    heightBias: 0
+  },
+  /**
+   * Exterior wall cladding (Poly Haven brown_planks_08, CC0, Rob Tuytel).
+   *
+   * Long continuous boards with no butt joints, which is what real siding is
+   * and what the floor texture is not. Measured against the two other
+   * candidates for wrap quality (edge-to-edge difference against the typical
+   * internal step, so a seamless tile scores near its own internal number):
+   *
+   *   brown_planks_08   L-R 6.9  T-B  9.4   internal 5.1   <- chosen
+   *   brown_planks_09   L-R 5.2  T-B 12.2   internal 5.0
+   *   brown_planks_04   L-R 5.0  T-B 12.6   internal 3.1
+   *
+   * 04 was dropped twice over: it still has butt joints, and pack-textures
+   * refused its normal map outright (mean R/G 89.3/105.0 against the required
+   * 127.5, and not an sRGB double-encode either) — the guard added for gravel
+   * earning its keep.
+   *
+   * Tiling: the source is a 1 m square carrying boards ~9-13 cm wide, so 1.4 m
+   * lands them at 12-18 cm, inside the 15-25 cm a real siding board measures.
+   */
+  siding: {
+    albedo: "/textures/siding08_2k_albedo.ktx2",
+    normal: "/textures/siding08_2k_normal.ktx2",
+    orm: "/textures/siding08_2k_orm.ktx2",
+    tiling: 1.4,
     heightBias: 0
   },
   roof: {

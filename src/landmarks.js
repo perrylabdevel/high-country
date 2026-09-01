@@ -408,13 +408,17 @@ export function createLandmarks(scene, maps = {}) {
   STREETS.length = 0;
   streetSeq = 0;
   const group = new THREE.Group();
-  const hasMaps = Boolean(maps?.adobe && maps?.wood && maps?.roof);
-  const wood = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 }) : mat(0xc4a574);
-  const dark = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 }) : mat(0x6b4226);
+  const hasMaps = Boolean(maps?.adobe && maps?.wood && maps?.siding && maps?.roof);
+  // Town facades are exterior cladding, so they take `siding` (long continuous
+  // boards) rather than `wood`, which is a floor texture whose butt joints
+  // tiled into a visible grid across every wall. Boardwalks and decking below
+  // still use `wood`, which is what it is right for.
+  const wood = hasMaps ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xd8c4a4, gain: 1.15 }) : mat(0xc4a574);
+  const dark = hasMaps ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 }) : mat(0x6b4226);
   // Weathered, slightly silvered tone for false-front parapets: the boards
   // shared the facade wood and blended into the walls, so the raised front
   // never read as a distinct full-width element (audit S2).
-  const falseFrontWood = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xa89a82, gain: 1.5, rough: 0.96 }) : mat(0x9a8a74);
+  const falseFrontWood = hasMaps ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0x9a8f7c, gain: 0.95, rough: 0.96 }) : mat(0x9a8a74);
   const stone = mat(0xa89e90);
   const roof = hasMaps ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 }) : mat(0x4a3020);
   // Weak triplanar normals on adobe: full-strength plaster read as wood grain
