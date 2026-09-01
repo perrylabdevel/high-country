@@ -102,11 +102,26 @@ for (let i = 0; i < 4000; i += 1) {
 assert(openGround > 3800, `footprint index is rejecting open ground: only ${openGround}/4000 plantable`);
 
 // Draw range regression guard.
-const veg = await import("node:fs/promises").then((fs) => fs.readFile("src/vegetation.js", "utf8"));
-const radius = Number(/const GRASS_RADIUS = (\d+)/.exec(veg)?.[1]);
-const fadeIn = Number(/const GRASS_FADE_IN = (\d+)/.exec(veg)?.[1]);
-assert(radius >= 300, `grass draw radius regressed to ${radius} m`);
-assert(fadeIn / radius > 0.7, `grass starts dissolving at ${fadeIn}/${radius} — too early, leaves bare mid-ground`);
+//
+// Read from the module, not by grepping its source. These used to be matched
+// out of src/vegetation.js with /const GRASS_RADIUS = (\d+)/, which silently
+// produced NaN the moment the constant became an expression — a guard that
+// cannot survive the code being refactored is not a guard.
+//
+// The values are per device tier now, so the floor is the tier's own: `high`
+// must still reach 330 m, while `low` is ALLOWED to pull the disc in — that is
+// the entire point of it. What must hold at every tier is the fade RATIO,
+// because a disc that starts dissolving early leaves a bare mid-ground at any
+// radius, which is the artefact this guard was written for.
+const { GRASS_SCATTER } = await import("../src/vegetation.js");
+const { getProfile } = await import("../src/perfProfile.js");
+const tier = getProfile();
+const radius = GRASS_SCATTER.GRASS_RADIUS;
+const fadeIn = GRASS_SCATTER.GRASS_FADE_IN;
+assert(Number.isFinite(radius) && Number.isFinite(fadeIn), `grass draw range is not numeric: radius ${radius}, fadeIn ${fadeIn}`);
+assert(radius === tier.grassRadius, `grass radius ${radius} m does not match the active '${tier.name}' tier (${tier.grassRadius} m)`);
+assert(tier.name !== "high" || radius >= 300, `grass draw radius regressed to ${radius} m on the high tier`);
+assert(fadeIn / radius > 0.7, `grass starts dissolving at ${fadeIn.toFixed(0)}/${radius} — too early, leaves bare mid-ground`);
 
 // Every mesh sharing a tinted foliage material must carry instanceColor.
 // three fills vInstanceColor from that attribute; a mesh without it leaves the
