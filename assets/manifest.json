@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-49453965335f.tar.gz",
-  "bundle": "textures-49453965335f.tar.gz",
-  "contentHash": "49453965335f1ee21f4c0023037d4f8b904fb5de115787fe2c1acf8c4766e898",
-  "bundleSha256": "bc2e72587067b2204603454f0050be54542da2e751fcddb8e71258a67b0135f3",
-  "bundleBytes": 158703833,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-f9887acfed05.tar.gz",
+  "bundle": "textures-f9887acfed05.tar.gz",
+  "contentHash": "f9887acfed0525a5a9b72dfb4c0e2b5845b8d3032b9a132a471024fa94445bf2",
+  "bundleSha256": "cd78e558d8e59ba389c7d53a14346a36265849d3af9c68ff4a9aa56bffeb849e",
+  "bundleBytes": 158557208,
   "target": "public/textures",
   "files": [
     {
@@ -94,8 +94,8 @@
     },
     {
       "path": "gravel_2k_normal.ktx2",
-      "bytes": 5432458,
-      "sha256": "e9e2a8eb26a4d4c2a74821c4da41886e2684e6df49ebb00d87132b87397cc0b5"
+      "bytes": 5367033,
+      "sha256": "006986875ff682c427947ed38c465c8077a2c2fd12b48f09eadafcbd9ffedb88"
     },
     {
       "path": "gravel_2k_orm.ktx2",

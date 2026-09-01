@@ -50,6 +50,40 @@ export const materialSettings = {
   twoScaleMix: 0.12,
   albedoGain: 1.0,
   detailDistance: 200,
+  // Building-surface decorrelation (texturedMat.ts). Walls tile at 1.4-2.2 m —
+  // 4-8x denser than any terrain layer — and every wall samples the same
+  // world-space phase, so at settlement distance the repeats line up into a
+  // visible pattern (measured: ranch wall strips autocorrelate at exactly the
+  // 1.8 m tiling lag, 34 px / 60 px at the close vantage; the roof planes
+  // show a full grid). Mechanisms, in the order they were tried:
+  //  - overlaying the same texture at a coarser second scale was MEASURED
+  //    useless (mix 0.22-0.65 left the tiling-lag peak unchanged or higher —
+  //    the textures are dominated by one directional structure, so overlaying
+  //    themselves stacks more aligned banding). Not shipped.
+  //  - wallWarp* — domain warp: the triplanar sample position is displaced by
+  //    smooth 3D noise of period wallWarpPeriod (m), by wallWarpAmp x tiling
+  //    at full strength, so each nominal repeat shows a different slice and
+  //    features stop aligning. Fades in between wallWarpNear/wallWarpFar
+  //    (m): up close the texture is untouched, which is where it was already
+  //    judged good (25 m walk-up pose: amp 0.42 and 0.6 indistinguishable
+  //    from unwarped). Measured at the 45 m vantage, main-block wall strip,
+  //    tiling-lag autocorrelation peak: unwarped 0.167; amp 0.25 -> 0.150;
+  //    amp 0.42 -> 0.134; amp 0.60 -> 0.117. Shorter warp periods (4-5 m)
+  //    measure WORSE (0.174-0.190) — decorrelation tracks the warp gradient
+  //    across repeats, not the amplitude alone — and visibly wobble roof
+  //    rows. 0.60/7 m ships: best measured decorrelation, and the roof grid
+  //    (the most conspicuous repetition at audit distance) breaks up while
+  //    reading as weathered shingles, not wobble.
+  //  - wallMacroPeriod/Strength — large-period 3D noise on the final albedo,
+  //    so walls that never touch (across a street, across a settlement) stop
+  //    sharing one brightness phase. 3D, not terrain's xz: a 2D macro would
+  //    band horizontally along wall height.
+  wallWarpAmp: 0.6,
+  wallWarpPeriod: 7,
+  wallWarpNear: 18,
+  wallWarpFar: 55,
+  wallMacroPeriod: 26,
+  wallMacroStrength: 0.1,
   roadNoiseScale: 0.22,
   roadEdgeNoise: 0.85,
   roadEdgeLo: 0.03,
