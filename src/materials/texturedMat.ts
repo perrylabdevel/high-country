@@ -40,6 +40,7 @@ import {
   dFdx,
   dFdy,
   select,
+  hash,
   uniform
 } from "three/tsl";
 import type { Node } from "three/webgpu";
@@ -136,11 +137,22 @@ function hexSample(
   const v2 = select(lower, base.add(vec2(1.0, 0.0)), base.add(vec2(1.0, 0.0)));
   const v3 = select(lower, base.add(vec2(0.0, 1.0)), base.add(vec2(0.0, 1.0)));
 
-  /** A decorrelated 2D offset per lattice vertex, in [0,1). */
-  const offset = (v: Node<"vec2">) => vec2(
-    mx_noise_float(vec3(v.x, v.y, 0.0).mul(vec3(1.7, 2.3, 1.0))).mul(0.5).add(0.5),
-    mx_noise_float(vec3(v.x, v.y, 7.3).mul(vec3(2.9, 1.3, 1.0))).mul(0.5).add(0.5)
-  );
+  /**
+   * A uniformly distributed 2D offset per lattice vertex, in [0,1).
+   *
+   * This must be a HASH, not noise. The first version used mx_noise_float
+   * here, and Perlin noise is not uniform: its values cluster near zero with a
+   * standard deviation of roughly 0.2, so after *0.5+0.5 every vertex got an
+   * offset of about half a tile give or take a tenth. All three samples were
+   * the texture translated by nearly the same amount, the repeat survived
+   * intact, and the before/after captures differed by a mean 1.2/255 on the
+   * stone wall. The vertex coordinates are integers, so they pack losslessly
+   * into one seed.
+   */
+  const offset = (v: Node<"vec2">) => {
+    const seed = v.x.add(v.y.mul(4096.0));
+    return vec2(hash(seed), hash(seed.add(7919.0)));
+  };
 
   // `strength` scales the offsets: 0 collapses all three to the same place and
   // the result is byte-identical to an ordinary sample, which is what makes a
@@ -149,13 +161,21 @@ function hexSample(
   const s2 = texture(tex, uv.add(offset(v2).mul(strength))).grad(ddx, ddy);
   const s3 = texture(tex, uv.add(offset(v3).mul(strength))).grad(ddx, ddy);
 
-  // Variance-preserving blend. Without the rescale the even-weight regions
-  // lose contrast and read as grey patches.
-  const mean = s1.add(s2).add(s3).div(3.0);
+  // Variance-preserving blend about the TEXTURE's mean, read from the top of
+  // the mip chain (the 1x1 level is the mean by construction; the level index
+  // is clamped by the sampler, so an oversized constant always lands there).
+  // It has to be the texture's mean, not the mean of these three samples: with
+  // the local mean, sum(w_i * (s_i - mean)) is identically zero at even
+  // weights, so the "preserving" blend collapses to the naive average exactly
+  // where the naive average is worst.
+  const mean = texture(tex, uv).level(float(16));
   const blended = s1.sub(mean).mul(w1)
     .add(s2.sub(mean).mul(w2))
     .add(s3.sub(mean).mul(w3));
-  const norm = w1.mul(w1).add(w2.mul(w2)).add(w3.mul(w3)).sqrt().max(1e-4);
+  // The rescale is faded out with strength: at 0 the three samples coincide
+  // and dividing by norm would boost contrast instead of returning the plain
+  // sample the A/B relies on.
+  const norm = mix(float(1), w1.mul(w1).add(w2.mul(w2)).add(w3.mul(w3)).sqrt().max(1e-4), strength);
   return blended.div(norm).add(mean);
 }
 
