@@ -71,6 +71,8 @@ export function createMaterialPanel(options: {
   folders.walls.add(materialSettings, "wallWarpAmp", 0, 1, 0.01).name("warp amplitude").onChange(onWalls);
   folders.walls.add(materialSettings, "wallWarpPeriod", 2, 30, 0.5).name("warp period").onChange(onWalls);
   folders.walls.add(materialSettings, "wallWarpNear", 0, 60, 1).name("warp near").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallRotCell", 2, 20, 0.1).name("rot cell (m)").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallRotMix", 0, 1, 0.05).name("rot mix").onChange(onWalls);
   folders.walls.add(materialSettings, "wallWarpFar", 5, 150, 1).name("warp far").onChange(onWalls);
   folders.walls.add(materialSettings, "wallMacroPeriod", 4, 120, 1).name("macro period").onChange(onWalls);
   folders.walls.add(materialSettings, "wallMacroStrength", 0, 0.5, 0.01).name("macro strength").onChange(onWalls);
