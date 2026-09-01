@@ -303,9 +303,53 @@ export function createSky(scene) {
   const cumulus = smoothstep(mix(0.82, 0.44, cover), mix(0.93, 0.58, cover), n1);
   const cirrus = smoothstep(0.6, 0.72, n2).mul(0.38);
   const cloudAmt = clamp(cirrus.add(cumulus), 0, 1).mul(smoothstep(0.02, 0.16, h));
-  const cloudLit = mix(vec3(1.02, 0.99, 0.94), vec3(1.06, 0.87, 0.7), warm);
-  const cloudShade = mix(vec3(0.84, 0.86, 0.9), vec3(0.85, 0.73, 0.68), warm);
-  const cloudCol = mix(cloudShade, cloudLit, smoothstep(0.4, 0.8, n1));
+  // Tone: the pre-change ramp was lit/shade keyed on smoothstep(0.4, 0.8, n1)
+  // alone, but nearly every cloud-body sample of n1 sits above 0.7, so
+  // smoothstep(0.4, 0.8) saturated and every fragment rendered the same
+  // bright white — no per-mass variety, no grey structure (by-eye A/B
+  // capture, 2026-08-31). Two already-computed fields add the missing
+  // variation at zero extra noise cost:
+  //  - `massTone` is a dedicated 2-octave field on its own seed and offset.
+  //    The first attempts reused the cumulus's own low octave (n1md), then the
+  //    cirrus field (n2md) — both saturated, because the visible white bands
+  //    are regions where THAT field is already high: n1 correlates with n1md
+  //    (same field), and cirrus shows exactly where n2 is high (same domain,
+  //    octave-correlated). Tone must be independent of the masks, or the ramp
+  //    saturates everywhere the clouds are visible. One extra noise call at
+  //    2 octaves is the price of per-cloud tone variety.
+  //  - litF is set DIRECTLY from a soft-thresholded tone field, on a HARD
+  //    split, and the shade colour is much darker than looks reasonable —
+  //    three findings the debug captures forced (2026-08-31, unblended
+  //    skyMat renders of litF/massTone and of massTone alone):
+  //    (1) litF's additive forms (0.55/0.45, then 0.35/0.65) plateau at ~0.75
+  //    over the whole deck — the n1 term is ~0.8 inside every visible fragment
+  //    and massTone clusters mid-high — and mix(shade, lit, 0.75) is still
+  //    white. The tone value's DISTRIBUTION is the lever: a renormalised fBm
+  //    clusters near 0.5, so wide-ramp smoothsteps map it to a plateau; a
+  //    narrow soft threshold at the cluster centre (0.40..0.58) splits the
+  //    masses bimodally instead, which the massTone-alone capture shows as
+  //    roughly half grey masses / half lit in every view.
+  //    (2) A "0.5-ish grey" does not survive the pipeline. ACES + exposure
+  //    1.12 puts a 0.69-linear grey at ~212/255 and the lit white at ~232 —
+  //    and thin fragments are further diluted toward the pale sky by the
+  //    cloudAmt mix — so shade 0.5 renders as "another white wisp". The first
+  //    four tint attempts (v1-v5, then shade 0.5/0.55 with a 0.3 lit base)
+  //    all failed this way while the debug renders looked fine; five builds
+  //    showed <0.06% of sky pixels changed >90 RGB before v9 (v9: 3.5%).
+  //    cloudShade had to go to 0.30-0.42 linear for the dark masses to read
+  //    as genuinely grey (~195-205/255) next to ~230 whites.
+  //    (3) The split is hard (litF ≈ 0.06 for grey masses, ≈ 0.96 lit): any
+  //    lit-term weight inside the grey masses (0.22-0.35 in the variants)
+  //    drags them back into the ACES shoulder and they whiten out again.
+  //    The n1 term returns at low weight (0.08) purely as intra-mass
+  //    structure: dense centres a touch brighter than their rims.
+  const toneN = mx_fractal_noise_float(vec3(p.add(vec2(19.3, 7.7)), 23.7), 2, 2.0, 0.5)
+    .mul(1.1667).mul(0.5).add(0.5);
+  const massTone = smoothstep(0.40, 0.58, toneN);
+  const litF = clamp(massTone.mul(0.9).add(0.06).add(smoothstep(0.5, 0.9, n1).mul(0.08)), 0, 1);
+  const cloudLit = mix(vec3(1.06, 1.03, 0.98), vec3(1.06, 0.87, 0.7), warm);
+  const cloudShade = mix(vec3(0.3, 0.34, 0.42), vec3(0.44, 0.32, 0.28), warm);
+  const cloudCol = mix(cloudShade, cloudLit, litF);
 
   const skyMat = new THREE.MeshBasicNodeMaterial({
     side: THREE.BackSide,
