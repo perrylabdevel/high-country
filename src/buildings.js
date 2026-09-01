@@ -49,7 +49,7 @@ export function createRanch(maps = {}) {
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
     : new THREE.MeshStandardNodeMaterial({ map: woodTexture(), roughness: 0.9, color: 0x6b4226 });
   const roof = hasMaps
-    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35, rotate: false })
+    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
     : new THREE.MeshStandardNodeMaterial({ map: shingleTexture(), roughness: 0.88, color: 0x4a3020 });
   const stone = hasMaps
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })

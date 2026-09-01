@@ -84,15 +84,12 @@ export const materialSettings = {
   wallWarpFar: 55,
   wallMacroPeriod: 26,
   wallMacroStrength: 0.1,
-  //  - wallRotCell/wallRotMix — per-cell quarter-turn rotation of the
-  //    triplanar sample frame. The warp above displaces the sample position
-  //    but cannot change which way the texture FACES, and these albedos are
-  //    directional, so every repeat kept its dark mortar edge on the same
-  //    side. Cell size is deliberately not a multiple of any wall tiling
-  //    (1.4-2.2 m) so cell seams cannot coincide with tile seams. Mix 0
-  //    disables it live for A/B.
-  wallRotCell: 4.1,
-  wallRotMix: 1,
+  //  - wallStochastic — hex-tile stochastic sampling strength (Heitz &
+  //    Neyret). The texture is sampled three times at unrelated offsets and
+  //    blended by barycentric weight, so the repeat is gone rather than
+  //    disguised. 0 collapses the three samples onto one point and is
+  //    exactly a plain sample, which is how it is A/B'd live.
+  wallStochastic: 1,
   roadNoiseScale: 0.22,
   roadEdgeNoise: 0.85,
   roadEdgeLo: 0.03,

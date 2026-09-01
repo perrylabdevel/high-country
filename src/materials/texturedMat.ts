@@ -37,6 +37,9 @@ import {
   smoothstep,
   cameraPosition,
   mx_noise_float,
+  dFdx,
+  dFdy,
+  select,
   uniform
 } from "three/tsl";
 import type { Node } from "three/webgpu";
@@ -52,8 +55,7 @@ const WALL_KEYS = [
   "wallWarpFar",
   "wallMacroPeriod",
   "wallMacroStrength",
-  "wallRotCell",
-  "wallRotMix"
+  "wallStochastic"
 ] as const;
 
 type WallKey = (typeof WALL_KEYS)[number];
@@ -70,40 +72,115 @@ export function syncWallUniforms(): void {
 }
 
 /**
- * Triplanar sampling with a per-cell quarter-turn rotation of each plane's UVs.
+ * One hex-tile stochastic sample of a texture in a single UV plane.
  *
- * This is three's triplanarTexture (nodes/utils/TriplanarTextures.js) with one
- * change: each of the three projected UV sets is rotated by its own per-cell
- * multiple of 90 degrees before sampling. Everything else — the |normal|
- * blend weights, the three-plane sum — is identical.
+ * Heitz & Neyret, "High-Performance By-Example Noise using a Histogram-
+ * Preserving Blending Operator" (2018), in its widely-used simplified form.
  *
- * It has to happen HERE, inside the UV derivation, rather than by pre-rotating
- * the world position that gets passed in. Rotating the position was tried
- * first and it smears: triplanar picks its blend weights from the true surface
- * normal, so a wall facing +Z is sampled almost entirely from the .xy plane,
- * and turning the position 90 degrees about Y makes that wall read its UVs
- * from a plane it is nearly PARALLEL to. The weighting and the sampling then
- * disagree and the texture stretches into horizontal streaks — clearly visible
- * mid-wall and across the porch in audit/wall-sweep/B-rot-only.png.
+ * The problem it solves is the one every other approach here failed on. A
+ * domain warp displaces WHERE the texture is read and a per-cell rotation
+ * changes which way it FACES, but neither removes the fact that the same
+ * pixels reappear on a fixed grid — on the ranch house's plank siding, the
+ * same two knots recur every 1.8 m at matching heights, and rotating planks
+ * to hide it stands the siding on end (measured: 180-degree-only flip moved
+ * the autocorrelation 0.551 -> 0.524, i.e. nothing, and added visible seams).
  *
- * Rotating within each plane cannot do that: the plane a fragment samples from
- * is unchanged, only the orientation of the texture inside it moves.
+ * How it works. The UV plane is tiled with a triangular lattice; every
+ * fragment falls in one triangle whose three vertices are hex centres. Each
+ * vertex carries its own random UV offset, so the texture is sampled three
+ * times at three unrelated places and blended by the fragment's barycentric
+ * weights. A weight falls to zero exactly at the opposite edge, so there is no
+ * seam anywhere, and because each sample is the texture translated — never
+ * rotated, scaled or distorted — a directional material keeps its direction.
  *
- * Why quarter turns specifically: for a tiling texture they are exact. Each is
- * a swap and a negate of two coordinates, so there is no resampling, no
- * stretching, and no change to the filtering or the mip selection. A cell
- * boundary is a texture-space jump — the same kind of discontinuity the tiling
- * already has at every tile edge, and hidden by the same wrap.
+ * Two details that are not optional:
+ *
+ * Variance-preserving blend. Averaging three samples of a texture with mean m
+ * pulls contrast toward m wherever the weights are even, so a naive blend
+ * makes the wall look washed out in patches — the failure mode that makes
+ * people give up on this technique. Blending the deviations from the mean and
+ * rescaling by 1/sqrt(w1^2+w2^2+w3^2) keeps the variance constant, so the
+ * result has the same contrast as a plain sample everywhere.
+ *
+ * Explicit gradients. The three offsets are discontinuous across lattice
+ * edges, so the hardware's implicit derivatives would see a huge UV jump at
+ * every boundary and drop to the lowest mip — a blurred line along every
+ * triangle edge. The derivatives of the UNOFFSET uv are the correct ones (the
+ * offsets are constant within a triangle), so they are computed once and
+ * passed to every sample with .grad().
  */
-function rotatedTriplanar(
+function hexSample(
+  tex: THREE.Texture,
+  uv: Node<"vec2">,
+  strength: FloatUniform
+) {
+  // Correct derivatives: taken from the un-offset UV, before the lattice
+  // splits it. Constant offsets do not change the footprint.
+  const ddx = dFdx(uv);
+  const ddy = dFdy(uv);
+
+  // Skew into a triangular lattice. The matrix is the standard
+  // [[1, -1/sqrt(3)], [0, 2/sqrt(3)]] mapping a unit square to 60-degree axes.
+  const skewed = vec2(uv.x.sub(uv.y.mul(0.57735026)), uv.y.mul(1.15470054));
+  const base = skewed.floor();
+  const f = skewed.sub(base);
+
+  // Split the parallelogram cell into its two triangles and get barycentrics.
+  // The lower triangle has f.x + f.y < 1.
+  const lower = f.x.add(f.y).lessThan(1.0);
+  const w1 = select(lower, float(1).sub(f.x).sub(f.y), f.x.add(f.y).sub(1.0));
+  const w2 = select(lower, f.x, float(1).sub(f.y));
+  const w3 = select(lower, f.y, float(1).sub(f.x));
+  // The three lattice vertices of whichever triangle we are in.
+  const v1 = select(lower, base, base.add(vec2(1.0, 1.0)));
+  const v2 = select(lower, base.add(vec2(1.0, 0.0)), base.add(vec2(1.0, 0.0)));
+  const v3 = select(lower, base.add(vec2(0.0, 1.0)), base.add(vec2(0.0, 1.0)));
+
+  /** A decorrelated 2D offset per lattice vertex, in [0,1). */
+  const offset = (v: Node<"vec2">) => vec2(
+    mx_noise_float(vec3(v.x, v.y, 0.0).mul(vec3(1.7, 2.3, 1.0))).mul(0.5).add(0.5),
+    mx_noise_float(vec3(v.x, v.y, 7.3).mul(vec3(2.9, 1.3, 1.0))).mul(0.5).add(0.5)
+  );
+
+  // `strength` scales the offsets: 0 collapses all three to the same place and
+  // the result is byte-identical to an ordinary sample, which is what makes a
+  // live A/B on one frame possible.
+  const s1 = texture(tex, uv.add(offset(v1).mul(strength))).grad(ddx, ddy);
+  const s2 = texture(tex, uv.add(offset(v2).mul(strength))).grad(ddx, ddy);
+  const s3 = texture(tex, uv.add(offset(v3).mul(strength))).grad(ddx, ddy);
+
+  // Variance-preserving blend. Without the rescale the even-weight regions
+  // lose contrast and read as grey patches.
+  const mean = s1.add(s2).add(s3).div(3.0);
+  const blended = s1.sub(mean).mul(w1)
+    .add(s2.sub(mean).mul(w2))
+    .add(s3.sub(mean).mul(w3));
+  const norm = w1.mul(w1).add(w2.mul(w2)).add(w3.mul(w3)).sqrt().max(1e-4);
+  return blended.div(norm).add(mean);
+}
+
+/**
+ * Triplanar sampling where each of the three planes is sampled stochastically.
+ *
+ * This is three's triplanarTexture (nodes/utils/TriplanarTextures.js) with the
+ * three plain samples replaced by hexSample. The |normal| blend weights and
+ * the three-plane sum are unchanged.
+ *
+ * It has to happen HERE, inside the UV derivation, rather than by pre-
+ * transforming the world position passed in. Transforming the position was
+ * tried and it smears: triplanar takes its blend weights from the true surface
+ * normal, so a wall facing +Z samples almost entirely from the .xy plane, and
+ * turning the position 90 degrees about Y makes that wall read its UVs from a
+ * plane it is nearly PARALLEL to. Weighting and sampling then disagree and the
+ * texture stretches into horizontal streaks.
+ */
+function stochasticTriplanar(
   texNode: ReturnType<typeof texture>,
   scaleNode: Node<"float">,
   posNode: Node<"vec3">,
   nrmNode: Node<"vec3">,
-  cellSize: FloatUniform,
-  rotMix: FloatUniform
+  strength: FloatUniform
 ) {
-  // Blend weights from the TRUE normal, exactly as three does.
   const bfRaw = nrmNode.abs().normalize();
   const bf = bfRaw.div(bfRaw.dot(vec3(1.0)));
 
@@ -111,39 +188,15 @@ function rotatedTriplanar(
   const ty = posNode.zx.mul(scaleNode);
   const tz = posNode.xy.mul(scaleNode);
 
-  // One independent cell index per projection plane, so the three planes do
-  // not turn in lockstep and reintroduce a shared phase.
-  const cell = posNode.div(cellSize).floor();
-
-  /**
-   * Rotate a UV pair by k * 90 degrees about the cell's own centre.
-   *
-   * Rotating about the ORIGIN would translate distant cells as well as turn
-   * them, because a rotation about a far-away origin is mostly displacement.
-   * That reintroduces exactly the sample-position jitter the warp already
-   * does, and does it discontinuously. Turning about the cell centre keeps
-   * the rotation a pure rotation.
-   */
-  const turn = (uv: Node<"vec2">, seed: number) => {
-    const rnd = mx_noise_float(cell.mul(vec3(1.7, 2.3, 3.1)).add(seed)).mul(0.5).add(0.5);
-    const ang = rnd.mul(4).floor().mul(Math.PI / 2).mul(rotMix);
-    const ca = ang.cos();
-    const sa = ang.sin();
-    // Cell centre in this plane's UV space; rotate around it.
-    const c = uv.div(cellSize.mul(scaleNode)).floor().add(0.5).mul(cellSize.mul(scaleNode));
-    const d = uv.sub(c);
-    return vec2(d.x.mul(ca).sub(d.y.mul(sa)), d.x.mul(sa).add(d.y.mul(ca))).add(c);
-  };
-
-  const cx = texture(texNode.value, turn(tx, 11.7)).mul(bf.x);
-  const cy = texture(texNode.value, turn(ty, 29.3)).mul(bf.y);
-  const cz = texture(texNode.value, turn(tz, 47.1)).mul(bf.z);
+  const cx = hexSample(texNode.value, tx, strength).mul(bf.x);
+  const cy = hexSample(texNode.value, ty, strength).mul(bf.y);
+  const cz = hexSample(texNode.value, tz, strength).mul(bf.z);
   return cx.add(cy).add(cz);
 }
 
 export function makeTexturedMat(
   set: LoadedSet,
-  { tiling = 1.6, tint = 0xffffff, rough = 0.9, gain = 1.0, noNormal = false, normalScale = 0.8, rotate = true }: {
+  { tiling = 1.6, tint = 0xffffff, rough = 0.9, gain = 1.0, noNormal = false, normalScale = 0.8, stochastic = true }: {
     tiling?: number;
     tint?: number;
     rough?: number;
@@ -151,16 +204,13 @@ export function makeTexturedMat(
     noNormal?: boolean;
     normalScale?: number;
     /**
-     * Break texture repetition with the per-cell quarter-turn rotation.
+     * Break texture repetition with hex-tile stochastic sampling.
      *
-     * On by default, and correct for anything whose real-world structure has
-     * no single orientation — stone, adobe, rubble, weathered planking seen in
-     * a mass. Pass false for a material that is genuinely directional at
-     * building scale: roof tiles all run the same way down a real roof, so
-     * turning a patch of them 90 degrees reads as a mistake rather than as
-     * variety, however much it improves the autocorrelation.
+     * On by default. Costs three texture fetches per map per plane instead of
+     * one, so it is the expensive option — pass false for a material where the
+     * repetition does not read, or where the extra bandwidth is not worth it.
      */
-    rotate?: boolean;
+    stochastic?: boolean;
   } = {}
 ): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ color: 0xffffff, roughness: rough, metalness: 0.02 });
@@ -188,8 +238,10 @@ export function makeTexturedMat(
 
   }
 
-  const rotMix = rotate ? u.wallRotMix : (float(0) as unknown as FloatUniform);
-  const alb = rotatedTriplanar(albNode, scale, p, normalWorld, u.wallRotCell, rotMix).rgb;
+  // `stochastic: false` opts a material out entirely (zero strength collapses
+  // the three hex samples onto one point, so it is exactly a plain sample).
+  const stoch = stochastic ? u.wallStochastic : (float(0) as unknown as FloatUniform);
+  const alb = stochasticTriplanar(albNode, scale, p, normalWorld, stoch).rgb;
   const macro = mx_noise_float(positionWorld.div(u.wallMacroPeriod)).mul(u.wallMacroStrength).add(1);
   const c = new THREE.Color(tint);
   // The Poly Haven albedos are darker than the flat colours they replace, and
@@ -200,11 +252,11 @@ export function makeTexturedMat(
     // Same TextureNode requirement as the albedo: triplanarTexture on a raw
     // THREE.Texture sampled black. The normal map gives walls/adobe relief so
     // they do not read as flat painted slabs (audit M1/U2 on buildings).
-    const nrm = rotatedTriplanar(nrmNode, scale, p, normalWorld, u.wallRotCell, rotMix);
+    const nrm = stochasticTriplanar(nrmNode, scale, p, normalWorld, stoch);
     m.normalNode = normalMap(nrm, vec2(normalScale, normalScale));
   }
   if (ormNode) {
-    const orm = rotatedTriplanar(ormNode, scale, p, normalWorld, u.wallRotCell, rotMix);
+    const orm = stochasticTriplanar(ormNode, scale, p, normalWorld, stoch);
     m.aoNode = orm.r.mul(0.65).add(0.35);
     m.roughnessNode = orm.g.mul(rough).add(0.08);
   }
