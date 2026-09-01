@@ -50,10 +50,28 @@ function launchOptions() {
       // Headed on macOS: headless Chromium has no Metal GPU process (see
       // capture-poi.mjs for the full story) — the sweep must measure the
       // renderer captures actually run on.
-      return process.platform === "darwin" ? { headless: false, args } : { args };
+      //
+      // Headed on Windows too, for the same reason with a different backend:
+      // headless Chromium exposes no D3D12 adapter, requestAdapter() returns
+      // null, three falls back to WebGL2 and the sweep aborts on the backend
+      // assertion. This branch used to return a bare `{ args }` for every
+      // non-darwin platform, which made the sweep unrunnable on Windows.
+      const headed = process.platform === "darwin" || process.platform === "win32";
+      return headed ? { headless: false, args } : { args };
     }
   } catch {
     // fall through
+  }
+  // Windows: fall back to an installed Chrome the same way capture-poi does.
+  if (process.platform === "win32") {
+    const system = [
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+    ].find((p) => existsSync(p));
+    if (system) {
+      process.stderr.write(`playwright chromium missing; using ${system}\n`);
+      return { executablePath: system, headless: false, args };
+    }
   }
   throw new Error("run `npx playwright install chromium` or set PLAYWRIGHT_CHROMIUM");
 }

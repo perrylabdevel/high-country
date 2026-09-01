@@ -16,6 +16,7 @@ import { WORLD, heightAt, bakeHeightfield, grassTexture } from "./world.js";
 import { biomeAt, roadFactor, lakeFactor, creekFactor } from "./map.js";
 import { loadTerrainMaps } from "./materials/loadSet.ts";
 import { bakeSplatMap } from "./materials/splatMap.ts";
+import { getProfile } from "./perfProfile.js";
 import { createTerrainMaterial } from "./materials/terrainMaterial.ts";
 
 const BIOME = {
@@ -137,14 +138,36 @@ export function createSky(scene) {
   sun.castShadow = true;
   // 4096 shadow map: at 2048 the long golden shadows were too soft to read as
   // directional (audit U5 at golden). 4096 doubles the texel density over the
-  // same frustum for a cost the frame budget absorbs.
-  sun.shadow.mapSize.set(4096, 4096);
+  // same frustum for a cost a desktop frame budget absorbs.
+  //
+  // A laptop's does not, so the size now comes from the device tier — and the
+  // FRUSTUM shrinks with it rather than the resolution dropping alone, because
+  // what U5 actually measured is texel density (metres per texel), not the
+  // resolution on its own.
+  //
+  // Scale the box by the SQUARE ROOT of the resolution ratio, not the ratio.
+  // Shrinking it linearly would hold 12.7 cm/texel exactly, but it would take
+  // `low` to a 65 m box — tight enough to cut the shadows off buildings a
+  // street away, which reads as a bug rather than a quality setting. The
+  // square root splits the loss between the two instead:
+  //
+  //   high    4096 over ±260 m = 12.7 cm/texel   16.8 Mpx shadow pass
+  //   medium  2048 over ±184 m = 18.0 cm/texel    4.2 Mpx
+  //   low     1024 over ±130 m = 25.4 cm/texel    1.0 Mpx
+  //
+  // So `low` does give up sharpness as well as range — half the range and
+  // twice the texel footprint — for a sixteenth of the shadow-pass cost. On
+  // the hardware that selects it, that trade is not close.
+  const profile = getProfile();
+  const shadowSize = profile.shadowMapSize;
+  const shadowExtent = 260 * Math.sqrt(shadowSize / 4096);
+  sun.shadow.mapSize.set(shadowSize, shadowSize);
   sun.shadow.camera.near = 10;
   sun.shadow.camera.far = 700;
-  sun.shadow.camera.left = -260;
-  sun.shadow.camera.right = 260;
-  sun.shadow.camera.top = 260;
-  sun.shadow.camera.bottom = -260;
+  sun.shadow.camera.left = -shadowExtent;
+  sun.shadow.camera.right = shadowExtent;
+  sun.shadow.camera.top = shadowExtent;
+  sun.shadow.camera.bottom = -shadowExtent;
   sun.shadow.bias = -0.00025;
   scene.add(sun.target);
   const fill = new THREE.AmbientLight(0x6a7c8c, 0.1);

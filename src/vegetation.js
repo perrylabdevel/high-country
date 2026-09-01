@@ -41,6 +41,7 @@ import { insideStructure } from "./buildings/kit.js";
 import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, smoothstep as ramp } from "./map.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
+import { getProfile } from "./perfProfile.js";
 import { BARK_SET, FOLIAGE_SET } from "./materials/textureManifest.ts";
 
 /**
@@ -100,19 +101,116 @@ function shrubChance(biome) {
 }
 
 /**
- * Ground-cover draw range.
+ * How far the player walks before the disc re-centres, and how much of the
+ * rebuild each frame absorbs. The old 2500-blade chunk measured ~9.6 ms on
+ * its own — most of a 60 fps frame — which is what made walking feel like it
+ * stuttered. Smaller chunks with the cheaper sampler keep each frame's share
+ * well inside budget; the rebuild simply spans a few more frames, and the old
+ * field stays on screen while it does.
+ */
+const REBUILD_STEP = 42;
+const GRASS_CHUNK = 1200;
+
+/**
+ * Ring cell sizes set the instance budget, and they turned out to matter more
+ * to how the ground reads than any material work did. Spend the budget where
+ * the eye is: the near rings are dense enough that grass closes over the dirt
+ * instead of sitting on it as separate clumps, while the outer two stay
+ * coarse, since at those ranges a tuft is a few pixels and grass is the
+ * scene's fill-rate cost — alpha-tested and double-sided, so no early-z and
+ * both faces shade wherever cards overlap.
+ *
+ * This is the `high` shape; applyProfile scales it for the active tier.
+ */
+const RING_SHAPE = [
+  { cell: 0.34, outer: 34 },
+  { cell: 0.7, outer: 82 },
+  { cell: 2.6, outer: 168 },
+  { cell: 5.2, outer: 330 }
+];
+
+/**
+ * Ground-cover draw range, per device tier.
  *
  * Grass used to stop at 210 m and start dissolving at 150, so the middle
- * distance was bare terrain in every direction. The ring scatter below spends
- * its instances by distance instead of uniformly, which buys the extra range
- * back without adding blades.
+ * distance was bare terrain in every direction. The ring scatter spends its
+ * instances by distance instead of uniformly, which buys the extra range back
+ * without adding blades. The values below are the `high` profile — what the
+ * game shipped with. Lower tiers pull the disc in, and because the candidate
+ * count goes as the AREA, halving the radius quarters the work. The fades are
+ * derived from the radius so a shorter disc still dissolves over its own last
+ * stretch instead of ending at a hard rim.
+ *
+ * These are `let`, resolved by applyProfile() rather than at module load, and
+ * that is not a style choice. main.js imports this module at the top of the
+ * file but cannot call setActiveProfile until boot() has probed the GPU
+ * adapter, so anything evaluated at import time reads the DEFAULT profile and
+ * silently ignores the real one. Measured: ?tier=low and ?tier=high produced
+ * identical tuft counts, because both had baked in `high` before the override
+ * existed. Resolving at construction time is what makes the tier reach the
+ * scatter at all.
  */
-const GRASS_RADIUS = 330;
-const GRASS_FADE_IN = 265;
-const GRASS_FADE_OUT = 326;
-const SAGE_RADIUS = 280;
-const SAGE_FADE_IN = 215;
-const SAGE_FADE_OUT = 276;
+let PROFILE = getProfile();
+let GRASS_RADIUS = 330;
+let GRASS_FADE_IN = 265;
+let GRASS_FADE_OUT = 326;
+let SAGE_RADIUS = 280;
+let SAGE_FADE_IN = 215;
+let SAGE_FADE_OUT = 276;
+let RINGS = RING_SHAPE;
+
+/**
+ * Re-resolve every tier-dependent constant. Called at the top of
+ * createVegetation, and by GRASS_SCATTER's accessors so tooling that never
+ * builds a scene still reports the active tier rather than the defaults.
+ *
+ * grassCellScale widens every cell, thinning cover uniformly rather than
+ * lopping off a distance band — a coarser field still reads as a field, where
+ * a truncated one reads as a bald ring. Rings entirely beyond the tier's
+ * radius are dropped and the last surviving one is clipped to it.
+ */
+function applyProfile() {
+  PROFILE = getProfile();
+  GRASS_RADIUS = PROFILE.grassRadius;
+  GRASS_FADE_OUT = GRASS_RADIUS * 0.988;
+  GRASS_FADE_IN = GRASS_RADIUS * 0.803;
+  SAGE_RADIUS = PROFILE.sageRadius;
+  SAGE_FADE_OUT = SAGE_RADIUS * 0.986;
+  SAGE_FADE_IN = SAGE_RADIUS * 0.768;
+  RINGS = RING_SHAPE
+    .filter((r, i) => i === 0 || RING_SHAPE[i - 1].outer < GRASS_RADIUS)
+    .map((r) => ({
+      cell: r.cell * PROFILE.grassCellScale,
+      outer: Math.min(r.outer, GRASS_RADIUS)
+    }));
+  return PROFILE;
+}
+
+/**
+ * View wedge: how much of the disc is scattered, relative to the look
+ * direction. See the long note at the wedge state in createVegetation.
+ *
+ * WEDGE_HALF is deliberately far wider than the camera's 46.9 deg frustum
+ * half-angle, so the wedge's edge stays off screen even mid-rebuild.
+ */
+const WEDGE_HALF = Math.PI / 2;
+const WEDGE_COS = Math.cos(WEDGE_HALF);
+/** Radius inside which cover is planted at every bearing, in metres. */
+const WEDGE_NEAR = 12;
+const WEDGE_NEAR_SQ = WEDGE_NEAR * WEDGE_NEAR;
+/** Heading change that forces a re-scatter, in radians (25 deg). */
+const TURN_STEP = 0.436;
+
+/**
+ * Deterministic hash of a cell index. Must depend only on the absolute cell
+ * coordinates — that is what makes a tuft world-anchored rather than
+ * camera-anchored.
+ */
+function hash2(i, j, salt) {
+  let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(salt, 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
 
 /**
  * How far outside a building footprint vegetation is held back. Grass gets a
@@ -170,6 +268,10 @@ const GRASS_SPECIES = [
 
 /** Fraction of a panel's width the painted clump spans (paintBladePanel). */
 const BLADE_PANEL_W = 0.8;
+
+/** Blade card size in makeGrassTuft, in metres. */
+const GRASS_CARD_H = 0.5;
+const GRASS_CARD_W = 0.56;
 
 /** Chance a candidate cell carries grass at all. This is the density dial. */
 const GRASS_DENSITY = {
@@ -268,6 +370,46 @@ function grassSample(x, z) {
   return base * slopeFactor * (1 - creek * 0.8) * (1 - road) * (1 - lake * 0.5);
 }
 
+/**
+ * The scatter's shape and cost model, as ONE exported object.
+ *
+ * scripts/bench-grass-scatter.mjs used to declare its own copy of RINGS,
+ * GRASS_CHUNK and the density tables under a "keep in step with
+ * src/vegetation.js" comment. They did not stay in step: the bench measured
+ * cells of 0.62/1.05/1.9/3.4 while this file had moved to 0.34/0.7/2.6/5.2,
+ * so the near ring under test was 3.3x SPARSER than the one that ships. The
+ * bench reported 4.97 ms against a 6 ms budget and printed PASS for a scatter
+ * that does not exist, over 55 frames where the real one spans 73.
+ *
+ * A comment cannot hold two copies of a constant together. Exporting the real
+ * ones is the only version of this that cannot drift.
+ */
+export const GRASS_SCATTER = {
+  // Getters, not values: the tier-dependent ones are resolved at construction
+  // time (see applyProfile), so a snapshot taken at module load would report
+  // the default profile forever. applyProfile() is idempotent and cheap.
+  get RINGS() { applyProfile(); return RINGS; },
+  get GRASS_RADIUS() { applyProfile(); return GRASS_RADIUS; },
+  get GRASS_FADE_IN() { applyProfile(); return GRASS_FADE_IN; },
+  get GRASS_FADE_OUT() { applyProfile(); return GRASS_FADE_OUT; },
+  get SAGE_RADIUS() { applyProfile(); return SAGE_RADIUS; },
+  GRASS_CHUNK,
+  REBUILD_STEP,
+  GRASS_DENSITY,
+  GRASSINESS,
+  GRASS_SPECIES,
+  SPECIES_MIX,
+  BLADE_PANEL_W,
+  GRASS_CARD_W,
+  GRASS_CARD_H,
+  WEDGE_HALF,
+  WEDGE_COS,
+  WEDGE_NEAR,
+  WEDGE_NEAR_SQ,
+  TURN_STEP,
+  hash2,
+  grassSample
+};
 
 function asCardMap(tex) {
   tex.wrapS = THREE.ClampToEdgeWrapping;
@@ -901,10 +1043,6 @@ function makePineTrunk(height, baseR, topR) {
   return mergeGeometries([shaft, flare]);
 }
 
-/** Blade card size in makeGrassTuft, in metres. */
-const GRASS_CARD_H = 0.5;
-const GRASS_CARD_W = 0.56;
-
 function makeGrassTuft() {
   // Three planes at 60° — not 90° — so DoubleSide does not draw coplanar pairs.
   const geos = [];
@@ -1016,6 +1154,8 @@ export async function loadVegetationMaps() {
 }
 
 export function createVegetation(scene, maps = {}) {
+  // Resolve the device tier BEFORE anything reads a radius or a ring.
+  applyProfile();
   const barkMap = maps.barkAlbedo || barkTexture();
   const bark = new THREE.MeshStandardNodeMaterial({
     map: barkMap,
@@ -1763,40 +1903,7 @@ export function createVegetation(scene, maps = {}) {
   // coarsen with distance while per-tuft scale grows to match, which keeps the
   // cover visually continuous much further out for far fewer instances.
   // ---------------------------------------------------------------------
-  // How far the player walks before the disc re-centres, and how much of the
-  // rebuild each frame absorbs. The old 2500-blade chunk measured ~9.6 ms on
-  // its own — most of a 60 fps frame — which is what made walking feel like it
-  // stuttered. Smaller chunks with the cheaper sampler keep each frame's share
-  // well inside budget; the rebuild simply spans a few more frames, and the old
-  // field stays on screen while it does.
-  const REBUILD_STEP = 42;
-  const GRASS_CHUNK = 1200;
   const SAGE_CHUNK = 400;
-
-  // Ring cell sizes set the instance budget, and they turned out to matter more
-  // to how the ground reads than any material work did. Spend the budget where
-  // the eye is: the near rings are dense enough that grass closes over the dirt
-  // instead of sitting on it as separate clumps, while the outer two stay
-  // coarse, since at those ranges a tuft is a few pixels and grass is the
-  // scene's fill-rate cost — alpha-tested and double-sided, so no early-z and
-  // both faces shade wherever cards overlap.
-  const RINGS = [
-    { cell: 0.34, outer: 34 },
-    { cell: 0.7, outer: 82 },
-    { cell: 2.6, outer: 168 },
-    { cell: 5.2, outer: GRASS_RADIUS }
-  ];
-
-  /**
-   * Deterministic hash of a cell index. Must depend only on the absolute cell
-   * coordinates — that is what makes a tuft world-anchored rather than
-   * camera-anchored.
-   */
-  function hash2(i, j, salt) {
-    let h = Math.imul(i | 0, 374761393) ^ Math.imul(j | 0, 668265263) ^ Math.imul(salt, 2246822519);
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-  }
 
   /**
    * Flatten every ring's candidate cells into one list of (di, dj, ring) so the
@@ -2031,6 +2138,69 @@ export function createVegetation(scene, maps = {}) {
   let g = 0;
   let shrubs = 0;
 
+  // ---------------------------------------------------------------------
+  // View wedge
+  //
+  // The scatter planted a full 360 m disc while the camera can only ever see
+  // a 93.8 deg slice of it (fov 62 vertical at 16:9). Roughly three quarters
+  // of every rebuild — and, far more expensively, three quarters of the
+  // alpha-tested double-sided fill the grass costs on the GPU — was spent on
+  // ground behind the player's head. Measured with __hideGrass at midday:
+  // hiding the ground cover took the cemetery from 20 to 59 fps and the ranch
+  // from 30 to 60, so this is the scene's dominant cost where it is dense.
+  //
+  // This does NOT reintroduce the camera-relative "swimming grass" the ring
+  // scatter was built to fix. A tuft's position still comes only from its
+  // world cell hash, so it returns to exactly the same spot when you turn
+  // back. All that changes is whether a slot is spent on it this rebuild.
+  //
+  // Three things keep the wedge's edge off screen:
+  //
+  //   WEDGE_HALF is 90 deg, not the frustum's 46.9. A full hemisphere ahead
+  //   still discards ~48% of candidates while leaving 43 deg of slack, so the
+  //   edge sits well outside the view even mid-rebuild.
+  //
+  //   WEDGE_NEAR_SQ exempts everything within 12 m, at any bearing. That is
+  //   the grass at your feet and in the periphery when you look down — the
+  //   place an edge would be most obvious — and a 12 m disc is a small enough
+  //   area that keeping all of it costs little.
+  //
+  //   update() re-scatters on TURN as well as on translation (TURN_STEP), so
+  //   the wedge follows the look direction instead of only the footsteps.
+  // ---------------------------------------------------------------------
+  // Forward direction the current scatter was built for, normalised in XZ.
+  // Defaults to +Z so the very first scatter (before any camera exists) is
+  // well defined; main.js passes the real look direction from frame one.
+  let wedgeFx = 0;
+  let wedgeFz = 1;
+  let lastFx = 0;
+  let lastFz = 1;
+
+  /**
+   * True when a candidate at (x, z) is inside the wedge built for (cx, cz).
+   *
+   * Compares squared against the cosine rather than taking an atan2 per
+   * candidate: the candidate is inside when
+   *   dot(forward, toCandidate) >= |toCandidate| * cos(half).
+   * Squaring both sides removes the square root, and is valid here because
+   * the dot must be positive for any half-angle below 90 deg — which the
+   * `dot > 0` guard enforces before squaring. At exactly 90 deg the cosine is
+   * 0 and this degenerates to that sign test, which is the correct answer.
+   */
+  function inWedge(x, z, cx, cz) {
+    const dx = x - cx;
+    const dz = z - cz;
+    const dSq = dx * dx + dz * dz;
+    if (dSq <= WEDGE_NEAR_SQ) {
+      return true;
+    }
+    const dot = dx * wedgeFx + dz * wedgeFz;
+    if (dot <= 0) {
+      return false;
+    }
+    return dot * dot >= dSq * WEDGE_COS * WEDGE_COS;
+  }
+
   /**
    * Plant candidate `i` around (cx, cz). Returns true when the slot was used.
    *
@@ -2046,6 +2216,13 @@ export function createVegetation(scene, maps = {}) {
     const jz = Math.floor(cz / cell) + CAND.dj[i];
     const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
+    // Bearing first: it is two multiplies against the cell the candidate
+    // already resolved to, and it rejects ~half of them before they can reach
+    // grassSample — which is the expensive call (road, creek, lake, biome and
+    // slope lookups) and used to be the first thing every candidate paid.
+    if (!inWedge(x, z, cx, cz)) {
+      return false;
+    }
     const weight = grassSample(x, z);
     if (weight <= 0) {
       return false;
@@ -2167,6 +2344,11 @@ export function createVegetation(scene, maps = {}) {
     const jz = Math.floor(cz / cell) + SAGE_CAND.dj[i];
     const x = (ix + 0.5 + (hash2(ix, jz, 11) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 12) - 0.5) * 0.9) * cell;
+    // Same wedge as the grass, for the same reason — a sage bush behind the
+    // camera costs a slot and a draw and can never be seen.
+    if (!inWedge(x, z, cx, cz)) {
+      return false;
+    }
     const biome = biomeAt(x, z);
     if (hash2(ix, jz, 13) > shrubChance(biome)) {
       return false;
@@ -2258,12 +2440,25 @@ export function createVegetation(scene, maps = {}) {
     finishScatter(cx, cz, grassSlot, sageSlot);
   }
 
-
   scatterGrass(POS.ranch.x, POS.ranch.z);
 
   const rockMat = new THREE.MeshStandardNodeMaterial({ color: 0x6a6660, roughness: 0.96 });
   const redRock = new THREE.MeshStandardNodeMaterial({ color: 0x8a5a3a, roughness: 0.96 });
   const rocks = new THREE.Group();
+  /**
+   * Scattered boulders, as two instanced draws instead of ninety meshes.
+   *
+   * Each rock used to be its own Mesh carrying its own DodecahedronGeometry,
+   * built at that rock's radius — ninety geometries, ninety draw calls, and
+   * ninety more in the shadow pass, across two materials. The radius is the
+   * only thing that varied, so it moves to the instance scale and every rock
+   * shares one unit dodecahedron: same size, same seed, same placement, two
+   * draws.
+   *
+   * Two passes because the count is not known until the biome filters have
+   * run and InstancedMesh wants its capacity up front.
+   */
+  const rockPlacements = [];
   for (let i = 0; i < 90; i += 1) {
     const x = (seeded(i + 200) - 0.5) * WORLD.width * 0.9;
     const z = (seeded(i + 260) - 0.5) * WORLD.depth * 0.9;
@@ -2277,14 +2472,32 @@ export function createVegetation(scene, maps = {}) {
     if (inClearing(x, z) && biome !== "badlands") {
       continue;
     }
-    const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + seeded(i) * 1.8, 0), biome === "badlands" ? redRock : rockMat);
     const rockRadius = 0.8 + seeded(i) * 1.8;
-    mesh.position.set(x, heightAt(x, z) + 0.2, z);
-    mesh.rotation.set(seeded(i), seeded(i + 1), seeded(i + 2));
+    rockPlacements.push({ i, x, z, rockRadius, red: biome === "badlands" });
+    addCylinderCollider(x, z, rockRadius * 0.55);
+  }
+  // Radius 1: the per-rock radius rides in the instance scale instead, which
+  // is what lets them share a geometry. Detail 0 matches the originals.
+  const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+  for (const [isRed, material] of [[false, rockMat], [true, redRock]]) {
+    const group = rockPlacements.filter((r) => r.red === isRed);
+    if (!group.length) {
+      continue;
+    }
+    const mesh = new THREE.InstancedMesh(rockGeo, material, group.length);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    for (let n = 0; n < group.length; n += 1) {
+      const r = group[n];
+      dummy.position.set(r.x, heightAt(r.x, r.z) + 0.2, r.z);
+      dummy.rotation.set(seeded(r.i), seeded(r.i + 1), seeded(r.i + 2));
+      dummy.scale.setScalar(r.rockRadius);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(n, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
     rocks.add(mesh);
-    addCylinderCollider(x, z, rockRadius * 0.55);
   }
 
   for (const p of pines) {
@@ -2351,7 +2564,7 @@ export function createVegetation(scene, maps = {}) {
    * bucketTrees only re-runs when the camera moves, not when it turns.
    */
   const MID_DIST_SQ = 520 * 520;
-  const TREE_DRAW_DIST = 2600;
+  const TREE_DRAW_DIST = PROFILE.treeDrawDist;
   const TREE_DRAW_DIST_SQ = TREE_DRAW_DIST * TREE_DRAW_DIST;
   const lastLodCenter = new THREE.Vector3(Infinity, 0, Infinity);
 
@@ -2594,8 +2807,24 @@ export function createVegetation(scene, maps = {}) {
     // with the camera. Without it a screenshot taken after a jump across the
     // map shows ground cover still centred on the previous position, which
     // reads as an empty biome rather than as a half-finished rebuild.
-    scatterSettled(cameraPos) {
-      return !scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP;
+    /**
+     * Capture tooling gates its screenshots on this. It must account for the
+     * wedge as well as the centre: after a jump the camera can land within
+     * REBUILD_STEP of the last scatter but facing a new direction, and a frame
+     * shot then would show cover built for the old bearing.
+     */
+    scatterSettled(cameraPos, forward) {
+      if (scatterJob || flatDist(lastCenter, cameraPos) >= REBUILD_STEP) {
+        return false;
+      }
+      if (!forward) {
+        return true;
+      }
+      const len = Math.hypot(forward.x, forward.z);
+      if (len <= 1e-4) {
+        return true;
+      }
+      return (forward.x / len) * lastFx + (forward.z / len) * lastFz >= Math.cos(TURN_STEP);
     },
     /**
      * Measure the ground cover as DRAWN, near the camera.
@@ -2638,16 +2867,43 @@ export function createVegetation(scene, maps = {}) {
         widthOverHeight: { p05: pct(ratio, 0.05), p50: pct(ratio, 0.5), p95: pct(ratio, 0.95), max: pct(ratio, 1) }
       };
     },
-    update(cameraPos) {
+    /**
+     * `forward` is the camera's look direction; only its XZ part is used, and
+     * it may be omitted (the wedge then keeps whatever heading it last had).
+     */
+    update(cameraPos, forward) {
       if (flatDist(lastLodCenter, cameraPos) >= LOD_HYSTERESIS) {
         lastLodCenter.copy(cameraPos);
         bucketTrees(cameraPos);
       }
-      if (!scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
+      // Normalise the look direction in XZ. A camera pointed straight down has
+      // no horizontal component to speak of; keep the previous heading rather
+      // than dividing by ~0 and snapping the wedge to a random bearing.
+      let fx = lastFx;
+      let fz = lastFz;
+      if (forward) {
+        const len = Math.hypot(forward.x, forward.z);
+        if (len > 1e-4) {
+          fx = forward.x / len;
+          fz = forward.z / len;
+        }
+      }
+      // Turn since the scatter on screen was built. dot of two unit vectors is
+      // cos(angle), so this is "turned more than TURN_STEP" without an acos.
+      const turned = fx * lastFx + fz * lastFz < Math.cos(TURN_STEP);
+      if (!scatterJob && !turned && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
         return;
       }
       if (!scatterJob) {
         lastCenter.copy(cameraPos);
+        // Freeze the heading for the WHOLE job. plantBlade reads wedgeFx/Fz on
+        // every candidate, so letting them move mid-rebuild would plant the
+        // early chunks against one bearing and the late chunks against
+        // another — a field with a seam in it that no single view explains.
+        lastFx = fx;
+        lastFz = fz;
+        wedgeFx = fx;
+        wedgeFz = fz;
         scatterJob = { cx: cameraPos.x, cz: cameraPos.z, i: 0, slot: 0, si: 0, sslot: 0 };
       }
       const { cx, cz } = scatterJob;

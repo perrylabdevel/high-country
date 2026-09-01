@@ -38,7 +38,8 @@ import { createStructureLabels } from "./dev/structureLabels.js";
 import { createXray } from "./dev/xray.js";
 import { createKtx2Loader } from "./materials/ktx2.js";
 import { applyHdri, syncEnvironmentIntensity } from "./materials/hdri.ts";
-import { materialSettings } from "./materials/settings.ts";
+import { materialSettings, setQualityTier } from "./materials/settings.ts";
+import { resolveProfile, setActiveProfile, getProfile } from "./perfProfile.js";
 import { syncTerrainUniforms } from "./materials/terrainMaterial.ts";
 import { syncWaterUniforms } from "./materials/waterMaterial.ts";
 import { bootMaterialLab } from "./dev/MaterialLab.ts";
@@ -82,20 +83,56 @@ function showRendererError(err, alreadyWebGL) {
   document.body.appendChild(msg);
 }
 
+/**
+ * Ask for a WebGPU adapter purely to identify the GPU.
+ *
+ * This runs BEFORE the renderer is constructed, because `antialias` is a
+ * construction-time option and the pixel ratio wants setting before the first
+ * frame — so the tier has to be known first. Requesting an adapter is cheap
+ * and does not create a device; three requests its own moments later.
+ *
+ * Any failure returns null, which detectTier reads as "assume weak hardware".
+ */
+async function probeAdapter(forceWebGL) {
+  if (forceWebGL || typeof navigator === "undefined" || !navigator.gpu) {
+    return null;
+  }
+  try {
+    return await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  } catch {
+    return null;
+  }
+}
+
 async function boot() {
-  const forceWebGL = new URLSearchParams(window.location.search).has("webgl");
+  const bootParams = new URLSearchParams(window.location.search);
+  const forceWebGL = bootParams.has("webgl");
+  const profile = setActiveProfile(
+    resolveProfile(await probeAdapter(forceWebGL), bootParams.get("tier"))
+  );
   const renderer = new THREE.WebGPURenderer({
-    antialias: true,
+    antialias: profile.antialias,
     powerPreference: "high-performance",
     forceWebGL
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // The pixel ratio is the highest-leverage dial in the whole renderer: it
+  // multiplies every per-pixel cost, and the ground cover is alpha-tested and
+  // double-sided, so it is pure fill. An M2 Air's Retina panel reports
+  // devicePixelRatio 2, which had it drawing 5.62 Mpx per frame — more than
+  // 1440p on a desktop 4070 Ti.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, profile.pixelRatio));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = profile.shadows;
+  renderer.shadowMap.type = profile.shadowMapSize >= 4096
+    ? THREE.PCFSoftShadowMap
+    // PCFSoft takes many taps per fragment. At 1024/2048 the softness it buys
+    // is lost in the lower resolution anyway, so plain PCF is the better trade.
+    : THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Terrain detail rides the same tier, so one decision drives the whole frame.
+  setQualityTier(profile.terrainTier);
 
   try {
     await renderer.init();
@@ -158,6 +195,14 @@ async function boot() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.12, 7500);
+  // Scratch vector for the camera look direction. Declared with the camera:
+  // the dev hooks below (__vegSettled) read it and can be called from capture
+  // tooling long before the frame loop, so it must be initialised by then.
+  const cameraDirection = new THREE.Vector3();
+  // This frame's interact probe, shared by missions.update and the HUD
+  // prompt. Reset to null each frame on the non-playing branch so a stale
+  // target can never be read.
+  let liveInteract = null;
   input = createInput(renderer.domElement, {
     isBlocked: () => debugBlocksGame(debug.isOpen())
   });
@@ -575,9 +620,22 @@ async function boot() {
       window.__pinClock(on ? CAPTURE_CLOCK : null);
     };
     // True once the amortised ground-cover scatter has caught up with the
-    // camera. Capture tooling waits on this: the scatter takes ~55 frames, so
-    // a screenshot straight after a jump shows the previous location's cover.
-    window.__vegSettled = () => vegetation.scatterSettled(camera.position);
+    // camera. Capture tooling waits on this: the scatter spans ~73 frames on
+    // the high tier, so a screenshot straight after a jump shows the previous
+    // location's cover.
+    /**
+     * The active device profile, and how it was chosen. Capture and benchmark
+     * tooling reads this so a number can be attributed to a tier — comparing
+     * a `low` frame against a `high` one is otherwise silent nonsense.
+     */
+    window.__perfProfile = () => ({ ...getProfile(), pixelRatioActual: renderer.getPixelRatio() });
+    window.__vegSettled = () => {
+      // Pass the heading too: the ground cover is scattered into a wedge
+      // around the look direction, so a camera that has turned since the last
+      // rebuild is not settled even when it has not moved.
+      camera.getWorldDirection(cameraDirection);
+      return vegetation.scatterSettled(camera.position, cameraDirection);
+    };
     window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
     window.__grassSpecies = () => vegetation.grassSpecies;
     // __soloGrass("bluestem") plants that species alone; __soloGrass(null)
@@ -770,6 +828,18 @@ async function boot() {
   statics.name = "statics";
   const ranch = createRanch(buildingMaps);
   statics.add(ranch);
+  // The spinning windmill fans, collected once.
+  //
+  // The frame loop used to traverse the WHOLE ranch subtree every frame
+  // looking for userData.blades, to animate what turns out to be a single
+  // windmill (buildings.js sets it on one mill). The set cannot change after
+  // construction, so walking it per frame was pure overhead.
+  const spinners = [];
+  ranch.traverse((child) => {
+    if (child.userData.blades) {
+      spinners.push(child.userData.blades);
+    }
+  });
   createLandmarks(statics, buildingMaps);
   createInteriors(statics);
   createShore(statics, buildingMaps);
@@ -1338,7 +1408,6 @@ async function boot() {
   updateSunOffset();
 
   const shadowAnchor = new THREE.Vector3();
-  const cameraDirection = new THREE.Vector3();
   function followLight() {
     const captureView = isDev ? window.__captureView : null;
     if (captureView) {
@@ -1367,11 +1436,9 @@ async function boot() {
     timer.update(timestamp);
     const dt = Math.min(0.05, timer.getDelta());
     const elapsed = timer.getElapsed();
-    ranch.traverse((child) => {
-      if (child.userData.blades) {
-        child.userData.blades.rotation.z += dt * 0.6;
-      }
-    });
+    for (let i = 0; i < spinners.length; i += 1) {
+      spinners[i].rotation.z += dt * 0.6;
+    }
     // Drift each puff around where createSmoke placed it. This used to derive
     // the position from the child index instead — y = burnY + 12 + i * 7,
     // z = burn.z + i * 2 — which threw the layout away every frame and strung
@@ -1395,17 +1462,23 @@ async function boot() {
       );
     });
 
+    liveInteract = null;
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
       // Arrival stages complete by proximity the instant you stand in them.
       // The autosave keys off the stage delta, not off the event: an arrival
       // whose next stage carries no entrance event legitimately returns null.
       const stageAtFrameStart = missions.state.stage;
-      const live = nearestInteract();
+      // One interact probe per frame, shared with the HUD prompt below.
+      // nearestInteract walks every NPC with a distanceTo (a sqrt each) and
+      // then queries missions.examineAt; it used to run twice a frame for the
+      // two consumers. Computed here, AFTER player.update has moved the
+      // player, so it reflects this frame's position.
+      liveInteract = nearestInteract();
       const missionEv = missions.update(
         player.object.position.x,
         player.object.position.z,
-        { mode: player.state.mounted ? "horse" : "walk", interact: live ? live.kind : null }
+        { mode: player.state.mounted ? "horse" : "walk", interact: liveInteract ? liveInteract.kind : null }
       );
       if (missionEv && missionEv.toast) {
         showToast(missionEv.toast);
@@ -1462,7 +1535,11 @@ async function boot() {
           ? "First person · WASD · Shift sprint · C third person · E interact · M map · F fly · wheel map zoom"
           : "Third person · WASD · Shift sprint · C first person · E interact · M map · F fly · wheel map zoom";
 
-    const target = nearestInteract();
+    // The probe above only runs on the playing branch. When the game is
+    // paused, in dialogue, or the debug panel is open, the prompt is blank
+    // anyway — so there is nothing to recompute, and a stale probe is never
+    // read. Clearing it keeps that guarantee explicit rather than incidental.
+    const target = liveInteract;
     setPrompt(talking || player.state.mode === "fly" ? "" : (target ? target.label : ""));
 
     const view = isDev ? window.__captureView : null;
@@ -1471,7 +1548,12 @@ async function boot() {
       camera.lookAt(view.tx, view.ty, view.tz);
     }
     followLight();
-    vegetation.update(camera.position);
+    // Re-read the look direction HERE, after the capture-view lookAt above may
+    // have re-aimed the camera. The cameraDirection computed earlier in the
+    // frame for structure labels predates that, and the ground-cover wedge has
+    // to match the camera actually being rendered.
+    camera.getWorldDirection(cameraDirection);
+    vegetation.update(camera.position, cameraDirection);
     renderer.render(scene, planCamera || camera);
     if (stats) {
       stats.update();
@@ -1479,7 +1561,8 @@ async function boot() {
       const m = renderer.info.memory;
       infoEl.textContent =
         `draws ${r.drawCalls} · tris ${(r.triangles / 1e6).toFixed(2)}M · ` +
-        `tex ${m.textures} · mem ${(m.texturesSize / 1024 / 1024).toFixed(0)}MB`;
+        `tex ${m.textures} · mem ${(m.texturesSize / 1024 / 1024).toFixed(0)}MB · ` +
+        `${profile.name}${profile.auto ? "" : "*"} @${renderer.getPixelRatio()}x`;
     }
     requestAnimationFrame(frame);
   }
