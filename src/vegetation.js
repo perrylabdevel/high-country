@@ -187,21 +187,6 @@ function applyProfile() {
 }
 
 /**
- * View wedge: how much of the disc is scattered, relative to the look
- * direction. See the long note at the wedge state in createVegetation.
- *
- * WEDGE_HALF is deliberately far wider than the camera's 46.9 deg frustum
- * half-angle, so the wedge's edge stays off screen even mid-rebuild.
- */
-const WEDGE_HALF = Math.PI / 2;
-const WEDGE_COS = Math.cos(WEDGE_HALF);
-/** Radius inside which cover is planted at every bearing, in metres. */
-const WEDGE_NEAR = 12;
-const WEDGE_NEAR_SQ = WEDGE_NEAR * WEDGE_NEAR;
-/** Heading change that forces a re-scatter, in radians (25 deg). */
-const TURN_STEP = 0.436;
-
-/**
  * Deterministic hash of a cell index. Must depend only on the absolute cell
  * coordinates — that is what makes a tuft world-anchored rather than
  * camera-anchored.
@@ -402,11 +387,6 @@ export const GRASS_SCATTER = {
   BLADE_PANEL_W,
   GRASS_CARD_W,
   GRASS_CARD_H,
-  WEDGE_HALF,
-  WEDGE_COS,
-  WEDGE_NEAR,
-  WEDGE_NEAR_SQ,
-  TURN_STEP,
   hash2,
   grassSample
 };
@@ -786,7 +766,20 @@ const AXIS_Z = new THREE.Vector3(0, 0, 1);
  */
 function makeWindAttrib(geo, cap) {
   const attr = new THREE.InstancedBufferAttribute(new Float32Array(cap * 2), 2);
-  attr.setUsage(THREE.DynamicDrawUsage);
+  // NOT setUsage(DynamicDrawUsage). It reads like the right hint for a buffer
+  // that is rewritten on rescatter, and under WebGL it is — but three's WebGPU
+  // backend treats it as "re-upload unconditionally, every frame, forever":
+  //
+  //   if ( data.version < bufferAttribute.version ||
+  //        bufferAttribute.usage === DynamicDrawUsage ) backend.updateAttribute()
+  //
+  // (Attributes.update, three.webgpu.js). The version check is skipped, so a
+  // parked camera with nothing moving still paid a full queue.writeBuffer of
+  // every aWind and every grass attribute on every frame. Measured at the
+  // northernPines vantage: 22 uploads, 2.6 MB and 44 ms of main-thread time
+  // per frame — the dominant cost in the whole frame, three times the grass
+  // fill it was hiding behind. The dirty contract is needsUpdate, which every
+  // writer here already honours (bucketTrees and finishScatter both set it).
   geo.setAttribute("aWind", attr);
   return attr;
 }
@@ -1998,9 +1991,10 @@ export function createVegetation(scene, maps = {}) {
   // it, so a field leans one way instead of every tuft leaning its own.
   const windRot = new Float32Array(MAX_GRASS * 2);
   const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
-  tintAttrib.setUsage(THREE.DynamicDrawUsage);
-  speciesAttrib.setUsage(THREE.DynamicDrawUsage);
-  windRotAttrib.setUsage(THREE.DynamicDrawUsage);
+  // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib for
+  // why that hint costs a full per-frame re-upload under WebGPU. finishScatter
+  // marks all of them needsUpdate when a rescatter lands, which is the only
+  // moment their contents change.
   grassGeo.setAttribute("aTint", tintAttrib);
   grassGeo.setAttribute("aSpecies", speciesAttrib);
   grassGeo.setAttribute("aWind", windRotAttrib);
@@ -2139,67 +2133,33 @@ export function createVegetation(scene, maps = {}) {
   let shrubs = 0;
 
   // ---------------------------------------------------------------------
-  // View wedge
+  // The disc is planted at every bearing, and that is a deliberate revert.
   //
-  // The scatter planted a full 360 m disc while the camera can only ever see
-  // a 93.8 deg slice of it (fov 62 vertical at 16:9). Roughly three quarters
-  // of every rebuild — and, far more expensively, three quarters of the
-  // alpha-tested double-sided fill the grass costs on the GPU — was spent on
-  // ground behind the player's head. Measured with __hideGrass at midday:
-  // hiding the ground cover took the cemetery from 20 to 59 fps and the ranch
-  // from 30 to 60, so this is the scene's dominant cost where it is dense.
+  // A view wedge used to plant only the forward hemisphere, on the reasoning
+  // that the camera sees 93.8 deg of a 360 deg disc and the rest was wasted
+  // fill. Half of that is arithmetic and half of it is wrong: a tuft behind
+  // the camera is outside the frustum, so the GPU never shades it, and the
+  // wedge's own half-angle was 90 deg — everything it dropped was already
+  // invisible. Rendering the two settled: same vantage, 28,612 tufts wedged
+  // against 55,033 full, frames identical to 0.02% of pixels.
   //
-  // This does NOT reintroduce the camera-relative "swimming grass" the ring
-  // scatter was built to fix. A tuft's position still comes only from its
-  // world cell hash, so it returns to exactly the same spot when you turn
-  // back. All that changes is whether a slot is spent on it this rebuild.
+  // What the wedge did save was per-frame UPLOAD, because at the time every
+  // instance attribute was re-uploaded on every frame (HARD_WON 1.9) at about
+  // 17 ms per megabyte. Halving the instance count halved that bill, which is
+  // why removing the wedge looked like a 50% win on a desktop card. With the
+  // upload fixed, what remains is CPU scatter time: 0.97 ms per chunk wedged
+  // against 2.22 ms full at the worst vantage on the `high` tier, both inside
+  // the 6 ms budget bench-grass-scatter guards.
   //
-  // Three things keep the wedge's edge off screen:
-  //
-  //   WEDGE_HALF is 90 deg, not the frustum's 46.9. A full hemisphere ahead
-  //   still discards ~48% of candidates while leaving 43 deg of slack, so the
-  //   edge sits well outside the view even mid-rebuild.
-  //
-  //   WEDGE_NEAR_SQ exempts everything within 12 m, at any bearing. That is
-  //   the grass at your feet and in the periphery when you look down — the
-  //   place an edge would be most obvious — and a 12 m disc is a small enough
-  //   area that keeping all of it costs little.
-  //
-  //   update() re-scatters on TURN as well as on translation (TURN_STEP), so
-  //   the wedge follows the look direction instead of only the footsteps.
+  // And the wedge cost something the numbers did not show. It had to follow
+  // the look direction, so every 25 deg of turn triggered a full rescatter
+  // spanning ~73 frames. Pan faster than about 35 deg/s — which is any normal
+  // mouse movement — and the camera outruns the rebuild: you turn into ground
+  // the scatter has not reached yet and watch the cover arrive. Planting every
+  // bearing means turning changes nothing at all, so there is nothing to
+  // watch. Rebuilds now happen only when the player MOVES, and a player who
+  // stands and looks around does no scatter work whatever.
   // ---------------------------------------------------------------------
-  // Forward direction the current scatter was built for, normalised in XZ.
-  // Defaults to +Z so the very first scatter (before any camera exists) is
-  // well defined; main.js passes the real look direction from frame one.
-  let wedgeFx = 0;
-  let wedgeFz = 1;
-  let lastFx = 0;
-  let lastFz = 1;
-
-  /**
-   * True when a candidate at (x, z) is inside the wedge built for (cx, cz).
-   *
-   * Compares squared against the cosine rather than taking an atan2 per
-   * candidate: the candidate is inside when
-   *   dot(forward, toCandidate) >= |toCandidate| * cos(half).
-   * Squaring both sides removes the square root, and is valid here because
-   * the dot must be positive for any half-angle below 90 deg — which the
-   * `dot > 0` guard enforces before squaring. At exactly 90 deg the cosine is
-   * 0 and this degenerates to that sign test, which is the correct answer.
-   */
-  function inWedge(x, z, cx, cz) {
-    const dx = x - cx;
-    const dz = z - cz;
-    const dSq = dx * dx + dz * dz;
-    if (dSq <= WEDGE_NEAR_SQ) {
-      return true;
-    }
-    const dot = dx * wedgeFx + dz * wedgeFz;
-    if (dot <= 0) {
-      return false;
-    }
-    return dot * dot >= dSq * WEDGE_COS * WEDGE_COS;
-  }
 
   /**
    * Plant candidate `i` around (cx, cz). Returns true when the slot was used.
@@ -2216,13 +2176,6 @@ export function createVegetation(scene, maps = {}) {
     const jz = Math.floor(cz / cell) + CAND.dj[i];
     const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
-    // Bearing first: it is two multiplies against the cell the candidate
-    // already resolved to, and it rejects ~half of them before they can reach
-    // grassSample — which is the expensive call (road, creek, lake, biome and
-    // slope lookups) and used to be the first thing every candidate paid.
-    if (!inWedge(x, z, cx, cz)) {
-      return false;
-    }
     const weight = grassSample(x, z);
     if (weight <= 0) {
       return false;
@@ -2344,11 +2297,6 @@ export function createVegetation(scene, maps = {}) {
     const jz = Math.floor(cz / cell) + SAGE_CAND.dj[i];
     const x = (ix + 0.5 + (hash2(ix, jz, 11) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 12) - 0.5) * 0.9) * cell;
-    // Same wedge as the grass, for the same reason — a sage bush behind the
-    // camera costs a slot and a draw and can never be seen.
-    if (!inWedge(x, z, cx, cz)) {
-      return false;
-    }
     const biome = biomeAt(x, z);
     if (hash2(ix, jz, 13) > shrubChance(biome)) {
       return false;
@@ -2808,23 +2756,21 @@ export function createVegetation(scene, maps = {}) {
     // map shows ground cover still centred on the previous position, which
     // reads as an empty biome rather than as a half-finished rebuild.
     /**
-     * Capture tooling gates its screenshots on this. It must account for the
-     * wedge as well as the centre: after a jump the camera can land within
-     * REBUILD_STEP of the last scatter but facing a new direction, and a frame
-     * shot then would show cover built for the old bearing.
+     * Where the cover on screen is actually centred, and whether a rebuild is
+     * in flight. `scatterSettled` answers yes/no; this says why — a probe that
+     * finds the centre metres from where it parked the camera is driving a
+     * camera the game is not using.
      */
-    scatterSettled(cameraPos, forward) {
-      if (scatterJob || flatDist(lastCenter, cameraPos) >= REBUILD_STEP) {
-        return false;
-      }
-      if (!forward) {
-        return true;
-      }
-      const len = Math.hypot(forward.x, forward.z);
-      if (len <= 1e-4) {
-        return true;
-      }
-      return (forward.x / len) * lastFx + (forward.z / len) * lastFz >= Math.cos(TURN_STEP);
+    scatterCenter() {
+      return { x: lastCenter.x, z: lastCenter.z, rebuilding: Boolean(scatterJob), planted: grass.count };
+    },
+    /**
+     * Capture tooling gates its screenshots on this. Position only: the disc
+     * is planted at every bearing, so where the camera LOOKS cannot leave the
+     * cover stale — only where it stands can.
+     */
+    scatterSettled(cameraPos) {
+      return !scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP;
     },
     /**
      * Measure the ground cover as DRAWN, near the camera.
@@ -2868,42 +2814,23 @@ export function createVegetation(scene, maps = {}) {
       };
     },
     /**
-     * `forward` is the camera's look direction; only its XZ part is used, and
-     * it may be omitted (the wedge then keeps whatever heading it last had).
+     * One frame's share of the amortised scatter, plus the tree LOD buckets.
+     * Position only — see the note above plantBlade.
      */
-    update(cameraPos, forward) {
+    update(cameraPos) {
       if (flatDist(lastLodCenter, cameraPos) >= LOD_HYSTERESIS) {
         lastLodCenter.copy(cameraPos);
         bucketTrees(cameraPos);
       }
-      // Normalise the look direction in XZ. A camera pointed straight down has
-      // no horizontal component to speak of; keep the previous heading rather
-      // than dividing by ~0 and snapping the wedge to a random bearing.
-      let fx = lastFx;
-      let fz = lastFz;
-      if (forward) {
-        const len = Math.hypot(forward.x, forward.z);
-        if (len > 1e-4) {
-          fx = forward.x / len;
-          fz = forward.z / len;
-        }
-      }
-      // Turn since the scatter on screen was built. dot of two unit vectors is
-      // cos(angle), so this is "turned more than TURN_STEP" without an acos.
-      const turned = fx * lastFx + fz * lastFz < Math.cos(TURN_STEP);
-      if (!scatterJob && !turned && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
+      // Only the camera's POSITION can leave the cover stale. Turning used to
+      // force a rebuild too, back when the scatter only filled the forward
+      // hemisphere; the disc is planted at every bearing now, so a player who
+      // stands still and looks around does no scatter work at all.
+      if (!scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
         return;
       }
       if (!scatterJob) {
         lastCenter.copy(cameraPos);
-        // Freeze the heading for the WHOLE job. plantBlade reads wedgeFx/Fz on
-        // every candidate, so letting them move mid-rebuild would plant the
-        // early chunks against one bearing and the late chunks against
-        // another — a field with a seam in it that no single view explains.
-        lastFx = fx;
-        lastFz = fz;
-        wedgeFx = fx;
-        wedgeFz = fz;
         scatterJob = { cx: cameraPos.x, cz: cameraPos.z, i: 0, slot: 0, si: 0, sslot: 0 };
       }
       const { cx, cz } = scatterJob;

@@ -32,6 +32,18 @@ look exactly as invisible.
 | `__grassAtlasBase(alphaTest)` | Per panel, the lowest row painted at all versus the lowest row surviving the alpha test. The difference times card height is a gap in metres. |
 | `__hideGrass(on)` | Hide the ground cover. Restores the saved count, so calling `(false)` first is safe. |
 
+## Frame cost
+
+| Hook | What it does |
+| --- | --- |
+| `__perfProfile()` | The active device tier and how it was chosen, plus the pixel ratio the renderer actually ended up with. Record it with any perf number: a `low` frame and a `high` frame are not comparable. |
+| `__scene`, `__renderer` | The scene graph and renderer themselves. Hide a subtree (`__scene.children[i].visible = false`) or change a dial and re-time the frame without a rebuild. Ablation answers "is this thing the cost?" — see HARD_WON 1.9 for the case where the answer was no for every subtree. |
+
+`scripts/probe-uploads.mjs` wraps `GPUQueue.writeBuffer` and reports the
+megabytes and milliseconds this frame sends to the GPU, against the list of
+attributes that were actually marked dirty. That gap is where HARD_WON 1.9
+lived: 2.6 MB and 44 ms per frame of uploads that nothing had changed.
+
 ## Ground truth
 
 | Hook | What it does |
@@ -62,7 +74,8 @@ or a designer can verify the guidance against the terrain it will be walked on.
 | --- | --- |
 | `__captureMode(on)` | Hide the HUD and take camera control. |
 | `__captureView` | `{px, py, pz, tx, ty, tz}` — camera and target, applied each frame. |
-| `__vegSettled()` | True when the amortised scatter has caught up with the camera. A screenshot taken before this shows the previous location's ground cover. |
+| `__vegSettled()` | True when the amortised scatter has caught up with the camera. A screenshot taken before this shows the previous location's ground cover. Position only — the disc is planted at every bearing, so turning cannot make it stale (HARD_WON 1.10). |
+| `__vegCenter()` | Where the cover is centred, whether a rebuild is in flight, and the live camera position it is compared against. If the two differ by more than REBUILD_STEP and nothing is rebuilding, the frame loop is not running — which is what an occluded headed window does to rAF on macOS. |
 | `__captureInfo()` | Renderer backend and adapter. Tests a real `GPUDevice`, not a class name — a minified build reports every class as two characters, which is how a WebGL fallback once passed a WebGPU assertion. |
 | `__xray(n)` | See-through pass over every mesh. |
 | `__planView(size, cx, cz)` | Orthographic plan view: a metre is a metre anywhere in frame. |

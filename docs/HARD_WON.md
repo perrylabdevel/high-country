@@ -239,6 +239,112 @@ questions; this shipped on the first.**
 textures. Measuring all seven cost nothing extra and was the only reason this
 was found. When you build an instrument, run it across the whole set.
 
+### 1.9 `DynamicDrawUsage` — the WebGL idiom that re-uploads every buffer, every frame
+
+**Symptom:** on an M2 MacBook Air the game held 15-20 fps at every vegetated
+vantage and a solid 60 at the three that have no ground cover (badlands,
+mission, elPaso). The obvious reading — the M2's fill rate cannot take
+alpha-tested double-sided grass — was wrong, and a whole commit of grass work
+(view wedge, device tiers, density) had already been aimed at it.
+
+**Cause:** three lines in `vegetation.js`:
+
+```js
+attr.setUsage(THREE.DynamicDrawUsage);   // aWind, aTint, aSpecies
+```
+
+Under WebGL that flag is a hint about buffer placement. Under WebGPU it is
+load-bearing in `Attributes.update`:
+
+```js
+if ( data.version < bufferAttribute.version ||
+     bufferAttribute.usage === DynamicDrawUsage ) this.backend.updateAttribute( attribute );
+```
+
+The usage flag short-circuits the version check, so every one of those buffers
+was re-uploaded on **every frame**, whether or not it had changed. There are
+more of them than the three lines suggest: `makeWindAttrib` builds one `aWind`
+per tree LOD mesh, so 22 buffers in total.
+
+**Measured** at northernPines, camera parked, scatter settled: 22
+`queue.writeBuffer` calls, 2.6 MB and **44 ms of main-thread time per frame** —
+90% of all CPU samples. Not one of the attributes had bumped its `.version`.
+
+**Fix:** delete the three `setUsage` calls. The dirty contract is
+`needsUpdate`, which `finishScatter` and `bucketTrees` already set at every
+write site, and three's WebGPU backend allocates every attribute buffer with
+`COPY_DST` regardless of usage, so the uploads still land.
+
+**Result,** interleaved A/B of the two builds on the same machine, vsync
+unlocked, three reps: p95 frame time 306 -> 57 ms at northernPines, 209 -> 31
+at the ranch, 304 -> 29 at lakeMercy, 313 -> 93 at overlook; the share of
+frames over 40 ms fell from ~33% to 3-8%. Captures are pixel-identical
+(mean abs diff 0.00 at northernPines).
+
+**Found by:** wrapping `GPUQueue.writeBuffer` in the page and timing every
+call — `scripts/probe-uploads.mjs`, which exists because of this. Nothing else
+could see it. The scene graph is correct, the scatter is correct, every
+attribute is correct, no check can fail, and hiding the ground cover barely
+moves the frame time because the cost is not in drawing it. A CPU profile
+named it in one run: 90% self-time in `writeBuffer`.
+
+**Two lessons.** The frame's largest cost was not in the frame's contents, so
+ablating scene contents could never find it — when hiding a thing does not
+help, stop tuning that thing. And a vsync-locked sampler hides this shape of
+defect: it quantises every frame to a divisor of 60, so a 44 ms regression
+reads as "30 fps median" and looks like ordinary slowness rather than a stall.
+Measure with `--disable-gpu-vsync` when you want frame *cost*.
+
+**Locked in by:** `scripts/check-instance-attrs.mjs`, which used to *require*
+`DynamicDrawUsage` on these attributes and now forbids it anywhere in `src`.
+
+### 1.10 The view wedge — a fix for the wrong problem, paid for in panning
+
+**Symptom:** turn the camera and the ground cover redraws itself. The near
+field is there, the middle distance is bare terrain, and over the next second
+grass arrives across it.
+
+**Cause:** the scatter planted only the hemisphere the camera faced, on the
+argument that the frustum sees 93.8 deg of a 360 deg disc and the rest was
+wasted fill. Two things were wrong with that.
+
+The wedge saved no fill. Its half-angle was 90 deg while the screen covers
++/-47, so everything it dropped was already behind the camera and already
+clipped. Rendered side by side at the same vantage — 28,612 tufts wedged
+against 55,033 full — the frames differ in 0.02% of pixels, which is wind
+phase. What the wedge actually halved was per-frame UPLOAD volume, because at
+the time every instance attribute was re-uploaded on every frame (1.9) at
+roughly 17 ms per megabyte. That is why removing it looked like a 50% win on a
+desktop card, and why the win did not survive fixing the upload.
+
+And the wedge had to track the look direction, so every 25 deg of turn started
+a full rescatter spanning ~73 frames. A pan at 120 deg/s turns 144 deg inside
+one rebuild. The camera outruns the scatter, and what the player sees is the
+cover being drawn in.
+
+**Fix:** plant every bearing. Turning then changes nothing, so there is nothing
+to rebuild and nothing to watch; rebuilds happen only when the player moves,
+and a player who stands and looks around does no scatter work at all.
+
+**Cost, measured** (bench-grass-scatter, `high` tier, worst of four vantages):
+0.97 -> 2.32 ms per 1200-candidate chunk, against a 6 ms budget. Frame rate at
+the same vantage before and after: 49 and 48 fps, 2.11M and 2.34M triangles.
+
+**Found by:** the complaint, then a screenshot taken the instant a 150 deg pan
+finished — the artefact is invisible in any settled frame, which is every frame
+the audit set takes.
+
+**Locked in by:** `scripts/probe-pan.mjs` (`npm run probe:pan`), which turns a
+full circle and asserts zero rescatters and never-unsettled, then walks 60 m
+and asserts the disc DOES rebuild, so it cannot pass by testing nothing. It
+fails on the wedge build with 3 rescatters per turn.
+
+**The general lesson, and it is the same as 1.9's:** the wedge was a real
+optimisation of a cost that should not have existed. Before optimising a
+workload, check that the workload is real — and when a fix's benefit is
+measured on hardware where a different bug dominates the frame, the benefit
+being attributed to it may belong to the bug.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
