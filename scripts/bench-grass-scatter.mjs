@@ -37,8 +37,6 @@ const {
   BLADE_PANEL_W,
   GRASS_CARD_W,
   GRASS_CARD_H,
-  WEDGE_COS,
-  WEDGE_NEAR_SQ,
   hash2,
   grassSample
 } = GRASS_SCATTER;
@@ -102,29 +100,6 @@ const pos = new Vector3();
 const scl = new Vector3();
 const AXIS_Y = new Vector3(0, 1, 0);
 
-/**
- * The scatter is planted into a wedge around the look direction, so the bench
- * has to carry a heading too or it would time the retired 360-degree disc —
- * the exact drift this file was rewritten to make impossible. Facing +Z is
- * arbitrary but fixed, which is what makes the numbers comparable run to run.
- */
-let wedgeFx = 0;
-let wedgeFz = 1;
-
-function inWedge(x, z, cx, cz) {
-  const dx = x - cx;
-  const dz = z - cz;
-  const dSq = dx * dx + dz * dz;
-  if (dSq <= WEDGE_NEAR_SQ) {
-    return true;
-  }
-  const dot = dx * wedgeFx + dz * wedgeFz;
-  if (dot <= 0) {
-    return false;
-  }
-  return dot * dot >= dSq * WEDGE_COS * WEDGE_COS;
-}
-
 /** plantBlade, minus the attribute writes that only a real InstancedMesh has. */
 function plantBlade(cx, cz, i, slot) {
   const r = CAND.ring[i];
@@ -133,9 +108,6 @@ function plantBlade(cx, cz, i, slot) {
   const jz = Math.floor(cz / cell) + CAND.dj[i];
   const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
   const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
-  if (!inWedge(x, z, cx, cz)) {
-    return false;
-  }
   const weight = grassSample(x, z);
   if (weight <= 0) {
     return false;

@@ -33,6 +33,8 @@
     "check:assets": "tsx scripts/check-assets.mjs",
     "capture": "node scripts/capture-poi.mjs",
     "playtest": "node scripts/probe-play.mjs",
+    "probe:pan": "node scripts/probe-pan.mjs",
+    "probe:uploads": "node scripts/probe-uploads.mjs",
     "grade": "node scripts/grade.mjs",
     "grade:cursor": "node scripts/grade.mjs --prompts",
     "grade:selftest": "node scripts/grade.mjs --selftest",

@@ -629,13 +629,23 @@ async function boot() {
      * a `low` frame against a `high` one is otherwise silent nonsense.
      */
     window.__perfProfile = () => ({ ...getProfile(), pixelRatioActual: renderer.getPixelRatio() });
-    window.__vegSettled = () => {
-      // Pass the heading too: the ground cover is scattered into a wedge
-      // around the look direction, so a camera that has turned since the last
-      // rebuild is not settled even when it has not moved.
-      camera.getWorldDirection(cameraDirection);
-      return vegetation.scatterSettled(camera.position, cameraDirection);
-    };
+    /**
+     * The scene graph and the renderer themselves, for frame-cost attribution:
+     * a probe can hide a subtree, drop the shadow pass, or change the pixel
+     * ratio and re-time the frame without a rebuild. Dev-only, like everything
+     * in this block — a production build never defines them.
+     */
+    window.__scene = scene;
+    window.__renderer = renderer;
+    window.__vegSettled = () => vegetation.scatterSettled(camera.position);
+    // Where the ground cover is centred, plus the live camera position it is
+    // being compared against. The pair is the whole diagnosis when a scatter
+    // looks stuck: if they differ by more than REBUILD_STEP and nothing is
+    // rebuilding, the frame loop is not running.
+    window.__vegCenter = () => ({
+      ...vegetation.scatterCenter(),
+      camera: { x: camera.position.x, z: camera.position.z }
+    });
     window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
     window.__grassSpecies = () => vegetation.grassSpecies;
     // __soloGrass("bluestem") plants that species alone; __soloGrass(null)
@@ -1548,12 +1558,7 @@ async function boot() {
       camera.lookAt(view.tx, view.ty, view.tz);
     }
     followLight();
-    // Re-read the look direction HERE, after the capture-view lookAt above may
-    // have re-aimed the camera. The cameraDirection computed earlier in the
-    // frame for structure labels predates that, and the ground-cover wedge has
-    // to match the camera actually being rendered.
-    camera.getWorldDirection(cameraDirection);
-    vegetation.update(camera.position, cameraDirection);
+    vegetation.update(camera.position);
     renderer.render(scene, planCamera || camera);
     if (stats) {
       stats.update();

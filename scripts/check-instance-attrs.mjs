@@ -32,6 +32,26 @@
  * thing you mark dirty. Per-instance data that changes at runtime must be a
  * real BufferAttribute on the geometry, read back with attribute(), and marked
  * dirty on the attribute.
+ *
+ * And the mirror-image bug, which this file used to REQUIRE. Marking those
+ * attributes `setUsage(THREE.DynamicDrawUsage)` is the WebGL idiom for "this
+ * buffer gets rewritten", and it is harmless there. Under three's WebGPU
+ * backend it is a per-frame tax:
+ *
+ *     if ( data.version < bufferAttribute.version ||
+ *          bufferAttribute.usage === DynamicDrawUsage )
+ *         this.backend.updateAttribute( attribute );   // Attributes.update
+ *
+ * The usage flag short-circuits the version check, so every aWind, aTint and
+ * aSpecies buffer was re-uploaded on every frame whether or not anything had
+ * changed. Measured on an M2 MacBook Air at the northernPines vantage with the
+ * camera parked and settled: 22 queue.writeBuffer calls, 2.6 MB and 44 ms of
+ * main-thread time per frame, 90% of all CPU samples in the frame. Removing
+ * the flag took p95 frame time from 306 ms to 57 ms there, and from 209 to 31
+ * at the ranch, with the dirty flags alone keeping the data current.
+ *
+ * So both halves are asserted below: the data must be a real attribute that is
+ * marked dirty when it changes, and it must NOT be marked DynamicDrawUsage.
  */
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -108,14 +128,37 @@ assert(
     `render while every other per-instance value keeps changing.\n  ` +
     offenders.join("\n  ") +
     `\n\nHold the data in a real THREE.InstancedBufferAttribute on the ` +
-    `geometry (setUsage(THREE.DynamicDrawUsage), geometry.setAttribute(name, ` +
-    `attrib)), read it in the shader with attribute(name, type), and set ` +
-    `needsUpdate on the attribute rather than on the node.`
+    `geometry (geometry.setAttribute(name, attrib)), read it in the shader ` +
+    `with attribute(name, type), and set needsUpdate on the attribute rather ` +
+    `than on the node. Do NOT reach for setUsage(THREE.DynamicDrawUsage) — ` +
+    `see below for what that costs under WebGPU.`
+);
+
+// Nowhere in the renderer, not just on the three attributes named below. The
+// tree and sage wind frames are built by a shared helper (makeWindAttrib), so
+// the per-name loop cannot see them, and they were 19 of the 22 per-frame
+// uploads. One flag anywhere in src is the whole cost back.
+const dynamicUsage = [];
+for (const file of files) {
+  const src = await readFile(file, "utf8");
+  src.split("\n").forEach((line, i) => {
+    if (/setUsage\(\s*THREE\.DynamicDrawUsage\s*\)/.test(line)) {
+      dynamicUsage.push(`${file}:${i + 1}`);
+    }
+  });
+}
+assert(
+  dynamicUsage.length === 0,
+  `setUsage(THREE.DynamicDrawUsage) under WebGPU means "re-upload this whole ` +
+    `buffer every frame, forever" — Attributes.update skips its version check ` +
+    `for it. Mark the attribute needsUpdate where it is written instead.\n  ` +
+    dynamicUsage.join("\n  ")
 );
 
 // The ground cover is where this bit, and its per-instance data changes on
 // every rescatter. Assert the whole path end to end so the wiring cannot be
-// half-undone: real attribute, dynamic usage, and marked dirty when rewritten.
+// half-undone: real attribute, no per-frame usage flag, and marked dirty when
+// rewritten.
 const veg = await readFile("src/vegetation.js", "utf8");
 const wired = [];
 for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"], ["aWind", "windRot"]]) {
@@ -130,10 +173,18 @@ for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"], ["aW
       `see the header of this file for what that looked like on screen.`
   );
   const name = varMatch[1];
+  // The inverse of what this used to assert, and the reason is measured. See
+  // the second half of this file's header: under WebGPU, DynamicDrawUsage
+  // means "re-upload every frame regardless of version", not "expect writes".
   assert(
-    new RegExp(`${name}\\.setUsage\\(THREE\\.DynamicDrawUsage\\)`).test(veg),
-    `src/vegetation.js: ${name} (${array}) is rewritten every rescatter but is ` +
-      `not marked DynamicDrawUsage. Add ${name}.setUsage(THREE.DynamicDrawUsage).`
+    !new RegExp(`${name}\\.setUsage\\(THREE\\.DynamicDrawUsage\\)`).test(veg),
+    `src/vegetation.js: ${name} (${array}) is marked DynamicDrawUsage. Under ` +
+      `three's WebGPU backend that skips the version check in ` +
+      `Attributes.update and re-uploads the whole buffer on EVERY frame, ` +
+      `parked camera or not — measured at northernPines on an M2 Air as 22 ` +
+      `uploads, 2.6 MB and 44 ms of queue.writeBuffer per frame, which was ` +
+      `the largest single cost in the frame. needsUpdate is the dirty ` +
+      `contract; the assertion below checks it is set.`
   );
   assert(
     new RegExp(`setAttribute\\(\\s*"${attr}"\\s*,\\s*${name}\\s*\\)`).test(veg),
@@ -186,6 +237,7 @@ for (const array of ["treeWind", "cottonWind"]) {
 
 console.log(JSON.stringify({
   filesScanned: files.length,
+  dynamicDrawUsageSites: dynamicUsage.length,
   tslNodeBindings: nodeBindings,
   nodesMarkedDirty: offenders.length,
   perInstanceAttributes: wired
