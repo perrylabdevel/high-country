@@ -93,7 +93,7 @@ export function createIndustry(scene, maps = {}) {
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
     : mat(0x6b4226);
   const roofMat = maps?.roof
-    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35, rotate: false })
+    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
     : mat(0x4a3020);
   const smokeMat = new THREE.MeshBasicNodeMaterial({
     color: 0x9a9a9a,
