@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "mode": "close",
+  "backend": "webgpu",
+  "adapter": "webgpu-no-adapter-info",
+  "antialias": true,
+  "build": "production",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "poiCount": 1,
+  "lightCount": 2,
+  "expectedFiles": [
+    "ranch-midday.png",
+    "ranch-golden.png"
+  ],
+  "files": [
+    "ranch-midday.png",
+    "ranch-golden.png"
+  ],
+  "vantages": [
+    {
+      "id": "ranch",
+      "dist": 22,
+      "height": 2.2,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": 1,
+        "z": -1
+      }
+    },
+    {
+      "id": "silverCreek",
+      "dist": 18,
+      "height": 2.2,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": -43,
+        "z": 4
+      }
+    },
+    {
+      "id": "lakeMercy",
+      "dist": 10,
+      "height": 1.8,
+      "heading": 180,
+      "aim": 1.8,
+      "targetOffset": {
+        "x": -20,
+        "z": -84
+      }
+    },
+    {
+      "id": "northernPines",
+      "dist": 10,
+      "height": 1.7,
+      "heading": 120,
+      "aim": 2
+    },
+    {
+      "id": "timberCamp",
+      "dist": 12,
+      "height": 1.8,
+      "heading": 145,
+      "aim": 1.8
+    },
+    {
+      "id": "burn",
+      "dist": 14,
+      "height": 1.8,
+      "heading": 130,
+      "aim": 2
+    },
+    {
+      "id": "westernRange",
+      "dist": 14,
+      "height": 2,
+      "heading": 100,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 34,
+        "z": -28
+      }
+    },
+    {
+      "id": "ironValley",
+      "dist": 22,
+      "height": 2.4,
+      "heading": 160,
+      "aim": 2.5
+    },
+    {
+      "id": "tribal",
+      "dist": 12,
+      "height": 1.8,
+      "heading": 140,
+      "aim": 2
+    },
+    {
+      "id": "badlands",
+      "dist": 14,
+      "height": 1.8,
+      "heading": 110,
+      "aim": 2
+    },
+    {
+      "id": "mission",
+      "dist": 26,
+      "height": 3.2,
+      "heading": 170,
+      "aim": 2.5
+    },
+    {
+      "id": "fortGrant",
+      "dist": 24,
+      "height": 4.5,
+      "heading": 180,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 0,
+        "z": -12
+      }
+    },
+    {
+      "id": "cemetery",
+      "dist": 8,
+      "height": 1.7,
+      "heading": 150,
+      "aim": 1.5
+    },
+    {
+      "id": "huntingCabin",
+      "dist": 10,
+      "height": 1.7,
+      "heading": 145,
+      "aim": 1.8
+    },
+    {
+      "id": "overlook",
+      "dist": 12,
+      "height": 2,
+      "heading": 45,
+      "aim": 1.5
+    },
+    {
+      "id": "elPaso",
+      "dist": 20,
+      "height": 2.6,
+      "heading": 165,
+      "aim": 2.2
+    }
+  ],
+  "generated": "2026-09-01T19:03:00.786Z"
+}

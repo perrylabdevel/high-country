@@ -11,12 +11,14 @@ export function createMaterialPanel(options: {
   onSun?: () => void;
   onFog?: () => void;
   onTerrain?: () => void;
+  onWalls?: () => void;
   onQuality?: () => void;
   onWater?: () => void;
 } = {}) {
   const gui = new GUI({ title: "Materials", closeFolders: true });
-  const folders: { env?: GUI; clouds?: GUI; terrain?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
+  const folders: { env?: GUI; clouds?: GUI; terrain?: GUI; walls?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
   const onTerrain = options.onTerrain || (() => {});
+  const onWalls = options.onWalls || onTerrain;
   const onQuality = options.onQuality || onTerrain;
   const onWater = options.onWater || (() => {});
 
@@ -62,6 +64,16 @@ export function createMaterialPanel(options: {
   folders.terrain.add(materialSettings, "twoScaleMix", 0, 1, 0.01).onChange(onTerrain);
   folders.terrain.add(materialSettings, "albedoGain", 0.5, 2, 0.01).onChange(onTerrain);
   folders.terrain.add(materialSettings, "detailDistance", 10, 200, 1).onChange(onTerrain);
+
+  // Building-surface decorrelation (texturedMat.ts): anti-repetition dials for
+  // the triplanar wall materials. syncWallUniforms on change.
+  folders.walls = gui.addFolder("Walls");
+  folders.walls.add(materialSettings, "wallWarpAmp", 0, 1, 0.01).name("warp amplitude").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallWarpPeriod", 2, 30, 0.5).name("warp period").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallWarpNear", 0, 60, 1).name("warp near").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallWarpFar", 5, 150, 1).name("warp far").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallMacroPeriod", 4, 120, 1).name("macro period").onChange(onWalls);
+  folders.walls.add(materialSettings, "wallMacroStrength", 0, 0.5, 0.01).name("macro strength").onChange(onWalls);
 
   folders.roads = gui.addFolder("Roads");
   folders.roads.add(materialSettings, "roadNoiseScale", 0.05, 1.2, 0.01).name("edge noise freq").onChange(onTerrain);

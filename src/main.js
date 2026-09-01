@@ -41,6 +41,7 @@ import { applyHdri, syncEnvironmentIntensity } from "./materials/hdri.ts";
 import { materialSettings, setQualityTier } from "./materials/settings.ts";
 import { resolveProfile, setActiveProfile, getProfile } from "./perfProfile.js";
 import { syncTerrainUniforms } from "./materials/terrainMaterial.ts";
+import { syncWallUniforms } from "./materials/texturedMat.ts";
 import { syncWaterUniforms } from "./materials/waterMaterial.ts";
 import { bootMaterialLab } from "./dev/MaterialLab.ts";
 import { createMaterialPanel } from "./dev/panel.ts";
@@ -199,6 +200,14 @@ async function boot() {
   // the dev hooks below (__vegSettled) read it and can be called from capture
   // tooling long before the frame loop, so it must be initialised by then.
   const cameraDirection = new THREE.Vector3();
+  // Sun-direction scratch vector for updateSunOffset (panel elevation/azimuth
+  // so the world can be reviewed at midday and at golden hour, not just the
+  // one baked angle). Declared with the camera like cameraDirection above:
+  // the dev hooks that call it (__syncMaterialSettings) can be invoked from
+  // capture tooling during the long texture-load awaits further down, which
+  // previously put the call inside sunOffset's temporal dead zone.
+  const SUN_DIST = 290;
+  const sunOffset = new THREE.Vector3();
   // This frame's interact probe, shared by missions.update and the HUD
   // prompt. Reset to null each frame on the non-playing branch so a stale
   // target can never be read.
@@ -225,6 +234,9 @@ async function boot() {
     },
     onTerrain() {
       syncTerrainUniforms();
+    },
+    onWalls() {
+      syncWallUniforms();
     },
     onWater() {
       syncWaterUniforms();
@@ -335,51 +347,6 @@ async function boot() {
      * the pin's foot sits at the blade's base. A gap of bare pin under a blade
      * is the artefact, measurable against the 12 cm pin.
      */
-    /**
-     * A magenta pin at each tuft's own footing.
-     *
-     * The grid version of this cannot settle the question it was built for.
-     * At eye level, a ground line ten metres out sits HIGHER in the frame
-     * than one two metres out, so comparing a blade's base against whichever
-     * line happens to be near it in screen space measures perspective, not a
-     * gap - which is exactly the mistake that produced a confident "blades
-     * hang 5 cm" reading off the grid frame. A pin planted at the tuft's own
-     * (x, z) shares its depth, so the comparison is real: the pin's foot is
-     * the ground under that tuft, its head is 12 cm above it, and the card's
-     * own bottom edge is marked so burial is visible too.
-     */
-    let grassPins = null;
-    window.__grassPins = (on, radius = 12) => {
-      if (grassPins) {
-        scene.remove(grassPins);
-        grassPins.geometry.dispose();
-        grassPins.material.dispose();
-        grassPins = null;
-      }
-      if (!on) {
-        return;
-      }
-      const pts = [];
-      for (const [x, cardBottomY, z] of vegetation.grassPositions(camera.position, radius)) {
-        const g = meshHeightAt(x, z);
-        // Ground to 12 cm: the ruler.
-        pts.push(x, g, z, x, g + 0.12, z);
-        // A 4 cm cross-bar at the ground line, so the foot is findable when
-        // blades cover the pin.
-        pts.push(x - 0.02, g, z, x + 0.02, g, z);
-        // And a bar at the card's own bottom edge: below the ground line means
-        // the card is buried, above it means it is not.
-        pts.push(x - 0.02, cardBottomY, z, x + 0.02, cardBottomY, z);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-      grassPins = new THREE.LineSegments(
-        geo,
-        new THREE.LineBasicNodeMaterial({ color: 0xff00ff, fog: false })
-      );
-      grassPins.frustumCulled = false;
-      scene.add(grassPins);
-    };
     let groundLines = null;
     window.__groundLines = (on, span = 14, step = 0.5) => {
       if (groundLines) {
@@ -560,6 +527,7 @@ async function boot() {
         scene.fog.density = materialSettings.fogDensity;
       }
       syncTerrainUniforms();
+      syncWallUniforms();
       syncWaterUniforms();
     };
     // Park the camera at an explicit pose and hide the HUD and player body, so
@@ -637,6 +605,169 @@ async function boot() {
      */
     window.__scene = scene;
     window.__renderer = renderer;
+    // Report the backend from something minification cannot rewrite.
+    //
+    // This used to read /webgl/i.test(renderer.backend.constructor.name). A
+    // production build mangles class names to two-character identifiers, so
+    // that test was false for every build the capture tooling ever looked at
+    // and the function answered "webgpu" unconditionally — including in
+    // headless Chrome, where requestAdapter() returns null and the renderer is
+    // physically running WebGL2. The assertion meant to stop WebGL frames from
+    // being graded as a WebGPU pass was instead vouching for them. The
+    // WebGPUBackend owns a GPUDevice; the WebGL one does not, and no amount of
+    // renaming changes that.
+    window.__captureInfo = () => {
+      const backend = renderer.backend || {};
+      // WebGLBackend holds a WebGL2RenderingContext, WebGPUBackend a GPUDevice.
+      // Neither means the renderer has not finished init; say so rather than
+      // guessing, so the caller's assertion fails instead of passing blind.
+      const isWebGL = backend.gl != null;
+      const isWebGPU = !isWebGL && backend.device != null;
+      return {
+        backend: isWebGL ? "webgl" : isWebGPU ? "webgpu" : "uninitialised",
+        adapter: backend.adapter?.info?.description
+          || [backend.adapter?.info?.vendor, backend.adapter?.info?.architecture].filter(Boolean).join(" ")
+          || (isWebGPU ? "webgpu-no-adapter-info" : "unknown"),
+        antialias: true,
+        build: import.meta.env.MODE
+      };
+    };
+  }
+  let stats = null;
+  let infoEl = null;
+  let structureLabels = null;
+  let planCamera = null;
+  if (isDev) {
+    stats = new Stats();
+    stats.showPanel(0);
+    document.body.appendChild(stats.dom);
+    infoEl = document.createElement("div");
+    infoEl.style.cssText = "position:fixed;left:80px;top:0;color:#7ef;font:11px/1.4 monospace;text-shadow:0 1px 2px #000;pointer-events:none;z-index:10";
+    document.body.appendChild(infoEl);
+    structureLabels = createStructureLabels();
+  }
+  const terrainMesh = await createTerrain();
+  scene.add(terrainMesh);
+  // depthSource: "buffer" (viewportDepthTexture) fails WebGPU bind-group
+  // validation under antialias: true — the renderer's MSAA depth attachment
+  // doesn't match the single-sample texture three.js allocates for it, so
+  // the lake reads no usable depth and renders flat black. "lake" reuses the
+  // basin's authored aDepth falloff instead, sidestepping the buffer read.
+  createWater(scene, {
+    lakeDepthSource: "lake",
+    screenRefraction: !forceWebGL,
+    fallback: forceWebGL
+  });
+  await createRoads(scene);
+  // Building-surface maps (adobe / wood / roof) must be ready before the
+  // statics are built; the builders fall back to flat colours without them.
+  const buildingMaps = await loadBuildingMaps();
+  // Every structure builder takes a parent and calls .add() on it, so collect
+  // them under one group and collapse that to one mesh per material. The town,
+  // ranch and outposts are ~670 meshes sharing 16 materials, and 659 of them
+  // cast shadows, so they were drawn twice: roughly 1330 of the frame's ~1490
+  // draw calls, for about 0.01M triangles. See buildings/mergeStatic.js — the
+  // authored meshes are kept and hidden, not discarded, because colliders,
+  // anchors, interiors and the look-at overlay all read them.
+  const statics = new THREE.Group();
+  statics.name = "statics";
+  const ranch = createRanch(buildingMaps);
+  statics.add(ranch);
+  // The spinning windmill fans, collected once.
+  //
+  // The frame loop used to traverse the WHOLE ranch subtree every frame
+  // looking for userData.blades, to animate what turns out to be a single
+  // windmill (buildings.js sets it on one mill). The set cannot change after
+  // construction, so walking it per frame was pure overhead.
+  const spinners = [];
+  ranch.traverse((child) => {
+    if (child.userData.blades) {
+      spinners.push(child.userData.blades);
+    }
+  });
+  createLandmarks(statics, buildingMaps);
+  createInteriors(statics);
+  createShore(statics, buildingMaps);
+  createIndustry(statics, buildingMaps);
+  createFort(statics, buildingMaps);
+  createPines(statics);
+  createHomestead(statics, buildingMaps);
+  scene.add(statics);
+  if (!window.__skipStaticMerge) {
+    scene.add(mergeStatic(statics, "statics-merged"));
+  }
+  const vegMaps = await loadVegetationMaps();
+  const vegetation = createVegetation(scene, vegMaps);
+  const smoke = createSmoke(scene);
+  player = createPlayer(camera);
+  scene.add(player.object);
+  horse = createHorse();
+  scene.add(horse.object);
+
+  // The nav graph prices every edge against the real world, so it builds
+  // once the colliders exist (check-approaches dry-builds in this same
+  // order; a graph built before createIndustry would price all its collider
+  // passes vacuous and route riders through mill sheds). Sub-50 ms measured,
+  // done once here so the first target line already has a route.
+  resetNavGraph();
+  navGraph();
+  linkApproaches(approachLinkRows());
+
+  if (isDev) {
+    // Built after the world so it can see every mesh. Also driveable from a
+    // capture script: window.__xray(2) for the see-through pass.
+    // Vegetation debug hooks live here rather than in the first dev block above
+    // because they close over `vegetation`, which does not exist until the
+    // texture-load awaits finish. Assigned early they were callable (the capture
+    // pipeline polls __vegSettled) while `vegetation` was still in its temporal
+    // dead zone, throwing ReferenceError on cold loads.
+
+    /**
+     * A magenta pin at each tuft's own footing.
+     *
+     * The grid version of this cannot settle the question it was built for.
+     * At eye level, a ground line ten metres out sits HIGHER in the frame
+     * than one two metres out, so comparing a blade's base against whichever
+     * line happens to be near it in screen space measures perspective, not a
+     * gap - which is exactly the mistake that produced a confident "blades
+     * hang 5 cm" reading off the grid frame. A pin planted at the tuft's own
+     * (x, z) shares its depth, so the comparison is real: the pin's foot is
+     * the ground under that tuft, its head is 12 cm above it, and the card's
+     * own bottom edge is marked so burial is visible too.
+     */
+    let grassPins = null;
+    window.__grassPins = (on, radius = 12) => {
+      if (grassPins) {
+        scene.remove(grassPins);
+        grassPins.geometry.dispose();
+        grassPins.material.dispose();
+        grassPins = null;
+      }
+      if (!on) {
+        return;
+      }
+      const pts = [];
+      for (const [x, cardBottomY, z] of vegetation.grassPositions(camera.position, radius)) {
+        const g = meshHeightAt(x, z);
+        // Ground to 12 cm: the ruler.
+        pts.push(x, g, z, x, g + 0.12, z);
+        // A 4 cm cross-bar at the ground line, so the foot is findable when
+        // blades cover the pin.
+        pts.push(x - 0.02, g, z, x + 0.02, g, z);
+        // And a bar at the card's own bottom edge: below the ground line means
+        // the card is buried, above it means it is not.
+        pts.push(x - 0.02, cardBottomY, z, x + 0.02, cardBottomY, z);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      grassPins = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicNodeMaterial({ color: 0xff00ff, fog: false })
+      );
+      grassPins.frustumCulled = false;
+      scene.add(grassPins);
+    };
+
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
     // Where the ground cover is centred, plus the live camera position it is
     // being compared against. The pair is the whole diagnosis when a scatter
@@ -770,117 +901,7 @@ async function boot() {
         };
       });
     };
-    // Report the backend from something minification cannot rewrite.
-    //
-    // This used to read /webgl/i.test(renderer.backend.constructor.name). A
-    // production build mangles class names to two-character identifiers, so
-    // that test was false for every build the capture tooling ever looked at
-    // and the function answered "webgpu" unconditionally — including in
-    // headless Chrome, where requestAdapter() returns null and the renderer is
-    // physically running WebGL2. The assertion meant to stop WebGL frames from
-    // being graded as a WebGPU pass was instead vouching for them. The
-    // WebGPUBackend owns a GPUDevice; the WebGL one does not, and no amount of
-    // renaming changes that.
-    window.__captureInfo = () => {
-      const backend = renderer.backend || {};
-      // WebGLBackend holds a WebGL2RenderingContext, WebGPUBackend a GPUDevice.
-      // Neither means the renderer has not finished init; say so rather than
-      // guessing, so the caller's assertion fails instead of passing blind.
-      const isWebGL = backend.gl != null;
-      const isWebGPU = !isWebGL && backend.device != null;
-      return {
-        backend: isWebGL ? "webgl" : isWebGPU ? "webgpu" : "uninitialised",
-        adapter: backend.adapter?.info?.description
-          || [backend.adapter?.info?.vendor, backend.adapter?.info?.architecture].filter(Boolean).join(" ")
-          || (isWebGPU ? "webgpu-no-adapter-info" : "unknown"),
-        antialias: true,
-        build: import.meta.env.MODE
-      };
-    };
-  }
-  let stats = null;
-  let infoEl = null;
-  let structureLabels = null;
-  let planCamera = null;
-  if (isDev) {
-    stats = new Stats();
-    stats.showPanel(0);
-    document.body.appendChild(stats.dom);
-    infoEl = document.createElement("div");
-    infoEl.style.cssText = "position:fixed;left:80px;top:0;color:#7ef;font:11px/1.4 monospace;text-shadow:0 1px 2px #000;pointer-events:none;z-index:10";
-    document.body.appendChild(infoEl);
-    structureLabels = createStructureLabels();
-  }
-  const terrainMesh = await createTerrain();
-  scene.add(terrainMesh);
-  // depthSource: "buffer" (viewportDepthTexture) fails WebGPU bind-group
-  // validation under antialias: true — the renderer's MSAA depth attachment
-  // doesn't match the single-sample texture three.js allocates for it, so
-  // the lake reads no usable depth and renders flat black. "lake" reuses the
-  // basin's authored aDepth falloff instead, sidestepping the buffer read.
-  createWater(scene, {
-    lakeDepthSource: "lake",
-    screenRefraction: !forceWebGL,
-    fallback: forceWebGL
-  });
-  await createRoads(scene);
-  // Building-surface maps (adobe / wood / roof) must be ready before the
-  // statics are built; the builders fall back to flat colours without them.
-  const buildingMaps = await loadBuildingMaps();
-  // Every structure builder takes a parent and calls .add() on it, so collect
-  // them under one group and collapse that to one mesh per material. The town,
-  // ranch and outposts are ~670 meshes sharing 16 materials, and 659 of them
-  // cast shadows, so they were drawn twice: roughly 1330 of the frame's ~1490
-  // draw calls, for about 0.01M triangles. See buildings/mergeStatic.js — the
-  // authored meshes are kept and hidden, not discarded, because colliders,
-  // anchors, interiors and the look-at overlay all read them.
-  const statics = new THREE.Group();
-  statics.name = "statics";
-  const ranch = createRanch(buildingMaps);
-  statics.add(ranch);
-  // The spinning windmill fans, collected once.
-  //
-  // The frame loop used to traverse the WHOLE ranch subtree every frame
-  // looking for userData.blades, to animate what turns out to be a single
-  // windmill (buildings.js sets it on one mill). The set cannot change after
-  // construction, so walking it per frame was pure overhead.
-  const spinners = [];
-  ranch.traverse((child) => {
-    if (child.userData.blades) {
-      spinners.push(child.userData.blades);
-    }
-  });
-  createLandmarks(statics, buildingMaps);
-  createInteriors(statics);
-  createShore(statics, buildingMaps);
-  createIndustry(statics, buildingMaps);
-  createFort(statics, buildingMaps);
-  createPines(statics);
-  createHomestead(statics, buildingMaps);
-  scene.add(statics);
-  if (!window.__skipStaticMerge) {
-    scene.add(mergeStatic(statics, "statics-merged"));
-  }
-  const vegMaps = await loadVegetationMaps();
-  const vegetation = createVegetation(scene, vegMaps);
-  const smoke = createSmoke(scene);
-  player = createPlayer(camera);
-  scene.add(player.object);
-  horse = createHorse();
-  scene.add(horse.object);
 
-  // The nav graph prices every edge against the real world, so it builds
-  // once the colliders exist (check-approaches dry-builds in this same
-  // order; a graph built before createIndustry would price all its collider
-  // passes vacuous and route riders through mill sheds). Sub-50 ms measured,
-  // done once here so the first target line already has a route.
-  resetNavGraph();
-  navGraph();
-  linkApproaches(approachLinkRows());
-
-  if (isDev) {
-    // Built after the world so it can see every mesh. Also driveable from a
-    // capture script: window.__xray(2) for the see-through pass.
     const xray = createXray(scene);
     window.__xray = (n) => xray.setMode(n);
 
@@ -1387,8 +1408,6 @@ async function boot() {
 
   // Sun direction comes from the panel's elevation/azimuth so the world can be
   // reviewed at midday and at golden hour, not just the one baked angle.
-  const SUN_DIST = 290;
-  const sunOffset = new THREE.Vector3();
   function updateSunOffset() {
     const elev = materialSettings.sunElevation * (Math.PI / 180);
     const azim = materialSettings.sunAzimuth * (Math.PI / 180);
