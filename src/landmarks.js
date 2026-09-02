@@ -31,7 +31,8 @@ import {
   cylOnPlane,
   coneOnGround,
   coneOnPlane,
-  post
+  post,
+  lowestSeat
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
@@ -701,8 +702,18 @@ export function createLandmarks(scene, maps = {}) {
   const hfH = 16;
   const hfLean = 0.22;
   const legInset = (y) => 5 - Math.sin(hfLean) * y;
+  // The tower straddles a slope: terrain under the west leg runs 1.1 m below
+  // and the east leg 0.75 m above the valley-centre sample, so seating every
+  // member on ivY floated the west leg's base clear of the ground. Seat the
+  // whole frame at the lowest ground any of it stands on instead — the uphill
+  // leg buries, like any structure on a slope.
+  const hfY = Math.min(
+    lowestSeat(ivX - 5, ivZ - 6, 0.64),
+    lowestSeat(ivX + 5, ivZ - 6, 0.64),
+    heightAt(ivX, ivZ - 6)
+  );
   for (const sgn of [-1, 1]) {
-    const leg = boxOnPlane(group, ivX + sgn * 5, ivY, ivZ - 6, 0.9, hfH, 0.9, iron, true);
+    const leg = boxOnPlane(group, ivX + sgn * 5, hfY, ivZ - 6, 0.9, hfH, 0.9, iron, true);
     leg.rotation.z = sgn * hfLean;
   }
   for (const y of [4, 8, 12]) {
@@ -713,12 +724,15 @@ export function createLandmarks(scene, maps = {}) {
     // legs — a fixed-width bar poked out past the leaning legs or, lower
     // down, missed them entirely.
     const half = legInset(y) + 0.25;
-    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, half * 2, 0.4, 0.4, rust, false);
+    boxOnPlane(group, ivX, hfY + y - 0.2, ivZ - 6, half * 2, 0.4, 0.4, rust, false);
   }
-  boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, legInset(hfH) * 2 + 2.2, 0.7, 0.7, iron, false);
-  const sheave = cylOnPlane(group, ivX, ivY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
+  boxOnPlane(group, ivX, hfY + hfH - 0.35, ivZ - 6, legInset(hfH) * 2 + 2.2, 0.7, 0.7, iron, false);
+  const sheave = cylOnPlane(group, ivX, hfY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
   sheave.children[0].rotation.x = Math.PI / 2;
-  boxOnGround(group, ivX, ivZ - 6, 3.5, 4, 3.5, dark, false);
+  // Shaft collar: 3 m tall so the lowest brace (bottom at hfY + 3.6) passes
+  // over it instead of through it — at 4 m the brace buried itself in the
+  // block once the frame was seated at the slope's low side.
+  boxOnGround(group, ivX, ivZ - 6, 3.5, 3, 3.5, dark, false);
   // Half-extents match the 3.5 x 3.5 base; the previous 2 x 2 drew an
   // invisible 0.25 m collar of solid air around the visual block.
   addBoxCollider(ivX, ivZ - 6, 1.75, 1.75);
