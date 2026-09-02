@@ -897,6 +897,16 @@ export function createLandmarks(scene, maps = {}) {
   }
   const hcRoof = gableRoof({ w: hcW + 0.4, d: hcD, pitch: 0.62, overhang: 0.5, eave: hcH, material: roof });
   mate(hcRoof, "base", anchorsOf(hcSt).get("wallTop"));
+  // Eave soffit — a horizontal lid at the eave plane spanning the full roof
+  // plan (walls + overhang). The slopes spring from the eave edge half a metre
+  // OUTSIDE the wall and 0.3 m above the wall top at the wall plane, so the
+  // overhang is open underneath and every oblique outside view looks straight
+  // up into the roof's inner surface. The soffit closes it: outside, the eave
+  // reads as a board in the wall material, and the gable-end triangles meet
+  // its top edge (both bottom out at exactly the eave plane). Sized to the
+  // roof plan the kit computes: (w + 0.4) + overhang*2, d + overhang*2.
+  const hcSoffit = block({ w: hcW + 1.4, h: 0.06, d: hcD + 1.0, material: dark });
+  mate(hcSoffit, "base", anchorsOf(hcSt).get("footing"), { offset: { y: hcH - 0.06 } });
   // Floor and a loft ceiling at the standing plane, per the habitable checks.
   const hcFloor = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "floor", extra: { top: 0.08 } });
   mate(hcFloor, "base", anchorsOf(hcSt).get("footing"));
