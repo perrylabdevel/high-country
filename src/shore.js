@@ -3,6 +3,7 @@ import { POS, WATER, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from ".
 import { heightAt } from "./world.js";
 import { addBoxCollider, addCylinderCollider } from "./collision.js";
 import { boxOnPlane, coneOnPlane, registerWaterPlacement } from "./buildings/kit.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 const BEACH_ANGLES = [0.12, 0.82, 1.68, 2.48, 3.32, 5.92];
 const BEACH_RIMS = [1.0, 0.99, 1.02, 1.0, 1.03, 0.98];
@@ -55,11 +56,28 @@ function nearDock(angle) {
   return d < 0.45;
 }
 
-export function createShore(scene) {
+export function createShore(scene, maps = {}) {
   const group = new THREE.Group();
   const cx = POS.lakeMercy.x;
   const cz = POS.lakeMercy.z;
   const dummy = new THREE.Object3D();
+
+  // The signature already received buildingMaps (main.js passes them) but the
+  // body never read them, so the island cabin and its rocks sat flat next to
+  // textured buildings. Only surfaces with a matching set go textured — sand
+  // and reeds have no set and stay flat colours.
+  const hasMaps = Boolean(maps?.wood && maps?.siding && maps?.rock);
+  const rockMat = hasMaps
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : new THREE.MeshStandardNodeMaterial({ color: 0x6a645c, roughness: 0.92 });
+  // The derelict island hut: dark siding like the hunting cabin's body, and
+  // the real roof set on its cone — not `wood`, which is the floor texture.
+  const cabinMat = hasMaps
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
+    : new THREE.MeshStandardNodeMaterial({ color: 0x3a2a1c, roughness: 0.9 });
+  const hutRoofMat = hasMaps
+    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
+    : cabinMat;
 
   const sandA = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[0], roughness: 0.95 });
   const sandB = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[1], roughness: 0.95 });
@@ -127,7 +145,6 @@ export function createShore(scene) {
   island.receiveShadow = true;
   group.add(island);
 
-  const rockMat = new THREE.MeshStandardNodeMaterial({ color: 0x6a645c, roughness: 0.92 });
   const islandRocks = [
     { dx: -4.2, dz: 3.1, r: 1.35, kind: "dodec" },
     { dx: 3.8, dz: -2.4, r: 1.05, kind: "dodec" },
@@ -154,12 +171,12 @@ export function createShore(scene) {
     addCylinderCollider(x, z, Math.max(rock.r * 0.62, 0.5));
   }
 
-  const cabinMat = new THREE.MeshStandardNodeMaterial({ color: 0x3a2a1c, roughness: 0.9 });
   boxOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.8, 1.6, 1.6, cabinMat, false);
   addBoxCollider(islandX + 0.6, islandZ - 0.4, 0.9, 0.8);
   registerWaterPlacement("islandCabin", islandX + 0.6, islandZ - 0.4, WATER + 0.18);
 
-  const roof = coneOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.45, 0.9, cabinMat, false, 1.85 - 0.45, undefined, 4);
+  const roof = coneOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.45, 0.9, hutRoofMat, false, 1.85 - 0.45, undefined, 4);
+  roof.rotation.y = Math.PI / 4;
   roof.rotation.y = Math.PI / 4;
 
   const reedGeo = new THREE.BoxGeometry(0.07, 1.35, 0.07);

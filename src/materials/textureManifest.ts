@@ -130,11 +130,17 @@ export const TEXTURE_SETS = {
   }
 } as const satisfies Record<string, TextureSet>;
 
-/** Pine bark (Poly Haven pine_bark, CC0). Not a terrain blend layer. */
+/**
+ * Pine bark (Poly Haven pine_bark, CC0). Not a terrain blend layer.
+ *
+ * No ORM on purpose: one was packed and shipped for a long time, but nothing
+ * ever loaded it — the trunk materials use uniform roughness — so the bundle
+ * purge dropped it. pack-textures skips the bark ORM; add it back only
+ * together with a consumer.
+ */
 export const BARK_SET = {
   albedo: "/textures/bark_2k_albedo.ktx2",
-  normal: "/textures/bark_2k_normal.ktx2",
-  orm: "/textures/bark_2k_orm.ktx2"
+  normal: "/textures/bark_2k_normal.ktx2"
 } as const;
 
 export const HDRI_PATHS = {

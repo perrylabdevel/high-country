@@ -40,6 +40,8 @@ const { createLandmarks, STREETS } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
+const { createFort } = await import("../src/fort.js");
+const { createHomestead } = await import("../src/homestead.js");
 const { unmatedRequired, worldAnchor, anchorsOf } = await import("../src/buildings/anchors.js");
 const { WATER } = await import("../src/map.js");
 
@@ -239,11 +241,20 @@ clearColliders();
 clearStructures();
 const sceneAdds = [];
 const scene = { add(o) { sceneAdds.push(o); } };
-createRanch();
-createLandmarks(scene);
-createInteriors(scene);
-createShore(scene);
-createIndustry(scene);
+// Stub maps: an unloaded Texture per channel, so the builders take their
+// makeTexturedMat path and every material is tagged with its set name in
+// userData — which the wood-vs-wall invariant below reads. Nothing renders
+// here, so the empty maps never compile.
+const stubMaps = Object.fromEntries(
+  ["adobe", "wood", "siding", "roof", "rock"].map((n) => [n, { name: n, albedo: new THREE.Texture(), normal: null, orm: null }])
+);
+createRanch(stubMaps);
+createLandmarks(scene, stubMaps);
+createInteriors(scene, stubMaps);
+createShore(scene, stubMaps);
+createIndustry(scene, stubMaps);
+createFort(scene, stubMaps);
+createHomestead(scene, stubMaps);
 
 const EXPECTED_STRUCTURE_COUNTS = {
   ranchHouse: 1,
@@ -629,6 +640,32 @@ for (const st of STREETS) {
     `street ${st.id} at (${st.origin.x.toFixed(0)},${st.origin.z.toFixed(0)}) built ${st.built} of ${st.configured} lots — dropped: ${st.dropped.join(", ")}`
   );
 }
+
+// 15. Walls and building bodies never wear the `wood` set. It is a FLOOR
+// texture — short planks with staggered butt joints — and on a wall it puts
+// three superimposed regular patterns on the facade (plank rows, butt joints,
+// tile repeat) that no sampling trick can remove; the exterior walls needed a
+// whole new set (`siding`) to escape it. The fort barracks survived that split
+// precisely because it is a body box, not a wallX call — so this is keyed on
+// geometry, not on how the surface was authored: any box tall and long enough
+// to be a wall plane fails if its material carries the wood set. Thin planks
+// (lintels, fence rails) and posts stay legal; floors and decks are horizontal.
+const woodOnWalls = [];
+for (const root of [...STRUCTURES, ...sceneAdds]) {
+  walk(root, (node) => {
+    if (!node.isMesh || node.geometry?.type !== "BoxGeometry" || node.material?.userData?.set !== "wood") {
+      return;
+    }
+    const p = node.geometry.parameters;
+    if (p.height >= 2.2 && Math.max(p.width, p.depth) >= 1.2) {
+      woodOnWalls.push(`${label(node)} (${p.width}x${p.height}x${p.depth})`);
+    }
+  });
+}
+check(
+  woodOnWalls.length === 0,
+  "the `wood` set (a floor texture) clads a wall-scale box — walls and building bodies take `siding`: " + woodOnWalls.join(", ")
+);
 
 if (failures.length) {
   throw new Error("Building geometry invariants failed:\n  - " + failures.join("\n  - "));

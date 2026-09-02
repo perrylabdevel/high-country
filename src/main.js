@@ -686,7 +686,7 @@ async function boot() {
     }
   });
   createLandmarks(statics, buildingMaps);
-  createInteriors(statics);
+  createInteriors(statics, buildingMaps);
   createShore(statics, buildingMaps);
   createIndustry(statics, buildingMaps);
   createFort(statics, buildingMaps);

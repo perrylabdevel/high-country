@@ -12,6 +12,7 @@ import { addOrientedBoxCollider } from "./collision.js";
 import { ENTERABLE_LOTS } from "./landmarks.js";
 import { tag, wallX, block } from "./buildings/kit.js";
 import { face, mate, anchorsOf } from "./buildings/anchors.js";
+import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -200,8 +201,8 @@ const PROPS = {
   church: addChurchProps
 };
 
-function buildLot(lot, wood, dark, stone) {
-  const wallMat = lot.stone ? stone : lot.dark ? dark : wood;
+function buildLot(lot, wallLight, wallDark, stone, wood, dark) {
+  const wallMat = lot.stone ? stone : lot.dark ? wallDark : wallLight;
   lot.group.userData.x = lot.x;
   lot.group.userData.z = lot.z;
   lot.group.userData.yaw = lot.yaw;
@@ -212,17 +213,39 @@ function buildLot(lot, wood, dark, stone) {
   }
 }
 
-export function createInteriors(scene) {
+/**
+ * Interiors were flat colours while their own exteriors went textured (the
+ * loader never reached this file), so walking through a door crossed a
+ * material cliff. The params mirror buildings.js exactly — floors and
+ * furniture are `wood` (the floor texture, which is right for them), walls
+ * are `siding` like the ranch's interior partitions, stone lots are `rock`.
+ */
+export function createInteriors(scene, maps = {}) {
   if (!ENTERABLE_LOTS.length) {
     return null;
   }
   const group = new THREE.Group();
   group.name = "interiors";
-  const wood = mat(0xc4a574);
-  const dark = mat(0x6b4226);
-  const stone = mat(0x8a8478);
+  const hasMaps = Boolean(maps?.wood && maps?.siding && maps?.rock);
+  // Interior wall lining: light lots match the facade tint, dark lots the
+  // partitions' tint.
+  const wallLight = hasMaps
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xd8c4a4, gain: 1.15 })
+    : mat(0xc4a574);
+  const wallDark = hasMaps
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
+    : mat(0x6b4226);
+  const stone = hasMaps
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : mat(0x8a8478);
+  const wood = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
+    : mat(0xc4a574);
+  const dark = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : mat(0x6b4226);
   for (const lot of ENTERABLE_LOTS) {
-    buildLot(lot, wood, dark, stone);
+    buildLot(lot, wallLight, wallDark, stone, wood, dark);
   }
   scene.add(group);
   return group;

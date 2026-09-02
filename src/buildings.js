@@ -348,7 +348,7 @@ export function createRanch(maps = {}) {
     length: BW,
     height: BEAVE,
     thickness: T,
-    material: darkWood,
+    material: darkSiding,
             openings: [{ x: 0, w: 3.5, h: 4.0, fromFloor: 0, class: "barn" }]
   });
   mate(barnSouth, "wallSide", face(barn, "front"));
@@ -356,7 +356,7 @@ export function createRanch(maps = {}) {
     length: BD,
     height: BEAVE,
     thickness: T,
-    material: darkWood,
+    material: darkSiding,
     openings: [{ x: 0, w: 3.0, h: 3.5, fromFloor: 0, class: "barn" }]
   });
   mate(barnEast, "wallSide", face(barn, "right"));
@@ -370,10 +370,12 @@ export function createRanch(maps = {}) {
   // drawn shut on an opening the colliders leave open reads as a wall a
   // player must phase through — the visual/physics mismatch the aperture
   // check names, on the wide-passage class this time.
-  const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: Math.PI / 2, material: wood });
+  // The big barn leaves are door-sized walls — vertical cladding, so they
+  // take darkSiding like the wall they hang in, not the floor texture.
+  const barnDoor = doorLeaf({ width: 3.5, height: 4.0, thickness: 0.18, hinge: -1.75, swing: Math.PI / 2, material: darkSiding });
   barnDoor.userData.class = "barn";
   mate(barnDoor, "frame", anchorsOf(barnSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
-  const barnEastDoor = doorLeaf({ width: 3.0, height: 3.5, thickness: 0.18, hinge: -1.5, swing: Math.PI / 2, material: wood });
+  const barnEastDoor = doorLeaf({ width: 3.0, height: 3.5, thickness: 0.18, hinge: -1.5, swing: Math.PI / 2, material: darkSiding });
   barnEastDoor.userData.class = "barn";
   mate(barnEastDoor, "frame", anchorsOf(barnEast).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
@@ -404,7 +406,7 @@ export function createRanch(maps = {}) {
     length: BKW,
     height: BKEAVE,
     thickness: T,
-    material: wood,
+    material: siding,
     openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }]
   });
   mate(bunkSouth, "wallSide", face(bunk, "front"));
@@ -452,7 +454,7 @@ export function createRanch(maps = {}) {
     length: SW,
     height: SEAVE,
     thickness: T,
-    material: darkWood,
+    material: darkSiding,
     openings: [{ x: 0, w: 2.4, h: 2.6, fromFloor: 0, class: "bay" }]
   });
   mate(smithSouth, "wallSide", face(smith, "front"));
@@ -468,7 +470,7 @@ export function createRanch(maps = {}) {
   // passage, so its leaf hangs open — a shut leaf would present the bay as
   // sealed while the body walks straight through it.
   const smithBay = doorLeaf({
-    width: 2.4, height: 2.6, thickness: 0.18, hinge: -1.2, swing: Math.PI / 2, material: darkWood
+    width: 2.4, height: 2.6, thickness: 0.18, hinge: -1.2, swing: Math.PI / 2, material: darkSiding
   });
   smithBay.userData.class = "bay";
   mate(smithBay, "frame", anchorsOf(smithSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
