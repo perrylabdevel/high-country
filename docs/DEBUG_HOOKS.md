@@ -80,6 +80,7 @@ or a designer can verify the guidance against the terrain it will be walked on.
 | `__xray(n)` | See-through pass over every mesh. |
 | `__planView(size, cx, cz)` | Orthographic plan view: a metre is a metre anywhere in frame. |
 | `__POS` | Named world positions, keyed as in `src/map.js`. |
+| `__minimapBase` | The minimap's painted terrain sheet (parchment, biome wash, hillshade, contours, graticule) as a canvas. A harness can read pixels back to verify contrast — the whole map is hand-drawn at boot, so "the map looks flat" is checkable numerically before blaming the crop. |
 
 ## From a capture run
 

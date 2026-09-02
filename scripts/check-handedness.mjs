@@ -37,10 +37,14 @@ function sideInView(px, pz, yaw, target) {
 /**
  * > 0 when the target sits right of the needle on the chart. Chart space is y-down,
  * the needle points along (sin yaw, -cos yaw), so its right is (cos yaw, sin yaw).
+ * Measured from the needle's own display position — the view window clamps to the
+ * sheet's edges when the player rides near one, so the needle is not always at the
+ * display centre.
  */
 function sideOfNeedle(px, pz, yaw, target) {
   const p = displayPoint(target.x, target.z, px, pz);
-  return (p.x - 200) * Math.cos(yaw) + (p.y - 200) * Math.sin(yaw);
+  const c = displayPoint(px, pz, px, pz);
+  return (p.x - c.x) * Math.cos(yaw) + (p.y - c.y) * Math.sin(yaw);
 }
 
 // The renderer's basis is not negotiable, so pin it down first.
