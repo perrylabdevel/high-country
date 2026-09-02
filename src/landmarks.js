@@ -908,7 +908,10 @@ export function createLandmarks(scene, maps = {}) {
   const hcSoffit = block({ w: hcW + 1.4, h: 0.06, d: hcD + 1.0, material: dark });
   mate(hcSoffit, "base", anchorsOf(hcSt).get("footing"), { offset: { y: hcH - 0.06 } });
   // Floor and a loft ceiling at the standing plane, per the habitable checks.
-  const hcFloor = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "floor", extra: { top: 0.08 } });
+  // Floor spans the full footprint — an inset floor leaves a strip of
+  // exposed terrain between its edge and the wall's inner face (walls centre
+  // on the footprint edges, so their inner faces sit at w/2 − T/2).
+  const hcFloor = block({ w: hcW, h: 0.08, d: hcD, material: floorWood, role: "floor", extra: { top: 0.08 } });
   mate(hcFloor, "base", anchorsOf(hcSt).get("footing"));
   const hcCeiling = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "ceiling", extra: { height: 2.7 } });
   mate(hcCeiling, "base", anchorsOf(hcSt).get("footing"), { offset: { y: 2.62 } });

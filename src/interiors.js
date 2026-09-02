@@ -45,8 +45,9 @@ function addShell(lot, wallMat, floorMat) {
   const { w, h, d, group } = lot;
   const t = WALL_THICK;
 
-  // Floor at the structure's footing (y=0 in local frame).
-  const floor = box(group, 0, 0, 0, w - t * 2, 0.08, d - t * 2, floorMat);
+  // Floor at the structure's footing (y=0 in local frame), spanning the full
+  // footprint — the walls ride on top of it, so its edge never shows.
+  const floor = box(group, 0, 0, 0, w, 0.08, d, floorMat);
   tag(floor, "floor", { top: 0.08 });
   const ceilH = Math.min(2.7, h - 0.35);
   const ceiling = box(group, 0, ceilH - 0.08, 0, w - t * 2, 0.08, d - t * 2, floorMat);

@@ -1,0 +1,8 @@
+{
+  "what": "floors must span the entire structure footprint — no strip of terrain between the floor edge and the wall's inner face",
+  "audit": "one-off scene-graph audit (scripts/_floor-audit.mjs, deleted): every role:\"floor\" block measured against its structure's userData.w/d via BoxGeometry parameters. Before: ranchHouse/ranchEll/bunkhouse were 0.5 short (0.25 m gap per side), huntingCabin 0.44 short (0.22 m per side). After: all FULL.",
+  "bunkhouse-before.png": "bunkhouse interior before the fix — the floor stops short of the walls (terrain strip along the wall base)",
+  "bunkhouse-after.png": "same vantage after — floorboards run wall-to-wall",
+  "note": "town-lot floors (interiors.js addShell) already met their walls exactly because addShell insets its walls half a thickness from the footprint; they were extended to the full footprint anyway so the rule is uniform and the new check-buildings invariant covers them",
+  "check": "check-buildings gained a floor-spans-footprint invariant (invariant 8)"
+}
