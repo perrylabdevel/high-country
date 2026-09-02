@@ -92,6 +92,11 @@ export function createIndustry(scene, maps = {}) {
   const dark = maps?.wood
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
     : mat(0x6b4226);
+  // The stamp mill's shed is a building body, so it takes `siding` — the same
+  // darkSiding read as the barn and smithy. `dark` is the floor texture.
+  const darkSiding = maps?.siding
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
+    : mat(0x6b4226);
   const roofMat = maps?.roof
     ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
     : mat(0x4a3020);
@@ -157,7 +162,7 @@ export function createIndustry(scene, maps = {}) {
   const millShedX = mill.x - 2;
   const millShedZ = mill.z - 6;
   const shedY = heightAt(millShedX, millShedZ);
-  boxAt(group, millShedX, millShedZ, 12, 4.2, 8, dark);
+  boxAt(group, millShedX, millShedZ, 12, 4.2, 8, darkSiding);
   const millRoof = gableRoof({ w: 12, d: 8, pitch: 0.45, overhang: 0.4, eave: 4.2, material: roofMat });
   millRoof.position.set(millShedX, shedY, millShedZ);
   group.add(millRoof);

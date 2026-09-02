@@ -34,12 +34,20 @@ function brokenWagon(group, x, z, wood, rust) {
 
 export function createFort(scene, maps = {}) {
   const group = new THREE.Group();
-  const hasMaps = Boolean(maps?.wood && maps?.rock);
+  const hasMaps = Boolean(maps?.wood && maps?.siding && maps?.rock);
   const wood = hasMaps
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
     : mat(0xc4a574);
   const dark = hasMaps
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
+    : mat(0x6b4226);
+  // The barracks is a building body, so it takes `siding` like every other
+  // exterior wall — `wood` is the floor texture (short planks, butt joints)
+  // and a 5x10 m facade tiled with it shows the same triple pattern the ranch
+  // walls showed before the siding split. Same params as the barn/smithy
+  // darkSiding in buildings.js: an outbuilding read, not a showpiece facade.
+  const darkSiding = hasMaps
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
     : mat(0x6b4226);
   const stone = hasMaps
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
@@ -53,7 +61,7 @@ export function createFort(scene, maps = {}) {
   const flagX = fort.x - 2;
   const flagZ = fort.z + 6;
 
-  boxAt(group, barracksX, barracksZ, 5, 3.2, 10, wood);
+  boxAt(group, barracksX, barracksZ, 5, 3.2, 10, darkSiding);
   boxAt(group, barracksX, barracksZ, 5.5, 0.28, 10.5, dark, false, 3.2);
 
   cylAt(group, flagX, flagZ, 0.1, 0.12, 9, dark, true, 0.25);

@@ -234,6 +234,12 @@ export function makeTexturedMat(
   } = {}
 ): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ color: 0xffffff, roughness: rough, metalness: 0.02 });
+  // Carries the set's name so the headless checks can tell which texture a
+  // surface was built from (check-buildings asserts walls never take `wood`).
+  // Stubs without a name (old callers, lab previews) just skip the tag.
+  if (set.name) {
+    m.userData.set = set.name;
+  }
   const scale = float(1).div(tiling);
   // triplanarTexture expects TextureNodes, not raw THREE.Textures — passing
   // the raw texture sampled as black on every face.

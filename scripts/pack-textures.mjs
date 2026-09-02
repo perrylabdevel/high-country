@@ -153,7 +153,9 @@ async function packSet(name) {
   // loading. The .jpg/.png remain as the source-of-truth fallback.
   await encodeKtx2(join(destRoot, `${name}_2k_albedo.jpg`), join(destRoot, `${name}_2k_albedo.ktx2`));
   await encodeKtx2(join(destRoot, `${name}_2k_normal.jpg`), join(destRoot, `${name}_2k_normal.ktx2`));
-  await encodeKtx2(ormPath, join(destRoot, `${name}_2k_orm.ktx2`));
+  if (!noOrm.has(name)) {
+    await encodeKtx2(ormPath, join(destRoot, `${name}_2k_orm.ktx2`));
+  }
 }
 
 function copyHdris() {
@@ -178,7 +180,17 @@ const sets = existsSync(srcRoot)
   ? readdirSync(srcRoot, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
   : [];
 
-const skip = new Set(["leaf"]);
+// `leaf` is baked into the foliage atlas by scripts/bake-foliage.mjs instead.
+// `siding04` and `siding09` are the REJECTED siding candidates
+// (textureManifest.ts records the measurements): 09's knots read as stains and
+// 04 still has butt joints plus a normal map pack-textures refuses. They were
+// packed alongside the winner and shipped in the bundle unreferenced until the
+// bundle purge removed them — keep them out of a re-pack.
+const skip = new Set(["leaf", "siding04", "siding09"]);
+// `bark`'s ORM was declared in BARK_SET but nothing ever loaded it — bark
+// renders with uniform roughness. Not packing it cut 5.4 MB from the bundle;
+// add it back only together with a consumer.
+const noOrm = new Set(["bark"]);
 // PACK_ONLY=gravel[,rock] repacks a subset. A full re-pack rewrites every
 // KTX2, which churns the bundle hash for sets that did not change; when one
 // source is corrected, pack only that one so the diff stays legible.
@@ -195,24 +207,8 @@ if (sets.length === 0) {
   }
 }
 
-async function packLeafAtlas() {
-  const diff = join(srcRoot, "leaf/diff.png");
-  if (!existsSync(diff)) {
-    console.warn("skip leaf atlas (missing assets-src/textures/leaf/diff.png)");
-    return;
-  }
-  mkdirSync(destRoot, { recursive: true });
-  const out = join(destRoot, "pine_twig_2k.png");
-  // pine_tree_01's twig map is a packed atlas (cones, bark, several sprigs).
-  // Crop the top-left sprig and rotate so the stem runs along +X, matching
-  // makePineCanopy's card long axis.
-  await sharp(diff)
-    .extract({ left: 0, top: 0, width: 512, height: 768 })
-    .rotate(90)
-    .png()
-    .toFile(out);
-  console.log(`packed leaf atlas → ${out}`);
-}
+// packLeafAtlas (the pine_twig_2k.png crop of assets-src leaf/diff.png) is
+// gone: nothing in src/ ever referenced the file after the pine canopies moved
+// to the baked foliage atlases, and it rode in every bundle unreferenced.
 
-await packLeafAtlas();
 copyHdris();

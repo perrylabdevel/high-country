@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-af0c33dc954e.tar.gz",
-  "bundle": "textures-af0c33dc954e.tar.gz",
-  "contentHash": "af0c33dc954ec3f1fda702de43c9a994c5db8c59309068f039eb3fac99eee2ad",
-  "bundleSha256": "19e42dc76f8848e8015eaa69f414d561d2331dee1295cd5a766b7271443785e1",
-  "bundleBytes": 183712178,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-5bb672a92863.tar.gz",
+  "bundle": "textures-5bb672a92863.tar.gz",
+  "contentHash": "5bb672a92863d572a1d694a97932210fb0797d901d344c3f27ffc0ad8bae24e7",
+  "bundleSha256": "72dbca43639aad33ef8bea0c4b349e50bb6903f933db8dc9aa47b80ea8abf1c2",
+  "bundleBytes": 167470556,
   "target": "public/textures",
   "files": [
     {
@@ -31,11 +31,6 @@
       "path": "bark_2k_normal.ktx2",
       "bytes": 5453334,
       "sha256": "aaa7f48d46799ccae0f9ec3d02488af2966f4ca8f53bc661d0fea5aaafd8b11a"
-    },
-    {
-      "path": "bark_2k_orm.ktx2",
-      "bytes": 5426380,
-      "sha256": "d4432784867a15555dddffb1d0046317aead63bdcca0ecc79c31ea8b54bb5b4c"
     },
     {
       "path": "dirt_2k_albedo.ktx2",
@@ -103,11 +98,6 @@
       "sha256": "e2451c23c3e2ed5b5ee57a6f7a0bc4abcd5e61bc0dad035509194b3118465147"
     },
     {
-      "path": "pine_twig_2k.png",
-      "bytes": 323124,
-      "sha256": "ed58515267e3a638535c9efd052219b22d28b5edb6e58885f18b055a4c493c96"
-    },
-    {
       "path": "rock_2k_albedo.ktx2",
       "bytes": 12582639,
       "sha256": "5ab300dc179429be1efda37254657f07686e93ff2f8f47351695d0e94b4b4b7d"
@@ -138,16 +128,6 @@
       "sha256": "127d46933f1555e3cf3549d67c027ba6f39b11958fefc0a71d4c0dc1f8e7cfe2"
     },
     {
-      "path": "scripts/_texdump.mjs",
-      "bytes": 1615,
-      "sha256": "d4b89780817b60eaba92ff821ae60ea8b6cdbdaba293e2c84fb44890f8045733"
-    },
-    {
-      "path": "siding04_2k_albedo.jpg",
-      "bytes": 853000,
-      "sha256": "65242fb830e4b97b3bccb42091dcea1d486df1927543a50092ff59a4870bd4d3"
-    },
-    {
       "path": "siding08_2k_albedo.ktx2",
       "bytes": 5171018,
       "sha256": "aa27e3b27b351a614c94271f084aa9c23d2054b3dcdfa600b0a27746836a477e"
@@ -161,21 +141,6 @@
       "path": "siding08_2k_orm.ktx2",
       "bytes": 4589502,
       "sha256": "fe82f3248565069f99c3ef1a281d910fc1429d46b4e0eab962c41de0727b0d31"
-    },
-    {
-      "path": "siding09_2k_albedo.jpg",
-      "bytes": 3025962,
-      "sha256": "903485ed603e60eb7649a13bf18185a65ae3ab1aba6490f1c32808f4afb8aaca"
-    },
-    {
-      "path": "siding09_2k_normal.jpg",
-      "bytes": 2928172,
-      "sha256": "60f6b5db8ebac9bf705c332ac1354f6387d63cd1717d2dd1fba2345f034619e0"
-    },
-    {
-      "path": "siding09_2k_orm.png",
-      "bytes": 3772845,
-      "sha256": "bc493171626f9eea169aaba16fc31fd32324509dc1f217a914ea45de8a03dfad"
     },
     {
       "path": "wood_2k_albedo.ktx2",

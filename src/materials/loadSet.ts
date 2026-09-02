@@ -7,6 +7,8 @@ import { TEXTURE_SETS, type TextureSetName } from "./textureManifest.ts";
 import { tryLoadTexture } from "./loadTexture.ts";
 
 export type LoadedSet = {
+  /** Which TEXTURE_SETS entry this is; materials carry it in userData so the invariant checks can tell a wall texture from a floor texture. */
+  name: TextureSetName;
   albedo: Texture;
   normal: Texture | null;
   orm: Texture | null;
@@ -24,7 +26,7 @@ export async function loadTextureSet(name: TextureSetName): Promise<LoadedSet | 
     tryLoadTexture(spec.normal, "linear"),
     tryLoadTexture(spec.orm, "linear")
   ]);
-  return { albedo, normal, orm };
+  return { name, albedo, normal, orm };
 }
 
 export async function loadTerrainMaps(): Promise<TerrainMaps | null> {
