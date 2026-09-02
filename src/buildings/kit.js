@@ -306,11 +306,30 @@ function buildRoof({ length, width, rise, ridgeLen, material }) {
 }
 
 /**
+ * Eave soffit — a thin horizontal lid at the eave plane spanning the full
+ * roof plan. The sloped roofs are shells (both sides draw, no thickness), so
+ * the overhang hung open underneath: every oblique outside view looked
+ * straight up into the roof's inner surface. The lid closes it — outside, the
+ * eave reads as a fascia board; the slopes and the gable-end triangles all
+ * bottom out exactly at its top edge, so nothing pokes through. Sized in
+ * group space (the roof mesh is yawed for a Z ridge; the lid is symmetric).
+ */
+function eaveSoffit({ length, width, alongX, eave, material }) {
+  const sx = alongX ? length : width;
+  const sz = alongX ? width : length;
+  const soffit = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.06, sz), material);
+  soffit.position.y = eave - 0.03;
+  soffit.castShadow = true;
+  soffit.receiveShadow = true;
+  return soffit;
+}
+
+/**
  * Gable roof. Ridge along the long axis by default. `pitch` is rise/run
  * (0.5 = 6:12). `overhang` is added to both axes so the plan is always >= the
  * footprint. Returns a Group positioned so the eave sits at y = eave.
  */
-export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "auto", material }) {
+export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "auto", material, soffitMaterial }) {
   const alongX = ridgeAxis === "auto" ? w >= d : ridgeAxis === "x";
   const length = (alongX ? w : d) + overhang * 2;
   const width = (alongX ? d : w) + overhang * 2;
@@ -322,6 +341,7 @@ export function gableRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = 
   }
   roof.position.y = eave;
   group.add(roof);
+  group.add(eaveSoffit({ length, width, alongX, eave, material: soffitMaterial || material }));
   markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "gable" });
   // Gable ends sit on the wall, not the overhang. Steeples mate here
   // (docs/ANCHORS.md). Ridge along X → ±X; along Z → ±Z after the roof yaw.
@@ -363,6 +383,7 @@ export function hipRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "a
   }
   roof.position.y = eave;
   group.add(roof);
+  group.add(eaveSoffit({ length, width, alongX, eave, material }));
   markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "hip" });
   return group;
 }
@@ -401,6 +422,7 @@ export function shedRoof({ w, d, pitch, overhang = 0.45, eave = 0, ridgeAxis = "
   const group = new THREE.Group();
   roof.position.y = eave;
   group.add(roof);
+  group.add(eaveSoffit({ length, width, alongX, eave, material }));
   markRoof(group, { roofBase: eave, roofTop: eave + rise, plan: { length, width }, type: "shed" });
   return group;
 }
