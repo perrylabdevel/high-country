@@ -191,10 +191,13 @@ export function createRanch(maps = {}) {
   mate(hipRoof({ w: MW, d: MD, pitch: 0.5, overhang: 0.45, eave: MEAVE, material: roof }), "base", anchorsOf(main).get("wallTop"));
   mate(hipRoof({ w: EW, d: ED, pitch: 0.5, overhang: 0.45, eave: EEAVE, material: roof }), "base", anchorsOf(ell).get("wallTop"));
 
-  // Floors and ground-floor ceilings, seated on footing.
+  // Floors and ground-floor ceilings, seated on footing. The floor spans the
+  // full footprint — a floor inset from the footprint leaves a strip of
+  // exposed terrain between its edge and the wall's inner face (the walls
+  // centre on the footprint edges, so their inner faces sit at w/2 − T/2).
   for (const [blk, w, d] of [[main, MW, MD], [ell, EW, ED]]) {
     mate(
-      block({ w: w - 0.5, h: 0.1, d: d - 0.5, material: wood, role: "floor", extra: { top: 0.1 } }),
+      block({ w, h: 0.1, d, material: wood, role: "floor", extra: { top: 0.1 } }),
       "base",
       anchorsOf(blk).get("footing")
     );
@@ -421,7 +424,7 @@ export function createRanch(maps = {}) {
   mate(bunkDoor, "frame", anchorsOf(bunkSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
   mate(
-    block({ w: BKW - 0.5, h: 0.1, d: BKD - 0.5, material: wood, role: "floor", extra: { top: 0.1 } }),
+    block({ w: BKW, h: 0.1, d: BKD, material: wood, role: "floor", extra: { top: 0.1 } }),
     "base",
     anchorsOf(bunk).get("footing")
   );

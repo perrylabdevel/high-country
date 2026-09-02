@@ -497,10 +497,23 @@ for (const s of STRUCTURES) {
 
   // 8. Floor above foundation — floor top at/above the local origin, and
   // within 0.15 m of the player's standing plane (y = 0 in the structure frame).
+  // A floor that under-runs its footprint leaves a strip of exposed terrain
+  // between its edge and the wall's inner face — the floor must span the
+  // structure footprint (running under the walls is free; a gap is not).
   for (const fl of collect(s, (n) => n.userData.role === "floor")) {
     const top = fl.userData.top ?? fl.position.y + (fl.geometry?.parameters?.height ?? 0) / 2;
     check(top >= -0.01, `${label(s)} floor top ${top.toFixed(2)} is below the foundation`);
     check(Math.abs(top) <= 0.15, `${label(s)} floor top ${top.toFixed(2)} is >0.15 m from the standing plane`);
+    let mesh = null;
+    walk(fl, (n) => {
+      if (!mesh && n.isMesh && n.geometry?.parameters?.width) mesh = n;
+    });
+    if (mesh && u.w) {
+      const fw = mesh.geometry.parameters.width;
+      const fd = mesh.geometry.parameters.depth;
+      check(fw >= u.w - 0.01 && fd >= u.d - 0.01,
+        `${label(s)} floor ${fw.toFixed(2)}x${fd.toFixed(2)} does not span the ${u.w.toFixed(2)}x${u.d.toFixed(2)} footprint`);
+    }
   }
 
   // 10. Collider agreement — every wall mesh has a collide() entry, and those
