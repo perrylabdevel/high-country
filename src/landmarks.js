@@ -693,18 +693,29 @@ export function createLandmarks(scene, maps = {}) {
 
   // Headframe: a tall A-frame tower with cross-bracing and a sheave wheel over
   // the shaft. Big enough to read as an industrial silhouette at 62 m.
+  // The legs lean by rotating the piece GROUP — its origin is the base anchor,
+  // so the base stays on its collider at ivX +/- 5 and the top converges.
+  // (Rotating the mesh inside the block pivots at the mesh centre, which
+  // swung each base 1.74 m outward past its collider and left the lower
+  // bracing floating short of the legs.)
   const hfH = 16;
+  const hfLean = 0.22;
+  const legInset = (y) => 5 - Math.sin(hfLean) * y;
   for (const sgn of [-1, 1]) {
     const leg = boxOnPlane(group, ivX + sgn * 5, ivY, ivZ - 6, 0.9, hfH, 0.9, iron, true);
-    leg.children[0].rotation.z = sgn * 0.22;
+    leg.rotation.z = sgn * hfLean;
   }
   for (const y of [4, 8, 12]) {
     // Rusted cross-bracing: the headframe was all iron, so rust never read
     // distinctly (audit I2). Corroded members at the lower tower give the
-    // orange-vs-iron-vs-timber separation.
-    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, 10, 0.4, 0.4, rust, false);
+    // orange-vs-iron-vs-timber separation. Each brace spans the leg
+    // centre-lines at its own height plus 0.25 m of embed into the 0.9 m
+    // legs — a fixed-width bar poked out past the leaning legs or, lower
+    // down, missed them entirely.
+    const half = legInset(y) + 0.25;
+    boxOnPlane(group, ivX, ivY + y - 0.2, ivZ - 6, half * 2, 0.4, 0.4, rust, false);
   }
-  boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, 11, 0.7, 0.7, iron, false);
+  boxOnPlane(group, ivX, ivY + hfH - 0.35, ivZ - 6, legInset(hfH) * 2 + 2.2, 0.7, 0.7, iron, false);
   const sheave = cylOnPlane(group, ivX, ivY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
   sheave.children[0].rotation.x = Math.PI / 2;
   boxOnGround(group, ivX, ivZ - 6, 3.5, 4, 3.5, dark, false);
