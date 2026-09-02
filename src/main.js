@@ -51,6 +51,8 @@ const placeEl = document.getElementById("hud-place");
 const placeNoteEl = document.getElementById("hud-place-note");
 const hintEl = document.getElementById("hud-hint");
 const promptEl = document.getElementById("prompt");
+const compassEl = document.getElementById("compass");
+const crosshairEl = document.getElementById("crosshair");
 const dialogueEl = document.getElementById("dialogue");
 const speakerEl = document.getElementById("dialogue-speaker");
 const bodyEl = document.getElementById("dialogue-body");
@@ -641,8 +643,10 @@ async function boot() {
     stats = new Stats();
     stats.showPanel(0);
     document.body.appendChild(stats.dom);
+    // drop the fps graph below the place plate, which owns the top-left corner
+    stats.dom.style.top = "52px";
     infoEl = document.createElement("div");
-    infoEl.style.cssText = "position:fixed;left:80px;top:0;color:#7ef;font:11px/1.4 monospace;text-shadow:0 1px 2px #000;pointer-events:none;z-index:10";
+    infoEl.style.cssText = "position:fixed;left:84px;top:0;color:#cbb58a;background:rgba(12,16,20,0.6);padding:1px 8px;font:11px/1.5 ui-monospace,'Cascadia Code',monospace;text-shadow:none;pointer-events:none;z-index:10";
     document.body.appendChild(infoEl);
     structureLabels = createStructureLabels();
   }
@@ -1156,6 +1160,108 @@ async function boot() {
   }
 
   /**
+   * The bearing tape. The classic open-world ribbon: minor ticks every 5°,
+   * cardinals in gold, sliding with your heading so it reads like an
+   * instrument, not a label. The filled diamond is the live objective
+   * bearing — clamped to the ribbon's edge when the destination falls
+   * outside the visible arc, so "behind you" still shows as a diamond pinned
+   * hard left/right. Same heading convention as bearingWord: 0 = north (-Z),
+   * 90 = east (+X).
+   */
+  const COMPASS_PX_PER_DEG = 3;
+  const COMPASS_SPAN = 62; // degrees visible either side of the needle
+  const compassCtx = compassEl.getContext("2d");
+  let objectiveBearing = null;
+  function drawCompass(yaw) {
+    const w = compassEl.width;
+    const h = compassEl.height;
+    const cx = w / 2;
+    const ctx = compassCtx;
+    ctx.clearRect(0, 0, w, h);
+    const heading = ((yaw * 180 / Math.PI) % 360 + 360) % 360;
+    ctx.textAlign = "center";
+    for (let d = Math.ceil((heading - COMPASS_SPAN) / 5) * 5; d <= heading + COMPASS_SPAN; d += 5) {
+      const x = cx + (d - heading) * COMPASS_PX_PER_DEG;
+      const norm = ((d % 360) + 360) % 360;
+      const cardinal = norm % 90 === 0;
+      const inter = norm % 45 === 0;
+      // fade toward the ribbon's ends so the tape dissolves instead of ending
+      const edge = 1 - Math.abs(d - heading) / (COMPASS_SPAN + 6);
+      const alpha = Math.max(0, Math.min(1, edge * 1.6));
+      if (!cardinal && !inter) {
+        // minor tick: a short faint mark, doubled with the same dark underlay
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.4 * alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, h - 4);
+        ctx.lineTo(x + 0.5, h - 7);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(244, 234, 210, ${0.4 * alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, h - 4);
+        ctx.lineTo(x + 0.5, h - 7);
+        ctx.stroke();
+      }
+      if (cardinal || inter) {
+        // every stroke gets a dark twin first: cream on bright sky vanishes,
+        // cream over a hair of black shadow holds
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.55 * alpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, h - 4);
+        ctx.lineTo(x + 0.5, h - (cardinal ? 15 : inter ? 11 : 0));
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(244, 234, 210, ${0.62 * alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, h - 4);
+        ctx.lineTo(x + 0.5, h - (cardinal ? 15 : inter ? 11 : 0));
+        ctx.stroke();
+      }
+      if (cardinal) {
+        ctx.font = "600 12px Palatino, 'Palatino Linotype', Georgia, serif";
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.6 * alpha})`;
+        ctx.lineWidth = 3;
+        ctx.strokeText("NESW"[norm / 90], x, 13);
+        ctx.fillStyle = `rgba(232, 195, 106, ${alpha})`;
+        ctx.fillText("NESW"[norm / 90], x, 13);
+      } else if (inter) {
+        ctx.font = "9px Palatino, 'Palatino Linotype', Georgia, serif";
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.6 * alpha})`;
+        ctx.lineWidth = 3;
+        ctx.strokeText(["NE", "SE", "SW", "NW"][(norm - 45) / 90], x, 11);
+        ctx.fillStyle = `rgba(244, 234, 210, ${0.72 * alpha})`;
+        ctx.fillText(["NE", "SE", "SW", "NW"][(norm - 45) / 90], x, 11);
+      }
+    }
+    // the needle: a gold caret rising into the tick baseline, holding centre
+    ctx.fillStyle = "#e8c36a";
+    ctx.beginPath();
+    ctx.moveTo(cx, h - 10);
+    ctx.lineTo(cx - 4.5, h - 2);
+    ctx.lineTo(cx + 4.5, h - 2);
+    ctx.fill();
+    // the objective diamond
+    if (objectiveBearing !== null) {
+      let delta = ((objectiveBearing - heading + 540) % 360) - 180;
+      delta = Math.max(-COMPASS_SPAN, Math.min(COMPASS_SPAN, delta));
+      const x = cx + delta * COMPASS_PX_PER_DEG;
+      ctx.save();
+      ctx.translate(x, 17);
+      ctx.rotate(Math.PI / 4);
+      ctx.strokeStyle = "rgba(10, 8, 5, 0.8)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.rect(-4, -4, 8, 8);
+      ctx.stroke();
+      ctx.fillStyle = "#e8c36a";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /**
    * The destination line under the objective plus the chart marker: the two
    * findability surfaces for the active objective. Computed live from the
    * mission's resolved place so the numbers always describe where the loop
@@ -1192,6 +1298,9 @@ async function boot() {
       if (op.approach && VIA_WORDS[op.approach.type]) {
         text += ` · via ${VIA_WORDS[op.approach.type]}`;
       }
+      objectiveBearing = Math.atan2(dest.x - px, -(dest.z - pz)) * 180 / Math.PI;
+    } else {
+      objectiveBearing = null;
     }
     if (targetEl.textContent !== text) {
       targetEl.textContent = text;
@@ -1242,13 +1351,26 @@ async function boot() {
     // Clear the text when hiding: a hidden element with stale text read as a
     // live interaction affordance to scripted players (probe-travel), and a
     // stale visible prompt can outlive its target by one frame at low fps.
+    // Labels lead with the key ("E — Talk to Ada"); the key becomes a keycap
+    // badge and the crosshair answers gold while an interaction is live.
     if (!text) {
-      promptEl.textContent = "";
+      promptEl.replaceChildren();
       promptEl.classList.add("hidden");
+      crosshairEl.classList.remove("hot");
       return;
     }
-    promptEl.textContent = text;
+    const dash = text.indexOf("—");
+    if (dash > 0) {
+      const kbd = document.createElement("kbd");
+      kbd.textContent = text.slice(0, dash).trim();
+      const label = document.createElement("span");
+      label.textContent = text.slice(dash + 1).trim();
+      promptEl.replaceChildren(kbd, label);
+    } else {
+      promptEl.textContent = text;
+    }
     promptEl.classList.remove("hidden");
+    crosshairEl.classList.add("hot");
   }
 
   /**
@@ -1366,6 +1488,7 @@ async function boot() {
     started = true;
     player.state.snapCam = true;
     minimap.show();
+    compassEl.classList.remove("hidden");
     // Synthetic/dispatched clicks cannot back a pointer-lock request; a real
     // click on the canvas re-locks, so swallowing the refusal is correct.
     try {
@@ -1547,6 +1670,9 @@ async function boot() {
     }
     updateTargetLine(player.object.position.x, player.object.position.z);
     minimap.update(player.object.position.x, player.object.position.z, player.state.yaw);
+    if (started) {
+      drawCompass(player.state.yaw);
+    }
     debug.update(player);
     if (structureLabels) {
       camera.getWorldDirection(cameraDirection);

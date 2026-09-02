@@ -8,9 +8,13 @@
 </head>
 <body>
   <div id="hud">
+    <div id="vignette"></div>
     <div id="hud-top">
-      <span id="hud-place">High Country Ranch</span>
-      <span id="hud-place-note" class="hidden"> · first visit</span>
+      <div id="hud-place-block">
+        <span id="hud-place">High Country Ranch</span>
+        <span id="hud-place-note" class="hidden">first visit</span>
+      </div>
+      <canvas id="compass" class="hidden" width="380" height="34"></canvas>
       <span id="hud-hint">Click to lock look · Right-drag look · WASD · Shift sprint · C camera · E mount / talk</span>
     </div>
     <div id="crosshair"></div>
