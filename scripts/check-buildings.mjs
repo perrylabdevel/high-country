@@ -392,6 +392,51 @@ for (const s of STRUCTURES) {
   }
 
   const walls = collect(s, (n) => n.userData.role === "wall");
+
+  // 8b. Corner closure — where two perimeter walls meet at a footprint corner,
+  // their boxes must overlap through a full thickness x thickness column.
+  // Exterior walls mate centred on the footprint edges; a wall of bare length
+  // stops at the corner while the perpendicular wall's outer face sits T/2
+  // beyond it, leaving an L-shaped step at every corner (the ranch, barn,
+  // cabins and the fort all showed it). Walls that run the full side plus one
+  // thickness close the column; walls inset half a thickness (interiors.js)
+  // close it too. A corner with no wall on one of its edges is an open join
+  // by design (the ranch's ell opening) and is skipped.
+  {
+    s.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(s.matrixWorld).invert();
+    const boxes = walls.map((w) => {
+      const { length, height, thickness: t } = w.userData;
+      const m = new THREE.Matrix4().multiplyMatrices(inv, w.matrixWorld);
+      return new THREE.Box3(
+        new THREE.Vector3(-length / 2, 0, -t / 2),
+        new THREE.Vector3(length / 2, height, t / 2)
+      ).applyMatrix4(m);
+    });
+    const atEdge = (box, axis, sign, cornerOther) => {
+      // wall centred on the +sign edge along `axis`, spanning the corner
+      // coordinate along the other axis
+      const c = (box.min[axis] + box.max[axis]) / 2;
+      const edge = sign * (axis === "x" ? u.w : u.d) / 2;
+      if (Math.abs(c - edge) > 0.45) return false;
+      const other = axis === "x" ? "z" : "x";
+      const oEdge = cornerOther * (axis === "x" ? u.d : u.w) / 2;
+      return box.min[other] <= oEdge + 0.01 && box.max[other] >= oEdge - 0.01;
+    };
+    const T = 0.22;
+    for (const [sx, sz] of [[1, -1], [1, 1], [-1, 1], [-1, -1]]) {
+      const wallZ = boxes.find((b) => atEdge(b, "z", sz, sx)); // front/back edge
+      const wallX = boxes.find((b) => atEdge(b, "x", sx, sz)); // left/right edge
+      if (!wallZ || !wallX) continue;
+      const ox = Math.min(wallZ.max.x, wallX.max.x) - Math.max(wallZ.min.x, wallX.min.x);
+      const oz = Math.min(wallZ.max.z, wallX.max.z) - Math.max(wallZ.min.z, wallX.min.z);
+      const oy = Math.min(wallZ.max.y, wallX.max.y) - Math.max(wallZ.min.y, wallX.min.y);
+      check(
+        ox >= T - 0.01 && oz >= T - 0.01 && oy > 0,
+        `${label(s)} corner (x${sx > 0 ? "+" : "-"}, z${sz > 0 ? "+" : "-"}) walls overlap only ${ox.toFixed(2)}x${oz.toFixed(2)} — the corner shows a step (exterior walls need extend: true)`
+      );
+    }
+  }
   const doorOpenings = [];
   for (const wall of walls) {
     if (wall.userData.fullHeightDoor) {

@@ -127,7 +127,7 @@ export function createRanch(maps = {}) {
 
   // Main block shell. The north wall stops where the ell joins (house x = 4).
   const mSouth = wallX({
-    length: MW, height: MEAVE, thickness: T, material: siding,
+    length: MW, extend: true, height: MEAVE, thickness: T, material: siding,
     openings: [
       { x: -MCX, w: 0.92, h: 2.1, fromFloor: 0 },
       { x: -6.4 - MCX, w: 1.35, h: 1.5, fromFloor: 0.9 },
@@ -140,7 +140,7 @@ export function createRanch(maps = {}) {
 
   const mNorthLen = 4 - -10.5;
   const mNorth = wallX({
-    length: mNorthLen, height: MEAVE, thickness: T, material: siding,
+    length: mNorthLen, extend: true, height: MEAVE, thickness: T, material: siding,
     openings: [
       { x: -4, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 },
       { x: 2.5, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
@@ -149,7 +149,7 @@ export function createRanch(maps = {}) {
   mate(mNorth, "wallSide", face(main, "back", { along: (-10.5 + 4) / 2 - MCX }));
 
   const mWest = wallX({
-    length: MD, height: MEAVE, thickness: T, material: siding,
+    length: MD, extend: true, height: MEAVE, thickness: T, material: siding,
     openings: [
       { x: -(2.2 - MCZ), w: 1.3, h: 1.5, fromFloor: 0.9 },
       { x: -(-3.2 - MCZ), w: 1.3, h: 1.5, fromFloor: 0.9 }
@@ -158,7 +158,7 @@ export function createRanch(maps = {}) {
   mate(mWest, "wallSide", face(main, "left"));
 
   const mEast = wallX({
-    length: MD, height: MEAVE, thickness: T, material: siding,
+    length: MD, extend: true, height: MEAVE, thickness: T, material: siding,
     openings: [
       { x: 2.8 - MCZ, w: 1.3, h: 1.5, fromFloor: 0.9 },
       // Second-floor windows on the east wall: the audit camera approaches
@@ -171,20 +171,20 @@ export function createRanch(maps = {}) {
 
   // Ell shell. Its north end (house z = -5.35) is closed only east of the main
   // block; west of that the two blocks share the opening.
-  const eWest = wallX({ length: ED, height: EEAVE, thickness: T, material: siding });
+  const eWest = wallX({ length: ED, extend: true, height: EEAVE, thickness: T, material: siding });
   mate(eWest, "wallSide", face(ell, "left"));
   const eEast = wallX({
-    length: ED, height: EEAVE, thickness: T, material: siding,
+    length: ED, extend: true, height: EEAVE, thickness: T, material: siding,
     openings: [{ x: -11.5 - ECZ, w: 1.25, h: 1.4, fromFloor: 0.9 }]
   });
   mate(eEast, "wallSide", face(ell, "right"));
   const eSouth = wallX({
-    length: EW, height: EEAVE, thickness: T, material: siding,
+    length: EW, extend: true, height: EEAVE, thickness: T, material: siding,
     openings: [{ x: -(10.2 - ECX), w: 1.25, h: 1.4, fromFloor: 0.9 }]
   });
   mate(eSouth, "wallSide", face(ell, "back"));
   const eJoinLen = 16 - 12;
-  const eJoin = wallX({ length: eJoinLen, height: EEAVE, thickness: T, material: siding });
+  const eJoin = wallX({ length: eJoinLen, extend: true, height: EEAVE, thickness: T, material: siding });
   mate(eJoin, "wallSide", face(ell, "front", { along: (12 + 16) / 2 - ECX }));
 
   // Roofs — hips, both seated on their own eave.
@@ -219,16 +219,16 @@ export function createRanch(maps = {}) {
     normal: { x: 1, y: 0, z: 0 }
   });
   const partA = wallX({
-    length: MD, height: CEIL, thickness: T, material: darkSiding,
+    length: MD, extend: true, height: CEIL, thickness: T, material: darkSiding,
     openings: [{ x: 2.6 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
   });
   mate(partA, "wallSide", anchorsOf(main).get("partition.west"), { offset: { y: 0.12 } });
   const partB = wallX({
-    length: MD, height: CEIL, thickness: T, material: darkSiding,
+    length: MD, extend: true, height: CEIL, thickness: T, material: darkSiding,
     openings: [{ x: 1.8 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
   });
   mate(partB, "wallSide", anchorsOf(main).get("partition.east"), { offset: { y: 0.12 } });
-  const partC = wallX({ length: 12 - 8.8, height: CEIL, thickness: T, material: darkSiding });
+  const partC = wallX({ length: 12 - 8.8, extend: true, height: CEIL, thickness: T, material: darkSiding });
   mate(partC, "wallSide", face(main, "back", { along: (8.8 + 12) / 2 - MCX }), { offset: { y: 0.12 } });
 
   // Chimneys — continuous from the hearth, topping out above each ridge.
@@ -345,10 +345,11 @@ export function createRanch(maps = {}) {
   const BEAVE = 6;
   const barn = structure({ name: "barn", x: barnX, z: barnZ, yaw: 0, w: BW, d: BD, eave: BEAVE, foundation: true, material: stone });
 
-  const barnNorth = wallX({ length: BW, height: BEAVE, thickness: T, material: darkSiding });
+  const barnNorth = wallX({ length: BW, extend: true, height: BEAVE, thickness: T, material: darkSiding });
   mate(barnNorth, "wallSide", face(barn, "back"));
   const barnSouth = wallX({
     length: BW,
+    extend: true,
     height: BEAVE,
     thickness: T,
     material: darkSiding,
@@ -356,14 +357,14 @@ export function createRanch(maps = {}) {
   });
   mate(barnSouth, "wallSide", face(barn, "front"));
   const barnEast = wallX({
-    length: BD,
+    length: BD, extend: true,
     height: BEAVE,
     thickness: T,
     material: darkSiding,
     openings: [{ x: 0, w: 3.0, h: 3.5, fromFloor: 0, class: "barn" }]
   });
   mate(barnEast, "wallSide", face(barn, "right"));
-  const barnWest = wallX({ length: BD, height: BEAVE, thickness: T, material: darkSiding });
+  const barnWest = wallX({ length: BD, extend: true, height: BEAVE, thickness: T, material: darkSiding });
   mate(barnWest, "wallSide", face(barn, "left"));
 
   const barnRoof = gableRoof({ w: BW, d: BD, pitch: 0.5, overhang: 0.45, eave: BEAVE, material: roof });
@@ -403,19 +404,20 @@ export function createRanch(maps = {}) {
   const BKEAVE = 3.2;
   const bunk = structure({ name: "bunkhouse", habitable: true, x: bunkX, z: bunkZ, yaw: 0, w: BKW, d: BKD, eave: BKEAVE, foundation: true, material: stone });
 
-  const bunkNorth = wallX({ length: BKW, height: BKEAVE, thickness: T, material: siding });
+  const bunkNorth = wallX({ length: BKW, extend: true, height: BKEAVE, thickness: T, material: siding });
   mate(bunkNorth, "wallSide", face(bunk, "back"));
   const bunkSouth = wallX({
     length: BKW,
+    extend: true,
     height: BKEAVE,
     thickness: T,
     material: siding,
     openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }]
   });
   mate(bunkSouth, "wallSide", face(bunk, "front"));
-  const bunkEast = wallX({ length: BKD, height: BKEAVE, thickness: T, material: siding });
+  const bunkEast = wallX({ length: BKD, extend: true, height: BKEAVE, thickness: T, material: siding });
   mate(bunkEast, "wallSide", face(bunk, "right"));
-  const bunkWest = wallX({ length: BKD, height: BKEAVE, thickness: T, material: siding });
+  const bunkWest = wallX({ length: BKD, extend: true, height: BKEAVE, thickness: T, material: siding });
   mate(bunkWest, "wallSide", face(bunk, "left"));
 
   const bunkRoof = gableRoof({ w: BKW, d: BKD, pitch: 0.5, overhang: 0.45, eave: BKEAVE, material: roof });
@@ -451,19 +453,20 @@ export function createRanch(maps = {}) {
   const SEAVE = 3.6;
   const smith = structure({ name: "blacksmith", x: smithX, z: smithZ, yaw: Math.PI, w: SW, d: SD, eave: SEAVE, foundation: true, material: stone });
 
-  const smithNorth = wallX({ length: SW, height: SEAVE, thickness: T, material: darkSiding });
+  const smithNorth = wallX({ length: SW, extend: true, height: SEAVE, thickness: T, material: darkSiding });
   mate(smithNorth, "wallSide", face(smith, "back"));
   const smithSouth = wallX({
     length: SW,
+    extend: true,
     height: SEAVE,
     thickness: T,
     material: darkSiding,
     openings: [{ x: 0, w: 2.4, h: 2.6, fromFloor: 0, class: "bay" }]
   });
   mate(smithSouth, "wallSide", face(smith, "front"));
-  const smithEast = wallX({ length: SD, height: SEAVE, thickness: T, material: darkSiding });
+  const smithEast = wallX({ length: SD, extend: true, height: SEAVE, thickness: T, material: darkSiding });
   mate(smithEast, "wallSide", face(smith, "right"));
-  const smithWest = wallX({ length: SD, height: SEAVE, thickness: T, material: darkSiding });
+  const smithWest = wallX({ length: SD, extend: true, height: SEAVE, thickness: T, material: darkSiding });
   mate(smithWest, "wallSide", face(smith, "left"));
 
   const smithRoof = gableRoof({ w: SW, d: SD, pitch: 0.5, overhang: 0.45, eave: SEAVE, material: roof });
