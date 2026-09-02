@@ -468,9 +468,15 @@ export function wallX({ length, height, thickness, openings = [], material, y = 
     } else if (o.fromFloor === 0) {
       group.userData.fullHeightDoor = true;
     }
-    // Ground-floor windows: a sill under the hole so it does not read as a door.
-    // Skip upper-story fromFloor values — those are not a slab from the floor.
-    if (o.fromFloor > 0.05 && o.fromFloor <= 1.2) {
+    // Wall under the opening, from the floor to the sill line. For a
+    // ground-floor window this is the sill; for an upper-story window it is
+    // the stretch of wall between the two floors — either way the opening
+    // must not run to the ground. The panel used to be skipped for
+    // fromFloor > 1.2 on the theory that an upstairs window is "not a slab
+    // from the floor", but skipping it leaves NO wall below the window at
+    // all: the opening became a full-height slot (the ranch house's back
+    // wall showed its two upstairs windows as two-story slots).
+    if (o.fromFloor > 0.05) {
       const sill = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.fromFloor, thickness), material);
       sill.position.set(o.x, y + o.fromFloor / 2, 0);
       sill.castShadow = true;

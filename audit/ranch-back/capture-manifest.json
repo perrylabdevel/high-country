@@ -1,0 +1,7 @@
+{
+  "what": "verification that upper-story window openings are no longer full-height slots",
+  "fix": "kit.js wallX built the below-opening panel only for fromFloor <= 1.2, so an upstairs window had NO wall beneath it — the opening ran ground to header. The cap is removed; every opening gets its sill panel.",
+  "back-wide.png": "ranch house main block, north (back) face: the two upstairs windows now read as windows in a continuous wall",
+  "elpaso-two-story-front.png": "elPasoTwoStory front (plaza-facing) face: both upstairs windows glazed with solid adobe below; door intact",
+  "capture": "one-off playwright scripts (deleted), webgpu backend asserted, veg settled before each frame"
+}
