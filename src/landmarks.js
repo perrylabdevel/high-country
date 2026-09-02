@@ -708,14 +708,16 @@ export function createLandmarks(scene, maps = {}) {
   const sheave = cylOnPlane(group, ivX, ivY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
   sheave.children[0].rotation.x = Math.PI / 2;
   boxOnGround(group, ivX, ivZ - 6, 3.5, 4, 3.5, dark, false);
-  addBoxCollider(ivX, ivZ - 6, 2, 2);
+  // Half-extents match the 3.5 x 3.5 base; the previous 2 x 2 drew an
+  // invisible 0.25 m collar of solid air around the visual block.
+  addBoxCollider(ivX, ivZ - 6, 1.75, 1.75);
 
   // Stamp mill: an open-sided shed with a visible battery of stamp rods and a
   // camshaft, plus a conical tailings pile beside it.
   const smX = ivX + 18;
   const smZ = ivZ + 4;
   const smY = heightAt(smX, smZ);
-  const smShed = structure({ name: "stampMill", x: smX, z: smZ, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, material: stone });
+  const smShed = structure({ name: "stampMill", x: smX, z: smZ, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, openSided: true, material: stone });
   const smRoof = gableRoof({ w: 16, d: 12, pitch: 0.55, overhang: 0.5, eave: 6, material: roof });
   mate(smRoof, "base", anchorsOf(smShed).get("wallTop"));
   const millFloor = anchorsOf(smShed).get("footing");
@@ -725,26 +727,40 @@ export function createLandmarks(scene, maps = {}) {
     });
   }
   const camshaft = post({ rTop: 0.4, rBot: 0.4, h: 14, material: iron });
-  mate(camshaft, "base", millFloor, { offset: { y: 1.4 - 7 } });
+  // The mill seats at its lowest footing corner on an eastward-rising slope,
+  // so a shaft at floor + 1.4 dove underground at the shed's east end. Ride
+  // the shaft just clear of the highest terrain it crosses instead — real
+  // camshafts run high, driving the stamp heads from above.
+  let camBase = smShed.userData.placementY;
+  for (let i = 0; i <= 8; i += 1) {
+    camBase = Math.max(camBase, heightAt(smX - 7 + (i * 14) / 8, smZ));
+  }
+  const camY = camBase + 0.5;
+  mate(camshaft, "base", millFloor, { offset: { y: camY - smShed.userData.placementY - 7 } });
   camshaft.children[0].rotation.z = Math.PI / 2;
-  // A 14 m shaft lying at waist height across the mill floor. Solid only over
-  // its own height, so it blocks anyone on the floor without becoming a wall
-  // for anything passing above or below it.
-  addOrientedBoxCollider(smX, smZ, 7, 0.4, 0, { minY: smY + 1.0, maxY: smY + 1.8 });
-  collide(smShed, smX, smZ, 0, [
-    { x: 0, z: -6, halfX: 8, halfZ: T / 2 },
-    { x: 0, z: 6, halfX: 8, halfZ: T / 2 },
-    { x: 8, z: 0, halfX: T / 2, halfZ: 6 },
-    { x: -8, z: 0, halfX: T / 2, halfZ: 6 }
-  ]);
+  // Solid only over its own height, so it blocks anyone walking the shaft
+  // line without becoming a wall for anything passing above or below it. The
+  // span mirrors the visual cylinder (centre camY, radius 0.4) exactly.
+  addOrientedBoxCollider(smX, smZ, 7, 0.4, 0, { minY: camY - 0.4, maxY: camY + 0.4 });
+  // No perimeter wall colliders: this shed is open-sided on all four faces (a
+  // centre row of posts and the camshaft are the only visual obstructions), so
+  // sealing the footprint made the player stop dead on four invisible walls —
+  // the same visual/physics mismatch the town lots had. The camshaft collider
+  // above is the interior obstacle.
   group.add(smShed);
 
-  // Tailings: a broad conical waste pile, rust-colored, beside the mill.
+  // Tailings: a broad conical waste pile, rust-colored, beside the mill. Both
+  // piles collide — the second one used to be purely visual, so a 10 m wide,
+  // 3.5 m tall pile read as solid while the player walked straight through it.
   coneOnPlane(group, smX + 14, smY, smZ + 8, 7, 5, rust, true, 0, 5.6, 10);
-  coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, false, 0, undefined, 8);
+  coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, true, 0, 4, 8);
 
   boxAt(group, POS.company.x, POS.company.z, 12, 6, 9, facadeWood);
-  for (const [dx, dz] of [[-18, 10], [16, 8], [4, 18]]) {
+  // The middle ruin used to sit at (+16, +8) — entirely inside the stamp
+  // mill's 16 x 12 footprint, a dark box wedged under the shed roof beside
+  // the post row. Moved west of the headframe, clear of the mill, the cones
+  // and the other two ruins.
+  for (const [dx, dz] of [[-18, 10], [-24, 2], [4, 18]]) {
     boxAt(group, POS.ironValley.x + dx, POS.ironValley.z + dz, 8, 3.2, 5, dark);
   }
 

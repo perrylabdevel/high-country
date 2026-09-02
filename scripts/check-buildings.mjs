@@ -563,10 +563,13 @@ for (const s of STRUCTURES) {
 
   // 10. Collider agreement — every wall mesh has a collide() entry, and those
   // entries exist in the collider list. Comparing world AABBs picks up neighboring
-  // lots on a 14 m street grid.
+  // lots on a 14 m street grid. Open-sided structures (the stamp mill's post
+  // shed) carry no perimeter walls and no wall colliders — the mill's own
+  // contract is camshaft-and-posts, and sealing its footprint drew four
+  // invisible walls across an open shed.
   {
     const wallsList = u.colliderWalls || [];
-    check(wallsList.length >= 3, `${label(s)} collide() was not called (need wall colliders)`);
+    check(u.openSided || wallsList.length >= 3, `${label(s)} collide() was not called (need wall colliders)`);
     for (const wall of walls) {
       const onPerimeter =
         Math.abs(Math.abs(wall.position.x) - u.w / 2) < 0.45 ||

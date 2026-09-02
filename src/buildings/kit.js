@@ -1146,7 +1146,8 @@ export function collide(group, x, z, yaw, walls) {
  */
 export function structure({
   x, z, yaw = 0, w, d, eave, foundation = false, material,
-  name = "structure", waterAdjacent = false, habitable = false, lift = 0
+  name = "structure", waterAdjacent = false, habitable = false, lift = 0,
+  openSided = false
 }) {
   const f = footing(x, z, w, d, yaw);
   // `lift` seats the floor deliberately above the terrain — a plinth, so a
@@ -1175,7 +1176,10 @@ export function structure({
     foundationEmitted: false,
     wallTop: seatY + eave,
     waterAdjacent: Boolean(waterAdjacent),
-    habitable: Boolean(habitable)
+    habitable: Boolean(habitable),
+    // Open-sided structures (post sheds, shelters) carry no perimeter wall
+    // meshes, so the collider-agreement check must not demand collide() walls.
+    openSided: Boolean(openSided)
   };
   if (foundation && skirtDrop > 0.15) {
     const skirt = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, skirtDrop + 0.2, d + 0.4), material);
