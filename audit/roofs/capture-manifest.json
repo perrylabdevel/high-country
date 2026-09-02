@@ -1,0 +1,14 @@
+{
+  "what": "sloped roofs hung open under the eave — outside views looked straight up into the roof's inner surface",
+  "cause": "gableRoof/hipRoof/shedRoof build a one-triangle-thick shell (DoubleSide, no thickness). The slopes spring from the eave edge OUTSIDE the wall, so the whole overhang was open underneath: every oblique outside view showed the corrugated inner face of the roof. The hunting cabin had this closed by a hand-placed soffit block (33ca19b) but every other building still showed it — dark corrugated under the ranch porch, orange under the barn and church eaves.",
+  "fix": "The soffit now lives inside the kit: gableRoof, hipRoof, and shedRoof each emit an eaveSoffit — a 6 cm horizontal lid at the eave plane spanning the full roof plan (walls + overhang). The slopes and the gable-end triangles all bottom out exactly at its top edge, so nothing pokes through and nothing z-fights. Every building with a sloped roof gets it at once: ranch main/ell hips, porch shed roofs, barn, bunkhouse, blacksmith, stamp mill, timber cabins, town gables (church, hotel), false-front sheds, hunting cabin. The cabin's hand-placed block was removed — it would have z-fought the kit lid on the same plane — and its roof passes soffitMaterial: dark to keep the approved wall-colour board; everything else defaults to the roof material.",
+  "before-barn-eave.png": "barn south eave — orange corrugated roof interior visible under the overhang and through the door header",
+  "after-barn-eave.png": "same vantage — clean fascia line; the header shows closed soffit",
+  "before-ranch-valley.png": "ranch L-plan: porch roof showed its corrugated underside, and the main roof's inner surface hung open above it at the wall junction",
+  "after-ranch-valley.png": "same vantage — porch reads as a beadboard ceiling, the junction under the main roof is closed",
+  "before-church-eave.png": "church gable eave — roof interior sliver visible at the roofline",
+  "after-church-eave.png": "same vantage — closed fascia band",
+  "before-cabin-eave.png": "timber cabin eave — open dark underside",
+  "after-cabin-eave.png": "same vantage — warm soffit board under the roof edge",
+  "check": "npm run check — 23 PASS, exit 0 (aperture inventory unchanged: 67 total, 0 failures)"
+}
