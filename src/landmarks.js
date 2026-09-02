@@ -613,13 +613,33 @@ export function createLandmarks(scene, maps = {}) {
   const fortHalf = 14;
   const fortDepth = 12;
   const gateHalf = 3;
+  const gateWidth = 6.4;
+  // The north wall is TWO meshes with the gateway between them — it used to
+  // be one solid 28 m box with only the colliders cut, so the gate posts and
+  // lintel stood against a solid wall face: the gate read as decoration, and
+  // the fort looked sealed from every side (no way in). The gap matches the
+  // 6.4 m collider gateway at the gate node.
+  const northSegLen = (28 - gateWidth) / 2;
+  // South, east, west — the north wall is built separately below, in two
+  // segments with the gateway between them.
   for (const [dx, dz, w, d] of [
     [0, fortDepth, 28, 1.2],
-    [0, -fortDepth, 28, 1.2],
     [-fortHalf, 0, 1.2, fortDepth * 2],
     [fortHalf, 0, 1.2, fortDepth * 2]
   ]) {
     boxOnGround(group, fort.x + dx, fort.z + dz, w, fortWallH, d, stone, false);
+  }
+  for (const s of [-1, 1]) {
+    boxOnGround(
+      group,
+      fort.x + s * (gateWidth / 2 + northSegLen / 2),
+      fort.z - fortDepth,
+      northSegLen,
+      fortWallH,
+      1.2,
+      stone,
+      false
+    );
   }
   // North gate, face-on to the audit camera (heading 155 puts the camera
   // north-east, so -Z is the near wall). The earlier east and south gates were
@@ -628,20 +648,24 @@ export function createLandmarks(scene, maps = {}) {
     boxOnGround(group, gx, fort.z - fortDepth, 0.55, fortWallH + 2.6, 0.55, stone, false);
   }
   boxAt(group, fort.x, fort.z - fortDepth, 6.6, 0.55, 0.55, facadeWood, false, fortWallH + 1.2);
-  // The leaves stand OPEN against the gateposts, hugging the inside of the
-  // wall line: closed leaves plus the full-width wall collider made the fort
-  // a physics prison — nav could not thread the gateway at all (the gate
+  // The leaves stand OPEN against the gateposts, flat against the INNER wall
+  // face: closed leaves plus the full-width wall collider made the fort a
+  // physics prison — nav could not thread the gateway at all (the gate
   // corridor check in check-approaches surfaced this as a hard failure).
   // Open leaves leave the gateway centre clear and the gate still reads as a
-  // gate (posts + lintel remain).
-  for (const [gx, s] of [[fort.x - gateHalf - 1.6, -1], [fort.x + gateHalf + 1.6, 1]]) {
-    boxAt(group, gx, fort.z - fortDepth + 0.08, 3.2, fortWallH + 0.25, 0.08, facadeWood, false);
+  // gate (posts + lintel remain). They sat at the wall's centreline before,
+  // which the solid north wall hid; now the wall has a gap, so they move
+  // inside it where an open door leaf hangs.
+  const leafZ = fort.z - fortDepth + 0.6 + 0.05;
+  for (const gx of [fort.x - gateHalf - 1.6, fort.x + gateHalf + 1.6]) {
+    boxAt(group, gx, leafZ, 3.2, fortWallH + 0.25, 0.08, facadeWood, false);
   }
   addBoxCollider(fort.x, fort.z + fortDepth, 14, 0.7);
-  // North wall in two segments either side of a 6.4 m gateway at the gate
-  // node — the single 28 m collider spanned the gateway and walled the fort.
-  addBoxCollider(fort.x - (gateHalf + 0.2) - 5.4, fort.z - fortDepth, 5.4, 0.7);
-  addBoxCollider(fort.x + (gateHalf + 0.2) + 5.4, fort.z - fortDepth, 5.4, 0.7);
+  // North wall colliders mirror the two visual segments: 10.8 m of wall each
+  // side of the 6.4 m gateway. HALF extents — a 10.8 here draws two 21.6 m
+  // boxes that overlap across the gateway and seal the fort shut.
+  addBoxCollider(fort.x - (gateWidth / 2 + northSegLen / 2), fort.z - fortDepth, northSegLen / 2, 0.7);
+  addBoxCollider(fort.x + (gateWidth / 2 + northSegLen / 2), fort.z - fortDepth, northSegLen / 2, 0.7);
   addBoxCollider(fort.x - fortHalf, fort.z, 0.7, fortDepth);
   addBoxCollider(fort.x + fortHalf, fort.z, 0.7, fortDepth);
   registerAperture({

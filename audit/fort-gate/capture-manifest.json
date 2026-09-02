@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "mode": "eye",
+  "backend": "webgpu",
+  "adapter": "webgpu-no-adapter-info",
+  "antialias": true,
+  "build": "production",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "poiCount": 1,
+  "lightCount": 2,
+  "expectedFiles": [
+    "fortGrant-midday.png",
+    "fortGrant-golden.png"
+  ],
+  "files": [
+    "fortGrant-midday.png",
+    "fortGrant-golden.png"
+  ],
+  "vantages": [
+    {
+      "id": "ranch",
+      "dist": 22,
+      "height": 1.65,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": 1,
+        "z": -1
+      },
+      "level": true
+    },
+    {
+      "id": "silverCreek",
+      "dist": 18,
+      "height": 1.65,
+      "heading": 180,
+      "aim": 2,
+      "targetOffset": {
+        "x": -43,
+        "z": 4
+      },
+      "level": true
+    },
+    {
+      "id": "lakeMercy",
+      "dist": 10,
+      "height": 1.65,
+      "heading": 180,
+      "aim": 1.8,
+      "targetOffset": {
+        "x": -20,
+        "z": -84
+      },
+      "level": true
+    },
+    {
+      "id": "northernPines",
+      "dist": 10,
+      "height": 1.65,
+      "heading": 120,
+      "aim": 2,
+      "level": true
+    },
+    {
+      "id": "timberCamp",
+      "dist": 12,
+      "height": 1.65,
+      "heading": 145,
+      "aim": 1.8,
+      "level": true
+    },
+    {
+      "id": "burn",
+      "dist": 14,
+      "height": 1.65,
+      "heading": 130,
+      "aim": 2,
+      "level": true
+    },
+    {
+      "id": "westernRange",
+      "dist": 14,
+      "height": 1.65,
+      "heading": 100,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 34,
+        "z": -28
+      },
+      "level": true
+    },
+    {
+      "id": "ironValley",
+      "dist": 22,
+      "height": 1.65,
+      "heading": 160,
+      "aim": 2.5,
+      "level": true
+    },
+    {
+      "id": "tribal",
+      "dist": 12,
+      "height": 1.65,
+      "heading": 140,
+      "aim": 2,
+      "level": true
+    },
+    {
+      "id": "badlands",
+      "dist": 14,
+      "height": 1.65,
+      "heading": 110,
+      "aim": 2,
+      "level": true
+    },
+    {
+      "id": "mission",
+      "dist": 26,
+      "height": 1.65,
+      "heading": 170,
+      "aim": 2.5,
+      "level": true
+    },
+    {
+      "id": "fortGrant",
+      "dist": 24,
+      "height": 1.65,
+      "heading": 180,
+      "aim": 1.5,
+      "targetOffset": {
+        "x": 0,
+        "z": -12
+      },
+      "level": true
+    },
+    {
+      "id": "cemetery",
+      "dist": 8,
+      "height": 1.65,
+      "heading": 150,
+      "aim": 1.5,
+      "level": true
+    },
+    {
+      "id": "huntingCabin",
+      "dist": 10,
+      "height": 1.65,
+      "heading": 145,
+      "aim": 1.8,
+      "level": true
+    },
+    {
+      "id": "overlook",
+      "dist": 12,
+      "height": 1.65,
+      "heading": 45,
+      "aim": 1.5,
+      "level": true
+    },
+    {
+      "id": "elPaso",
+      "dist": 20,
+      "height": 1.65,
+      "heading": 165,
+      "aim": 2.2,
+      "level": true
+    }
+  ],
+  "generated": "2026-09-02T12:41:37.257Z"
+}
