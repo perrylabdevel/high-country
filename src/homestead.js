@@ -97,27 +97,10 @@ function cabinPorch(group, wood, dark, stone) {
   boxAt(group, cabin.x + 2, cabin.z - 3.2, 0.95, 6.7, 0.95, stone);
   addBoxCollider(cabin.x + 2, cabin.z - 3.2, 0.5, 0.5);
 
-  // Door on the NORTH wall (-Z) — the facade the audit camera faces. The
-  // earlier attempts put the door on +Z, the far side, so the camera saw an
-  // uninterrupted wall (H1). A recessed dark opening with a pale leaf inside
-  // keeps the doorway readable even in golden-hour shadow.
-  const doorWood = mat(0xe3d2a8);
-  const doorDark = mat(0x24150c);
-  const doorZ = cabin.z - 2.85;
-  boxAt(group, cabin.x, cabin.z - 2.80, 1.15, 2.25, 0.16, doorDark, false);
-  boxAt(group, cabin.x, doorZ, 0.95, 2.05, 0.06, doorWood, false);
-  boxAt(group, cabin.x - 0.60, doorZ, 0.12, 2.05, 0.1, wood, false);
-  boxAt(group, cabin.x + 0.60, doorZ, 0.12, 2.05, 0.1, wood, false);
-  boxAt(group, cabin.x, doorZ, 1.32, 0.16, 0.1, wood, false, 2.05);
+  // The doorway itself lives in landmarks.js — the cabin is a real shell now
+  // (kit walls, door leaf, traversable aperture) instead of a solid block with
+  // the door painted on. Only the threshold step remains here.
   boxAt(group, cabin.x, cabin.z - 3.05, 1.3, 0.18, 0.4, wood, false);
-  // Canonical aperture inventory: the cabin door is facade dressing on a
-  // solid block, declared here rather than implied by an absent collider.
-  registerAperture({
-    structure: "huntingCabin", side: "front", kind: "door",
-    x: cabin.x, y: heightAt(cabin.x, cabin.z - 2.85) + 1.03, z: cabin.z - 2.85,
-    w: 0.95, h: 2.05, nx: 0, nz: -1, state: "facade",
-    note: "no cabin interior; the door is dressing on a solid block"
-  });
 
   const pileX = cabin.x + 6.4;
   const pileZ = cabin.z + 0.8;
