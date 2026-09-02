@@ -781,13 +781,28 @@ export function createLandmarks(scene, maps = {}) {
   coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, true, 0, 4, 8);
 
   boxAt(group, POS.company.x, POS.company.z, 12, 6, 9, facadeWood);
-  // The middle ruin used to sit at (+16, +8) — entirely inside the stamp
-  // mill's 16 x 12 footprint, a dark box wedged under the shed roof beside
-  // the post row. Moved west of the headframe, clear of the mill, the cones
-  // and the other two ruins.
-  for (const [dx, dz] of [[-18, 10], [-24, 2], [4, 18]]) {
-    boxAt(group, POS.ironValley.x + dx, POS.ironValley.z + dz, 8, 3.2, 5, dark);
-  }
+  // Collapsed cabin ruins scattered across the valley floor. These were three
+  // featureless 8 x 3.2 x 5 dark boxes — at player scale they read as giant
+  // crates, not buildings. A ruin needs a broken profile: standing walls of
+  // differing heights, one wall broken short, the front open with a beam
+  // down. Walls collide; the open front means you can walk inside.
+  // The middle one used to sit at (+16, +8) — entirely inside the stamp
+  // mill's 16 x 12 footprint, wedged under the shed roof beside the post
+  // row. Moved west of the headframe, clear of the mill, cones and ruins.
+  const ruinShell = (x, z, w, d, hBack, hLeft, hRight) => {
+    const y0 = lowestSeat(x, z, Math.hypot(w, d) / 2);
+    const wt = 0.3;
+    boxOnPlane(group, x, y0, z - d / 2, w, hBack, wt, dark, true);
+    boxOnPlane(group, x - w / 2, y0, z, wt, hLeft, d, dark, true);
+    boxOnPlane(group, x + w / 2, y0, z - d / 4, wt, hRight, d / 2, dark, true);
+    boxOnPlane(group, x - w / 4, y0 + 0.14, z + d / 2 + 0.55, w / 2, 0.28, 0.28, dark, false);
+  };
+  // The toxic creek (12 m wide) runs through the valley west of the headframe;
+  // both western placements stood in or on the bank of its channel. Cluster all
+  // three shells on the dry bench east of the creek instead.
+  ruinShell(POS.ironValley.x - 8, POS.ironValley.z + 22, 7, 5, 2.4, 2.0, 1.1);
+  ruinShell(POS.ironValley.x + 2, POS.ironValley.z + 10, 6, 4.5, 2.0, 1.6, 0.9);
+  ruinShell(POS.ironValley.x + 4, POS.ironValley.z + 18, 7.5, 5, 2.6, 2.2, 1.3);
 
   // Mission — adobe with a campanario on the facade (not a centered cone).
   const mission = POS.mission;

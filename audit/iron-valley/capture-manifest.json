@@ -12,5 +12,10 @@
   "mill-open-side.png": "eye level, south face — posts and the raised camshaft visible through the open side, no invisible walls",
   "mill-inside.png": "eye level from inside the footprint — posts and camshaft from the player's walking plane, tailings cone visible through the open wall",
   "cones.png": "eye level of the tailings piles — both now solid to the resolver",
-  "headframe-base.png": "eye level of the headframe base and relocated ruin box"
+  "headframe-base.png": "eye level of the headframe base and relocated ruin box",
+  "headframe-close.png": "close-up of bracing meeting the legs after the pivot fix",
+  "headframe-square.png": "headframe from the square-on face",
+  "headframe-legs-ground.png": "all three leg seats after min-of-seats grounding — no float on the slope",
+  "ruins-relocated.png": "the three ruin shells rebuilt as collapsed cabin shells (broken back wall, partial side walls, a fallen sill) on the dry bench east of the toxic creek",
+  "ruin-inside.png": "eye level of one shell's open face — walls grounded, no creek channel beneath"
 }
