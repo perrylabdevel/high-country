@@ -86,14 +86,14 @@ function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark 
       { x: 2.15, w: 0.85, h: 1.0, fromFloor: 3.15 }
     );
   }
-  const front = wallX({ length: w, height: eave, thickness: T, material: adobe, openings: door });
+  const front = wallX({ length: w, extend: true, height: eave, thickness: T, material: adobe, openings: door });
   mate(front, "wallSide", face(st, "front"));
-  const back = wallX({ length: w, height: eave, thickness: T, material: adobe });
+  const back = wallX({ length: w, extend: true, height: eave, thickness: T, material: adobe });
   mate(back, "wallSide", face(st, "back"));
   const window = eave >= 3.2 ? [{ x: 0, w: 0.9, h: 1.1, fromFloor: 0.9 }] : [];
-  const east = wallX({ length: d, height: eave, thickness: T, material: adobe, openings: window });
+  const east = wallX({ length: d, extend: true, height: eave, thickness: T, material: adobe, openings: window });
   mate(east, "wallSide", face(st, "right"));
-  const west = wallX({ length: d, height: eave, thickness: T, material: adobe });
+  const west = wallX({ length: d, extend: true, height: eave, thickness: T, material: adobe });
   mate(west, "wallSide", face(st, "left"));
   mate(flatRoof({ w, d, overhang: 0.12, eave, material: roofMat }), "base", anchorsOf(st).get("wallTop"));
   // Glass passes light (see the same material in buildings.js): a pane you
@@ -204,13 +204,13 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
   // facade is solid. The gable entry was a half-finished idea; the church now
   // faces the street like its neighbours and keeps its steeple.
   const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
-  const front = wallX({ length: w, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
+  const front = wallX({ length: w, extend: true, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
   mate(front, "wallSide", face(st, "front"));
-  const back = wallX({ length: w, height: h, thickness: T, material: bodyMat });
+  const back = wallX({ length: w, extend: true, height: h, thickness: T, material: bodyMat });
   mate(back, "wallSide", face(st, "back"));
-  const east = wallX({ length: d, height: h, thickness: T, material: bodyMat });
+  const east = wallX({ length: d, extend: true, height: h, thickness: T, material: bodyMat });
   mate(east, "wallSide", face(st, "right"));
-  const west = wallX({ length: d, height: h, thickness: T, material: bodyMat });
+  const west = wallX({ length: d, extend: true, height: h, thickness: T, material: bodyMat });
   mate(west, "wallSide", face(st, "left"));
 
   const doorWall = front;
@@ -532,13 +532,13 @@ export function createLandmarks(scene, maps = {}) {
     const cabin = structure({ name: "timberCabin", x: cx, z: cz, yaw: 0, w: 7, d: 5, eave: 3.4, foundation: true, material: stone });
     // The audit camera sits north-east of the camp, so the south-facing doors
     // were hidden behind the cabins (T2). Give each cabin a north door too.
-    const north = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
+    const north = wallX({ length: 7, extend: true, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(north, "wallSide", face(cabin, "back"));
-    const south = wallX({ length: 7, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
+    const south = wallX({ length: 7, extend: true, height: 3.4, thickness: T, material: dark, openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }] });
     mate(south, "wallSide", face(cabin, "front"));
-    const east = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
+    const east = wallX({ length: 5, extend: true, height: 3.4, thickness: T, material: dark });
     mate(east, "wallSide", face(cabin, "right"));
-    const west = wallX({ length: 5, height: 3.4, thickness: T, material: dark });
+    const west = wallX({ length: 5, extend: true, height: 3.4, thickness: T, material: dark });
     mate(west, "wallSide", face(cabin, "left"));
     const cabinRoof = gableRoof({ w: 7, d: 5, pitch: 0.7, overhang: 0.3, eave: 3.4, material: roof });
     mate(cabinRoof, "base", anchorsOf(cabin).get("wallTop"));
@@ -625,11 +625,14 @@ export function createLandmarks(scene, maps = {}) {
   // 6.4 m collider gateway at the gate node.
   const northSegLen = (28 - gateWidth) / 2;
   // South, east, west — the north wall is built separately below, in two
-  // segments with the gateway between them.
+  // segments with the gateway between them. The east and west walls run
+  // 1.2 m past the north/south walls' outer faces on each end: at bare
+  // fortDepth*2 they stopped at the footprint corner and the four fort
+  // corners showed a 0.6 m step where neither wall reached the outer corner.
   for (const [dx, dz, w, d] of [
     [0, fortDepth, 28, 1.2],
-    [-fortHalf, 0, 1.2, fortDepth * 2],
-    [fortHalf, 0, 1.2, fortDepth * 2]
+    [-fortHalf, 0, 1.2, fortDepth * 2 + 1.2],
+    [fortHalf, 0, 1.2, fortDepth * 2 + 1.2]
   ]) {
     boxOnGround(group, fort.x + dx, fort.z + dz, w, fortWallH, d, stone, false);
   }
@@ -670,8 +673,8 @@ export function createLandmarks(scene, maps = {}) {
   // boxes that overlap across the gateway and seal the fort shut.
   addBoxCollider(fort.x - (gateWidth / 2 + northSegLen / 2), fort.z - fortDepth, northSegLen / 2, 0.7);
   addBoxCollider(fort.x + (gateWidth / 2 + northSegLen / 2), fort.z - fortDepth, northSegLen / 2, 0.7);
-  addBoxCollider(fort.x - fortHalf, fort.z, 0.7, fortDepth);
-  addBoxCollider(fort.x + fortHalf, fort.z, 0.7, fortDepth);
+  addBoxCollider(fort.x - fortHalf, fort.z, 0.7, fortDepth + 0.6);
+  addBoxCollider(fort.x + fortHalf, fort.z, 0.7, fortDepth + 0.6);
   registerAperture({
     structure: "fortGrant", side: "front", kind: "gate",
     x: fort.x, y: heightAt(fort.x, fort.z - fortDepth) + fortWallH / 2, z: fort.z - fortDepth,
@@ -877,15 +880,15 @@ export function createLandmarks(scene, maps = {}) {
   // Door on the north wall (-Z) — the face the audit camera sees (H1).
   // wallX panels run along +X, so the door wall mates to face.back.
   const hcNorth = wallX({
-    length: hcW, height: hcH, thickness: T, material: dark,
+    length: hcW, extend: true, height: hcH, thickness: T, material: dark,
     openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }]
   });
   mate(hcNorth, "wallSide", face(hcSt, "back"));
-  const hcSouth = wallX({ length: hcW, height: hcH, thickness: T, material: dark });
+  const hcSouth = wallX({ length: hcW, extend: true, height: hcH, thickness: T, material: dark });
   mate(hcSouth, "wallSide", face(hcSt, "front"));
-  const hcEast = wallX({ length: hcD, height: hcH, thickness: T, material: dark });
+  const hcEast = wallX({ length: hcD, extend: true, height: hcH, thickness: T, material: dark });
   mate(hcEast, "wallSide", face(hcSt, "right"));
-  const hcWest = wallX({ length: hcD, height: hcH, thickness: T, material: dark });
+  const hcWest = wallX({ length: hcD, extend: true, height: hcH, thickness: T, material: dark });
   mate(hcWest, "wallSide", face(hcSt, "left"));
   if (anchorsOf(hcNorth).get("opening.0")) {
     mate(

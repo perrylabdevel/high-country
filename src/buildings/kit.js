@@ -430,8 +430,19 @@ export function flatRoof({ w, d, overhang = 0.45, eave = 0, material }) {
  * segments around each opening, a header above it, and a sill under ground-
  * floor windows so they do not read as doors. Returns a Group. The wall's
  * bottom sits at y = 0 (the floor).
+ *
+ * `extend` grows the wall by its own thickness (half at each end): exterior
+ * walls are mated centred on the footprint edges, so a wall of bare `length`
+ * stops at the footprint corner while the perpendicular walls' outer faces
+ * sit T/2 beyond it — every corner showed a step where neither wall reached
+ * the outer corner. With `extend`, each end lands flush with the perpendicular
+ * wall's outer face and the corner column is solid. Openings are positioned
+ * relative to the wall centre, so they do not move.
  */
-export function wallX({ length, height, thickness, openings = [], material, y = 0 }) {
+export function wallX({ length, height, thickness, openings = [], material, y = 0, extend = false }) {
+  if (extend) {
+    length += thickness;
+  }
   const group = new THREE.Group();
   tag(group, "wall", { length, height, thickness, openings: openings.map((o) => ({ ...o })) });
   const segs = [];

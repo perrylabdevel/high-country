@@ -1,0 +1,9 @@
+{
+  "what": "exterior walls must close the corners — no step where two walls meet",
+  "cause": "kit walls mate centred on the footprint edges, so a wall of bare length stopped at the footprint corner while the perpendicular wall's outer face sat T/2 (0.11 m) beyond it. The corner square belonged to neither wall: every kit building showed an L-shaped step at all four corners. The fort's stone palisade was worse — 1.2 m walls on a loop left a 0.6 m notch per corner.",
+  "fix": "wallX gained `extend: true` — the wall grows by its own thickness, half at each end, so each end lands flush with the perpendicular walls' outer faces. Applied to every exterior wall (ranch shell + ell + partitions, barn, bunkhouse, blacksmith, timber cabins, elPaso adobes, hunting cabin, street-lot builder). The fort's east/west walls now run 1.2 m past the north/south walls' outer faces. Openings are positioned relative to the wall centre and do not move.",
+  "cabin-se-corner-before.png": "hunting cabin SE corner — the west wall's end sat recessed from the south wall's outer face",
+  "cabin-se-corner-after.png": "same vantage — solid 90-degree corner",
+  "fort-se-corner-after.png": "fort palisade SE corner — solid (was a 0.6 m notch)",
+  "check": "check-buildings gained invariant 8b: at each footprint corner the two adjacent perimeter walls must overlap through a full thickness x thickness column (corners with no wall on one edge — the ranch's ell opening — are skipped)"
+}
