@@ -87,7 +87,12 @@ const PLACE_DEFS = {
   sheepCamp: { u: 0.12, v: 0.58, name: "Sheep camp", radius: 50 },
   ironValley: { u: 0.84, v: 0.58, name: "Iron Valley", radius: 160 },
   mines: { u: 0.86, v: 0.64, name: "Silver Strike Mines", radius: 70 },
-  stampMill: { u: 0.82, v: 0.52, name: "Stamp mill", radius: 55 },
+  // The mill used to sit at (0.82, 0.52) — exactly on a bend point of Twin
+  // Creek, so the shed, the platform and the smokestack stood in the channel
+  // and the rail terminus ended in the water. Moved 80 m west onto dry
+  // ground, on the company offices' meridian (same u), which also lets the
+  // rail reach it without crossing Twin Creek.
+  stampMill: { u: 0.8, v: 0.52, name: "Stamp mill", radius: 55 },
   company: { u: 0.8, v: 0.6, name: "Company offices", radius: 50 },
   foothills: { u: 0.66, v: 0.36, name: "Foothills", radius: 140 },
   tribal: { u: 0.64, v: 0.22, name: "Tribal Lands", radius: 110 },
@@ -316,11 +321,25 @@ export const ROADS = [
     name: "ironRail",
     kind: "rail",
     width: 4.2,
+    // The old line ran straight down the toxic creek: its first leg
+    // (0.88,0.74)->(0.86,0.64) shadowed the creek leg (0.88,0.72)->(0.84,0.6)
+    // so closely that the track sat on the channel centreline for 110 m, and
+    // every later leg crossed the creek at 25-35 degrees, wading 20-27 m of
+    // ties through the water each time. The line now holds the creek's east
+    // side from the north terminus to the mines, crosses once at 89 degrees
+    // on the way to the company offices, and runs due south along u 0.8 to
+    // the mill (also relocated off Twin Creek) before turning south-east —
+    // crossing the toxic creek and Twin Creek once each, near-perpendicular,
+    // on timber trestles (see BRIDGES).
     pts: [
-      [0.88, 0.74],
+      [0.9, 0.74],
+      [0.89, 0.635],
       [0.86, 0.64],
+      [0.838, 0.645],
       [0.8, 0.6],
-      [0.82, 0.52],
+      [0.8, 0.52],
+      [0.8145, 0.517],
+      [0.825, 0.5158],
       [0.84, 0.42]
     ]
   }
@@ -398,7 +417,15 @@ export const CREEKS = [
 
 export const BRIDGES = [
   { name: "ranchCreek", u: 0.4, v: 0.37, yaw: 0, width: 7.2, length: 18 },
-  { name: "tribalCreek", u: 0.59, v: 0.31, yaw: 1.15, width: 5.2, length: 16 }
+  { name: "tribalCreek", u: 0.59, v: 0.31, yaw: 1.15, width: 5.2, length: 16 },
+  // Rail trestles. The three ironRail creek crossings: each sits on the
+  // solved crossing point, yawed to the rail's heading there (yaw is the
+  // map heading: spin = pi - yaw aligns the span with the track). addBridges
+  // skips rail entries — addRail builds the trestle itself, from the same
+  // deck profile the ties and rails ride.
+  { name: "railToxicNorth", u: 0.8538, v: 0.6414, yaw: -1.295, width: 4.2, length: 16, rail: true },
+  { name: "railToxicSouth", u: 0.8125, v: 0.5174, yaw: 1.823, width: 4.2, length: 16, rail: true },
+  { name: "railTwin", u: 0.8194, v: 0.5164, yaw: 1.711, width: 4.2, length: 16, rail: true }
 ];
 
 function distPointSeg(px, pz, ax, az, bx, bz) {

@@ -79,11 +79,14 @@ export const NAV_CUTS = [
     pts: [[0.814, 0.594], [0.83475, 0.579]]
   },
   // The stamp mill rides the iron rail in the world's fiction; since the rail
-  // is not traversable, the mill's switch is a dirt spur off ironTrail.
-  // Measured worst slope along the line ny 1.0 (valley floor).
+  // is not traversable, the mill's switch is a dirt spur off ironTrail. The
+  // relocated mill sits on the rail's own meridian, so the spur keeps 12-52 m
+  // west of the iron road — closer and its samples merge into bare rail nodes
+  // and die — ending 19 m short of the POI, clear of the shed collider.
+  // Measured worst slope along the line 4.5%.
   {
     name: "millSpur",
-    pts: [[0.8, 0.58], [0.812, 0.552], [0.82, 0.528]]
+    pts: [[0.8, 0.58], [0.787, 0.55], [0.797, 0.523]]
   }
 ];
 
@@ -260,6 +263,11 @@ export function navGraph() {
   // Anything still labelled rail must have no edges; the graph check asserts
   // that, so the rail cannot quietly become traversable.
   for (const br of BRIDGES) {
+    if (br.rail) {
+      // Rail trestles take no nav node: the iron road is scenery (see RAIL),
+      // and an unlinked bridge node would register as its own component.
+      continue;
+    }
     const p = mapToWorld(br.u, br.v);
     if (inWorld(p.x, p.z)) {
       raw.push({ x: p.x, z: p.z, kind: "bridge", ref: br.name });
@@ -344,9 +352,14 @@ export function navGraph() {
   // Bridges tie to the nearest road on each bank: the deck axis runs along
   // heading(yaw), so its ends sit over the banks by construction. A bridge
   // end that cannot find road within SNAP_RADIUS failed its purpose — counted,
-  // never silently dropped.
+  // never silently dropped. Rail trestles are skipped with the rest of the
+  // rail: the iron road is scenery, not a walkable crossing, and addBridges
+  // does not build decks for them either.
   const bridgeMisses = [];
   for (const br of BRIDGES) {
+    if (br.rail) {
+      continue;
+    }
     const p = mapToWorld(br.u, br.v);
     const h = headingVector(br.yaw);
     const me = nodes.find((n) => n.kind === "bridge" && n.ref === br.name);
