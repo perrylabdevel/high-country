@@ -1,0 +1,16 @@
+{
+  "what": "Iron Valley audit — one sealed open shed, one collider floating off its visual, one walk-through pile, one oversized collider, one misplaced ruin",
+  "cause": "The stamp mill shed is open-sided on all four faces (a centre row of posts and a camshaft are the only visual obstructions) but collide() laid four full perimeter wall colliders over the footprint, so the player stopped dead on four invisible walls at a shed that reads as walk-in — the same visual/physics mismatch class as the town lots. The camshaft collider was anchored to heightAt at the plan centre while the structure seats at its lowest footing corner on an eastward-rising slope, so the collider guarded a band 1.3 m above the visible shaft. The second tailings cone (10 m wide, 3.5 m tall) was placed with collide=false and read as solid while the player walked straight through it. The headframe base collider used 2x2 half-extents on a 3.5x3.5 visual block, drawing an invisible 0.25 m collar of solid air. One of the three generic dark ruin boxes sat at (+16,+8) — entirely inside the mill's 16x12 footprint.",
+  "fix": "structure() gained an openSided declaration and the stamp mill uses it: the four perimeter wall colliders are gone (the camshaft collider is the interior obstacle) and the collider-agreement check no longer demands wall colliders from a declared open-sided structure. The camshaft is raised to ride just clear of the highest terrain it crosses (real camshafts run high, driving the stamp heads from above — at floor+1.4 it dove underground at the shed's east end) and its collider now mirrors the visual cylinder exactly (centre camY, radius 0.4). Both tailings cones collide (second cone r=4 cylinder, same 0.8 collider-to-visual ratio as the first). Headframe base collider matches the visual at 1.75x1.75. The misplaced ruin moved west of the headframe to (-24,+2), clear of the mill, cones and the other ruins.",
+  "evidence": {
+    "probes (before)": "movementBlocked into each mill wall line: south false / east true / north true / west true — but the three 'true' hits were the misplaced camshaft collider, not walls; cone2 resolvePosition displacement 0.000 (no collider); camshaft blocked at a y 1.3 m above its visual centre",
+    "probes (after)": "all four mill wall lines FREE; cone2 displacement 2.420; camshaft blocked exactly at its visual height, free above and below",
+    "sample-based invisible-wall sweep": "before: mill south wall 0% covered, west wall 0% covered, headframe base 25% covered; after: only remaining flag is an ore cart at the mines POI 170 m away (out of scope)",
+    "check suite": "23/23 PASS, exit 0"
+  },
+  "ironValley-golden.png": "graded audit vantage after the fixes — open-sided mill reads walk-in, relocated ruin clear of the headframe",
+  "mill-open-side.png": "eye level, south face — posts and the raised camshaft visible through the open side, no invisible walls",
+  "mill-inside.png": "eye level from inside the footprint — posts and camshaft from the player's walking plane, tailings cone visible through the open wall",
+  "cones.png": "eye level of the tailings piles — both now solid to the resolver",
+  "headframe-base.png": "eye level of the headframe base and relocated ruin box"
+}
