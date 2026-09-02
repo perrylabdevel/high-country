@@ -86,9 +86,25 @@ assert(
   movementBlocked(POS.ranch.x, ranchHouseZ - 9, 0, 4, PLAYER_RADIUS),
   "player should not walk through the ranch house"
 );
+// Silver Creek's buildings are enterable now — every lot cuts a door gap in
+// its front wall and the aperture check owns the walk-through contract — so
+// this probe crosses a building's back (north) WALL instead: the endpoint
+// lands inside the wall collider itself, which must displace it. (The old
+// probe walked at a street lot whose door now stands open; moveAndSlide
+// resolves only the segment endpoints, and the old endpoint sat 3.5 cm short
+// of the back wall — it passed only while a solid blockout box covered the
+// whole footprint, which enterable lots no longer have.)
 assert(
-  movementBlocked(POS.silverCreek.x, POS.silverCreek.z - 14, 0, 5, PLAYER_RADIUS),
-  "player should not walk through Silver Creek buildings"
+  movementBlocked(POS.silverCreek.x - 7, POS.silverCreek.z - 8.6, 5, 0, PLAYER_RADIUS),
+  "player should not walk through Silver Creek building walls"
+);
+// And the new contract, held from the other side: a town door the player can
+// see open must actually admit them — walk straight in through the church's
+// front door, street side to interior. (Church door centre is town.x + 13,
+// town.z + 7.5, facing south; this walks the door's centre line.)
+assert(
+  !movementBlocked(POS.silverCreek.x + 13.3, POS.silverCreek.z + 5.5, -0.6, 3.96, PLAYER_RADIUS),
+  "player should walk through an open Silver Creek door"
 );
 assert(
   movementBlocked(POS.fortGrant.x, POS.fortGrant.z + 13.5, 0, -2, PLAYER_RADIUS),

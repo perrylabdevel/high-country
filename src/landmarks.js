@@ -443,27 +443,27 @@ export function createLandmarks(scene, maps = {}) {
   const townYaw = 0.15;
   street(group, town, townYaw, [
     { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 3.2 },
-    { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0 },
-    { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0 },
+    { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true },
+    { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
     { name: "store", w: 9.5, h: 5.8, d: 8, sign: true, falseFront: true, falseFrontHeight: 3.2, enterable: true },
     { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
     { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 3.2, sign: true, enterable: true },
-    { name: "blacksmith", w: 12, h: 4.6, d: 9, dark: true, falseFront: true, falseFrontHeight: 3.0 },
-    { name: "livery", w: 11, h: 4.2, d: 8, dark: true, falseFront: true, falseFrontHeight: 2.8 }
+    { name: "blacksmith", w: 12, h: 4.6, d: 9, dark: true, falseFront: true, falseFrontHeight: 3.0, enterable: true },
+    { name: "livery", w: 11, h: 4.2, d: 8, dark: true, falseFront: true, falseFrontHeight: 2.8, enterable: true }
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
   street(group, { x: town.x, z: town.z - 22 }, 0.15, [
-    { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8 },
-    { w: 7, h: 4.2, d: 6, falseFront: true, falseFrontHeight: 2.8 },
-    { w: 8, h: 4.4, d: 7, falseFront: true, falseFrontHeight: 3.0 },
-    { w: 7, h: 3.8, d: 6, falseFront: true, falseFrontHeight: 2.6 },
-    { w: 9, h: 4.6, d: 7, falseFront: true, falseFrontHeight: 3.0 }
+    { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },
+    { w: 7, h: 4.2, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },
+    { w: 8, h: 4.4, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true },
+    { w: 7, h: 3.8, d: 6, falseFront: true, falseFrontHeight: 2.6, enterable: true },
+    { w: 9, h: 4.6, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true }
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
   street(group, { x: town.x, z: town.z + 20 }, 0.15, [
-    { w: 7, h: 4.1, d: 6 },
-    { w: 8, h: 4.8, d: 7 },
-    { w: 7, h: 3.9, d: 6 },
-    { w: 9, h: 5.2, d: 7, stone: true }
+    { w: 7, h: 4.1, d: 6, enterable: true },
+    { w: 8, h: 4.8, d: 7, enterable: true },
+    { w: 7, h: 3.9, d: 6, enterable: true },
+    { w: 9, h: 5.2, d: 7, stone: true, enterable: true }
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
   // The cross street meets the main row at its west end, not across the middle
   // of town. Planted at town.x + 16 it ran straight through the storefront row
@@ -475,11 +475,11 @@ export function createLandmarks(scene, maps = {}) {
     x: town.x + Math.cos(townYaw) * crossAlong,
     z: town.z + Math.sin(townYaw) * crossAlong
   }, townYaw + Math.PI / 2, [
-    { w: 7, h: 4.3, d: 6 },
-    { w: 8, h: 5, d: 7 },
-    { w: 7, h: 4, d: 6 },
-    { w: 8, h: 4.6, d: 7 },
-    { w: 7, h: 3.8, d: 6 }
+    { w: 7, h: 4.3, d: 6, enterable: true },
+    { w: 8, h: 5, d: 7, enterable: true },
+    { w: 7, h: 4, d: 6, enterable: true },
+    { w: 8, h: 4.6, d: 7, enterable: true },
+    { w: 7, h: 3.8, d: 6, enterable: true }
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
   boxAt(group, town.x + 8, town.z + 40, 16, 3.2, 8, rust);
 

@@ -269,11 +269,6 @@ export function resetApertureEnumeration() {
  * is a geometry change, not a comment change.
  */
 export const APERTURE_DECLARATIONS = {
-  newspaper: { state: "facade", note: "blockout lot — no interior shell; the leaf and frame are facade dressing" },
-  doctor: { state: "facade", note: "blockout lot — no interior shell; the leaf and frame are facade dressing" },
-  blacksmith: { state: "facade", note: "blockout lot — no interior shell; the leaf and frame are facade dressing" },
-  livery: { state: "facade", note: "blockout lot — no interior shell; the leaf and frame are facade dressing" },
-  streetLot: { state: "facade", note: "blockout lot — no interior shell; the leaf and frame are facade dressing" },
   timberCabin: { state: "shell", note: "timber-camp cabin dressing — south door enters an open shell, no interior room" },
   elPasoCasa: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
   elPasoTwoStory: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
