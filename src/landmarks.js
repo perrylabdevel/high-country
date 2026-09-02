@@ -24,6 +24,7 @@ import {
   registerWaterPlacement,
   STRUCTURES,
   footprintsOverlap,
+  block,
   boxOnGround,
   boxOnPlane,
   cylOnGround,
@@ -426,6 +427,9 @@ export function createLandmarks(scene, maps = {}) {
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
     : mat(0xa89e90);
   const roof = hasMaps ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 }) : mat(0x4a3020);
+  // Laid boarding — cabin floors. `wood` is the floor texture (short planks);
+  // the siding above is for walls, which is the whole walls-vs-floors split.
+  const floorWood = hasMaps ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 }) : mat(0xc4a574);
   // Weak triplanar normals on adobe: full-strength plaster read as wood grain
   // on the large mission walls, and none read as a flat painted block (M1).
   // A low normal scale keeps the plaster mottle without the plank look.
@@ -851,13 +855,77 @@ export function createLandmarks(scene, maps = {}) {
     stone2.rotation.z = (seeded(i + 15) - 0.5) * 0.18;
     stone2.rotation.y = (seeded(i + 7) - 0.5) * 0.4;
   }
-  // Hunting cabin — the plain box read as flat-roofed (H1). The roof lives
-  // here with the box; the chimney, door, and step are in homestead.js.
-  boxAt(group, POS.huntingCabin.x, POS.huntingCabin.z, 7, 3.6, 5.5, dark);
+  // Hunting cabin — enterable. Two faults with the old build: the roof was
+  // seated at heightAt(centre) while the body box seated at
+  // lowestSeat(footprint), so on the cabin's slope the eave missed the wall
+  // top — floating off it on the downhill side, buried on the uphill side;
+  // and the cabin was one solid collider block with the door painted on
+  // (aperture "facade"), so the door was decoration and there was no way in.
+  // The shell is now kit walls on a footing pad with the roof mated to the
+  // wall top, and the north doorway is a real opening: leaf, collider gap,
+  // traversable aperture. Chimney, step and porch stay in homestead.js.
   const hc = POS.huntingCabin;
-  const hcRoof = gableRoof({ w: 7.4, d: 5.5, pitch: 0.62, overhang: 0.5, eave: 3.6, material: roof });
-  hcRoof.position.set(hc.x, heightAt(hc.x, hc.z), hc.z);
-  group.add(hcRoof);
+  const hcW = 7;
+  const hcD = 5.5;
+  const hcH = 3.6;
+  const hcSt = structure({
+    name: "huntingCabin", habitable: true,
+    x: hc.x, z: hc.z, yaw: 0, w: hcW, d: hcD, eave: hcH,
+    foundation: true, material: stone
+  });
+  group.add(hcSt);
+  // Door on the north wall (-Z) — the face the audit camera sees (H1).
+  // wallX panels run along +X, so the door wall mates to face.back.
+  const hcNorth = wallX({
+    length: hcW, height: hcH, thickness: T, material: dark,
+    openings: [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }]
+  });
+  mate(hcNorth, "wallSide", face(hcSt, "back"));
+  const hcSouth = wallX({ length: hcW, height: hcH, thickness: T, material: dark });
+  mate(hcSouth, "wallSide", face(hcSt, "front"));
+  const hcEast = wallX({ length: hcD, height: hcH, thickness: T, material: dark });
+  mate(hcEast, "wallSide", face(hcSt, "right"));
+  const hcWest = wallX({ length: hcD, height: hcH, thickness: T, material: dark });
+  mate(hcWest, "wallSide", face(hcSt, "left"));
+  if (anchorsOf(hcNorth).get("opening.0")) {
+    mate(
+      doorLeaf({ width: 0.86, height: 2.03, thickness: 0.08, hinge: -0.46, swing: Math.PI * 0.5, material: facadeWood }),
+      "frame",
+      anchorsOf(hcNorth).get("opening.0"),
+      { offset: { x: 0, y: 0, z: T / 2 } }
+    );
+  }
+  const hcRoof = gableRoof({ w: hcW + 0.4, d: hcD, pitch: 0.62, overhang: 0.5, eave: hcH, material: roof });
+  mate(hcRoof, "base", anchorsOf(hcSt).get("wallTop"));
+  // Floor and a loft ceiling at the standing plane, per the habitable checks.
+  const hcFloor = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "floor", extra: { top: 0.08 } });
+  mate(hcFloor, "base", anchorsOf(hcSt).get("footing"));
+  const hcCeiling = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "ceiling", extra: { height: 2.7 } });
+  mate(hcCeiling, "base", anchorsOf(hcSt).get("footing"), { offset: { y: 2.62 } });
+  // Trapper's furnishing — the room must not read as an empty shell once the
+  // door opens.
+  const hcCot = block({ w: 1.0, h: 0.42, d: 2.1, material: dark });
+  mate(hcCot, "base", anchorsOf(hcSt).get("footing"), { offset: { x: -2.2, z: 1.1 } });
+  const hcBedroll = block({ w: 0.9, h: 0.14, d: 1.9, material: canvas });
+  mate(hcBedroll, "base", anchorsOf(hcSt).get("footing"), { offset: { x: -2.2, y: 0.42, z: 1.1 } });
+  const hcTable = block({ w: 1.3, h: 0.76, d: 0.85, material: facadeWood });
+  mate(hcTable, "base", anchorsOf(hcSt).get("footing"), { offset: { x: 2.3, z: -1.5 } });
+  const hcStool = block({ w: 0.45, h: 0.5, d: 0.45, material: dark });
+  mate(hcStool, "base", anchorsOf(hcSt).get("footing"), { offset: { x: 1.5, z: -1.4 } });
+  addBoxCollider(hc.x - 2.2, hc.z + 1.1, 0.5, 1.05);
+  addBoxCollider(hc.x + 2.3, hc.z - 1.5, 0.65, 0.43);
+  // Wall colliders with the door gap cut in the north wall. The 1.1 gap is the
+  // 0.92 opening plus slack for the 0.84 m body circle.
+  collide(hcSt, hc.x, hc.z, 0, [
+    { x: 0, z: -hcD / 2, halfX: hcW / 2, halfZ: T / 2, openings: [{ x: 0, w: 1.1 }] },
+    { x: 0, z: hcD / 2, halfX: hcW / 2, halfZ: T / 2 },
+    { x: hcW / 2, z: 0, halfX: T / 2, halfZ: hcD / 2 },
+    { x: -hcW / 2, z: 0, halfX: T / 2, halfZ: hcD / 2 }
+  ]);
+  // The doorway needs no site-registered aperture: enumerateApertures derives
+  // it from the wall opening itself (huntingCabin.back.door.0), and habitable
+  // structures' doors infer traversable — the old hand-registered "facade"
+  // record in homestead.js was deleted with the painted door.
   boxAt(group, POS.overlook.x, POS.overlook.z, 8, 0.2, 1.1, dark, false);
 
   // Cattle — per-instance yaw.

@@ -276,6 +276,7 @@ const EXPECTED_STRUCTURE_COUNTS = {
   // built == configured, and this agrees with it.
   streetLot: 14,
   timberCabin: 3,
+  huntingCabin: 1,
   stampMill: 1,
   elPasoCasa: 1,
   elPasoTwoStory: 1,

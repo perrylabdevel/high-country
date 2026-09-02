@@ -9,9 +9,9 @@
       "gate": 3
     },
     "byState": {
-      "traversable": 20,
+      "traversable": 21,
       "window": 16,
-      "facade": 20,
+      "facade": 19,
       "shell": 11
     },
     "failures": 0
@@ -1772,6 +1772,35 @@
       }
     },
     {
+      "id": "huntingCabin.back.door.0",
+      "poi": "huntingCabin",
+      "kind": "door",
+      "class": null,
+      "side": "back",
+      "width": 0.92,
+      "height": 2.1,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": {
+        "width": 0.86,
+        "height": 2.03,
+        "swing": 1.5707963267948966
+      },
+      "glass": null,
+      "center": {
+        "x": -480,
+        "y": 19.59,
+        "z": -402.75
+      },
+      "normal": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    {
       "id": "ranchGate.east.gate.0",
       "poi": "ranchGate",
       "kind": "gate",
@@ -1869,31 +1898,6 @@
         "x": 0,
         "y": 0,
         "z": 1
-      }
-    },
-    {
-      "id": "huntingCabin.front.door.0",
-      "poi": "huntingCabin",
-      "kind": "door",
-      "class": null,
-      "side": "front",
-      "width": 0.95,
-      "height": 2.05,
-      "fromFloor": 0,
-      "state": "facade",
-      "note": "no cabin interior; the door is dressing on a solid block",
-      "traversable": false,
-      "leaf": null,
-      "glass": null,
-      "center": {
-        "x": -480,
-        "y": 19.69,
-        "z": -402.85
-      },
-      "normal": {
-        "x": 0,
-        "y": 0,
-        "z": -1
       }
     }
   ]
