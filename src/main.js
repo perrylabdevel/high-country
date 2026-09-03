@@ -1190,13 +1190,13 @@ async function boot() {
       const alpha = Math.max(0, Math.min(1, edge * 1.6));
       if (!cardinal && !inter) {
         // minor tick: a short faint mark, doubled with the same dark underlay
-        ctx.strokeStyle = `rgba(10, 8, 5, ${0.4 * alpha})`;
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.6 * alpha})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x + 0.5, h - 4);
         ctx.lineTo(x + 0.5, h - 7);
         ctx.stroke();
-        ctx.strokeStyle = `rgba(244, 234, 210, ${0.4 * alpha})`;
+        ctx.strokeStyle = `rgba(244, 234, 210, ${0.72 * alpha})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + 0.5, h - 4);
@@ -1206,13 +1206,13 @@ async function boot() {
       if (cardinal || inter) {
         // every stroke gets a dark twin first: cream on bright sky vanishes,
         // cream over a hair of black shadow holds
-        ctx.strokeStyle = `rgba(10, 8, 5, ${0.55 * alpha})`;
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.8 * alpha})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x + 0.5, h - 4);
         ctx.lineTo(x + 0.5, h - (cardinal ? 15 : inter ? 11 : 0));
         ctx.stroke();
-        ctx.strokeStyle = `rgba(244, 234, 210, ${0.62 * alpha})`;
+        ctx.strokeStyle = `rgba(244, 234, 210, ${0.92 * alpha})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + 0.5, h - 4);
@@ -1221,17 +1221,17 @@ async function boot() {
       }
       if (cardinal) {
         ctx.font = "600 12px Palatino, 'Palatino Linotype', Georgia, serif";
-        ctx.strokeStyle = `rgba(10, 8, 5, ${0.6 * alpha})`;
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.85 * alpha})`;
         ctx.lineWidth = 3;
         ctx.strokeText("NESW"[norm / 90], x, 13);
         ctx.fillStyle = `rgba(232, 195, 106, ${alpha})`;
         ctx.fillText("NESW"[norm / 90], x, 13);
       } else if (inter) {
         ctx.font = "9px Palatino, 'Palatino Linotype', Georgia, serif";
-        ctx.strokeStyle = `rgba(10, 8, 5, ${0.6 * alpha})`;
+        ctx.strokeStyle = `rgba(10, 8, 5, ${0.85 * alpha})`;
         ctx.lineWidth = 3;
         ctx.strokeText(["NE", "SE", "SW", "NW"][(norm - 45) / 90], x, 11);
-        ctx.fillStyle = `rgba(244, 234, 210, ${0.72 * alpha})`;
+        ctx.fillStyle = `rgba(244, 234, 210, ${0.92 * alpha})`;
         ctx.fillText(["NE", "SE", "SW", "NW"][(norm - 45) / 90], x, 11);
       }
     }
