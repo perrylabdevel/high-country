@@ -72,9 +72,26 @@ body > canvas { display: block; width: 100%; height: 100%; }
   height: 1px;
   background: linear-gradient(90deg, rgba(196, 163, 106, 0.95), rgba(196, 163, 106, 0));
 }
+/* The centre column is a mounted plaque: the bearing tape, the objective and
+   its destination line all sit on one dark plate with a gold hairline, the
+   same backing family as the prompt plate — without it the tape's cream marks
+   and the gold type washed out against bright sky. Revealed with the compass
+   on entering the game; before that the grid cell stays empty. */
+#hud-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(14, 9, 4, 0.66);
+  border: 1px solid rgba(196, 163, 106, 0.5);
+  border-radius: 2px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  padding: 3px 20px 7px;
+}
+#hud-center.hidden {
+  display: none !important;
+}
 #compass {
   display: block;
-  margin-top: 3px;
 }
 #compass.hidden {
   display: none;
@@ -224,20 +241,13 @@ button {
 }
 .hidden { display: none !important; }
 #objective {
-  position: absolute;
-  left: 50%;
-  top: 60px;
-  transform: translateX(-50%);
   max-width: min(560px, 80vw);
   text-align: center;
   font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  background: rgba(16, 11, 6, 0.5);
-  border: 1px solid rgba(196, 163, 106, 0.38);
-  padding: 7px 20px 6px;
+  padding-top: 5px;
   text-shadow: 0 1px 8px #000;
-  border-radius: 2px;
 }
 #objective::before {
   content: "❖ ";
@@ -263,10 +273,6 @@ button {
    Slightly smaller and gold so it reads as an annotation of the objective,
    not a second objective. */
 #objective-target {
-  position: absolute;
-  left: 50%;
-  top: 97px;
-  transform: translateX(-50%);
   max-width: min(560px, 80vw);
   text-align: center;
   font-size: 12px;
