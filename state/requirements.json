@@ -362,6 +362,54 @@
       ],
       "deps": [],
       "attempts": []
+    },
+    {
+      "id": "R9",
+      "title": "Player and settlers are dressed figures that walk, not capsules that slide",
+      "status": "verified",
+      "locked": false,
+      "observation": "The default camera is third-person, so the player avatar is on screen during normal play — and it is a brown capsule torso, a bare sphere head and a hat (src/player.js), with no arms, no legs and no animation: a rigid statue that slides across the ground. The NPCs the story runs through are strictly worse (colored capsule + head, no hat, no motion, src/main.js makeNpc). When mounted, the figure is never seated on the horse — object.position copies the horse's, so third-person riding shows a capsule floating at the horse's position. In a world that audits at 3.8-4.3 for visual quality, the two figures the player most often looks at are the most prototypical objects in it.",
+      "playerExperience": "In third person the player sees a dressed 1880s figure stride — legs and arms swinging with speed, a body that bobs — instead of a gliding capsule; the family they talk to are distinct dressed settlers with hats and clothing of their own; and riding reads as riding, the rider seated in the saddle. Dialogue, travel and the chase cam all look at people who look like people.",
+      "expectedBenefit": "Serves P6 (visual cohesion) and P2 (family-centered drama): the figures carrying every conversation and every frame of travel stop contradicting the world's visual bar. A shared procedural figure kit keeps the cost low and gives every future NPC the same dress for free.",
+      "evidenceRefs": [],
+      "source": "Operator-directed campaign 2026-09-03 ('improve the player's look'): survey found player.js torso/head/hat primitives with no limbs or animation, main.js makeNpc capsule+head, and an unseated mounted figure; operator scoped it to player + NPCs + seated mounted rider, figures with procedural motion.",
+      "acceptance": [
+        "In third-person play the player reads as a dressed figure — head, hat, torso, arms, legs — at the chase-cam distance, no longer a capsule",
+        "The player's figure walks when the player walks: limbs swing with speed and the body bobs; standing still is still",
+        "Each NPC reads as a distinct dressed settler (own clothing color, hat) at dialogue distance, with at least subtle idle motion",
+        "Mounted in third person, the rider is seated on the horse — at the saddle, legs to the animal's sides — not floating at its position",
+        "First-person and fly modes still hide the player body; ?dev capture hooks and probe tooling are unaffected",
+        "No systematic frame-time regression on the ranch third-person view versus the before set"
+      ],
+      "verification": [
+        "before/after captures: ranch third-person walking, a dialogue close-up, and mounted third-person",
+        "npm run check + build",
+        "frame-time spot check versus the before set",
+        "independent fresh visual critic with the exact perceptual question"
+      ],
+      "attempts": [],
+      "files": [
+        "src/player.js",
+        "src/main.js",
+        "src/figures.js"
+      ],
+      "priority": 2,
+      "confidence": 0.85,
+      "cost": "M",
+      "risk": "S",
+      "deps": [],
+      "history": [
+        {
+          "date": "2026-09-03",
+          "action": "created",
+          "note": "proposed and immediately activated by operator direction ('ready now to work on a plan to improve the player's look'); scope chosen with the operator: player + NPCs + seated mounted rider, figures with procedural motion"
+        },
+        {
+          "date": "2026-09-03T19:35:09.170Z",
+          "action": "verified",
+          "note": "20260903-R9: accepted"
+        }
+      ]
     }
   ]
 }

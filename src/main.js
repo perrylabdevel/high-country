@@ -21,6 +21,7 @@ import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
 import { createPlayer } from "./player.js";
+import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
@@ -336,6 +337,20 @@ async function boot() {
       horse: { x: horse.object.position.x, z: horse.object.position.z },
       place: placeEl.textContent
     });
+    // R9: the avatar's procedural pose as numbers, so a probe can prove the
+    // stride is running without scraping pixels (legs are foreshortened to
+    // nothing from the chase camera directly behind).
+    window.__figurePose = () => {
+      const p = player.figure.parts;
+      return {
+        legL: +p.legL.rotation.x.toFixed(3),
+        legR: +p.legR.rotation.x.toFixed(3),
+        armL: +p.armL.rotation.x.toFixed(3),
+        armR: +p.armR.rotation.x.toFixed(3),
+        bobY: +p.legL.parent.position.y.toFixed(3),
+        mounted: player.state.mounted
+      };
+    };
     /**
      * Magenta ground reference, for the floating-grass question.
      *
@@ -990,34 +1005,36 @@ async function boot() {
 
   const npcs = [
     {
-      name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2, color: 0x5b3a24,
+      name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
+      look: { shirt: 0x5b3a24, vest: 0x3a2415, pants: 0x2a2018, hat: 0x3d2918 },
       line: [
         "Smoke on the north wind. Too early, and too steady.",
         "If you ride, take the trail past the corral and keep the lake on your right."
       ]
     },
     {
-      name: "Nell Calder", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8, color: 0x7a3b1e,
+      name: "Nell Calder", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
+      look: { shirt: 0x7a3b1e, pants: 0x4a3a2c, hatStyle: "hair", hair: 0x3a2418, skirt: true },
       line: [
         "Juniper is ready. That smoke is not a trash burn.",
         "We should be on the ridge before Silver Creek writes the story for us."
       ]
     },
-    { name: "Wade Calder", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5, color: 0x6a4e32, line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing." }
+    {
+      name: "Wade Calder", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
+      look: { shirt: 0x6a4e32, vest: 0x4a2e18, pants: 0x33261a, hat: 0x2e2118 },
+      line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing."
+    }
   ];
 
   function makeNpc(npc) {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.28, 0.85, 4, 8),
-      new THREE.MeshStandardNodeMaterial({ color: npc.color, roughness: 0.8 })
-    );
-    body.position.y = 0.95;
-    body.castShadow = true;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), new THREE.MeshStandardNodeMaterial({ color: 0xe6d2b0 }));
-    head.position.y = 1.68;
-    g.add(body, head);
+    // R9: settlers are the same dressed figures as the player, each with a
+    // distinct palette, standing at their post with idle motion.
+    npc.figure = createFigure({ skin: 0xe0c29a, ...npc.look });
+    const g = npc.figure.group;
     g.position.set(npc.x, heightAt(npc.x, npc.z), npc.z);
+    // Face the ranch yard, not default +Z, so nobody stares at a wall.
+    g.rotation.y = Math.atan2(POS.ranch.x - npc.x, POS.ranch.z - npc.z);
     scene.add(g);
     npc.object = g;
     npc.collider = addCylinderCollider(npc.x, npc.z, 0.45);
@@ -1384,6 +1401,33 @@ async function boot() {
     speakerEl.textContent = npc.name;
     bodyEl.textContent = talking.lines[0];
     dialogueEl.classList.remove("hidden");
+    // R9: settlers are dressed figures now, so a conversation should show
+    // one. The chase camera rests behind the player — precisely between the
+    // camera and the person you walked up to — so the settler you are
+    // talking to hides behind your own back. Swing to a three-quarter
+    // two-shot for the length of the conversation; player.update is paused
+    // while talking, so nothing else moves the camera until it closes, and
+    // the chase cam eases back on its own afterwards.
+    if (player.state.mode === "third" && npc.object) {
+      const p = player.object.position;
+      const n = npc.object.position;
+      const dx = n.x - p.x;
+      const dz = n.z - p.z;
+      const len = Math.hypot(dx, dz) || 1;
+      const eye = Math.max(p.y, n.y);
+      // Frame both heads: camera abeam of the pair's midpoint, aimed at the
+      // midpoint itself, so neither figure clips the frame edge.
+      camera.position.set(
+        (p.x + n.x) / 2 - (dz / len) * 3.2,
+        eye + 1.75,
+        (p.z + n.z) / 2 + (dx / len) * 3.2
+      );
+      camera.lookAt(
+        (p.x + n.x) / 2,
+        eye + 1.25,
+        (p.z + n.z) / 2
+      );
+    }
   }
 
   function openReading(examine) {
@@ -1616,6 +1660,10 @@ async function boot() {
     });
 
     liveInteract = null;
+    // R9: settlers breathe and shift weight even when nothing else moves.
+    for (const npc of npcs) {
+      npc.figure.update(dt, 0);
+    }
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
       // Arrival stages complete by proximity the instant you stand in them.

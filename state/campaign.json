@@ -1,11 +1,11 @@
 {
-  "id": "20260830-R5",
-  "requirementId": "R5",
+  "id": "20260903-R9",
+  "requirementId": "R9",
   "stage": "accepted",
-  "startedAt": "2026-08-30T08:01:38.950Z",
-  "rounds": 2,
+  "startedAt": "2026-09-03T18:33:27.272Z",
+  "rounds": 3,
   "builder": "brian-agent",
-  "verifier": null,
+  "verifier": "r9-critic-delta",
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
@@ -13,16 +13,28 @@
   },
   "notes": [
     {
-      "ts": "2026-08-30T08:02:03.167Z",
+      "ts": "2026-09-03T18:33:36.383Z",
       "stage": "planned",
-      "text": "Selected 20260830-R5 'Arrival at a place is an event': first arrival at each POI shows a visible, non-blocking acknowledgement; repeats stay quiet; ?dev capture hooks unaffected. Now planning: survey how arrival currently surfaces (objective ring, place label, inRegion) in src/map.js and src/main.js, then design a small first-visit acknowledgement keyed on POI id in persistent visited-state."
+      "text": "R9 planned and built in one engagement: new shared figure kit src/figures.js (createFigure: hip/shoulder pivots, vest/belt/skirt/hat-or-hair options, update(dt, speed, mounted) driving stride+bob+idle-breathing+seated pose). Player avatar (src/player.js) rebuilt on it — same 'body' group contract so first-person/fly visibility toggles and all camera maths are untouched; mounted branch now seats the figure (hips at RIDE_SEAT 1.42 on the horse's back) instead of pinning the avatar origin to the horse's ground, and the mounted eye height derives from the seat (RIDE_EYE 1.78) replacing MOUNT_EYE. NPCs (src/main.js makeNpc) rebuilt as createFigure instances with distinct palettes (Harlan: coat+vest+hat; Nell: dress, hair, no hat; Wade: tan shirt+vest+hat) facing the yard; per-frame idle loop added. Dev hook __figurePose exposes joint rotations read-only for probes."
     },
     {
-      "ts": "2026-08-30T08:43:15.579Z",
+      "ts": "2026-09-03T18:34:37.403Z",
+      "stage": "implementing",
+      "text": "Built: createFigure kit in src/figures.js; player avatar rebuilt on it in src/player.js (body group contract kept; mounted branch seats the figure, hips at RIDE_SEAT 1.42 on the horse's back; mounted eye now RIDE_EYE 1.78 above the seat origin, replacing MOUNT_EYE). NPCs in src/main.js rebuilt as createFigure instances with distinct palettes (Harlan coat+vest+hat, Nell dress+hair, Wade tan+vest+hat), facing the yard, with a per-frame idle loop. Dev hook __figurePose exposes joint rotations read-only."
+    },
+    {
+      "ts": "2026-09-03T18:34:37.500Z",
       "stage": "verifying",
-      "text": "R5 implemented: placeAt() in map.js (placeLabel refactored onto it, so HUD name and acknowledgement can never disagree), visitedPlaces Set persisted in the save (snapshot.visited), boot place seeded so loading never announces where you already are, and a non-blocking flourish (label pulse + '· first visit' note, own lane — not the mission toast). Verification: scripts/probe-arrival.mjs 8/8 PASS (boot quiet; ranchGate first-arrival pulse+note; flourish self-expires; re-entry does not repeat; overlook still gets its own first visit; no page errors; visited set persisted through the game's own beforeunload autosave — evidence audit/evidence/probe-arrival-R5.log). npm run check PASS. Capture tooling untouched: __captureView moves only the camera, player pose stays at boot, so audit captures stay fanfare-free."
+      "text": "npm run build OK; npm run check 23 PASS. Pose probe proves motion: idle joints 0 with breathing bob -0.008; walk swings legs anti-phase to 0.56 rad with arms opposite and bob 0.007-0.041; settle returns home; mounted holds seated pose (legs -1.22, arms -0.5). After-captures (third/mounted/dialogue/walk frames) captured through the same probe drive as the before set. HUD frame times: after-third 60 FPS vs before-third 13; after-mounted 43 vs before-mounted 17 - no regression."
     }
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "ts": "2026-09-03T19:35:00.745Z",
+      "verdict": "accept",
+      "verifier": "r9-critic-delta",
+      "note": "Fresh independent critic (clean context, re-judged the fixed build): all-facing probe re-run — player front 180 deg = spawn travel, NPCs 0.0 deg error; walking W front-dot-travel 1.000, S -1.000; new turn probe at yaw 45.4 deg front-dot-travel 0.993, so the headingRotationY fix holds off-spawn. Mount probe: rider front-dot-horse-head 1.000, hips 0.65 m below horse body centre (seated), legs 1.22/arms 0.5 as specified. fix-dialogue.png shows a true two-shot, neither figure hidden. Root cause genuinely resolved at player.js:188,238,307. No new defects. npm run check: 23 pass."
+    }
+  ],
   "outcome": "accepted"
 }

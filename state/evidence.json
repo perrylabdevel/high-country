@@ -238,5 +238,29 @@
     "path": "audit/reports/aperture-campaign-2026-08-30.md",
     "summary": "run 19 (both probe fixes in, fresh build): ranchGate.east.gate.0 PASSED — closes the 31/31 union of traversable doors walked through closed-loop (runs 13+17+18+19; no budget orphans). partition.east approach wedged as in every full run (13's staged walk-through remains its evidence). Inventory-identical-after-save/load PASS (67 ids). Logs: audit/evidence/probe-doors-run{17,18,19}-2026-08-31.log",
     "durable": true
+  },
+  {
+    "id": "E30",
+    "date": "2026-09-03T18:03:06.892Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "R9 created and activated (operator-directed): observation -> the two figures the player most often sees are primitives; the third-person player is a capsule+hat with no limbs or animation, NPCs are colored capsule+head, and the mounted figure is never seated on the horse. Proposed change -> shared procedural figure kit (src/figures.js) dressing player and NPCs with per-figure variation, procedural walk/idle motion, and a seated rider pose. Expected player benefit -> dialogue, travel and the chase cam look at people who look like people (P2, P6). Evidence required -> before/after captures (ranch third-person walk, dialogue close-up, mounted third-person), npm run check + build, frame-time spot check, independent fresh visual critic. Decision -> scope confirmed with the operator: player + NPCs + seated mounted rider, figures with motion (over player-only and geometry-only); R9 status active, work starting now.",
+    "durable": true
+  },
+  {
+    "id": "E31",
+    "date": "2026-09-03T19:35:09.266Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "R9 accepted: the third-person avatar and mounted rider are now dressed 1880s figures with a procedural stride from the shared figure kit (src/figures.js). Player yaw converts through headingRotationY so the +Z-fronted figure faces travel; NPC facing measured 0.0 deg error, player front-dot-travel 1.000 at spawn and 0.993 at yaw 45 deg; mounted rider front-dot-horse-head 1.000 with seated hips. Dialogue opens on a three-quarter two-shot framing both figures. Frame time improved (39-60 FPS vs 13-17 before).",
+    "durable": true
+  },
+  {
+    "id": "E32",
+    "date": "2026-09-03T19:35:19.499Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "Backlog candidates from the R9 critic review (both judged out of R9 scope): the untextured capsule horse is now the roughest object in its frame next to the dressed figures (candidate for a horse-model requirement), and NPC figures read as featureless at dialogue range where their faces meet the camera (candidate for facial detail). Recorded so the next campaign selection can rank them.",
+    "durable": true
   }
 ]
