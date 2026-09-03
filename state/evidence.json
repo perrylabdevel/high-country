@@ -262,5 +262,21 @@
     "path": null,
     "summary": "Backlog candidates from the R9 critic review (both judged out of R9 scope): the untextured capsule horse is now the roughest object in its frame next to the dressed figures (candidate for a horse-model requirement), and NPC figures read as featureless at dialogue range where their faces meet the camera (candidate for facial detail). Recorded so the next campaign selection can rank them.",
     "durable": true
+  },
+  {
+    "id": "E33",
+    "date": "2026-09-03T22:50:36.909Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "R10 accepted: the horse is now a jointed animal - chest/barrel/haunches with saddle at the rider-seat topline, withers-pivoted neck carrying the head at ~1.9 m, mane and tail, four two-joint legs whose gait crossfades a lateral walk into a rotary gallop by speed with knee fold, suspension and body rock, plus idle weight shift/tail sway/ear flicks. The old rig's legs wobbled sideways because they swung about the X axis; the +X-forward animal swings about Z. Rig is a named pivot hierarchy on the same update(dt, speed) contract as the figure kit, so a future skinned model maps joint-for-joint. Fresh critic ACCEPT with no new defects; frame time 37.4 -> 32.5 ms on the ranch vantage.",
+    "durable": true
+  },
+  {
+    "id": "E34",
+    "date": "2026-09-03T22:50:37.017Z",
+    "kind": "observation",
+    "path": null,
+    "summary": "Backlog candidates from the R10 critic review: (1) head-yaw turn lead on the horse is +0.013 rad, effectively imperceptible - a larger lead coefficient would read better; (2) gallop visual evidence via abeam capture is unreliable because moveAndSlide bends the gallop path around obstacles - a scripted straight-gallop stretch (e.g. the range trail) would make future gallop frames captureable.",
+    "durable": true
   }
 ]

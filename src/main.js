@@ -351,6 +351,35 @@ async function boot() {
         mounted: player.state.mounted
       };
     };
+    // R10: the horse's joint angles as numbers — gait phase, leg pivots, neck
+    // and head — so a probe can prove the gait runs and the head leads turns
+    // without scraping pixels.
+    window.__horsePose = () => {
+      const p = horse.parts;
+      const leg = (l) => ({
+        hip: +l.hip.rotation.z.toFixed(3),
+        knee: +l.knee.rotation.z.toFixed(3)
+      });
+      return {
+        speed: +horse.speed.toFixed(2),
+        mounted: horse.mounted,
+        visible: horse.object.visible,
+        playerVisible: player.object.visible,
+        cam: [
+          +camera.position.x.toFixed(1),
+          +camera.position.y.toFixed(1),
+          +camera.position.z.toFixed(1)
+        ],
+        legFL: leg(p.legs[0]),
+        legFR: leg(p.legs[1]),
+        legRL: leg(p.legs[2]),
+        legRR: leg(p.legs[3]),
+        neck: +p.neck.rotation.z.toFixed(3),
+        headYaw: +p.head.rotation.y.toFixed(3),
+        tail: +p.tail.rotation.x.toFixed(3),
+        bobY: +p.legs[0].hip.parent.position.y.toFixed(3)
+      };
+    };
     /**
      * Magenta ground reference, for the floating-grass question.
      *
