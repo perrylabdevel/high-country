@@ -1488,6 +1488,7 @@ async function boot() {
     started = true;
     player.state.snapCam = true;
     minimap.show();
+    document.getElementById("hud-center").classList.remove("hidden");
     compassEl.classList.remove("hidden");
     // Synthetic/dispatched clicks cannot back a pointer-lock request; a real
     // click on the canvas re-locks, so swallowing the refusal is correct.
