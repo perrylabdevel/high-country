@@ -1,11 +1,11 @@
 {
-  "id": "20260903-R9",
-  "requirementId": "R9",
+  "id": "20260903-R10",
+  "requirementId": "R10",
   "stage": "accepted",
-  "startedAt": "2026-09-03T18:33:27.272Z",
+  "startedAt": "2026-09-03T22:05:55.826Z",
   "rounds": 3,
   "builder": "brian-agent",
-  "verifier": "r9-critic-delta",
+  "verifier": "r10-critic",
   "budget": {
     "maxRounds": 4,
     "maxCalls": 30,
@@ -13,27 +13,27 @@
   },
   "notes": [
     {
-      "ts": "2026-09-03T18:33:36.383Z",
+      "ts": "2026-09-03T22:05:55.925Z",
       "stage": "planned",
-      "text": "R9 planned and built in one engagement: new shared figure kit src/figures.js (createFigure: hip/shoulder pivots, vest/belt/skirt/hat-or-hair options, update(dt, speed, mounted) driving stride+bob+idle-breathing+seated pose). Player avatar (src/player.js) rebuilt on it — same 'body' group contract so first-person/fly visibility toggles and all camera maths are untouched; mounted branch now seats the figure (hips at RIDE_SEAT 1.42 on the horse's back) instead of pinning the avatar origin to the horse's ground, and the mounted eye height derives from the seat (RIDE_EYE 1.78) replacing MOUNT_EYE. NPCs (src/main.js makeNpc) rebuilt as createFigure instances with distinct palettes (Harlan: coat+vest+hat; Nell: dress, hair, no hat; Wade: tan shirt+vest+hat) facing the yard; per-frame idle loop added. Dev hook __figurePose exposes joint rotations read-only for probes."
+      "text": "R10 horse: rebuild the capsule-and-sticks animal in src/horse.js as a jointed pivot hierarchy in the register of figures.js — barrel with chest/haunches, articulated neck+head, mane and tail, two-joint legs with a speed-tracking gait (walk vs gallop cadence), idle weight shifts and ear/tail flicks at rest. Keep the rider seat (RIDE_HIPS/RIDE_SEAT from player.js), collider, gait speeds and dev hooks behaviorally identical; add a __horsePose dev hook for numeric verification. Open question answered during planning: the horse head is local +X (pi/2 - yaw), which must be preserved or normalized — decide whether to keep the X-forward convention or rotate the build to +Z like the figure kit; lean to keeping horse.js internals in +X only if it avoids touching player.js, otherwise normalize to +Z for a consistent figure-kit contract."
     },
     {
-      "ts": "2026-09-03T18:34:37.403Z",
+      "ts": "2026-09-03T22:46:59.275Z",
       "stage": "implementing",
-      "text": "Built: createFigure kit in src/figures.js; player avatar rebuilt on it in src/player.js (body group contract kept; mounted branch seats the figure, hips at RIDE_SEAT 1.42 on the horse's back; mounted eye now RIDE_EYE 1.78 above the seat origin, replacing MOUNT_EYE). NPCs in src/main.js rebuilt as createFigure instances with distinct palettes (Harlan coat+vest+hat, Nell dress+hair, Wade tan+vest+hat), facing the yard, with a per-frame idle loop. Dev hook __figurePose exposes joint rotations read-only."
+      "text": "R10 horse rebuilt in src/horse.js as a jointed pivot hierarchy: chest/barrel/haunch body with saddle+blanket at the RIDE_SEAT topline, neck+mane+head group pivoted at the withers (head carried at ~1.9 m), tail group, and four two-joint legs (hip->knee->hoof) whose gait crossfades a lateral walk (phase offsets 0/0.5/0.25/0.75) into a rotary gallop (0.05/0.15/0.55/0.65) by speed, with knee fold on the recovery stroke, suspension bob and body rock at gallop, idle weight shift/tail sway/ear flicks, and head-yaw lead into turns. Swing axis is rotation.z (the +X-forward convention); the old legs wobbled sideways because they rotated about x. Public contract (object/collider/mounted/speed/update) unchanged; window.__horsePose dev hook added in main.js for numeric verification. Choreography notes for evidence runs: mount prompt loses to NPC/examine interact targets depending on approach side (retry loop needed); dragAim turns need a closed loop against live yaw; due east from the horse hits the barn."
     },
     {
-      "ts": "2026-09-03T18:34:37.500Z",
+      "ts": "2026-09-03T22:46:59.710Z",
       "stage": "verifying",
-      "text": "npm run build OK; npm run check 23 PASS. Pose probe proves motion: idle joints 0 with breathing bob -0.008; walk swings legs anti-phase to 0.56 rad with arms opposite and bob 0.007-0.041; settle returns home; mounted holds seated pose (legs -1.22, arms -0.5). After-captures (third/mounted/dialogue/walk frames) captured through the same probe drive as the before set. HUD frame times: after-third 60 FPS vs before-third 13; after-mounted 43 vs before-mounted 17 - no regression."
+      "text": "Evidence at job tmp r10/: before2/horse-idle-b.png shows the old capsule-and-sticks horse from the east vantage; after/ has the new rig from the same vantage (horse-idle-b), mounted side composite at rest (horse-rider-side), gallop frames (horse-gallop-chase + bracket), and the numeric probe output (walk anti-phase hips ±0.44 with knee folds, gallop 14.5 m/s with hip ±0.75/knee -1.1, suspension bobY 0.09, neck stretch -0.15->-0.48, head lead +0.013 on a measured 0.384 rad right turn, idle settle to 0). npm run check 23 PASS. Frame time on the ranch view: HEAD 37.4 ms mean / R10 32.5 ms mean - no regression. Fresh critic engaged for the perceptual verdict."
     }
   ],
   "evidence": [
     {
-      "ts": "2026-09-03T19:35:00.745Z",
+      "ts": "2026-09-03T22:50:23.406Z",
       "verdict": "accept",
-      "verifier": "r9-critic-delta",
-      "note": "Fresh independent critic (clean context, re-judged the fixed build): all-facing probe re-run — player front 180 deg = spawn travel, NPCs 0.0 deg error; walking W front-dot-travel 1.000, S -1.000; new turn probe at yaw 45.4 deg front-dot-travel 0.993, so the headingRotationY fix holds off-spawn. Mount probe: rider front-dot-horse-head 1.000, hips 0.65 m below horse body centre (seated), legs 1.22/arms 0.5 as specified. fix-dialogue.png shows a true two-shot, neither figure hidden. Root cause genuinely resolved at player.js:188,238,307. No new defects. npm run check: 23 pass."
+      "verifier": "r10-critic",
+      "note": "Fresh independent critic: matched-crop before/after at the east vantage shows capsule-and-sticks replaced by a jointed animal (carried head with muzzle/ears, mane, saddle mass, chest/haunch planes). Its own pose-probe run reproduced walk anti-phase hips +-0.46 with knee folds -0.45, gallop at 14.5 m/s with hips +-0.75, knees to -0.75, uneven phase offsets and 3x walk suspension bob, idle exactly 0 (still animal, slow tail drift). Neck tracks speed -0.15 to -0.48. Mounting/seat/collider behavior intact (probe mounts, composite shows rider seated at saddle, legs to the sides); npm run check 23 PASS; frame time HEAD 37.4 ms vs R10 32.5 ms - no regression. No new defects. Non-blocking note: head-yaw turn lead is +0.013 rad (~0.75 deg), effectively imperceptible - cosmetic."
     }
   ],
   "outcome": "accepted"

@@ -410,6 +410,53 @@
           "note": "20260903-R9: accepted"
         }
       ]
+    },
+    {
+      "id": "R10",
+      "title": "The horse is a jointed animal that gallops, not a capsule on sticks",
+      "status": "verified",
+      "locked": false,
+      "observation": "E32: after R9 dressed every human figure, the horse is now the roughest object in its frame — a horizontal capsule body, a capsule neck, a box head and four rigid cylinder legs (src/horse.js). Its legs are solid meshes pivoted at their own centres about x, so the gait reads as four sticks wobbling in place; the neck and head never move; there is no mane, tail motion, or weight shift. It is the animal the player rides for the entire mid-game and the subject of the closest third-person frames in the game.",
+      "playerExperience": "Riding reads as riding an animal: the horse has a real silhouette — withers, barrel, haunches, neck that carries and turns the head, tail — and its legs are jointed pivots whose gait tracks speed; standing, it idles with weight shifts and ear/tail flicks. Close third-person frames no longer show the most primitive object in the world directly under the camera.",
+      "expectedBenefit": "Serves P6 (visual cohesion): removes the last prototypical hero object after R9. Building it as a jointed pivot hierarchy in the same register as figures.js keeps the procedural style, and the pivot contract becomes the seam a future skinned model drops into.",
+      "evidenceRefs": [
+        "E32"
+      ],
+      "source": "Operator-directed campaign 2026-09-03 (begin the horse): E32 backlog candidate from the R9 critic review.",
+      "acceptance": [
+        "At the chase-cam and mounted distances the horse reads as an animal silhouette — body with chest and haunches, jointed neck and head, mane and tail — not a capsule and sticks",
+        "The legs are pivoted limb groups (hip/knee or equivalent two-joint structure) whose gait tracks speed, with distinct walk and gallop cadence; standing produces a still or subtly-idling animal, not wobbling sticks",
+        "The neck/head articulates with motion (head turn, bob) rather than being rigid",
+        "The rider seat, mounting, collider, gait speeds, and probe/dev hooks are unchanged in behavior",
+        "npm run check + build pass; no systematic frame-time regression on the ranch third-person view"
+      ],
+      "verification": [
+        "before/after captures: ranch idle horse, mounted gallop frame, third-person close approach",
+        "numeric pose probe through a new dev hook (joint angles over time) covering idle/walk/gallop",
+        "npm run check + build",
+        "independent fresh visual critic with the exact perceptual question"
+      ],
+      "attempts": [],
+      "files": [
+        "src/horse.js"
+      ],
+      "priority": 3,
+      "confidence": 0.85,
+      "cost": "M",
+      "risk": "S",
+      "deps": [],
+      "history": [
+        {
+          "date": "2026-09-03",
+          "action": "created",
+          "note": "proposed from E32 backlog candidate at operator direction (begin horse)"
+        },
+        {
+          "date": "2026-09-03T22:50:23.524Z",
+          "action": "verified",
+          "note": "20260903-R10: accepted"
+        }
+      ]
     }
   ]
 }
