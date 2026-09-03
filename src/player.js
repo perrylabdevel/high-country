@@ -1,13 +1,19 @@
 import * as THREE from "three/webgpu";
 import { heightAt, normalAt } from "./world.js";
 import { moveAndSlide, cameraClearance, deckHeightAt } from "./collision.js";
-import { POS, clampWorld, headingVector } from "./map.js";
+import { POS, clampWorld, headingVector, headingRotationY } from "./map.js";
 import { tune } from "./debug.js";
 import { interiorCeilingAt } from "./buildings/kit.js";
+import { createFigure } from "./figures.js";
 
 const PLAYER_RADIUS = 0.42;
 const EYE = 1.62;
-const MOUNT_EYE = 1.35;
+// R9 mounted seat: the seated figure's hips (0.92 up its own origin) rest on
+// the horse's back, so the avatar origin rides ~0.5 m above the saddle
+// ground. RIDE_EYE is the seated eye height above that origin.
+const RIDE_HIPS = 0.92;
+const RIDE_SEAT = 1.42;
+const RIDE_EYE = 1.78;
 const LOOK_SENS = 0.0024;
 const AIM_DIST = 14;
 const STEP_DOWN = 1.4;
@@ -42,29 +48,18 @@ export function createPlayer(camera) {
   const object = new THREE.Group();
   object.position.set(POS.ranch.x + 6, heightAt(POS.ranch.x + 6, POS.ranch.z + 18), POS.ranch.z + 18);
 
-  const body = new THREE.Group();
-  const torso = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.28, 0.9, 4, 8),
-    new THREE.MeshStandardNodeMaterial({ color: 0x6b4226, roughness: 0.8 })
-  );
-  torso.position.y = 0.95;
-  torso.castShadow = true;
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 10, 10),
-    new THREE.MeshStandardNodeMaterial({ color: 0xe6d2b0 })
-  );
-  head.position.y = 1.72;
-  const hat = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.28, 0.22, 0.12, 12),
-    new THREE.MeshStandardNodeMaterial({ color: 0x3d2918 })
-  );
-  hat.position.y = 1.9;
-  const brim = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.42, 0.42, 0.04, 12),
-    new THREE.MeshStandardNodeMaterial({ color: 0x3d2918 })
-  );
-  brim.position.y = 1.84;
-  body.add(torso, head, hat, brim);
+  // R9: the third-person avatar is a dressed figure with a procedural
+  // stride, not a capsule. Feet sit at y=0 in `body`, so the collision
+  // object's ground plane and the camera's feet-height maths are unchanged.
+  const figure = createFigure({
+    skin: 0xe0c29a,
+    shirt: 0x6b4226,
+    vest: 0x4a2e18,
+    pants: 0x33261a,
+    boots: 0x1f150e,
+    hat: 0x3d2918
+  });
+  const body = figure.group;
   object.add(body);
 
   const state = {
@@ -190,7 +185,7 @@ export function createPlayer(camera) {
     object.position.x = held.x;
     object.position.z = held.z;
     object.position.y = heightAt(held.x, held.z);
-    object.rotation.y = state.yaw;
+    object.rotation.y = headingRotationY(state.yaw);
     body.visible = false;
     state.flyAlt = camera.position.y;
 
@@ -229,8 +224,18 @@ export function createPlayer(camera) {
 
     if (state.mounted && horse) {
       horse.update(dt, input, state.yaw);
-      object.position.copy(horse.object.position);
-      object.rotation.y = state.yaw;
+      // Seat the figure on the horse's back: hips at RIDE_SEAT means the
+      // avatar origin rides RIDE_SEAT - RIDE_HIPS above the horse's ground.
+      object.position.set(
+        horse.object.position.x,
+        horse.object.position.y + RIDE_SEAT - RIDE_HIPS,
+        horse.object.position.z
+      );
+      // The figure has a face (local +Z front), so it must convert its yaw
+      // through the heading convention — the old capsule was symmetric and
+      // hid that this object previously rotated the bare yaw, which left the
+      // body facing backwards (the critic's D-finding on the R9 draft).
+      object.rotation.y = headingRotationY(state.yaw);
       body.visible = state.mode === "third";
     } else {
       wish.set(0, 0, 0);
@@ -299,12 +304,18 @@ export function createPlayer(camera) {
         }
         object.position.y = y;
       }
-      object.rotation.y = state.yaw;
+      object.rotation.y = headingRotationY(state.yaw);
       body.visible = state.mode === "third";
     }
 
+    if (state.mounted && horse) {
+      figure.update(dt, horse.speed, true);
+    } else {
+      figure.update(dt, state.speed);
+    }
+
     const feetY = object.position.y;
-    const eyeY = feetY + (state.mounted ? MOUNT_EYE + 1.05 : EYE);
+    const eyeY = feetY + (state.mounted ? RIDE_EYE : EYE);
     const originX = object.position.x;
     const originZ = object.position.z;
     const ignore = horse ? horse.collider : null;
@@ -371,5 +382,5 @@ export function createPlayer(camera) {
     }
   }
 
-  return { object, body, state, update, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly };
+  return { object, body, figure, state, update, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly };
 }
