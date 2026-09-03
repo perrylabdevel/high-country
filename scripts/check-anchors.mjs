@@ -560,6 +560,46 @@ if (doorSills.length !== 0) {
   throw new Error("a fromFloor=0 doorway must not grow a sill");
 }
 
+// Stacked openings share an x: the ranch house's front wall puts an upstairs
+// window directly above a ground-floor one. A per-opening sill runs from the
+// floor to its sill line and a per-opening header runs to the wall top, so
+// each panel buried the other opening and the front windows vanished behind
+// a 3.6 m slab. The fill is banded now; assert both openings stay clear and
+// the slab between them is solid.
+const stackWall = wallX({
+  length: 10,
+  height: 6,
+  thickness: 0.22,
+  openings: [
+    { x: 0, w: 1.35, h: 1.5, fromFloor: 0.9 },
+    { x: 0, w: 1.25, h: 1.4, fromFloor: 3.6 }
+  ],
+  material: wood
+});
+stackWall.updateMatrixWorld(true);
+const stackBoxes = [];
+stackWall.traverse((n) => {
+  if (n.isMesh) {
+    stackBoxes.push(new THREE.Box3().setFromObject(n));
+  }
+});
+if (stackBoxes.length === 0) {
+  throw new Error("stacked wall emitted no fill panels");
+}
+for (const [what, py] of [["ground window", 1.65], ["upstairs window", 4.3]]) {
+  const probe = new THREE.Vector3(0, py, 0);
+  for (const bb of stackBoxes) {
+    if (bb.containsPoint(probe)) {
+      throw new Error(
+        `${what} centre (y=${py}) is buried by wall fill spanning y ${bb.min.y.toFixed(2)}–${bb.max.y.toFixed(2)}`
+      );
+    }
+  }
+}
+if (!stackBoxes.some((bb) => bb.containsPoint(new THREE.Vector3(0, 3.0, 0)))) {
+  throw new Error("no solid wall between stacked openings — the between-slab is missing");
+}
+
 const FF_W = 9;
 const FF_D = 8;
 const FF_EAVE = 4.4;

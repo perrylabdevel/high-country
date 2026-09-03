@@ -467,55 +467,106 @@ export function wallX({ length, height, thickness, openings = [], material, y = 
   }
   const group = new THREE.Group();
   tag(group, "wall", { length, height, thickness, openings: openings.map((o) => ({ ...o })) });
-  const segs = [];
   const sorted = [...openings].sort((a, b) => a.x - b.x);
-  let cursor = -length / 2;
+  // Solid fill = the wall rectangle minus the opening rectangles. The wall is
+  // cut into horizontal bands at every opening edge, and each band emits the
+  // solid runs left after removing the openings crossing it. Banding (rather
+  // than a sill + header per opening) is what makes vertically stacked
+  // openings work: a per-opening sill runs from the FLOOR to its sill line and
+  // a per-opening header runs to the WALL TOP, so when an upstairs window
+  // sits directly above a ground-floor window (the ranch house's front wall)
+  // each panel buried the other opening — the front windows vanished under a
+  // 3.6 m slab while the upstairs windows vanished under the header.
+  const cuts = [0, height];
   for (const o of sorted) {
-    const left = o.x - o.w / 2;
-    const right = o.x + o.w / 2;
-    if (left > cursor + 0.05) {
-      segs.push([cursor, left]);
+    for (const c of [o.fromFloor, o.fromFloor + o.h]) {
+      if (c > 0.05 && c < height - 0.05) {
+        cuts.push(c);
+      }
     }
-    cursor = right;
   }
-  if (length / 2 > cursor + 0.05) {
-    segs.push([cursor, length / 2]);
-  }
-  for (const [a, b] of segs) {
-    const w = b - a;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, height, thickness), material);
-    mesh.position.set((a + b) / 2, y + height / 2, 0);
+  cuts.sort((a, b) => a - b);
+  const panel = (xa, xb, ya, yb, o, role) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, yb - ya, thickness), material);
+    mesh.position.set((xa + xb) / 2, y + (ya + yb) / 2, 0);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    if (o) {
+      tag(mesh, role, { openingW: o.w, openingH: o.h, fromFloor: o.fromFloor, class: o.class });
+    }
     group.add(mesh);
+  };
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const y0 = cuts[i];
+    const y1 = cuts[i + 1];
+    if (y1 - y0 < 0.05) {
+      continue;
+    }
+    // Openings crossing the band's interior cut it; the epsilon keeps an
+    // opening that merely touches the band's edge from cutting it.
+    const cover = sorted
+      .filter((o) => o.fromFloor < y1 - 1e-4 && o.fromFloor + o.h > y0 + 1e-4)
+      .map((o) => [Math.max(-length / 2, o.x - o.w / 2), Math.min(length / 2, o.x + o.w / 2)])
+      .sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const c of cover) {
+      if (merged.length && c[0] <= merged[merged.length - 1][1] + 0.05) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], c[1]);
+      } else {
+        merged.push([...c]);
+      }
+    }
+    const solids = [];
+    let cursor = -length / 2;
+    for (const [a, b] of merged) {
+      if (a > cursor + 0.05) {
+        solids.push([cursor, a]);
+      }
+      cursor = Math.max(cursor, b);
+    }
+    if (length / 2 > cursor + 0.05) {
+      solids.push([cursor, length / 2]);
+    }
+    // Panels beginning or ending exactly at this band's edges keep their
+    // per-opening tags: the run directly above an opening is its header, the
+    // run below a raised opening its sill (check-buildings measures doorway
+    // head heights off the header tags; interiors.js re-tags them as lintels).
+    // Split them out of the band's plain runs so a lintel stays door-width.
+    // The slab between stacked openings matches both rules — the wider panel
+    // wins and the narrower is absorbed, so no two boxes overlap.
+    const tagged = [];
+    for (const o of sorted) {
+      const oa = Math.max(-length / 2, o.x - o.w / 2);
+      const ob = Math.min(length / 2, o.x + o.w / 2);
+      if (o.fromFloor > 0.05 && Math.abs(o.fromFloor - y1) < 1e-3) {
+        tagged.push([oa, ob, o, "sill"]);
+      } else if (Math.abs(o.fromFloor + o.h - y0) < 1e-3) {
+        tagged.push([oa, ob, o, "header"]);
+      }
+    }
+    tagged.sort((a, b) => b[1] - b[0] - (a[1] - a[0]));
+    for (const [sa, sb] of solids) {
+      let cur = sa;
+      for (const [ta, tb, o, role] of tagged) {
+        const a = Math.max(ta, sa, cur);
+        const b = Math.min(tb, sb);
+        if (b - a < 0.05) {
+          continue;
+        }
+        if (a > cur + 0.05) {
+          panel(cur, a, y0, y1);
+        }
+        panel(a, b, y0, y1, o, role);
+        cur = b;
+      }
+      if (sb > cur + 0.05) {
+        panel(cur, sb, y0, y1);
+      }
+    }
   }
   for (const o of sorted) {
-    const headerH = height - o.fromFloor - o.h;
-    if (headerH > 0.05) {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(o.w, headerH, thickness), material);
-      mesh.position.set(o.x, y + o.fromFloor + o.h + headerH / 2, 0);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      tag(mesh, "header", { openingW: o.w, openingH: o.h, fromFloor: o.fromFloor, class: o.class });
-      group.add(mesh);
-    } else if (o.fromFloor === 0) {
+    if (o.fromFloor === 0 && o.fromFloor + o.h >= height - 0.05) {
       group.userData.fullHeightDoor = true;
-    }
-    // Wall under the opening, from the floor to the sill line. For a
-    // ground-floor window this is the sill; for an upper-story window it is
-    // the stretch of wall between the two floors — either way the opening
-    // must not run to the ground. The panel used to be skipped for
-    // fromFloor > 1.2 on the theory that an upstairs window is "not a slab
-    // from the floor", but skipping it leaves NO wall below the window at
-    // all: the opening became a full-height slot (the ranch house's back
-    // wall showed its two upstairs windows as two-story slots).
-    if (o.fromFloor > 0.05) {
-      const sill = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.fromFloor, thickness), material);
-      sill.position.set(o.x, y + o.fromFloor / 2, 0);
-      sill.castShadow = true;
-      sill.receiveShadow = true;
-      tag(sill, "sill", { openingW: o.w, openingH: o.h, fromFloor: o.fromFloor, class: o.class });
-      group.add(sill);
     }
   }
   openings.forEach((o, i) => {
