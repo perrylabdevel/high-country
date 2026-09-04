@@ -125,12 +125,15 @@ export function createHorse() {
 
   // --- Legs: hip pivot -> knee pivot -> hoof, both joints on the swing axis ------------
   // Front pair under the chest, rear pair under the haunches; hooves darker.
+  // NB: no .entries() here — the tuples already carry their own index, and
+  // entries() would double-wrap the destructuring (hip x got the loop index,
+  // hip z got the whole pair; NaN matrices, no legs rendered at all).
   for (const [i, [lx, lz]] of [
     [0, [0.55, 0.2]],
     [1, [0.55, -0.2]],
     [2, [-0.72, 0.22]],
     [3, [-0.72, -0.22]]
-  ].entries()) {
+  ]) {
     const hip = new THREE.Group();
     hip.position.set(lx, 1.02, lz);
     const upper = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.18), i >= 2 ? hideDark : hide);
