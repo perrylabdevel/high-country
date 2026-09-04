@@ -57,7 +57,7 @@ const fail = (ap, rule, detail) => {
 bakeHeightfield();
 clearStructures();
 clearColliders();
-const scene = { add() {} };
+const scene = { add() {}, remove() {} };
 resetApertureEnumeration();
 createRanch();
 createLandmarks(scene);

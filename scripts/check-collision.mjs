@@ -49,7 +49,7 @@ function bootstrapColliders() {
   clearColliders();
   bakeHeightfield();
   createRanch();
-  const scene = { add() {} };
+  const scene = { add() {}, remove() {} };
   createLandmarks(scene);
   createInteriors(scene);
   createShore(scene);

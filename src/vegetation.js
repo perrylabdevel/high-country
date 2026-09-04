@@ -179,6 +179,16 @@ const SPEED_THIN = [0, 0.3, 0.55];
  * carries the coverage, so a 9 m cell there costs a fifth of the candidates
  * the same band at 5.2 would.
  */
+/**
+ * A band is not rebuilt as a unit any more — it is covered by square,
+ * world-anchored tiles that are built once and then left alone for as long as
+ * they stay in range (see THE TILE CACHE, in createVegetation).
+ *
+ * Tile edges are not set here — see BASE_TILE and the quadtree ladder, which
+ * derives them from the band index so that a coarse tile is exactly four fine
+ * ones. What this table still owns is the CELL, which is the density, and the
+ * band's outer radius.
+ */
 const RING_SHAPE = [
   { cell: 0.34, outer: 34 },
   { cell: 0.7, outer: 82 },
@@ -188,13 +198,57 @@ const RING_SHAPE = [
   // Beyond the shipped disc. Unreachable at every tier (applyProfile drops a
   // ring once the one before it reaches past the radius, and no tier exceeds
   // 550) — they exist so the materials panel's draw-distance dial has
-  // somewhere to go. Same coarsening rule as the shipped shape: each cell is
-  // ~1.6x the last, so the added candidates per band stay roughly flat while
-  // the AREA they cover explodes — 550 -> 1200 costs about an eighth again.
-  { cell: 14, outer: 850 },
-  { cell: 22, outer: 1200 },
-  { cell: 34, outer: 1500 }
+  // somewhere to go.
+  //
+  // These were 14 / 22 / 34, continuing the shipped shape's ~1.6x coarsening,
+  // and at that shape the draw-distance dial did not do its job: measured at
+  // eye level, dialling 400 -> 1500 changed 0.00% of the near/mid field and
+  // 3.4% of the horizon band, and the two frames are indistinguishable
+  // zoomed. The band was carrying one tuft per 2812 m2.
+  //
+  // Why the obvious rule was the wrong rule: cell ~ distance (which 14/22/34
+  // roughly is — cell/outer holds near 0.016 out to 850 m) keeps the ANGULAR
+  // spacing between tufts constant, and that is the correct LOD rule for a
+  // field you look down on. It is not the rule for a field you look ACROSS.
+  // At a grazing angle the 850-1500 m band compresses into about ten screen
+  // rows, and the cards there are alpha-tested (0.32): a card that lands
+  // under a pixel discards outright instead of averaging into a tint, so
+  // coverage is lost non-linearly exactly where angular spacing says it
+  // should hold. Measured, the whole band came to ~1% of its own pixels.
+  //
+  // So the extension rings deliberately break the angular rule and grow
+  // denser than it: cell/outer falls to 0.0094 / 0.0083 / 0.0080 instead of
+  // rising to 0.023. That is ~3x / ~4.8x / ~8x the candidates per band. The
+  // bill is bounded because it is only ever paid when the dial is raised —
+  // no tier reaches 550 m, so applyProfile drops all three at every default,
+  // and the tier field (rings 0-4) is untouched to the tuft.
+  { cell: 8, outer: 850 },
+  { cell: 10, outer: 1200 },
+  { cell: 12, outer: 1500 }
 ];
+
+/**
+ * The quadtree ladder.
+ *
+ * BASE_TILE is the finest band's tile edge; each coarser tier band doubles it,
+ * so band l has tiles of BASE_TILE * 2^l and a coarse tile is exactly four of
+ * the band below. Exact nesting is the whole point: it is what lets the
+ * residency pass cover the disc with no holes AND no double coverage. The
+ * first cut used one independent grid per band with an "does this square
+ * intersect the annulus" test, which is hole-free but admits every tile that
+ * straddles either edge — measured, 2.3x the intended instance count, which
+ * both cost the frames it was meant to save and starved the build queue so
+ * badly that the near field emptied out during a ride.
+ *
+ * QUAD_DEPTH is the last band on the ladder. Beyond it the extension bands
+ * (dial-only, no tier reaches them) use a plain FAR_TILE grid: doubling out
+ * to 2176 m would put 33k candidates in one tile, which is the atomic-pop
+ * problem all over again, and at those distances the density is under
+ * 0.016/m2 so the straddle overlap is worth a few dozen tufts.
+ */
+const BASE_TILE = 17;
+const QUAD_DEPTH = 4;
+const FAR_TILE = 340;
 
 /**
  * Ground-cover draw range, per device tier.
@@ -299,11 +353,51 @@ function applyProfile() {
   const cellScale = PROFILE.grassCellScale * (ov.cell > 0 ? ov.cell : 1);
   RINGS = RING_SHAPE
     .filter((r, i) => i === 0 || RING_SHAPE[i - 1].outer < GRASS_RADIUS)
-    .map((r) => ({
-      cell: r.cell * cellScale,
-      outer: Math.min(r.outer, GRASS_RADIUS)
-    }));
+    .map((r, i, all) => {
+      const outer = Math.min(r.outer, GRASS_RADIUS);
+      const inner = i === 0 ? 0 : Math.min(all[i - 1].outer, GRASS_RADIUS);
+      // Tile edge. The tier bands (0..QUAD_DEPTH) are the levels of a
+      // QUADTREE, so each is exactly twice the one below it and a coarse tile
+      // is exactly four fine ones. That is what makes coverage exact — see
+      // the residency note in updateTiles. The dial-only extension bands
+      // beyond the tier keep a plain grid at a fixed edge, because carrying
+      // the doubling out to 2176 m would put 33k candidates in a single tile,
+      // and out there the density is low enough that the seam costs nothing.
+      const quad = i <= QUAD_DEPTH;
+      const size = quad ? BASE_TILE * 2 ** i : FAR_TILE;
+      // The cell must divide the tile edge exactly, or a cell straddles two
+      // tiles and is planted twice or not at all. Nominal cells are nudged by
+      // under 1% to land on a whole number of cells per tile.
+      const cols = Math.max(1, Math.round(size / (r.cell * cellScale)));
+      return {
+        cell: size / cols,
+        outer,
+        inner,
+        cols,
+        tileSize: size,
+        quad,
+        ramp: bandRamp(inner, outer)
+      };
+    });
   return PROFILE;
+}
+
+/**
+ * Growth multipliers for a band, from the same two-part curve plantBlade used
+ * per tuft: the tuned ramp inside the tier disc, and growth that outpaces
+ * distance beyond it so far cards clear the pixel grid instead of
+ * alpha-testing away to nothing. See the RAMP_ANCHOR block comment.
+ */
+function bandRamp(inner, outer) {
+  // Area-weighted mean radius of the annulus: the distance that splits the
+  // band's tufts in half by count, not by radius.
+  const dist = outer <= inner
+    ? outer
+    : (2 / 3) * (outer ** 3 - inner ** 3) / (outer ** 2 - inner ** 2);
+  const t = Math.min(dist / RAMP_ANCHOR, 1);
+  const over = dist / RAMP_ANCHOR;
+  const far = over > 1 ? 1 + (over - 1) * 2.5 : 1;
+  return { h: far * (1 + t * 0.5), w: far * (1 + t * 0.7), dist };
 }
 
 /**
@@ -2082,6 +2176,17 @@ export function createVegetation(scene, maps = {}) {
    * relative to the ring's own snapped base cell, so they stay valid wherever
    * the player walks.
    */
+  /**
+   * Candidate cell offsets for a ring-shaped field, relative to its centre.
+   *
+   * This is the CAMERA-RELATIVE scheme: an offset table is only meaningful
+   * against a centre, which is why a field built on it has to be replanted
+   * when the centre moves. Grass has moved off it to world-anchored tiles
+   * (see THE TILE CACHE below); sage still uses it, because its two rings
+   * carry a few thousand candidates between them and rebuild inside a frame
+   * or two — the atomic swap that is intolerable at 27k tufts is invisible at
+   * 1.2k. Move sage over when that stops being true.
+   */
   function buildCandidates(rings, radius) {
     const di = [];
     const dj = [];
@@ -2115,53 +2220,126 @@ export function createVegetation(scene, maps = {}) {
     };
   }
 
+  /**
+   * THE TILE CACHE — why the field is not rebuilt around the camera any more.
+   *
+   * The old field was five concentric rings, each holding its own centre and
+   * replanting ITSELF IN FULL whenever the camera drifted RING_STEP_FRAC of
+   * its radius. Measured at a 14.5 m/s gallop over 653 m, that meant ring 1
+   * replacing 24,326 tufts in a single frame every 33 m and ring 3 replacing
+   * 4,253 every 131 m — because `instanceMatrix.needsUpdate` was set in
+   * exactly one place, at the END of a rebuild, so a band held its old scatter
+   * for 300-500 ms and then swapped the lot on one frame. That is the "grass
+   * loading in the distance" the player sees, and no budget tuning reaches it:
+   * it is not a throughput failure, it is an atomicity failure.
+   *
+   * The waste underneath it was the same shape. Placement has always been a
+   * pure function of the ABSOLUTE world cell (hash2 on `ix, jz`), so a tuft
+   * that stays in range does not need to move — yet moving 10 m re-scattered
+   * all 23,732 candidates of ring 0, of which roughly four fifths resolved to
+   * the identical tuft in the identical place. Measured over that same ride:
+   * ~2,500 candidates planted per metre travelled, against ~760 that had
+   * actually changed.
+   *
+   * So residency is world-space now. The field is a set of square tiles fixed
+   * to a world grid; a tile is built once, at the LOD its distance warrants,
+   * and then LEFT ALONE for as long as it stays in range. Riding forward
+   * creates only the tiles crossing the frontier and retires only those
+   * leaving it. Nothing already on screen is ever rewritten, so there is
+   * nothing for the player to watch arrive except at the frontier — which is
+   * far away, and faded.
+   *
+   * Three consequences worth knowing:
+   *
+   *  - The unit of pop is now one tile, not one band. The largest tile carries
+   *    2,500 candidates against the 27,016 a ring rebuild swapped, and it
+   *    lands with a fade rather than on one frame (see `born`).
+   *
+   *  - Tile meshes can be frustum-culled, and a ring mesh could not. A ring
+   *    spanned the whole 360 deg disc, so `frustumCulled` was false and every
+   *    tuft behind the player was submitted every frame. A tile is a small
+   *    box with a real, static bounding sphere, so the camera's own frustum
+   *    throws away the two thirds of the field it is not looking at.
+   *
+   *  - Bands are covered by whole tiles, so a band edge is jagged by up to a
+   *    tile rather than being a clean circle. A tile is kept when its square
+   *    INTERSECTS its band's outer disc and is not wholly inside the inner
+   *    one, which guarantees the annulus is covered with no holes and costs a
+   *    little double coverage where a coarse tile straddles a fine band's
+   *    edge. The coarse band is 3-14x the sparser of the two, so the doubled
+   *    strip reads as a few percent more grass, not a seam — and the jagged
+   *    edge hides the LOD change better than a perfect circle did.
+   */
+
   // Name of the only ground-cover species to plant, or null for all four.
   let soloSpecies = null;
 
   // Ground-cover field state. `let`, not `const`: applyGrassSettings rebuilds
   // the whole field in place when the panel changes a structural knob (draw
-  // distance, cell scale), and everything downstream — plantBlade's CAND
-  // reads, the ring records, the debug accessors — reads these through the
-  // closure, so reassignment is the whole mechanism.
-  let CAND = null;
-  let RING_COUNT = 0;
-  const RING_OFFSETS = [];
-  let ringStep = [];
-  let grassRings = [];
+  // distance, cell scale), and everything downstream — the planters, the tile
+  // records, the debug accessors — reads these through the closure, so
+  // reassignment is the whole mechanism.
+  //
+  // `lods[l].live` maps a tile key to its record; `lods[l].pool` holds the
+  // meshes of evicted tiles, ready to be refilled. Pooling matters because a
+  // tile's InstancedMesh owns three instanced attributes and a cloned
+  // geometry: allocating those per frontier tile at a gallop would churn far
+  // more than the scatter it is trying to replace.
+  let grassLods = [];
+  // Every live grass tile, rebuilt whenever residency changes. Kept as a flat
+  // array so the per-frame pass does not walk eight Maps.
+  let grassTiles = [];
+  // Tiles waiting to be built or still mid-build, nearest first.
+  let grassQueue = [];
+  /**
+   * Seconds a landing tile takes to dissolve in, and the field clock it is
+   * measured against.
+   *
+   * The clock is the vegetation module's own accumulated dt, NOT the TSL
+   * `time` node: capture mode pins `time` to a fixed value so graded frames
+   * are reproducible, and a fade riding a frozen clock would freeze half way.
+   *
+   * `instantBorn` backdates a tile's birth past the whole window, so it is
+   * fully grown the moment it lands. The initial plant and the panel's
+   * structural rebuilds both use it — those are moments where the player is
+   * looking at a field that is supposed to already exist, and a dissolve
+   * reads as a glitch rather than as cover arriving.
+   */
+  const GRASS_FADE_SECS = 0.45;
+  let vegClock = 0;
+  let instantBorn = true;
+  // Speed band for the far-tile hold-back (SPEED_THIN). Declared up here, not
+  // beside the rest of the motion state further down, because the initial
+  // plant runs at construction and reads it through updateTiles — leaving it
+  // below put it in the temporal dead zone at exactly that moment.
+  let thinLevel = 0;
+
+  /** Tile grid coordinate of a world position, at one band's tile size. */
+  function tileIndex(v, size) {
+    return Math.floor(v / size);
+  }
 
   /**
-   * (Re)build the grass field: candidate list, per-ring spans, re-centre
-   * steps and one InstancedMesh per ring, then plant every ring in full.
-   *
-   * CAND is flattened in ring order, so ring r's candidates are exactly
-   * [RING_OFFSETS[r], RING_OFFSETS[r + 1]) — each ring owns that span of the
-   * candidate list and replants it independently of the others. applyProfile
-   * only ever drops a SUFFIX of the ring shape (a ring is dropped when the
-   * ring before it already reaches past the tier's radius), so the ids inside
-   * CAND stay a contiguous 0..k.
-   *
-   * Runs at construction (around POS.ranch) and again from
-   * applyGrassSettings (around the live camera); the caller owns which centre
-   * the initial plant uses.
+   * Squared distance from `(px, pz)` to the nearest point of a tile's square,
+   * and to its farthest corner. The residency test needs both: a tile is in
+   * range when its NEAREST point is inside the band's outer disc, and it has
+   * been swallowed by the band below when its FARTHEST corner is inside the
+   * inner disc. Using the centre for either leaves holes half a tile wide.
    */
-  function buildGrassField() {
-    CAND = buildCandidates(RINGS, GRASS_RADIUS);
-    RING_COUNT = RINGS.length;
-    RING_OFFSETS.length = 0;
-    let cur = -1;
-    for (let i = 0; i < CAND.length; i += 1) {
-      if (CAND.ring[i] !== cur) {
-        RING_OFFSETS.push(i);
-        cur = CAND.ring[i];
-      }
-    }
-    RING_OFFSETS.push(CAND.length);
-    // Each ring's re-centre distance, from RING_STEP_FRAC of its own radius.
-    ringStep = RINGS.map((rg) => Math.max(RING_STEP_MIN, rg.outer * RING_STEP_FRAC));
-    grassRings = [];
-    for (let r = 0; r < RING_COUNT; r += 1) {
-      grassRings.push(makeGrassRing(r));
-    }
+  function tileSpan(tx, tz, size, px, pz) {
+    const x0 = tx * size;
+    const z0 = tz * size;
+    const x1 = x0 + size;
+    const z1 = z0 + size;
+    const nx = px < x0 ? x0 - px : px > x1 ? px - x1 : 0;
+    const nz = pz < z0 ? z0 - pz : pz > z1 ? pz - z1 : 0;
+    const fx = Math.max(px - x0, x1 - px);
+    const fz = Math.max(pz - z0, z1 - pz);
+    return {
+      near: Math.hypot(nx, nz),
+      far: Math.hypot(fx, fz),
+      mid: Math.hypot((x0 + x1) * 0.5 - px, (z0 + z1) * 0.5 - pz)
+    };
   }
 
   const grassMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
@@ -2200,80 +2378,142 @@ export function createVegetation(scene, maps = {}) {
   const tintAttr = attribute("aTint", "vec3");
   const speciesAttr = attribute("aSpecies", "vec2");
   /**
-   * One instanced field per ring, not one mesh for the whole disc.
+   * One instanced field per TILE, not per ring and not one mesh for the disc.
    *
-   * A ring rebuilds on its own cadence (see RING_STEP_FRAC), and a rebuild may
-   * only touch its own ring's slots. Separate meshes make that clean: each
-   * carries its own instanceMatrix and per-instance attributes, sized to its
-   * ring's candidate count, so a re-centre uploads just that ring's buffers —
-   * the old single mesh re-uploaded the whole ~4 MB disc every 42 m no matter
-   * which part of it had actually gone stale.
+   * Each tile carries its own instanceMatrix and its own per-instance
+   * attributes, sized to the candidate count of one square of its band's
+   * cells. That is what makes a tile's build an independent, small upload:
+   * three.js's WebGPU backend drives instanceMatrix through a buffer node and
+   * re-uploads the WHOLE array on a version change (updateRanges do not
+   * survive the interleaved copy — see the note on finishTile), so the only
+   * way to keep an upload small is to keep the buffer small. A ring's buffer
+   * was the whole band; a tile's is one square.
    *
    * The shared material compiles once and binds aTint/aSpecies/aWind by name,
-   * so every ring's clone of the tuft geometry works with it unchanged.
+   * so every tile's clone of the tuft geometry works with it unchanged.
    *
    * Per-tuft wind frame, (cos a / sx, sin a / sx) for the tuft's Y rotation a
    * and XZ scale sx. windBend rotates the world gust into object space with
    * it, so a field leans one way instead of every tuft leaning its own.
    */
-  function makeGrassRing(r) {
-    const i0 = RING_OFFSETS[r];
-    const capacity = RING_OFFSETS[r + 1] - i0;
+  function makeTileMesh(lod) {
+    const capacity = lod.cols * lod.cols;
     const tints = new Float32Array(capacity * 3);
     const speciesUV = new Float32Array(capacity * 2);
     const windRot = new Float32Array(capacity * 2);
+    // When each instance was planted, on the field clock. Per-instance rather
+    // than per-mesh because every tile shares one material — a per-mesh
+    // uniform would mean a material per tile, and a shader recompile per
+    // frontier tile at a gallop.
+    const born = new Float32Array(capacity);
     const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
     const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
     const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
-    // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib for
-    // why that hint costs a full per-frame re-upload under WebGPU. finishRing
-    // marks all of them needsUpdate when a ring's rescatter lands, which is the
-    // only moment their contents change.
+    const bornAttrib = new THREE.InstancedBufferAttribute(born, 1);
+    // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib
+    // for why that hint costs a full per-frame re-upload under WebGPU.
+    // finishTile marks all of them needsUpdate when a tile's build lands,
+    // which is the only moment their contents change.
     const geo = grassGeo.clone();
     geo.setAttribute("aTint", tintAttrib);
     geo.setAttribute("aSpecies", speciesAttrib);
     geo.setAttribute("aWind", windRotAttrib);
+    geo.setAttribute("aBorn", bornAttrib);
     const mesh = new THREE.InstancedMesh(geo, grassMat, capacity);
     mesh.castShadow = false;
     mesh.receiveShadow = wantGrassShadow;
-    mesh.frustumCulled = false;
-    mesh.boundingSphere = new THREE.Sphere(
-      new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z),
-      RINGS[r].outer + ringStep[r] + 40
-    );
+    // Frustum culling is ON, which it could never be for a ring.
+    //
+    // A ring mesh spanned the whole 360 deg disc, so its bounding sphere
+    // enclosed the camera and culling could never reject it: every tuft
+    // behind the player was submitted every frame. A tile is a small box a
+    // long way from the camera, with a bounding sphere finishTile pins to its
+    // real world extent, so the frustum throws away the part of the field the
+    // camera is not looking at — measured, about two thirds of it.
+    mesh.frustumCulled = true;
+    mesh.count = 0;
+    mesh.visible = false;
     return {
-      r,
-      mesh,
-      tintAttrib,
-      speciesAttrib,
-      windRotAttrib,
-      tints,
-      speciesUV,
-      windRot,
-      capacity,
-      outer: RINGS[r].outer,
-      step: ringStep[r],
-      i0,
-      i1: RING_OFFSETS[r + 1],
-      // Candidates are ordered near to far and planters compact into slot order
-      // from 0, so slot k of a ring sits at a similar distance whatever the
-      // centre is: a re-centre overwrites each slot with the tuft that lived
-      // roughly there before, and hash-anchored positions make the overlap
-      // between the old and new fields the SAME tufts in the SAME places.
-      slot: 0,
-      // World centre the ring's planted cover is arranged around. Stale when
-      // the camera has moved ringStep[r] from this.
-      cx: POS.ranch.x,
-      cz: POS.ranch.z,
-      // Fraction of this ring's candidate cells held back while the camera
-      // moves fast (SPEED_THIN, set by scatterPass at job start; the gate in
-      // plantBlade). Only the coarse far rings are thinnable — the near field
-      // is where the eye lands, and it is cheap enough to keep full.
-      thin: 0,
-      thinnable: RINGS[r].outer >= GRASS_RADIUS * 0.55,
-      used: 0,
-      job: null
+      mesh, tints, speciesUV, windRot, born,
+      tintAttrib, speciesAttrib, windRotAttrib, bornAttrib, capacity
     };
+  }
+
+  /**
+   * Take a tile body from the band's pool, or make one. Evicted tiles hand
+   * their mesh back rather than disposing it: at a gallop the frontier turns
+   * over several tiles a second, and rebuilding a cloned geometry plus three
+   * instanced attributes each time would cost more than the scatter.
+   */
+  function acquireTileBody(lod) {
+    return lod.pool.pop() || makeTileMesh(lod);
+  }
+
+  function releaseTileBody(lod, tile) {
+    tile.body.mesh.visible = false;
+    tile.body.mesh.count = 0;
+    lod.pool.push(tile.body);
+    tile.body = null;
+  }
+
+  /**
+   * (Re)build the grass field's LOD bands. Drops every live tile, so the next
+   * residency pass repopulates from scratch around wherever the camera is.
+   *
+   * Runs at construction and again from applyGrassSettings when a structural
+   * knob changes (draw distance, cell scale) — the tile grids, cell sizes and
+   * per-band ramps all come from RINGS, which applyProfile has just rewritten.
+   */
+  function buildGrassField() {
+    for (const lod of grassLods) {
+      for (const tile of lod.live.values()) {
+        if (tile.body) {
+          scene.remove(tile.body.mesh);
+          tile.body.mesh.geometry.dispose();
+        }
+      }
+      for (const body of lod.pool) {
+        body.mesh.geometry.dispose();
+      }
+    }
+    grassLods = RINGS.map((rg, l) => ({
+      l,
+      cell: rg.cell,
+      cols: rg.cols,
+      inner: rg.inner,
+      outer: rg.outer,
+      ramp: rg.ramp,
+      quad: rg.quad,
+      tileSize: rg.tileSize,
+      // Only the coarse far bands are thinnable — the near field is where the
+      // eye lands, and it is cheap enough to keep full.
+      thinnable: rg.outer >= GRASS_RADIUS * 0.55,
+      live: new Map(),
+      pool: []
+    }));
+    grassTiles = [];
+    grassQueue = [];
+  }
+
+  /**
+   * Evict every live tile, keeping the band records and the mesh pools.
+   *
+   * Evicting is how you ask for a replant now: a resident tile is never
+   * rebuilt in place, so anything that changes what a tuft would look like —
+   * the species filter, a debug mode — has to drop the tiles and let the next
+   * residency pass build them again under the new rules.
+   */
+  function dropAllTiles() {
+    for (const lod of grassLods) {
+      for (const tile of lod.live.values()) {
+        scene.remove(tile.body.mesh);
+        releaseTileBody(lod, tile);
+      }
+      lod.live.clear();
+    }
+    grassTiles = [];
+    grassQueue = [];
+    g = 0;
   }
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
   const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
@@ -2343,7 +2583,30 @@ export function createVegetation(scene, maps = {}) {
   const grassFadeOutU = uniform(GRASS_FADE_OUT);
   const sageFadeInU = uniform(SAGE_FADE_IN);
   const sageFadeOutU = uniform(SAGE_FADE_OUT);
-  grassMat.opacityNode = float(1).sub(smoothstep(grassFadeInU, grassFadeOutU, cameraPosition.sub(positionWorld).length()));
+  /**
+   * Two fades multiplied: the distance dissolve at the edge of the disc, and
+   * the birth dissolve of a tile that has just landed.
+   *
+   * The birth fade is the answer to what the player actually complained about
+   * — cover arriving in visible steps while riding. The tile cache made the
+   * steps eleven times smaller; this makes each one a dissolve instead of an
+   * edit. Because opacity feeds an alpha-TESTED material (0.32), a tuft at
+   * low opacity does not go translucent, it erodes: blades thin out and fill
+   * in over the window, which reads as grass growing rather than as a card
+   * appearing.
+   *
+   * Note this is only correct because residency is world-space. On the old
+   * rings a rebuild rewrote the whole band, four fifths of it with cover that
+   * had not changed, so a birth fade would have pulsed the entire band on
+   * every re-centre — worse than the pop it was meant to hide. A landing tile
+   * is new ground by construction, so everything in it SHOULD arrive.
+   */
+  const grassNowU = uniform(0);
+  const grassBorn = attribute("aBorn", "float");
+  const grassAge = grassNowU.sub(grassBorn).div(GRASS_FADE_SECS).clamp(0, 1);
+  grassMat.opacityNode = float(1)
+    .sub(smoothstep(grassFadeInU, grassFadeOutU, cameraPosition.sub(positionWorld).length()))
+    .mul(grassAge);
   sageMat.opacityNode = float(1).sub(smoothstep(sageFadeInU, sageFadeOutU, cameraPosition.sub(positionWorld).length()));
   /**
    * Wind profile exponent, as a uniform so it can be flipped live.
@@ -2491,18 +2754,22 @@ export function createVegetation(scene, maps = {}) {
    * so between re-centres a tuft's size does not move at all — an earlier
    * single-disc centre made every tuft's t shift on every rebuild.
    */
-  function plantBlade(rec, i, slot) {
-    const cx = rec.cx;
-    const cz = rec.cz;
-    const r = rec.r;
-    const cell = RINGS[r].cell;
-    const ix = Math.floor(cx / cell) + CAND.di[i];
-    const jz = Math.floor(cz / cell) + CAND.dj[i];
+  function plantBlade(tile, i, slot) {
+    const lod = tile.lod;
+    const r = lod.l;
+    const cell = lod.cell;
+    // The cell is addressed from the TILE's own grid origin, not from a
+    // camera-relative offset table. That single change is what makes a tuft
+    // persistent: the world cell a slot holds is a property of the tile, so
+    // it does not move when the camera does, and a resident tile never needs
+    // replanting.
+    const ix = tile.tx * lod.cols + (i % lod.cols);
+    const jz = tile.tz * lod.cols + ((i / lod.cols) | 0);
     // Speed hold-back, before any sampling so a thinned cell costs nothing.
     // Per-cell hash, not per-slot: the gate answer for a cell is the same on
     // every rebuild, so thinning and unthinning only ever add or remove whole
     // tufts, never move the survivors.
-    if (rec.thin > 0 && hash2(ix, jz, 31) < rec.thin) {
+    if (tile.thin > 0 && hash2(ix, jz, 31) < tile.thin) {
       return false;
     }
     const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
@@ -2544,31 +2811,25 @@ export function createVegetation(scene, maps = {}) {
 
     // Height comes from the species, nudged by how wet the ground is.
     const hMet = (sp.hMin + (sp.hMax - sp.hMin) * hash2(ix, jz, 4)) * (0.86 + weight * 0.24);
-    const dx = x - cx;
-    const dz = z - cz;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    // Two-part size ramp (see the RAMP_ANCHOR block comment):
-    //  - inside the tier disc, the tuned ramp against dist / RAMP_ANCHOR —
-    //    identical to the shipped look at every tier, and unaffected by the
-    //    panel's draw-distance dial;
-    //  - beyond it, growth that OUTPACES distance (2.5x past the anchor). A
-    //    merely screen-constant card is not enough: the shipped 550 m edge
-    //    tuft is already only ~1 px tall, and an alpha-tested (0.32) card at
-    //    1-2 px discards to nothing rather than averaging into a tint —
-    //    measured, a screen-constant ramp left the far field pixel-identical.
-    //    Outgrowing distance is what lifts the far cards back over the pixel
-    //    grid, where they read as the same sparse stipple the mid disc has.
-    const t = Math.min(dist / RAMP_ANCHOR, 1);
-    const over = dist / RAMP_ANCHOR;
-    const far = over > 1 ? 1 + (over - 1) * 2.5 : 1;
+    // Size ramp, from the BAND, not from this tuft's distance to a ring centre.
+    //
+    // The ramp used to be `t = dist / RAMP_ANCHOR` against the ring's own
+    // centre, and that is precisely what tied a tuft's size to where the
+    // camera was standing when it was planted — the reason a band had to be
+    // replanted when the camera moved. A tile is built once and kept, so a
+    // per-tuft distance would freeze at the build-time camera and go stale as
+    // the player rode toward it. applyProfile resolves one ramp per band at
+    // its area-weighted mean radius instead (see bandRamp), so a tuft's size
+    // is a property of the ground it stands on and never changes while it is
+    // resident.
+    //
     // Far tufts grow mostly WIDER, not taller: width is what holds coverage as
-    // the rings coarsen, while a distance ramp on height was what produced
+    // the bands coarsen, while a distance ramp on height was what produced
     // 2.9 m grass at the edge of the disc.
-    const hGrow = far * (1 + t * 0.5);
+    const hGrow = lod.ramp.h;
     // Was 1 + t * 1.6. Growing width nearly twice as fast as height stretched
     // far tufts sideways into mush; keep the two closer so proportion holds.
-    const wGrow = far * (1 + t * 0.7);
-    // Size the CARD so the painted plant lands at the metric size we asked for.
+    const wGrow = lod.ramp.w;
     const cardH = (hMet * hGrow) / sp.fill;
     const cardW = (hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow) / BLADE_PANEL_W;
 
@@ -2624,20 +2885,20 @@ export function createVegetation(scene, maps = {}) {
     dummy.rotation.set(0, rotY, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
-    rec.mesh.setMatrixAt(slot, dummy.matrix);
-    rec.speciesUV[slot * 2] = sp.uv[0];
-    rec.speciesUV[slot * 2 + 1] = sp.uv[1];
+    tile.body.mesh.setMatrixAt(slot, dummy.matrix);
+    tile.body.speciesUV[slot * 2] = sp.uv[0];
+    tile.body.speciesUV[slot * 2 + 1] = sp.uv[1];
     // Wind frame for windBend: cos/sin of this tuft's Y rotation over its XZ
     // scale, so the world gust lands in the same compass direction on every
     // tuft and keeps its amplitude in world metres.
-    rec.windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
-    rec.windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
+    tile.body.windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
+    tile.body.windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
 
     const lush = GRASSINESS[biome] ?? 0;
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
-    rec.tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
-    rec.tints[slot * 3 + 1] = 0.42 + lush * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
-    rec.tints[slot * 3 + 2] = 0.2 + lush * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
+    tile.body.tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
+    tile.body.tints[slot * 3 + 1] = 0.42 + lush * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
+    tile.body.tints[slot * 3 + 2] = 0.2 + lush * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
     return true;
   }
 
@@ -2744,31 +3005,81 @@ export function createVegetation(scene, maps = {}) {
     rec.mesh.boundingSphere.radius = rec.outer + rec.step + 40;
   }
 
-  function finishGrassRing(rec) {
-    finishRing(rec, rec.slot);
-    g = grassRings.reduce((sum, gr) => sum + gr.used, 0);
-  }
-
   function finishSageRing(rec) {
     finishRing(rec, rec.slot);
     shrubs = sageRings.reduce((sum, sr) => sum + sr.used, 0);
   }
 
   /**
-   * Run up to `budget` candidates of a ring's replant. Returns the budget
-   * actually spent, so a frame can carry on into the next stale ring.
+   * Publish one finished tile.
+   *
+   * This is the only moment a tile's buffers are marked for upload — building
+   * writes the CPU-side arrays and the tile stays invisible until it is whole,
+   * so a half-planted square is never on screen. The difference from the old
+   * per-ring publish is only one of SIZE: a band's worth of buffers became a
+   * square's, so the upload a build costs is a few tens of KB instead of
+   * megabytes, and the tufts it swaps in are new ground rather than a
+   * reshuffle of ground already drawn.
+   *
+   * instanceMatrix updateRanges are still deliberately NOT used. three's
+   * WebGPU backend drives instanceMatrix through a buffer node, not the
+   * attribute-update path: under the uniform-buffer limit the whole array
+   * uploads on a version change anyway, and above it the interleaved copy
+   * forwards updateRanges without ever clearing the source attribute's own
+   * list. Small buffers are the fix, not partial uploads.
    */
-  function runGrassChunk(rec, budget) {
-    const end = rec.i1;
+  function finishTile(tile) {
+    const body = tile.body;
+    tile.count = tile.slot;
+    tile.job = false;
+    body.mesh.count = tile.slot;
+    // Stamp the whole tile with one birth time and let the shader dissolve it
+    // in (see the aBorn/fadeIn block on grassMat.opacityNode). Every tuft in a
+    // landing tile is genuinely new ground — that is what the tile cache buys,
+    // and it is why the fade is correct here and would not have been on rings,
+    // where four fifths of a rebuilt band was cover that had not changed and
+    // fading it would have made the band pulse.
+    // `tile.instant` is decided when the tile is ADMITTED, not here. A tile
+    // takes several frames to build, and by the time it lands the camera has
+    // usually stopped jumping — reading the live flag at finish time made
+    // every teleported tile fade in anyway (measured: 22.7% from settled a
+    // frame after a jump, against 2.3% with fades off).
+    tile.bornAt = tile.instant ? vegClock - GRASS_FADE_SECS : vegClock;
+    body.born.fill(tile.bornAt, 0, tile.slot);
+    body.mesh.instanceMatrix.needsUpdate = true;
+    body.tintAttrib.needsUpdate = true;
+    body.speciesAttrib.needsUpdate = true;
+    body.windRotAttrib.needsUpdate = true;
+    body.bornAttrib.needsUpdate = true;
+    // A real, static bounding sphere over the tile's own square, so frustum
+    // culling can reject it. Radius covers the square's half-diagonal plus
+    // the tallest card the band plants and the terrain relief inside it.
+    const half = tile.lod.tileSize * 0.5;
+    const cx = (tile.tx + 0.5) * tile.lod.tileSize;
+    const cz = (tile.tz + 0.5) * tile.lod.tileSize;
+    body.mesh.boundingSphere = new THREE.Sphere(
+      new THREE.Vector3(cx, heightAt(cx, cz), cz),
+      Math.hypot(half, half) + 40
+    );
+    body.mesh.visible = tile.slot > 0;
+    g = grassTiles.reduce((sum, t) => sum + t.count, 0);
+  }
+
+  /**
+   * Run up to `budget` candidates of one tile's build. Returns the budget
+   * actually spent, so a frame can carry on into the next queued tile.
+   */
+  function runTileChunk(tile, budget) {
+    const end = tile.lod.cols * tile.lod.cols;
     let spent = 0;
-    for (; rec.jobI < end && rec.slot < rec.capacity && spent < budget; rec.jobI += 1) {
-      if (plantBlade(rec, rec.jobI, rec.slot)) {
-        rec.slot += 1;
+    for (; tile.jobI < end && tile.slot < tile.body.capacity && spent < budget; tile.jobI += 1) {
+      if (plantBlade(tile, tile.jobI, tile.slot)) {
+        tile.slot += 1;
       }
       spent += 1;
     }
-    if (rec.jobI >= end || rec.slot >= rec.capacity) {
-      finishGrassRing(rec);
+    if (tile.jobI >= end || tile.slot >= tile.body.capacity) {
+      finishTile(tile);
     }
     return spent;
   }
@@ -2794,18 +3105,208 @@ export function createVegetation(scene, maps = {}) {
     rec.slot = 0;
   }
 
-  // Initial plant: build both fields and plant every ring in full, around the
-  // ranch — the same full scatter the old construction-time scatterGrass(ranch)
-  // did, just spread across the per-ring fields so the first frame is complete.
+  /**
+   * Bring the resident tile set up to date with where the camera is.
+   *
+   * The tier bands are a QUADTREE and residency is a descent, not a set of
+   * independent per-band tests. Start at the coarsest band's grid, and split a
+   * node into its four children when the child band's outer radius reaches it.
+   * A node that is not split is a leaf and is resident; a node that is split
+   * contributes nothing itself. Because a coarse tile is exactly four fine
+   * ones, the leaves of that descent partition the disc: every square metre
+   * inside GRASS_RADIUS is owned by exactly one leaf, at exactly one LOD.
+   *
+   * That exactness is the point, and it is what the first cut got wrong. Each
+   * band had its own independent grid and a tile was kept when its square
+   * INTERSECTED the band's annulus — hole-free, but it admits every tile
+   * straddling either edge, and with tiles a useful fraction of their band's
+   * width that is most of them. Measured: 88,660 tufts planted where 38,048
+   * were intended, 2.3x, which starved the build queue badly enough that the
+   * near field emptied out during a gallop. Shrinking tiles to cut the
+   * overshoot only traded it for draw calls — at a third of band width the
+   * count went past 500 tiles and the overshoot was still 1.5x.
+   *
+   * The extension bands past QUAD_DEPTH are not on the ladder and keep the
+   * intersection test, which is where the remaining double coverage lives.
+   * They are dial-only, no tier reaches them, and their density is under
+   * 0.016/m2, so the straddle is worth a few dozen tufts.
+   *
+   * Cheap per frame: a few hundred node tests, against the tens of thousands
+   * of candidate PLANTS a ring re-centre used to pay.
+   */
+  const SPLIT_HYS = 0.12;
+  function updateTiles(cameraPos) {
+    const wanted = new Set();
+    let changed = false;
+
+    const admit = (lod, tx, tz, near) => {
+      const key = `${lod.l}:${tx}:${tz}`;
+      wanted.add(key);
+      if (lod.live.has(key)) {
+        lod.live.get(key).dist = near;
+        return;
+      }
+      const tile = {
+        lod,
+        tx,
+        tz,
+        key,
+        body: acquireTileBody(lod),
+        // Speed hold-back for this tile's build, frozen at build time — a
+        // tile is never rebuilt while resident, so an unthinned one stays
+        // unthinned and a thinned one is refreshed only when the player
+        // leaves and comes back. See SPEED_THIN.
+        thin: lod.thinnable ? SPEED_THIN[thinLevel] : 0,
+        // Whether this tile should skip its birth fade — see finishTile.
+        instant: instantBorn,
+        job: true,
+        jobI: 0,
+        slot: 0,
+        count: 0,
+        dist: near
+      };
+      lod.live.set(key, tile);
+      scene.add(tile.body.mesh);
+      changed = true;
+    };
+
+    // Descend the quadtree. `l` indexes RINGS, so l - 1 is the finer band and
+    // l = 0 is the finest; a node splits when the band below it reaches its
+    // square.
+    const descend = (l, tx, tz) => {
+      const lod = grassLods[l];
+      const span = tileSpan(tx, tz, lod.tileSize, cameraPos.x, cameraPos.z);
+      if (span.near >= GRASS_RADIUS) {
+        return;
+      }
+      const finer = l > 0 ? grassLods[l - 1] : null;
+      if (finer && finer.quad) {
+        // Split on the node's CENTRE, not its nearest corner.
+        //
+        // Any per-node predicate keeps the partition exact — a node either
+        // splits or is a leaf, so its square is covered once either way — so
+        // the predicate is free to be chosen purely for how well the LOD
+        // bands land on the radii they are named for. `near` splits a node
+        // when ANY corner reaches the finer band, which pushes fine density a
+        // whole tile diagonal outward: measured, band 1 covering out to
+        // ~130 m instead of 82 and the field planting 94,304 tufts where
+        // 38,048 were intended. The centre lands the band within half a tile
+        // either way and the error averages out.
+        //
+        // Hysteresis: once a node has split, it takes SPLIT_HYS more distance
+        // to merge again. Without it a node sitting on the threshold splits
+        // and merges on alternate frames, and since a split DESTROYS the
+        // parent tile and CREATES four children, the pair never finish
+        // building — measured, bands 0 and 1 at zero tufts after a 653 m ride
+        // with 24 and 42 tiles resident, all of them perpetually mid-build.
+        const split = finer.live.has(`${finer.l}:${tx * 2}:${tz * 2}`);
+        if (span.mid < finer.outer * (split ? 1 + SPLIT_HYS : 1)) {
+          for (let dx = 0; dx < 2; dx += 1) {
+            for (let dz = 0; dz < 2; dz += 1) {
+              descend(l - 1, tx * 2 + dx, tz * 2 + dz);
+            }
+          }
+          return;
+        }
+      }
+      admit(lod, tx, tz, span.near);
+    };
+
+    const quadTop = grassLods.reduce((top, lod) => (lod.quad ? lod.l : top), 0);
+    const rootLod = grassLods[quadTop];
+    const rootReach = Math.min(GRASS_RADIUS, rootLod.outer) + rootLod.tileSize;
+    const r0 = tileIndex(cameraPos.x - rootReach, rootLod.tileSize);
+    const r1 = tileIndex(cameraPos.x + rootReach, rootLod.tileSize);
+    const s0 = tileIndex(cameraPos.z - rootReach, rootLod.tileSize);
+    const s1 = tileIndex(cameraPos.z + rootReach, rootLod.tileSize);
+    for (let tx = r0; tx <= r1; tx += 1) {
+      for (let tz = s0; tz <= s1; tz += 1) {
+        descend(quadTop, tx, tz);
+      }
+    }
+
+    // Extension bands: plain grids, intersection test.
+    for (const lod of grassLods) {
+      if (lod.quad) {
+        continue;
+      }
+      const size = lod.tileSize;
+      const reach = lod.outer + size;
+      const i0 = tileIndex(cameraPos.x - reach, size);
+      const i1 = tileIndex(cameraPos.x + reach, size);
+      const j0 = tileIndex(cameraPos.z - reach, size);
+      const j1 = tileIndex(cameraPos.z + reach, size);
+      for (let tx = i0; tx <= i1; tx += 1) {
+        for (let tz = j0; tz <= j1; tz += 1) {
+          const span = tileSpan(tx, tz, size, cameraPos.x, cameraPos.z);
+          if (span.near < lod.outer && span.far > lod.inner) {
+            admit(lod, tx, tz, span.near);
+          }
+        }
+      }
+    }
+
+    // Evict everything the descent did not ask for.
+    for (const lod of grassLods) {
+      for (const [key, tile] of lod.live) {
+        if (!wanted.has(key)) {
+          scene.remove(tile.body.mesh);
+          releaseTileBody(lod, tile);
+          lod.live.delete(key);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      grassTiles = [];
+      for (const lod of grassLods) {
+        for (const tile of lod.live.values()) {
+          grassTiles.push(tile);
+        }
+      }
+      g = grassTiles.reduce((sum, t) => sum + t.count, 0);
+    }
+    // Build queue: unfinished tiles, nearest first, so what the player is
+    // about to look at lands before what is behind them.
+    grassQueue = grassTiles.filter((t) => t.job);
+    grassQueue.sort((a, b) => a.dist - b.dist);
+  }
+
+  /** Spend one frame's scatter budget on the nearest unfinished tiles. */
+  function runTileQueue(budget) {
+    let left = budget;
+    for (const tile of grassQueue) {
+      if (left <= 0) {
+        break;
+      }
+      left -= runTileChunk(tile, left);
+    }
+  }
+
+  // Initial plant: build both fields around the ranch and finish every tile
+  // in full, so the first frame is complete rather than filling in while the
+  // player watches. `thinLevel` is 0 here, so nothing is held back.
   buildGrassField();
   buildSageField();
-  for (const rec of grassRings) {
-    startRingJob(rec);
-    runGrassChunk(rec, Infinity);
-  }
+  plantAllTiles({ x: POS.ranch.x, z: POS.ranch.z });
   for (const rec of sageRings) {
     startRingJob(rec);
     runSageChunk(rec, Infinity);
+  }
+
+  /**
+   * Resolve residency around a point and build every resident tile to
+   * completion, with no frame budget. Used for the initial plant and for the
+   * panel's structural rebuilds — both are moments where a partial field
+   * would be seen as a defect rather than as loading.
+   */
+  function plantAllTiles(at) {
+    const was = instantBorn;
+    instantBorn = true;
+    updateTiles(at);
+    runTileQueue(Infinity);
+    instantBorn = was;
   }
 
   /**
@@ -2828,7 +3329,6 @@ export function createVegetation(scene, maps = {}) {
   // the better part of a second.
   let susSpeed = 0;
   let frameDt = 1 / 60;
-  let thinLevel = 0;
 
   /**
    * One frame's scatter work, shared out across the rings that need it.
@@ -2978,11 +3478,12 @@ export function createVegetation(scene, maps = {}) {
   for (const p of pines) {
     scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.crownDist);
   }
+  // Grass tiles add and remove THEMSELVES as residency changes (updateTiles),
+  // so there is no static list of grass meshes to add here any more.
   scene.add(
     ...broadMeshes,
     burnt,
     ...sageRings.map((rec) => rec.mesh),
-    ...grassRings.map((rec) => rec.mesh),
     rocks
   );
 
@@ -2996,30 +3497,23 @@ export function createVegetation(scene, maps = {}) {
   // grass set tiles every 10 m — coarse enough that its painted blades come
   // out around 0.8 m long, as long as the real tufts standing on it.
   //
-  // Stand still between the two shots. The scatter rewrites each ring's count
-  // when the camera moves past that ring's step, which restores it.
+  // Stand still between the two shots. A tile that leaves range and comes
+  // back is rebuilt, which restores its count.
   //
   // Guarded because the headless checks import this module with no window.
   if (typeof window !== "undefined") {
-    // Track whether we are actually hiding: restoring a count we never saved
-    // sets it to the initial 0, so __hideGrass(false) on a fresh page hid the
-    // grass instead of showing it — the opposite of what it says.
+    // Hiding is a visibility flag on the live tiles, not a saved count: tiles
+    // come and go, so a count saved against one residency set would be
+    // restored onto a different one.
     let hidden = false;
-    const savedCounts = grassRings.map(() => 0);
     window.__hideGrass = (on) => {
-      if (on && !hidden) {
-        grassRings.forEach((rec, r) => {
-          savedCounts[r] = rec.mesh.count;
-          rec.mesh.count = 0;
-        });
-        hidden = true;
-      } else if (!on && hidden) {
-        grassRings.forEach((rec, r) => {
-          rec.mesh.count = savedCounts[r];
-        });
-        hidden = false;
+      hidden = Boolean(on);
+      for (const tile of grassTiles) {
+        if (tile.body) {
+          tile.body.mesh.visible = !hidden && tile.count > 0;
+        }
       }
-      return grassRings.reduce((sum, rec) => sum + rec.mesh.count, 0);
+      return hidden ? 0 : grassTiles.reduce((sum, t) => sum + t.count, 0);
     };
   }
 
@@ -3246,11 +3740,11 @@ export function createVegetation(scene, maps = {}) {
      * failure it caused can be reproduced and looked at instead of remembered.
      */
     debugGrassShadow(on) {
-      for (const rec of grassRings) {
-        rec.mesh.receiveShadow = Boolean(on);
+      for (const tile of grassTiles) {
+        tile.body.mesh.receiveShadow = Boolean(on);
       }
       grassMat.needsUpdate = true;
-      return grassRings[0].mesh.receiveShadow;
+      return grassTiles.length ? grassTiles[0].body.mesh.receiveShadow : Boolean(on);
     },
     debugSpeciesColour(mode) {
       dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
@@ -3261,12 +3755,13 @@ export function createVegetation(scene, maps = {}) {
         throw new Error(`unknown grass species ${name}; have ${GRASS_SPECIES.map((sp) => sp.name).join(", ")}`);
       }
       soloSpecies = name || null;
-      for (const rec of grassRings) {
-        rec.cx = Infinity;
-        rec.cz = Infinity;
-      }
+      // Drop every tile: the species filter is applied at plant time, so the
+      // resident set has to be rebuilt for it to take effect. Tiles are not
+      // re-planted in place any more, which is the whole point — evicting is
+      // how you ask for a replant.
+      dropAllTiles();
       if (cameraPos) {
-        this.update(cameraPos);
+        plantAllTiles(cameraPos);
       }
       return soloSpecies;
     },
@@ -3284,7 +3779,8 @@ export function createVegetation(scene, maps = {}) {
       const m = new THREE.Matrix4();
       const p = new THREE.Vector3();
       const out = [];
-      for (const rec of grassRings) {
+      for (const tile of grassTiles) {
+        const rec = tile.body;
         for (let i = 0; i < rec.mesh.count; i += 1) {
           rec.mesh.getMatrixAt(i, m);
           p.setFromMatrixPosition(m);
@@ -3310,9 +3806,9 @@ export function createVegetation(scene, maps = {}) {
      */
     scatterCenter() {
       return {
-        x: grassRings[0].cx === Infinity ? NaN : grassRings[0].cx,
-        z: grassRings[0].cz === Infinity ? NaN : grassRings[0].cz,
-        rebuilding: grassRings.some((rec) => rec.job) || sageRings.some((rec) => rec.job),
+        x: lastCamX === null ? NaN : lastCamX,
+        z: lastCamZ === null ? NaN : lastCamZ,
+        rebuilding: grassQueue.length > 0 || sageRings.some((rec) => rec.job),
         planted: g,
         speed: +vSpeed.toFixed(1),
         thin: SPEED_THIN[thinLevel]
@@ -3351,30 +3847,44 @@ export function createVegetation(scene, maps = {}) {
       sageFadeInU.value = SAGE_FADE_IN;
       sageFadeOutU.value = SAGE_FADE_OUT;
       if (structural && cameraPos) {
-        for (const rec of [...grassRings, ...sageRings]) {
+        for (const rec of sageRings) {
           scene.remove(rec.mesh);
           rec.mesh.geometry.dispose();
         }
+        // buildGrassField drops every live tile and its pooled meshes, so the
+        // grid, cell sizes and band ramps the new RINGS describe are the only
+        // ones left.
         buildGrassField();
         buildSageField();
         // Replant around where the player actually is, not the ranch: a
         // panel rebuild that teleported the cover back to spawn would be a
         // bug wearing a feature's clothes.
-        for (const rec of [...grassRings, ...sageRings]) {
+        plantAllTiles(cameraPos);
+        for (const rec of sageRings) {
           rec.cx = cameraPos.x;
           rec.cz = cameraPos.z;
-        }
-        for (const rec of grassRings) {
-          startRingJob(rec);
-          runGrassChunk(rec, Infinity);
-        }
-        for (const rec of sageRings) {
           startRingJob(rec);
           runSageChunk(rec, Infinity);
         }
-        scene.add(...sageRings.map((rec) => rec.mesh), ...grassRings.map((rec) => rec.mesh));
+        scene.add(...sageRings.map((rec) => rec.mesh));
       }
       return { grassRadius: GRASS_RADIUS, sageRadius: SAGE_RADIUS, planted: g };
+    },
+    /**
+     * Birth state of every live tile: whether it skipped its fade, and how far
+     * through the fade it is (0..1, >1 = done). The fade is invisible to the
+     * pixel probes during a ride — a gallop changes 92% of the frame every
+     * 70 ms regardless — so this is how the frontier dissolve is checked.
+     */
+    tileBirths() {
+      return {
+        clock: +vegClock.toFixed(2),
+        tiles: grassTiles.filter((t) => !t.job).map((t) => ({
+          key: t.key,
+          instant: Boolean(t.instant),
+          age: +((vegClock - t.bornAt) / GRASS_FADE_SECS).toFixed(3)
+        }))
+      };
     },
     /**
      * Per-ring scatter state, for the same diagnosis scatterCenter does for
@@ -3382,7 +3892,7 @@ export function createVegetation(scene, maps = {}) {
      * whether its cursor is actually advancing between calls.
      */
     scatterRings() {
-      const row = (rec) => ({
+      const sageRow = (rec) => ({
         r: rec.r,
         cx: rec.cx === Infinity ? null : rec.cx,
         cz: rec.cz === Infinity ? null : rec.cz,
@@ -3393,7 +3903,26 @@ export function createVegetation(scene, maps = {}) {
         used: rec.used,
         thin: rec.thin || 0
       });
-      return { grass: grassRings.map(row), sage: sageRings.map(row) };
+      // One row per grass BAND, aggregated over its live tiles, so the shape
+      // of this report survives the move to tiles: probes and the panel read
+      // capacity/used per band exactly as they did per ring.
+      const grass = grassLods.map((lod) => {
+        const tiles = [...lod.live.values()];
+        return {
+          r: lod.l,
+          cx: null,
+          cz: null,
+          jobI: tiles.some((t) => t.job) ? 1 : null,
+          span: [0, lod.cols * lod.cols],
+          slot: tiles.reduce((n, t) => n + t.slot, 0),
+          capacity: tiles.length * lod.cols * lod.cols,
+          used: tiles.reduce((n, t) => n + t.count, 0),
+          tiles: tiles.length,
+          building: tiles.filter((t) => t.job).length,
+          thin: tiles.length ? Math.max(...tiles.map((t) => t.thin)) : 0
+        };
+      });
+      return { grass, sage: sageRings.map(sageRow) };
     },
     /**
      * Capture tooling gates its screenshots on this. Position only: the disc
@@ -3406,10 +3935,18 @@ export function createVegetation(scene, maps = {}) {
      */
     scatterSettled(cameraPos) {
       const stale = (rec) => Math.hypot(rec.cx - cameraPos.x, rec.cz - cameraPos.z) >= rec.step;
+      // Grass is settled when residency around THIS point is resolved and
+      // every resident tile is built. updateTiles is idempotent, so asking is
+      // free and also brings the answer up to date for a camera that was
+      // teleported rather than driven.
+      updateTiles(cameraPos);
+      // Fades in flight count as unsettled: a screenshot taken mid-dissolve
+      // would grade a field that is half there, and would differ run to run.
+      const fading = grassTiles.some((t) => !t.job && vegClock - t.bornAt < GRASS_FADE_SECS);
       return (
-        !grassRings.some((rec) => rec.job) &&
+        grassQueue.length === 0 &&
+        !fading &&
         !sageRings.some((rec) => rec.job) &&
-        !grassRings.some(stale) &&
         !sageRings.some(stale)
       );
     },
@@ -3430,7 +3967,8 @@ export function createVegetation(scene, maps = {}) {
       const p = new THREE.Vector3();
       const w = [];
       const h = [];
-      for (const rec of grassRings) {
+      for (const tile of grassTiles) {
+        const rec = tile.body;
         for (let i = 0; i < rec.mesh.count; i += 1) {
           rec.mesh.getMatrixAt(i, m);
           p.setFromMatrixPosition(m);
@@ -3476,6 +4014,11 @@ export function createVegetation(scene, maps = {}) {
       // difference against, so it just primes the tracker.
       const nowMs = performance.now();
       const dt = Math.min(0.1, Math.max(1e-4, (nowMs - lastFrameMs) / 1000));
+      // Taken before the trackers below overwrite them — the birth-fade rule
+      // needs this frame's displacement, and lastCamX is reassigned in both
+      // branches.
+      const prevX = lastCamX;
+      const prevZ = lastCamZ;
       let budget = GRASS_CHUNK;
       if (lastCamX === null) {
         lastCamX = cameraPos.x;
@@ -3503,7 +4046,26 @@ export function createVegetation(scene, maps = {}) {
         // ring is stale and none of this runs.
         budget = Math.round(GRASS_CHUNK * (1 + Math.min(speedFactor, 2)));
       }
-      scatterPass(grassRings, cameraPos, budget, runGrassChunk);
+      // The field clock the birth fade rides. `dt` is already clamped to
+      // 100 ms above, which is what a backgrounded tab needs: the clock
+      // crawls rather than leaping past every fade in flight.
+      vegClock += dt;
+      grassNowU.value = vegClock;
+      // Frontier tiles fade in. A TELEPORT does not: a mission jump or a fast
+      // travel replaces the whole resident set at once, and dissolving all of
+      // it reads as the world growing in rather than as cover arriving —
+      // measured, a 260 m jump left the frame 35.8% away from its settled
+      // state a frame later, against 2.3% with the fade off. The frontier
+      // case, which is the one the player actually complained about, moves a
+      // tile at a time and is exactly what the dissolve is for.
+      instantBorn =
+        prevX === null ||
+        Math.hypot(cameraPos.x - prevX, cameraPos.z - prevZ) > GRASS_RADIUS * 0.5;
+      // Grass residency is world-space now: decide which tiles should exist,
+      // then spend the frame's budget building the nearest ones that do not
+      // yet. Nothing resident is touched.
+      updateTiles(cameraPos);
+      runTileQueue(budget);
       scatterPass(sageRings, cameraPos, SAGE_CHUNK, runSageChunk);
     },
     treeInstances: placed,

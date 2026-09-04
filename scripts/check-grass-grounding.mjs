@@ -44,14 +44,19 @@ const MAX_LIFT = 0.05;
 
 clearColliders();
 bakeHeightfield();
-const scene = { add() {} };
+const scene = { add() {}, remove() {} };
 createLandmarks(scene);
 createInteriors(scene);
 createRanch();
 buildFootprintIndex();
 
 const added = [];
-const veg = createVegetation({ add: (...o) => added.push(...o) }, {});
+const veg = createVegetation({
+  add: (...o) => added.push(...o),
+  // Grass tiles add and remove themselves as residency changes, so the stub
+  // has to honour removal or `added` drifts away from what is really drawn.
+  remove: (...o) => { for (const x of o) { const i = added.indexOf(x); if (i >= 0) added.splice(i, 1); } }
+}, {});
 const m = new THREE.Matrix4();
 const pos = new THREE.Vector3();
 const scale = new THREE.Vector3();
