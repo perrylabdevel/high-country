@@ -38,6 +38,13 @@ export const materialSettings = {
   // shader uniform, so it updates live. Cell scale multiplies the ring cell
   // sizes — under 1 plants denser, over 1 sparser. Speed thinning is the
   // far-ring hold-back that keeps the outer rings fed at gallop.
+  // Ground-cover hand-off: past farGrassStart the terrain's own grass layer
+  // is weighted up, reaching (1 + farGrassGain)x its normal weight by
+  // farGrassEnd, to stand in for the tuft cards that have faded out. See the
+  // measurement table in terrainMaterial.ts.
+  farGrassStart: 90,
+  farGrassEnd: 700,
+  farGrassGain: 1.6,
   grassRadius: 0,
   sageRadius: 0,
   grassFadeStart: 0.803,
