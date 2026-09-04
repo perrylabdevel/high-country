@@ -276,12 +276,22 @@ function applyProfile() {
   // non-unity cell scale). The fades stay derived from whichever radius won,
   // so a hand-widened disc still dissolves over its own last stretch.
   const ov = grassOverride || {};
+  // The panel's fade-start dial drives BOTH fields: grass directly, sage
+  // proportionally (SAGE_FADE_RATIO), because the sage bushes are the dominant
+  // cover in dry country and a fade dial that skipped them read as dead — the
+  // whole visible field sat still while an invisible grass band re-solved.
+  // The ratio keeps the tier-default sage dissolve exactly as shipped
+  // (0.803 x 0.768/0.803 = 0.768). The clamp holds FADE_IN below FADE_OUT
+  // (0.985 vs 0.988/0.986): at dial 1 the raw product lands PAST the fade-out
+  // edge, and smoothstep with edge0 > edge1 is undefined — measured as an
+  // inverted ramp, not an error.
+  const fadeFactor = ov.fade > 0 ? ov.fade : 0.803;
   GRASS_RADIUS = ov.radius > 0 ? ov.radius : PROFILE.grassRadius;
   GRASS_FADE_OUT = GRASS_RADIUS * 0.988;
-  GRASS_FADE_IN = GRASS_RADIUS * (ov.fade > 0 ? ov.fade : 0.803);
+  GRASS_FADE_IN = GRASS_RADIUS * Math.min(fadeFactor, 0.985);
   SAGE_RADIUS = ov.sage > 0 ? ov.sage : PROFILE.sageRadius;
   SAGE_FADE_OUT = SAGE_RADIUS * 0.986;
-  SAGE_FADE_IN = SAGE_RADIUS * 0.768;
+  SAGE_FADE_IN = SAGE_RADIUS * Math.min(fadeFactor * (0.768 / 0.803), 0.985);
   // The size ramp anchors at the tier disc, not the override — see the block
   // comment on the declarations above.
   RAMP_ANCHOR = PROFILE.grassRadius;
