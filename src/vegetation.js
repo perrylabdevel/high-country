@@ -101,15 +101,68 @@ function shrubChance(biome) {
 }
 
 /**
- * How far the player walks before the disc re-centres, and how much of the
- * rebuild each frame absorbs. The old 2500-blade chunk measured ~9.6 ms on
- * its own — most of a 60 fps frame — which is what made walking feel like it
- * stuttered. Smaller chunks with the cheaper sampler keep each frame's share
- * well inside budget; the rebuild simply spans a few more frames, and the old
- * field stays on screen while it does.
+ * How much of the rebuild each frame absorbs. The old 2500-blade chunk
+ * measured ~9.6 ms on its own — most of a 60 fps frame — which is what made
+ * walking feel like it stuttered. Smaller chunks with the cheaper sampler keep
+ * each frame's share well inside budget; the rebuild simply spans a few more
+ * frames, and the old field stays on screen while it does.
+ *
+ * The chunk budget is shared across the rings: a frame runs near rings first
+ * and keeps spending until the budget is gone, so a gallop that stales several
+ * rings at once still never spends more than one chunk's worth of scatter in
+ * any single frame.
  */
-const REBUILD_STEP = 42;
 const GRASS_CHUNK = 1200;
+
+/**
+ * How far the player walks before a RING re-centres, as a fraction of that
+ * ring's own radius — not one number for the whole disc.
+ *
+ * The old scheme had one lastCenter and a 42 m REBUILD_STEP for all rings:
+ * every 42 m of travel re-planted all ~86k candidates, near and far alike, and
+ * the whole field swapped in one frame at the end. Under a gallop the rebuild
+ * lagged behind the player, the disc's far edge fell behind and then snapped
+ * forward 42 m at a time — the cover reloading in circles, worst at speed.
+ *
+ * The rings now each hold their own centre and replant on their own cadence.
+ * A ring's step is RING_STEP_FRAC of its radius, so an inner ring (cheap
+ * candidates, everything the eye lands on) refreshes every few metres while
+ * the outer rings sit still for a hundred or more — the far field stays
+ * planted instead of churning, and what little moves does so inside the
+ * distance fade, where a new tuft arrives already half dissolved. Re-planted
+ * tufts are hash-anchored in world space, so the overlap between an old and a
+ * new ring centre is the SAME tufts in the SAME places: the only pixels that
+ * change on a re-centre are the leading crescent and whatever the fade band
+ * gains, which is exactly the cover that should be arriving.
+ */
+const RING_STEP_FRAC = 0.3;
+const RING_STEP_MIN = 6;
+
+/**
+ * Speed the scatter budgets against, in m/s. This is the horse's gallop gait
+ * (horse.js: sprint target 14.5 at tune.speed 1), so speedFactor 1 is "the
+ * player is galloping" and 4x gallop is 4. A riding player is the only way to
+ * move this fast for long — walking pace is a quarter of it.
+ */
+const GRASS_SPEED_REF = 14.5;
+
+/**
+ * How much of the two outermost rings' cover is held back while the camera
+ * moves fast, by speed level (0 = under a canter, 1 = gallop-ish, 2 = 2x
+ * gallop and beyond). The hold-back is a per-cell hash gate in plantBlade, so
+ * a thinned field is a deterministic SUBSET of the full one: the same cells
+ * pass the gate whatever the speed, and when the player slows the next
+ * re-centre plants the missing tufts in exactly the places the gate used to
+ * refuse. Refinement, not relocation — nothing on screen moves, cover only
+ * thickens.
+ *
+ * This is the "lower the quality at speed" trade the frame rate asks for. The
+ * thinned rings are the coarse far field: at gallop a tuft out there is a
+ * few pixels and the eye is on the ground rushing past, so a third fewer
+ * distant tufts reads as nothing, while the scatter work it saves is what
+ * keeps the outer rings from starving (see scatterPass).
+ */
+const SPEED_THIN = [0, 0.3, 0.55];
 
 /**
  * Ring cell sizes set the instance budget, and they turned out to matter more
@@ -120,13 +173,27 @@ const GRASS_CHUNK = 1200;
  * scene's fill-rate cost — alpha-tested and double-sided, so no early-z and
  * both faces shade wherever cards overlap.
  *
- * This is the `high` shape; applyProfile scales it for the active tier.
+ * This is the `high` shape; applyProfile scales it for the active tier. The
+ * outermost ring's cell is deliberately coarser than the previous one's × 2:
+ * at 330 m and beyond a tuft is a handful of pixels and the card's scale ramp
+ * carries the coverage, so a 9 m cell there costs a fifth of the candidates
+ * the same band at 5.2 would.
  */
 const RING_SHAPE = [
   { cell: 0.34, outer: 34 },
   { cell: 0.7, outer: 82 },
   { cell: 2.6, outer: 168 },
-  { cell: 5.2, outer: 330 }
+  { cell: 5.2, outer: 330 },
+  { cell: 9, outer: 550 },
+  // Beyond the shipped disc. Unreachable at every tier (applyProfile drops a
+  // ring once the one before it reaches past the radius, and no tier exceeds
+  // 550) — they exist so the materials panel's draw-distance dial has
+  // somewhere to go. Same coarsening rule as the shipped shape: each cell is
+  // ~1.6x the last, so the added candidates per band stay roughly flat while
+  // the AREA they cover explodes — 550 -> 1200 costs about an eighth again.
+  { cell: 14, outer: 850 },
+  { cell: 22, outer: 1200 },
+  { cell: 34, outer: 1500 }
 ];
 
 /**
@@ -158,6 +225,40 @@ let SAGE_RADIUS = 280;
 let SAGE_FADE_IN = 215;
 let SAGE_FADE_OUT = 276;
 let RINGS = RING_SHAPE;
+/**
+ * The distance the card-size ramp is anchored at: always the TIER's draw
+ * distance, never the panel override. The ramp's tuned look (tufts reaching
+ * full growth at the disc edge) was judged at each tier's own radius, and
+ * freezing the anchor there has two consequences the panel depends on:
+ *
+ *  - Raising the draw distance dial no longer rescales the field the user was
+ *    already looking at. The ramp used to read dist / GRASS_RADIUS, so dragging
+ *    the dial from 550 to 1410 silently shrank every mid-distance tuft (t at
+ *    400 m fell 0.73 -> 0.28) — the A/B against the old dial measured the near
+ *    field changing when the far field was the ask.
+ *
+ *  - Tufts beyond the anchor keep growing with ABSOLUTE distance
+ *    (max(1, dist / anchor)), so a card's screen size holds roughly constant
+ *    instead of shrinking below the pixel grid. This is the whole reason the
+ *    extension rings are worth drawing: a 1-2 m card at 800 m is under two
+ *    pixels wide, and an alpha-tested (alphaTest 0.32) sub-pixel card does not
+ *    average into a tint, it discards to nothing — measured, the 1410 disc
+ *    planted 8.8k more tufts than the 550 disc and not ONE far-field pixel
+ *    changed. Growing with distance is what makes "draw distance" mean
+ *    "grass visible farther" rather than "more invisible grass".
+ */
+let RAMP_ANCHOR = 330;
+let SAGE_ANCHOR = 150;
+
+/**
+ * Live overrides from the materials panel's Grass folder (materialSettings in
+ * materials/settings.ts, applied through the vegetation API's
+ * applyGrassSettings). Null until the panel first applies, so every value
+ * falls back to the active tier. Draw distances of 0 mean tier value; the
+ * fade start is a fraction of the draw distance; the cell scale multiplies
+ * the ring cells; speedThin toggles the far-ring hold-back.
+ */
+let grassOverride = null;
 
 /**
  * Re-resolve every tier-dependent constant. Called at the top of
@@ -171,16 +272,25 @@ let RINGS = RING_SHAPE;
  */
 function applyProfile() {
   PROFILE = getProfile();
-  GRASS_RADIUS = PROFILE.grassRadius;
+  // Panel overrides win over the tier where they are set (non-zero radius,
+  // non-unity cell scale). The fades stay derived from whichever radius won,
+  // so a hand-widened disc still dissolves over its own last stretch.
+  const ov = grassOverride || {};
+  GRASS_RADIUS = ov.radius > 0 ? ov.radius : PROFILE.grassRadius;
   GRASS_FADE_OUT = GRASS_RADIUS * 0.988;
-  GRASS_FADE_IN = GRASS_RADIUS * 0.803;
-  SAGE_RADIUS = PROFILE.sageRadius;
+  GRASS_FADE_IN = GRASS_RADIUS * (ov.fade > 0 ? ov.fade : 0.803);
+  SAGE_RADIUS = ov.sage > 0 ? ov.sage : PROFILE.sageRadius;
   SAGE_FADE_OUT = SAGE_RADIUS * 0.986;
   SAGE_FADE_IN = SAGE_RADIUS * 0.768;
+  // The size ramp anchors at the tier disc, not the override — see the block
+  // comment on the declarations above.
+  RAMP_ANCHOR = PROFILE.grassRadius;
+  SAGE_ANCHOR = PROFILE.sageRadius;
+  const cellScale = PROFILE.grassCellScale * (ov.cell > 0 ? ov.cell : 1);
   RINGS = RING_SHAPE
     .filter((r, i) => i === 0 || RING_SHAPE[i - 1].outer < GRASS_RADIUS)
     .map((r) => ({
-      cell: r.cell * PROFILE.grassCellScale,
+      cell: r.cell * cellScale,
       outer: Math.min(r.outer, GRASS_RADIUS)
     }));
   return PROFILE;
@@ -308,15 +418,24 @@ const GRASSINESS = {
 };
 
 /**
- * One combined ground sample for the grass scatter.
+ * One combined ground sample for the grass scatter, split so the STATIC part
+ * can be cached per world cell.
  *
  * grassWeight() and skipGrass() used to be called back to back, and between
  * them re-evaluated biomeAt, lakeFactor and normalAt twice each per candidate.
  * At ~60k candidates a rebuild that duplication was most of the scatter cost.
- * This returns 0 for "no grass here" and otherwise the placement weight, doing
- * every noise lookup exactly once and bailing on the cheapest test first.
+ * grassSampleStatic does every noise lookup exactly once and bails on the
+ * cheapest test first; it depends only on the world (roads, creeks, the lake,
+ * biomes, slope) and never on where the disc happens to be centred.
+ *
+ * grassSample keeps the whole contract for tooling and adds the one test that
+ * must stay live: the building footprints. Every structure() call pushes to
+ * STRUCTURES at world-build time, so nothing changes under a running game —
+ * but the cost of being wrong about that is grass growing through a new
+ * building, while the cost of keeping the test live is one spatial-grid lookup
+ * per survivor. Keep it live.
  */
-function grassSample(x, z) {
+function grassSampleStatic(x, z) {
   const road = roadFactor(x, z);
   if (road > 0.3) {
     return 0;
@@ -345,14 +464,54 @@ function grassSample(x, z) {
   if (base <= 0) {
     return 0;
   }
+  const slope = 1 - normalAt(x, z).y;
+  const slopeFactor = 1 - ramp(0.18, 0.5, slope);
+  return base * slopeFactor * (1 - creek * 0.8) * (1 - road) * (1 - lake * 0.5);
+}
+
+function grassSample(x, z) {
+  const weight = grassSampleStatic(x, z);
+  if (weight <= 0) {
+    return 0;
+  }
   // Buildings last: it is the only test that touches the structure index, and
   // by here most rejected candidates are already gone.
   if (insideStructure(x, z, GRASS_CLEARANCE)) {
     return 0;
   }
-  const slope = 1 - normalAt(x, z).y;
-  const slopeFactor = 1 - ramp(0.18, 0.5, slope);
-  return base * slopeFactor * (1 - creek * 0.8) * (1 - road) * (1 - lake * 0.5);
+  return weight;
+}
+
+/**
+ * The per-cell memo for grassSampleStatic. A candidate's world position is a
+ * pure function of its integer cell (hash2 jitter on a fixed grid), so the
+ * static weight and the biome are pure functions of (ring, ix, jz) — and the
+ * per-ring re-centres replant the same cells over and over. Caching turns a
+ * re-centre's sampler into a hash lookup for the ~80% of candidates the two
+ * ring centres share.
+ *
+ * The key must carry the RING: cells are per-ring grid coordinates, so the
+ * same integer pair means different world positions in different rings. Ring
+ * ids are small (< 8), and ix/jz are shifted to stay positive; the product
+ * stays far below 2^53 so plain numbers key the Map. 300k entries is several
+ * times the live candidate set at every tier — past that, clear rather than
+ * grow (the cache is a pure memo, so a clear is invisible beyond one rebuild).
+ */
+const GRASS_SAMPLE_CACHE_MAX = 300000;
+const grassSampleCache = new Map();
+
+function grassSampleCached(ring, ix, jz, x, z) {
+  const key = ((ix + 0x40000) * 0x80000 + (jz + 0x40000)) * 8 + ring;
+  let hit = grassSampleCache.get(key);
+  if (hit === undefined) {
+    const weight = grassSampleStatic(x, z);
+    hit = [weight, weight > 0 ? biomeAt(x, z) : null];
+    if (grassSampleCache.size >= GRASS_SAMPLE_CACHE_MAX) {
+      grassSampleCache.clear();
+    }
+    grassSampleCache.set(key, hit);
+  }
+  return hit;
 }
 
 /**
@@ -375,11 +534,20 @@ export const GRASS_SCATTER = {
   // the default profile forever. applyProfile() is idempotent and cheap.
   get RINGS() { applyProfile(); return RINGS; },
   get GRASS_RADIUS() { applyProfile(); return GRASS_RADIUS; },
+  get GRASS_RADIUS() { applyProfile(); return GRASS_RADIUS; },
   get GRASS_FADE_IN() { applyProfile(); return GRASS_FADE_IN; },
   get GRASS_FADE_OUT() { applyProfile(); return GRASS_FADE_OUT; },
   get SAGE_RADIUS() { applyProfile(); return SAGE_RADIUS; },
   GRASS_CHUNK,
-  REBUILD_STEP,
+  // The re-centre cadence is now per ring: RING_STEP_FRAC of the ring's own
+  // radius, floored at RING_STEP_MIN. The old single REBUILD_STEP is gone with
+  // the single lastCenter it served.
+  RING_STEP_FRAC,
+  RING_STEP_MIN,
+  // Speed scaling: GRASS_SPEED_REF is the gallop gait the budget and the
+  // far-ring hold-back key off, SPEED_THIN the per-level hold-back fraction.
+  GRASS_SPEED_REF,
+  SPEED_THIN,
   GRASS_DENSITY,
   GRASSINESS,
   GRASS_SPECIES,
@@ -1940,17 +2108,52 @@ export function createVegetation(scene, maps = {}) {
   // Name of the only ground-cover species to plant, or null for all four.
   let soloSpecies = null;
 
-  const CAND = buildCandidates(RINGS, GRASS_RADIUS);
-  // Size the pool to the candidate list rather than a round number. A cap below
-  // it would be hit first by the outermost ring (candidates are ordered near to
-  // far), so in the greenest biomes the far cover would drop out and reappear
-  // between rebuilds. ~66k matrices is 4 MB — cheaper than that artefact.
-  const MAX_GRASS = CAND.length;
+  // Ground-cover field state. `let`, not `const`: applyGrassSettings rebuilds
+  // the whole field in place when the panel changes a structural knob (draw
+  // distance, cell scale), and everything downstream — plantBlade's CAND
+  // reads, the ring records, the debug accessors — reads these through the
+  // closure, so reassignment is the whole mechanism.
+  let CAND = null;
+  let RING_COUNT = 0;
+  const RING_OFFSETS = [];
+  let ringStep = [];
+  let grassRings = [];
 
-  const tints = new Float32Array(MAX_GRASS * 3);
-  // Which panel of the blade atlas this instance draws from. Two floats per
-  // instance buys four species out of one instanced draw.
-  const speciesUV = new Float32Array(MAX_GRASS * 2);
+  /**
+   * (Re)build the grass field: candidate list, per-ring spans, re-centre
+   * steps and one InstancedMesh per ring, then plant every ring in full.
+   *
+   * CAND is flattened in ring order, so ring r's candidates are exactly
+   * [RING_OFFSETS[r], RING_OFFSETS[r + 1]) — each ring owns that span of the
+   * candidate list and replants it independently of the others. applyProfile
+   * only ever drops a SUFFIX of the ring shape (a ring is dropped when the
+   * ring before it already reaches past the tier's radius), so the ids inside
+   * CAND stay a contiguous 0..k.
+   *
+   * Runs at construction (around POS.ranch) and again from
+   * applyGrassSettings (around the live camera); the caller owns which centre
+   * the initial plant uses.
+   */
+  function buildGrassField() {
+    CAND = buildCandidates(RINGS, GRASS_RADIUS);
+    RING_COUNT = RINGS.length;
+    RING_OFFSETS.length = 0;
+    let cur = -1;
+    for (let i = 0; i < CAND.length; i += 1) {
+      if (CAND.ring[i] !== cur) {
+        RING_OFFSETS.push(i);
+        cur = CAND.ring[i];
+      }
+    }
+    RING_OFFSETS.push(CAND.length);
+    // Each ring's re-centre distance, from RING_STEP_FRAC of its own radius.
+    ringStep = RINGS.map((rg) => Math.max(RING_STEP_MIN, rg.outer * RING_STEP_FRAC));
+    grassRings = [];
+    for (let r = 0; r < RING_COUNT; r += 1) {
+      grassRings.push(makeGrassRing(r));
+    }
+  }
+
   const grassMat = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, alphaTest: 0.32 });
   /**
    * Per-instance tint and atlas panel, as REAL geometry attributes.
@@ -1984,22 +2187,84 @@ export function createVegetation(scene, maps = {}) {
    * Real InstancedBufferAttributes on the geometry, read with attribute(), the
    * same way aTangent already is. needsUpdate on these actually uploads.
    */
-  const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
-  const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
-  // Per-tuft wind frame, (cos a / sx, sin a / sx) for the tuft's Y rotation a
-  // and XZ scale sx. windBend rotates the world gust into object space with
-  // it, so a field leans one way instead of every tuft leaning its own.
-  const windRot = new Float32Array(MAX_GRASS * 2);
-  const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
-  // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib for
-  // why that hint costs a full per-frame re-upload under WebGPU. finishScatter
-  // marks all of them needsUpdate when a rescatter lands, which is the only
-  // moment their contents change.
-  grassGeo.setAttribute("aTint", tintAttrib);
-  grassGeo.setAttribute("aSpecies", speciesAttrib);
-  grassGeo.setAttribute("aWind", windRotAttrib);
   const tintAttr = attribute("aTint", "vec3");
   const speciesAttr = attribute("aSpecies", "vec2");
+  /**
+   * One instanced field per ring, not one mesh for the whole disc.
+   *
+   * A ring rebuilds on its own cadence (see RING_STEP_FRAC), and a rebuild may
+   * only touch its own ring's slots. Separate meshes make that clean: each
+   * carries its own instanceMatrix and per-instance attributes, sized to its
+   * ring's candidate count, so a re-centre uploads just that ring's buffers —
+   * the old single mesh re-uploaded the whole ~4 MB disc every 42 m no matter
+   * which part of it had actually gone stale.
+   *
+   * The shared material compiles once and binds aTint/aSpecies/aWind by name,
+   * so every ring's clone of the tuft geometry works with it unchanged.
+   *
+   * Per-tuft wind frame, (cos a / sx, sin a / sx) for the tuft's Y rotation a
+   * and XZ scale sx. windBend rotates the world gust into object space with
+   * it, so a field leans one way instead of every tuft leaning its own.
+   */
+  function makeGrassRing(r) {
+    const i0 = RING_OFFSETS[r];
+    const capacity = RING_OFFSETS[r + 1] - i0;
+    const tints = new Float32Array(capacity * 3);
+    const speciesUV = new Float32Array(capacity * 2);
+    const windRot = new Float32Array(capacity * 2);
+    const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
+    const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
+    const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
+    // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib for
+    // why that hint costs a full per-frame re-upload under WebGPU. finishRing
+    // marks all of them needsUpdate when a ring's rescatter lands, which is the
+    // only moment their contents change.
+    const geo = grassGeo.clone();
+    geo.setAttribute("aTint", tintAttrib);
+    geo.setAttribute("aSpecies", speciesAttrib);
+    geo.setAttribute("aWind", windRotAttrib);
+    const mesh = new THREE.InstancedMesh(geo, grassMat, capacity);
+    mesh.castShadow = false;
+    mesh.receiveShadow = wantGrassShadow;
+    mesh.frustumCulled = false;
+    mesh.boundingSphere = new THREE.Sphere(
+      new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z),
+      RINGS[r].outer + ringStep[r] + 40
+    );
+    return {
+      r,
+      mesh,
+      tintAttrib,
+      speciesAttrib,
+      windRotAttrib,
+      tints,
+      speciesUV,
+      windRot,
+      capacity,
+      outer: RINGS[r].outer,
+      step: ringStep[r],
+      i0,
+      i1: RING_OFFSETS[r + 1],
+      // Candidates are ordered near to far and planters compact into slot order
+      // from 0, so slot k of a ring sits at a similar distance whatever the
+      // centre is: a re-centre overwrites each slot with the tuft that lived
+      // roughly there before, and hash-anchored positions make the overlap
+      // between the old and new fields the SAME tufts in the SAME places.
+      slot: 0,
+      // World centre the ring's planted cover is arranged around. Stale when
+      // the camera has moved ringStep[r] from this.
+      cx: POS.ranch.x,
+      cz: POS.ranch.z,
+      // Fraction of this ring's candidate cells held back while the camera
+      // moves fast (SPEED_THIN, set by scatterPass at job start; the gate in
+      // plantBlade). Only the coarse far rings are thinnable — the near field
+      // is where the eye lands, and it is cheap enough to keep full.
+      thin: 0,
+      thinnable: RINGS[r].outer >= GRASS_RADIUS * 0.55,
+      used: 0,
+      job: null
+    };
+  }
   // Inset inside the panel so filtering cannot bleed a neighbouring species in.
   const atlasUV = uv().mul(0.47).add(vec2(0.015, 0.015)).add(speciesAttr);
   const grassSampleTex = texture(grassTex, atlasUV);
@@ -2059,8 +2324,17 @@ export function createVegetation(scene, maps = {}) {
   // Hold full cover almost to the edge of the disc, then dissolve over the last
   // stretch. The old 150 -> 205 fade started eroding grass at two thirds of the
   // draw distance, so the world went bald well before the disc actually ended.
-  grassMat.opacityNode = float(1).sub(smoothstep(GRASS_FADE_IN, GRASS_FADE_OUT, cameraPosition.sub(positionWorld).length()));
-  sageMat.opacityNode = float(1).sub(smoothstep(SAGE_FADE_IN, SAGE_FADE_OUT, cameraPosition.sub(positionWorld).length()));
+  //
+  // The fade distances are uniform NODES, not inlined constants: the panel's
+  // fade-start dial re-resolves them every frame it is moved without
+  // recompiling anything, and applyGrassSettings writes new values into them
+  // whenever the effective radius changes.
+  const grassFadeInU = uniform(GRASS_FADE_IN);
+  const grassFadeOutU = uniform(GRASS_FADE_OUT);
+  const sageFadeInU = uniform(SAGE_FADE_IN);
+  const sageFadeOutU = uniform(SAGE_FADE_OUT);
+  grassMat.opacityNode = float(1).sub(smoothstep(grassFadeInU, grassFadeOutU, cameraPosition.sub(positionWorld).length()));
+  sageMat.opacityNode = float(1).sub(smoothstep(sageFadeInU, sageFadeOutU, cameraPosition.sub(positionWorld).length()));
   /**
    * Wind profile exponent, as a uniform so it can be flipped live.
    *
@@ -2077,8 +2351,6 @@ export function createVegetation(scene, maps = {}) {
   grassMat.positionNode = positionLocal.add(windBend(uv().y.pow(windProfileExp)));
   grassMat.normalNode = bentNormal;
 
-  const grass = new THREE.InstancedMesh(grassGeo, grassMat, MAX_GRASS);
-  grass.castShadow = false;
   // Construction-time opt-in: ?grassshadow on a dev build.
   //
   // A runtime toggle is not a test. Flipping grass.receiveShadow after the
@@ -2086,10 +2358,12 @@ export function createVegetation(scene, maps = {}) {
   // mean RGB agreed to 0.1 and whose tuft counts were identical - no error, no
   // change, almost certainly because the node program was never rebuilt. The
   // original failure was reported with receiveShadow set at construction, so
-  // that is the only way to reproduce it.
-  if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("grassshadow")) {
-    grass.receiveShadow = true;
-  }
+  // that is the only way to reproduce it. The flag is read once here and
+  // applied where each ring mesh is BORN (makeGrassRing), which keeps the
+  // property construction-time even when applyGrassSettings rebuilds the field.
+  const wantGrassShadow =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("grassshadow");
   // receiveShadow stays off, but the old reason is gone — replaced by
   // measurement on 2026-08-28 (see HARD_WON 1.7 for the full record).
   //
@@ -2110,7 +2384,6 @@ export function createVegetation(scene, maps = {}) {
   // It stays off only because it is an appearance change to every frame the
   // audit grades, and those belong in a measured pass — flip it on there (the
   // ?grassshadow construction flag, or __grassShadow) and grade it.
-  grass.frustumCulled = false;
 
   const sageGeo = makeSageBush();
   sageGeo.computeBoundingBox();
@@ -2118,17 +2391,53 @@ export function createVegetation(scene, maps = {}) {
   // cover the real bush, not an estimate (a hand-picked 0.9*s foot under-cut
   // the angled planes and left bushes hovering on slopes).
   const SAGE_FOOT = Math.max(-sageGeo.boundingBox.min.x, sageGeo.boundingBox.max.x);
-  const SAGE_CAND = buildCandidates([{ cell: 3.1, outer: 90 }, { cell: 5.2, outer: SAGE_RADIUS }], SAGE_RADIUS);
-  const MAX_SAGE = SAGE_CAND.length;
-  const sage = new THREE.InstancedMesh(sageGeo, sageMat, MAX_SAGE);
-  const sageWind = makeWindAttrib(sageGeo, MAX_SAGE);
-  sage.castShadow = false;
-  sage.frustumCulled = false;
+  // Sage keeps the same per-ring scheme as grass: a near ring at 3.1 m cells
+  // that refreshes often and cheaply, and a far ring that sits still. Its two
+  // rings carry a few thousand candidates between them, so each is one chunk
+  // or two of work. Rebuilt alongside the grass field (see buildGrassField):
+  // everything here is `let` so applyGrassSettings can re-run it.
+  let SAGE_RING_SHAPE = null;
+  let SAGE_CAND = null;
+  let sageRingStep = [];
+  let sageRings = [];
+  function buildSageField() {
+    SAGE_RING_SHAPE = [{ cell: 3.1, outer: 90 }, { cell: 5.2, outer: SAGE_RADIUS }];
+    SAGE_CAND = buildCandidates(SAGE_RING_SHAPE, SAGE_RADIUS);
+    sageRingStep = SAGE_RING_SHAPE.map((rg) => Math.max(RING_STEP_MIN, rg.outer * RING_STEP_FRAC));
+    sageRings = [];
+    // Sage's candidate list is also grouped by ring, near ring first.
+    const offsets = [0, SAGE_CAND.ring.indexOf(1) === -1 ? SAGE_CAND.length : SAGE_CAND.ring.indexOf(1), SAGE_CAND.length];
+    for (let r = 0; r < SAGE_RING_SHAPE.length; r += 1) {
+      const i0 = offsets[r];
+      const capacity = offsets[r + 1] - i0;
+      const geo = sageGeo.clone();
+      const windAttrib = makeWindAttrib(geo, capacity);
+      const mesh = new THREE.InstancedMesh(geo, sageMat, capacity);
+      mesh.castShadow = false;
+      mesh.frustumCulled = false;
+      mesh.boundingSphere = new THREE.Sphere(
+        new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z),
+        SAGE_RING_SHAPE[r].outer + sageRingStep[r] + 40
+      );
+      sageRings.push({
+        r,
+        mesh,
+        windAttrib,
+        capacity,
+        cell: SAGE_RING_SHAPE[r].cell,
+        outer: SAGE_RING_SHAPE[r].outer,
+        step: sageRingStep[r],
+        i0,
+        i1: offsets[r + 1],
+        slot: 0,
+        cx: POS.ranch.x,
+        cz: POS.ranch.z,
+        used: 0,
+        job: null
+      });
+    }
+  }
 
-  const lastCenter = new THREE.Vector3(POS.ranch.x, 0, POS.ranch.z);
-  grass.boundingSphere = new THREE.Sphere(new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z), GRASS_RADIUS + 40);
-  sage.boundingSphere = new THREE.Sphere(new THREE.Vector3(POS.ranch.x, 16, POS.ranch.z), SAGE_RADIUS + 40);
-  let scatterJob = null;
   let g = 0;
   let shrubs = 0;
 
@@ -2162,25 +2471,42 @@ export function createVegetation(scene, maps = {}) {
   // ---------------------------------------------------------------------
 
   /**
-   * Plant candidate `i` around (cx, cz). Returns true when the slot was used.
+   * Plant candidate `i` of ring `rec` around that ring's centre. Returns true
+   * when the slot was used.
    *
    * Tuft scale grows with distance: a far tuft covers the ground a denser ring
    * would have, so the coarser rings do not read as thinning out. Growth is
    * continuous in distance rather than stepped per ring, so the ring seams do
-   * not show as bands.
+   * not show as bands. The distance is measured against the ring's OWN centre,
+   * so between re-centres a tuft's size does not move at all — an earlier
+   * single-disc centre made every tuft's t shift on every rebuild.
    */
-  function plantBlade(cx, cz, i, slot) {
-    const r = CAND.ring[i];
+  function plantBlade(rec, i, slot) {
+    const cx = rec.cx;
+    const cz = rec.cz;
+    const r = rec.r;
     const cell = RINGS[r].cell;
     const ix = Math.floor(cx / cell) + CAND.di[i];
     const jz = Math.floor(cz / cell) + CAND.dj[i];
+    // Speed hold-back, before any sampling so a thinned cell costs nothing.
+    // Per-cell hash, not per-slot: the gate answer for a cell is the same on
+    // every rebuild, so thinning and unthinning only ever add or remove whole
+    // tufts, never move the survivors.
+    if (rec.thin > 0 && hash2(ix, jz, 31) < rec.thin) {
+      return false;
+    }
     const x = (ix + 0.5 + (hash2(ix, jz, 1) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 2) - 0.5) * 0.9) * cell;
-    const weight = grassSample(x, z);
+    // The static sample is memoised per cell (grassSampleCached): a re-centre
+    // replants mostly the same cells, so the noise work is paid once per cell,
+    // not once per rebuild. The footprint test stays live after it.
+    const [weight, biome] = grassSampleCached(r, ix, jz, x, z);
     if (weight <= 0) {
       return false;
     }
-    const biome = biomeAt(x, z);
+    if (insideStructure(x, z, GRASS_CLEARANCE)) {
+      return false;
+    }
 
     // Density gate. This used to be `weight >= 0.22`, which nearly everything
     // cleared, so biome lushness only ever changed the height of a carpet that
@@ -2210,14 +2536,28 @@ export function createVegetation(scene, maps = {}) {
     const hMet = (sp.hMin + (sp.hMax - sp.hMin) * hash2(ix, jz, 4)) * (0.86 + weight * 0.24);
     const dx = x - cx;
     const dz = z - cz;
-    const t = Math.min(Math.sqrt(dx * dx + dz * dz) / GRASS_RADIUS, 1);
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    // Two-part size ramp (see the RAMP_ANCHOR block comment):
+    //  - inside the tier disc, the tuned ramp against dist / RAMP_ANCHOR —
+    //    identical to the shipped look at every tier, and unaffected by the
+    //    panel's draw-distance dial;
+    //  - beyond it, growth that OUTPACES distance (2.5x past the anchor). A
+    //    merely screen-constant card is not enough: the shipped 550 m edge
+    //    tuft is already only ~1 px tall, and an alpha-tested (0.32) card at
+    //    1-2 px discards to nothing rather than averaging into a tint —
+    //    measured, a screen-constant ramp left the far field pixel-identical.
+    //    Outgrowing distance is what lifts the far cards back over the pixel
+    //    grid, where they read as the same sparse stipple the mid disc has.
+    const t = Math.min(dist / RAMP_ANCHOR, 1);
+    const over = dist / RAMP_ANCHOR;
+    const far = over > 1 ? 1 + (over - 1) * 2.5 : 1;
     // Far tufts grow mostly WIDER, not taller: width is what holds coverage as
     // the rings coarsen, while a distance ramp on height was what produced
     // 2.9 m grass at the edge of the disc.
-    const hGrow = 1 + t * 0.5;
+    const hGrow = far * (1 + t * 0.5);
     // Was 1 + t * 1.6. Growing width nearly twice as fast as height stretched
     // far tufts sideways into mush; keep the two closer so proportion holds.
-    const wGrow = 1 + t * 0.7;
+    const wGrow = far * (1 + t * 0.7);
     // Size the CARD so the painted plant lands at the metric size we asked for.
     const cardH = (hMet * hGrow) / sp.fill;
     const cardW = (hMet * sp.spread * (0.86 + hash2(ix, jz, 5) * 0.28) * wGrow) / BLADE_PANEL_W;
@@ -2274,25 +2614,27 @@ export function createVegetation(scene, maps = {}) {
     dummy.rotation.set(0, rotY, 0);
     dummy.scale.set(cardW / GRASS_CARD_W, cardH / GRASS_CARD_H, cardW / GRASS_CARD_W);
     dummy.updateMatrix();
-    grass.setMatrixAt(slot, dummy.matrix);
-    speciesUV[slot * 2] = sp.uv[0];
-    speciesUV[slot * 2 + 1] = sp.uv[1];
+    rec.mesh.setMatrixAt(slot, dummy.matrix);
+    rec.speciesUV[slot * 2] = sp.uv[0];
+    rec.speciesUV[slot * 2 + 1] = sp.uv[1];
     // Wind frame for windBend: cos/sin of this tuft's Y rotation over its XZ
     // scale, so the world gust lands in the same compass direction on every
     // tuft and keeps its amplitude in world metres.
-    windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
-    windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
+    rec.windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
+    rec.windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
 
     const lush = GRASSINESS[biome] ?? 0;
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
-    tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
-    tints[slot * 3 + 1] = 0.42 + lush * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
-    tints[slot * 3 + 2] = 0.2 + lush * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
+    rec.tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
+    rec.tints[slot * 3 + 1] = 0.42 + lush * 0.28 + hash2(ix, jz, 7) * 0.12 - dry * 0.15;
+    rec.tints[slot * 3 + 2] = 0.2 + lush * 0.1 + hash2(ix, jz, 8) * 0.08 - dry * 0.05;
     return true;
   }
 
-  function plantSage(cx, cz, i, slot) {
-    const cell = SAGE_CAND.ring[i] === 0 ? 3.1 : 5.2;
+  function plantSage(rec, i, slot) {
+    const cx = rec.cx;
+    const cz = rec.cz;
+    const cell = rec.cell;
     const ix = Math.floor(cx / cell) + SAGE_CAND.di[i];
     const jz = Math.floor(cz / cell) + SAGE_CAND.dj[i];
     const x = (ix + 0.5 + (hash2(ix, jz, 11) - 0.5) * 0.9) * cell;
@@ -2327,7 +2669,12 @@ export function createVegetation(scene, maps = {}) {
       return false;
     }
     const s = 0.8 + hash2(ix, jz, 14) * 0.7;
-    const sx = s * (0.85 + hash2(ix, jz, 16) * 0.35);
+    // Same outgrowing hold as grass (plantBlade's `far`): a shrub past the
+    // tier disc grows faster than distance, or the sage dial plants
+    // metric-sized bushes that alpha-test away to nothing at 500 m+.
+    const sOver = Math.hypot(x - cx, z - cz) / SAGE_ANCHOR;
+    const sFar = sOver > 1 ? 1 + (sOver - 1) * 2.5 : 1;
+    const sx = s * (0.85 + hash2(ix, jz, 16) * 0.35) * sFar;
     // Same lowest-corner seat as grass: a sage bush anchored at its centre
     // hovered above the downhill side on slopes.
     const sfoot = SAGE_FOOT * sx;
@@ -2344,51 +2691,221 @@ export function createVegetation(scene, maps = {}) {
     const rotY = hash2(ix, jz, 15) * Math.PI * 2;
     dummy.position.set(x, sBaseY - 0.05, z);
     dummy.rotation.set(0, rotY, 0);
-    dummy.scale.set(sx, s * (0.8 + hash2(ix, jz, 17) * 0.4), sx);
+    dummy.scale.set(sx, s * (0.8 + hash2(ix, jz, 17) * 0.4) * sFar, sx);
     dummy.updateMatrix();
-    sage.setMatrixAt(slot, dummy.matrix);
+    rec.mesh.setMatrixAt(slot, dummy.matrix);
     // Same wind frame as grass: world gust rotated into this bush's frame.
-    sageWind.array[slot * 2] = Math.cos(rotY) / sx;
-    sageWind.array[slot * 2 + 1] = Math.sin(rotY) / sx;
+    rec.windAttrib.array[slot * 2] = Math.cos(rotY) / sx;
+    rec.windAttrib.array[slot * 2 + 1] = Math.sin(rotY) / sx;
     return true;
   }
 
-  function finishScatter(cx, cz, grassCount, sageCount) {
-    grass.count = grassCount;
-    grass.instanceMatrix.needsUpdate = true;
-    // The attributes, not the nodes that read them: a node has no needsUpdate
-    // and setting one silently did nothing for the whole life of this file.
-    tintAttrib.needsUpdate = true;
-    speciesAttrib.needsUpdate = true;
-    windRotAttrib.needsUpdate = true;
-    sageWind.needsUpdate = true;
-    grass.boundingSphere.center.set(cx, heightAt(cx, cz), cz);
-    grass.boundingSphere.radius = GRASS_RADIUS + 40;
-    sage.count = sageCount;
-    sage.instanceMatrix.needsUpdate = true;
-    sage.boundingSphere.center.set(cx, heightAt(cx, cz), cz);
-    sage.boundingSphere.radius = SAGE_RADIUS + 40;
-    g = grassCount;
-    shrubs = sageCount;
+  /**
+   * Publish one ring's finished replant. This is the only moment the ring's
+   * buffers are marked for upload: planting during a rebuild only writes the
+   * CPU-side arrays, and the old field keeps drawing until the whole replant
+   * lands, exactly the contract the old single-disc finishScatter had — just
+   * scoped to one ring, so a far ring going stale never pays to re-upload the
+   * near field that has not moved.
+   *
+   * instanceMatrix updateRanges are deliberately NOT used for per-chunk
+   * partial uploads. three's WebGPU backend drives instanceMatrix through a
+   * buffer node, not the attribute-update path: under the uniform-buffer limit
+   * the whole array uploads on a version change anyway, and above it the
+   * interleaved copy forwards updateRanges without ever clearing the source
+   * attribute's own list. The dirty contract that works on every backend is a
+   * plain needsUpdate at ring completion, on buffers now sized per ring.
+   */
+  function finishRing(rec, count) {
+    rec.used = count;
+    rec.job = null;
+    rec.mesh.count = count;
+    rec.mesh.instanceMatrix.needsUpdate = true;
+    if (rec.tintAttrib) {
+      // The attributes, not the nodes that read them: a node has no needsUpdate
+      // and setting one silently did nothing for the whole life of this file.
+      rec.tintAttrib.needsUpdate = true;
+      rec.speciesAttrib.needsUpdate = true;
+      rec.windRotAttrib.needsUpdate = true;
+    } else {
+      rec.windAttrib.needsUpdate = true;
+    }
+    rec.mesh.boundingSphere.center.set(rec.cx, heightAt(rec.cx, rec.cz), rec.cz);
+    rec.mesh.boundingSphere.radius = rec.outer + rec.step + 40;
   }
 
-  function scatterGrass(cx, cz) {
-    let grassSlot = 0;
-    let sageSlot = 0;
-    for (let i = 0; i < CAND.length && grassSlot < MAX_GRASS; i += 1) {
-      if (plantBlade(cx, cz, i, grassSlot)) {
-        grassSlot += 1;
-      }
-    }
-    for (let i = 0; i < SAGE_CAND.length && sageSlot < MAX_SAGE; i += 1) {
-      if (plantSage(cx, cz, i, sageSlot)) {
-        sageSlot += 1;
-      }
-    }
-    finishScatter(cx, cz, grassSlot, sageSlot);
+  function finishGrassRing(rec) {
+    finishRing(rec, rec.slot);
+    g = grassRings.reduce((sum, gr) => sum + gr.used, 0);
   }
 
-  scatterGrass(POS.ranch.x, POS.ranch.z);
+  function finishSageRing(rec) {
+    finishRing(rec, rec.slot);
+    shrubs = sageRings.reduce((sum, sr) => sum + sr.used, 0);
+  }
+
+  /**
+   * Run up to `budget` candidates of a ring's replant. Returns the budget
+   * actually spent, so a frame can carry on into the next stale ring.
+   */
+  function runGrassChunk(rec, budget) {
+    const end = rec.i1;
+    let spent = 0;
+    for (; rec.jobI < end && rec.slot < rec.capacity && spent < budget; rec.jobI += 1) {
+      if (plantBlade(rec, rec.jobI, rec.slot)) {
+        rec.slot += 1;
+      }
+      spent += 1;
+    }
+    if (rec.jobI >= end || rec.slot >= rec.capacity) {
+      finishGrassRing(rec);
+    }
+    return spent;
+  }
+
+  function runSageChunk(rec, budget) {
+    const end = rec.i1;
+    let spent = 0;
+    for (; rec.jobI < end && rec.slot < rec.capacity && spent < budget; rec.jobI += 1) {
+      if (plantSage(rec, rec.jobI, rec.slot)) {
+        rec.slot += 1;
+      }
+      spent += 1;
+    }
+    if (rec.jobI >= end || rec.slot >= rec.capacity) {
+      finishSageRing(rec);
+    }
+    return spent;
+  }
+
+  function startRingJob(rec) {
+    rec.job = true;
+    rec.jobI = rec.i0;
+    rec.slot = 0;
+  }
+
+  // Initial plant: build both fields and plant every ring in full, around the
+  // ranch — the same full scatter the old construction-time scatterGrass(ranch)
+  // did, just spread across the per-ring fields so the first frame is complete.
+  buildGrassField();
+  buildSageField();
+  for (const rec of grassRings) {
+    startRingJob(rec);
+    runGrassChunk(rec, Infinity);
+  }
+  for (const rec of sageRings) {
+    startRingJob(rec);
+    runSageChunk(rec, Infinity);
+  }
+
+  /**
+   * Camera motion, measured here rather than asked for, because update() only
+   * receives a position. EMA-smoothed over a few frames: a single frame's
+   * difference is one hitch or capture teleport away from nonsense, and the
+   * scatter cadence should ride the player's actual pace, not a spike.
+   */
+  let lastCamX = null;
+  let lastCamZ = null;
+  let lastFrameMs = 0;
+  let velX = 0;
+  let velZ = 0;
+  let vSpeed = 0;
+  // A second, much slower average for the speed hold-back: a teleport or a
+  // hitch spikes vSpeed for a handful of frames, and a far ring that replants
+  // inside that spike would come back thinned — then, if the player stands
+  // still, no re-centre ever comes to un-thin it. susSpeed only crosses the
+  // hold-back thresholds after the camera has genuinely been moving fast for
+  // the better part of a second.
+  let susSpeed = 0;
+  let frameDt = 1 / 60;
+  let thinLevel = 0;
+
+  /**
+   * One frame's scatter work, shared out across the rings that need it.
+   *
+   * The first cut of the ringed scatter handed the whole frame budget to the
+   * nearest stale ring and carried only the remainder onward. At a gallop the
+   * near rings never finish early — ring 0 re-centres every ~10 m and
+   * replants ~24k candidates, so it spends essentially every frame mid-job —
+   * and the loop reached the outer rings with nothing left to give. Measured
+   * at 4x gallop: ring 1 sat at 63-69% of a single rebuild for thirty
+   * straight seconds and rings 2-4 never re-centred at all, their cover left
+   * centred on the launch point while the player rode a growing bald circle
+   * that eventually snapped back in as a distant ring when they slowed. Near
+   * rings first is the right priority; the WHOLE budget as that priority is
+   * starvation.
+   *
+   * So the budget is now split by churn rate: a ring's steady-state share of
+   * the work is its candidate span over its re-centre step, scaled by how far
+   * it has fallen behind (lag/step, floored at 1) so a ring that starved
+   * catches up instead of staying behind forever. When the total budget meets
+   * the total churn every ring keeps its cadence; when it falls short every
+   * ring slows down proportionally instead of the outer ones going dark.
+   * Unspent share pools onward, so a ring that finishes its span early still
+   * hands its leftovers to the next.
+   *
+   * A ring starting a job also plants its centre where the camera will BE
+   * when the job lands — velocity x estimated replant time, capped well
+   * inside the step — rather than where the camera is. A rebuild that lands
+   * already lagging behind is what a re-centre every few frames looks like
+   * from inside; lead the centre and the finished disc is centred on the
+   * player, not trailing them.
+   */
+  function scatterPass(rings, cameraPos, budget, runChunk) {
+    let totalW = 0;
+    const needy = [];
+    for (const rec of rings) {
+      const lag = Math.hypot(rec.cx - cameraPos.x, rec.cz - cameraPos.z);
+      if (!rec.job && lag < rec.step) {
+        continue;
+      }
+      const w = ((rec.i1 - rec.i0) / rec.step) * Math.max(1, lag / rec.step);
+      needy.push({ rec, w, lag });
+      totalW += w;
+    }
+    let pool = 0;
+    let spentTotal = 0;
+    for (const { rec, w, lag } of needy) {
+      let allowance = (budget * w) / totalW + pool;
+      if (spentTotal + allowance > budget) {
+        allowance = budget - spentTotal;
+      }
+      if (allowance < 1) {
+        break;
+      }
+      if (!rec.job) {
+        const span = rec.i1 - rec.i0;
+        const tEst = (span / Math.max(1, allowance)) * frameDt;
+        const lead = Math.min(rec.step * 0.6, vSpeed * tEst);
+        if (lead > 0.01) {
+          rec.cx = cameraPos.x + (velX / vSpeed) * lead;
+          rec.cz = cameraPos.z + (velZ / vSpeed) * lead;
+        } else {
+          rec.cx = cameraPos.x;
+          rec.cz = cameraPos.z;
+        }
+        // Hold-back applies only to a routine re-centre, where the ring is at
+        // most a step or so behind. A catch-up plant — a teleport, a mission
+        // start, a soloGrass reset — leaves the hold-back off: the player is
+        // standing somewhere new and must see the full field, and a thinned
+        // far ring with no re-centre coming (they have stopped moving) would
+        // stay thin indefinitely.
+        rec.thin =
+          rec.thinnable &&
+          (grassOverride === null || grassOverride.thin !== false) &&
+          lag < rec.step * 2.5
+            ? SPEED_THIN[thinLevel]
+            : 0;
+        startRingJob(rec);
+      }
+      const spent = runChunk(rec, Math.round(allowance));
+      spentTotal += spent;
+      pool = Math.max(0, allowance - spent);
+      if (spentTotal >= budget) {
+        break;
+      }
+    }
+  }
 
   const rockMat = new THREE.MeshStandardNodeMaterial({ color: 0x6a6660, roughness: 0.96 });
   const redRock = new THREE.MeshStandardNodeMaterial({ color: 0x8a5a3a, roughness: 0.96 });
@@ -2451,7 +2968,13 @@ export function createVegetation(scene, maps = {}) {
   for (const p of pines) {
     scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.crownDist);
   }
-  scene.add(...broadMeshes, burnt, sage, grass, rocks);
+  scene.add(
+    ...broadMeshes,
+    burnt,
+    ...sageRings.map((rec) => rec.mesh),
+    ...grassRings.map((rec) => rec.mesh),
+    rocks
+  );
 
   // Diagnostic toggle for the U2 question: are the long flat streaks on the
   // ground painted into the terrain albedo, or are they grass geometry?
@@ -2463,8 +2986,8 @@ export function createVegetation(scene, maps = {}) {
   // grass set tiles every 10 m — coarse enough that its painted blades come
   // out around 0.8 m long, as long as the real tufts standing on it.
   //
-  // Stand still between the two shots. The scatter rewrites grass.count when
-  // the camera moves REBUILD_STEP (42 m), which restores it.
+  // Stand still between the two shots. The scatter rewrites each ring's count
+  // when the camera moves past that ring's step, which restores it.
   //
   // Guarded because the headless checks import this module with no window.
   if (typeof window !== "undefined") {
@@ -2472,17 +2995,21 @@ export function createVegetation(scene, maps = {}) {
     // sets it to the initial 0, so __hideGrass(false) on a fresh page hid the
     // grass instead of showing it — the opposite of what it says.
     let hidden = false;
-    let savedGrassCount = 0;
+    const savedCounts = grassRings.map(() => 0);
     window.__hideGrass = (on) => {
       if (on && !hidden) {
-        savedGrassCount = grass.count;
-        grass.count = 0;
+        grassRings.forEach((rec, r) => {
+          savedCounts[r] = rec.mesh.count;
+          rec.mesh.count = 0;
+        });
         hidden = true;
       } else if (!on && hidden) {
-        grass.count = savedGrassCount;
+        grassRings.forEach((rec, r) => {
+          rec.mesh.count = savedCounts[r];
+        });
         hidden = false;
       }
-      return grass.count;
+      return grassRings.reduce((sum, rec) => sum + rec.mesh.count, 0);
     };
   }
 
@@ -2709,9 +3236,11 @@ export function createVegetation(scene, maps = {}) {
      * failure it caused can be reproduced and looked at instead of remembered.
      */
     debugGrassShadow(on) {
-      grass.receiveShadow = Boolean(on);
+      for (const rec of grassRings) {
+        rec.mesh.receiveShadow = Boolean(on);
+      }
       grassMat.needsUpdate = true;
-      return grass.receiveShadow;
+      return grassRings[0].mesh.receiveShadow;
     },
     debugSpeciesColour(mode) {
       dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
@@ -2722,7 +3251,10 @@ export function createVegetation(scene, maps = {}) {
         throw new Error(`unknown grass species ${name}; have ${GRASS_SPECIES.map((sp) => sp.name).join(", ")}`);
       }
       soloSpecies = name || null;
-      lastCenter.set(Infinity, Infinity, Infinity);
+      for (const rec of grassRings) {
+        rec.cx = Infinity;
+        rec.cz = Infinity;
+      }
       if (cameraPos) {
         this.update(cameraPos);
       }
@@ -2742,11 +3274,13 @@ export function createVegetation(scene, maps = {}) {
       const m = new THREE.Matrix4();
       const p = new THREE.Vector3();
       const out = [];
-      for (let i = 0; i < grass.count; i += 1) {
-        grass.getMatrixAt(i, m);
-        p.setFromMatrixPosition(m);
-        if (flatDist(p, cameraPos) <= radius) {
-          out.push([p.x, p.y, p.z, Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H]);
+      for (const rec of grassRings) {
+        for (let i = 0; i < rec.mesh.count; i += 1) {
+          rec.mesh.getMatrixAt(i, m);
+          p.setFromMatrixPosition(m);
+          if (flatDist(p, cameraPos) <= radius) {
+            out.push([p.x, p.y, p.z, Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H]);
+          }
         }
       }
       return out;
@@ -2760,17 +3294,114 @@ export function createVegetation(scene, maps = {}) {
      * in flight. `scatterSettled` answers yes/no; this says why — a probe that
      * finds the centre metres from where it parked the camera is driving a
      * camera the game is not using.
+     *
+     * The near ring's centre is the one that answers "where is the cover": it
+     * refreshes most often, so it is the one that tracks the camera.
      */
     scatterCenter() {
-      return { x: lastCenter.x, z: lastCenter.z, rebuilding: Boolean(scatterJob), planted: grass.count };
+      return {
+        x: grassRings[0].cx === Infinity ? NaN : grassRings[0].cx,
+        z: grassRings[0].cz === Infinity ? NaN : grassRings[0].cz,
+        rebuilding: grassRings.some((rec) => rec.job) || sageRings.some((rec) => rec.job),
+        planted: g,
+        speed: +vSpeed.toFixed(1),
+        thin: SPEED_THIN[thinLevel]
+      };
+    },
+    /**
+     * Apply the materials panel's Grass folder to the live field.
+     *
+     * Fade start is a shader uniform, so it lands the same frame. The
+     * structural knobs — draw distance, sage distance, cell scale — change
+     * the candidate layout, so they rebuild both fields around the camera:
+     * dispose the old ring meshes, re-resolve every span, replant in full.
+     * That is one hitch of plant work (~150 ms measured by
+     * bench-grass-scatter), which is why the panel fires it on release
+     * (onFinishChange), not per drag tick. The speed-thinning toggle is
+     * scatter-side only and takes effect at the next re-centre with no
+     * rebuild at all.
+     */
+    applyGrassSettings(settings, cameraPos) {
+      const next = {
+        radius: Math.max(0, Number(settings.grassRadius) || 0),
+        sage: Math.max(0, Number(settings.sageRadius) || 0),
+        cell: Math.max(0.4, Number(settings.grassCellScale) || 1),
+        fade: Math.min(1, Math.max(0.3, Number(settings.grassFadeStart) || 0.803)),
+        thin: settings.grassSpeedThin !== false
+      };
+      const structural =
+        !grassOverride ||
+        next.radius !== grassOverride.radius ||
+        next.sage !== grassOverride.sage ||
+        next.cell !== grassOverride.cell;
+      grassOverride = next;
+      applyProfile();
+      grassFadeInU.value = GRASS_FADE_IN;
+      grassFadeOutU.value = GRASS_FADE_OUT;
+      sageFadeInU.value = SAGE_FADE_IN;
+      sageFadeOutU.value = SAGE_FADE_OUT;
+      if (structural && cameraPos) {
+        for (const rec of [...grassRings, ...sageRings]) {
+          scene.remove(rec.mesh);
+          rec.mesh.geometry.dispose();
+        }
+        buildGrassField();
+        buildSageField();
+        // Replant around where the player actually is, not the ranch: a
+        // panel rebuild that teleported the cover back to spawn would be a
+        // bug wearing a feature's clothes.
+        for (const rec of [...grassRings, ...sageRings]) {
+          rec.cx = cameraPos.x;
+          rec.cz = cameraPos.z;
+        }
+        for (const rec of grassRings) {
+          startRingJob(rec);
+          runGrassChunk(rec, Infinity);
+        }
+        for (const rec of sageRings) {
+          startRingJob(rec);
+          runSageChunk(rec, Infinity);
+        }
+        scene.add(...sageRings.map((rec) => rec.mesh), ...grassRings.map((rec) => rec.mesh));
+      }
+      return { grassRadius: GRASS_RADIUS, sageRadius: SAGE_RADIUS, planted: g };
+    },
+    /**
+     * Per-ring scatter state, for the same diagnosis scatterCenter does for
+     * the whole disc: which ring is mid-rebuild, where its cursor is, and
+     * whether its cursor is actually advancing between calls.
+     */
+    scatterRings() {
+      const row = (rec) => ({
+        r: rec.r,
+        cx: rec.cx === Infinity ? null : rec.cx,
+        cz: rec.cz === Infinity ? null : rec.cz,
+        jobI: rec.job ? rec.jobI : null,
+        span: [rec.i0, rec.i1],
+        slot: rec.slot,
+        capacity: rec.capacity,
+        used: rec.used,
+        thin: rec.thin || 0
+      });
+      return { grass: grassRings.map(row), sage: sageRings.map(row) };
     },
     /**
      * Capture tooling gates its screenshots on this. Position only: the disc
      * is planted at every bearing, so where the camera LOOKS cannot leave the
      * cover stale — only where it stands can.
+     *
+     * Every ring must be inside its own step: a teleport puts all of them
+     * stale at once, and a screenshot taken mid-rebuild would show only the
+     * rings that had finished.
      */
     scatterSettled(cameraPos) {
-      return !scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP;
+      const stale = (rec) => Math.hypot(rec.cx - cameraPos.x, rec.cz - cameraPos.z) >= rec.step;
+      return (
+        !grassRings.some((rec) => rec.job) &&
+        !sageRings.some((rec) => rec.job) &&
+        !grassRings.some(stale) &&
+        !sageRings.some(stale)
+      );
     },
     /**
      * Measure the ground cover as DRAWN, near the camera.
@@ -2789,14 +3420,16 @@ export function createVegetation(scene, maps = {}) {
       const p = new THREE.Vector3();
       const w = [];
       const h = [];
-      for (let i = 0; i < grass.count; i += 1) {
-        grass.getMatrixAt(i, m);
-        p.setFromMatrixPosition(m);
-        if (flatDist(p, cameraPos) > radius) {
-          continue;
+      for (const rec of grassRings) {
+        for (let i = 0; i < rec.mesh.count; i += 1) {
+          rec.mesh.getMatrixAt(i, m);
+          p.setFromMatrixPosition(m);
+          if (flatDist(p, cameraPos) > radius) {
+            continue;
+          }
+          w.push(Math.hypot(m.elements[0], m.elements[1], m.elements[2]) * GRASS_CARD_W);
+          h.push(Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H);
         }
-        w.push(Math.hypot(m.elements[0], m.elements[1], m.elements[2]) * GRASS_CARD_W);
-        h.push(Math.hypot(m.elements[4], m.elements[5], m.elements[6]) * GRASS_CARD_H);
       }
       if (!w.length) {
         return { count: 0 };
@@ -2826,32 +3459,42 @@ export function createVegetation(scene, maps = {}) {
       // force a rebuild too, back when the scatter only filled the forward
       // hemisphere; the disc is planted at every bearing now, so a player who
       // stands still and looks around does no scatter work at all.
-      if (!scatterJob && flatDist(lastCenter, cameraPos) < REBUILD_STEP) {
-        return;
+      //
+      // The camera's VELOCITY is measured rather than asked for (update gets a
+      // position, that is all), EMA-smoothed so one hitch or capture teleport
+      // does not read as a gallop. The first call has no previous position to
+      // difference against, so it just primes the tracker.
+      const nowMs = performance.now();
+      const dt = Math.min(0.1, Math.max(1e-4, (nowMs - lastFrameMs) / 1000));
+      let budget = GRASS_CHUNK;
+      if (lastCamX === null) {
+        lastCamX = cameraPos.x;
+        lastCamZ = cameraPos.z;
+        lastFrameMs = nowMs;
+        frameDt = dt;
+      } else {
+        lastFrameMs = nowMs;
+        frameDt += (dt - frameDt) * 0.1;
+        const rvx = (cameraPos.x - lastCamX) / dt;
+        const rvz = (cameraPos.z - lastCamZ) / dt;
+        lastCamX = cameraPos.x;
+        lastCamZ = cameraPos.z;
+        const blend = Math.min(1, dt * 6);
+        velX += (rvx - velX) * blend;
+        velZ += (rvz - velZ) * blend;
+        vSpeed = Math.min(Math.hypot(velX, velZ), GRASS_SPEED_REF * 4);
+        susSpeed += (vSpeed - susSpeed) * Math.min(1, dt * 1.2);
+        const speedFactor = susSpeed / GRASS_SPEED_REF;
+        thinLevel = speedFactor < 0.85 ? 0 : speedFactor < 1.8 ? 1 : 2;
+        // The frame budget rides the speed: churn per second scales with how
+        // fast the player covers ground, so the budget has to as well, capped
+        // at 3x GRASS_CHUNK (~5.8 ms of worst-case plant work measured by
+        // bench-grass-scatter, paid only while moving). At a standstill no
+        // ring is stale and none of this runs.
+        budget = Math.round(GRASS_CHUNK * (1 + Math.min(speedFactor, 2)));
       }
-      if (!scatterJob) {
-        lastCenter.copy(cameraPos);
-        scatterJob = { cx: cameraPos.x, cz: cameraPos.z, i: 0, slot: 0, si: 0, sslot: 0 };
-      }
-      const { cx, cz } = scatterJob;
-      const end = Math.min(CAND.length, scatterJob.i + GRASS_CHUNK);
-      for (; scatterJob.i < end && scatterJob.slot < MAX_GRASS; scatterJob.i += 1) {
-        if (plantBlade(cx, cz, scatterJob.i, scatterJob.slot)) {
-          scatterJob.slot += 1;
-        }
-      }
-      const send = Math.min(SAGE_CAND.length, scatterJob.si + SAGE_CHUNK);
-      for (; scatterJob.si < send && scatterJob.sslot < MAX_SAGE; scatterJob.si += 1) {
-        if (plantSage(cx, cz, scatterJob.si, scatterJob.sslot)) {
-          scatterJob.sslot += 1;
-        }
-      }
-      const grassDone = scatterJob.i >= CAND.length || scatterJob.slot >= MAX_GRASS;
-      const sageDone = scatterJob.si >= SAGE_CAND.length || scatterJob.sslot >= MAX_SAGE;
-      if (grassDone && sageDone) {
-        finishScatter(cx, cz, scatterJob.slot, scatterJob.sslot);
-        scatterJob = null;
-      }
+      scatterPass(grassRings, cameraPos, budget, runGrassChunk);
+      scatterPass(sageRings, cameraPos, SAGE_CHUNK, runSageChunk);
     },
     treeInstances: placed,
     burntInstances: burned,

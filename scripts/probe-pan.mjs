@@ -18,9 +18,10 @@
  *     audit takes, so a pan that unsettles the scatter also silently costs
  *     the capture harness minutes of waiting.
  *
- * Then it walks REBUILD_STEP metres to prove the position path still DOES
- * rebuild — a probe that passes because nothing ever rebuilds would be
- * worthless.
+ * Then it walks 60 m — past several rings' re-centre steps (each ring
+ * replants after moving a fraction of its own radius) — to prove the position
+ * path still DOES rebuild. A probe that passes because nothing ever rebuilds
+ * would be worthless.
  *
  *   npm run build && npm run preview &
  *   node scripts/probe-pan.mjs [baseUrl]

@@ -247,6 +247,9 @@ async function boot() {
     onQuality() {
       syncTerrainUniforms();
       rebuildTerrainMaterial();
+    },
+    onGrass() {
+      vegetation.applyGrassSettings(materialSettings, camera.position);
     }
   });
   materialGui.hide();
@@ -816,11 +819,16 @@ async function boot() {
       scene.add(grassPins);
     };
 
+    window.__veg = vegetation;
+    window.__camera = camera;
     window.__vegSettled = () => vegetation.scatterSettled(camera.position);
+    // Per-ring scatter state for the diagnosis above: which ring is mid-
+    // rebuild and whether its cursor advances between calls.
+    window.__scatterRings = () => vegetation.scatterRings();
     // Where the ground cover is centred, plus the live camera position it is
     // being compared against. The pair is the whole diagnosis when a scatter
-    // looks stuck: if they differ by more than REBUILD_STEP and nothing is
-    // rebuilding, the frame loop is not running.
+    // looks stuck: if they differ by more than the near ring's re-centre step
+    // and nothing is rebuilding, the frame loop is not running.
     window.__vegCenter = () => ({
       ...vegetation.scatterCenter(),
       camera: { x: camera.position.x, z: camera.position.z }
