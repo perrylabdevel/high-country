@@ -64,6 +64,9 @@ const NUMERIC_KEYS = [
   "roadCenterHi",
   "roadCompact",
   "roadEdgeBright",
+  "farGrassStart",
+  "farGrassEnd",
+  "farGrassGain",
   "debugView"
 ] as const;
 
@@ -168,7 +171,43 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   // and uses the roadCenterLo/Hi knobs that were declared but never wired.
   const center = smoothstep(u.roadCenterLo, u.roadCenterHi, splat.a).toVar();
 
-  const grassW = splat.r.mul(rockSlope.oneMinus()).mul(nVar.mul(0.12).add(0.92)).mul(roadMask.oneMinus()).toVar();
+  /**
+   * Ground cover that the CARDS are no longer drawing.
+   *
+   * Measured at a high vantage, with the tuft cards hidden and shown, the
+   * green each source contributes by distance band:
+   *
+   *          < 60 m   60-200 m   200-600 m   600 m+
+   *   cards   24.79%     4.61%       1.40%    0.00%
+   *   ground   1.07%     3.82%       2.99%    2.08%
+   *   total   25.86%     8.43%       4.40%    2.08%
+   *
+   * The cards do essentially all the work up close and none of it past the
+   * draw distance, and nothing takes over: total cover falls by a factor of
+   * twelve across the frame and the world goes bald toward the horizon. That
+   * is not a card-density problem — the previous pass raised far-band density
+   * 4.4x and bought 3 points of horizon green — it is a hand-off problem. The
+   * two sources are independent when they should be complementary.
+   *
+   * So the ground's own grass layer is ramped UP over the same range the
+   * cards fade OUT, which is what shipped engines mean by folding foliage
+   * into the terrain at distance: past the disc a tuft was never more than a
+   * sub-pixel alpha-tested card that discards to nothing, and a tint on the
+   * ground is both cheaper and more honest about what a field looks like from
+   * 800 m.
+   *
+   * Scaled BY the existing weight, never added to it. Bare country has to
+   * stay bare: badlands and iron carry splat.r near zero, and a boost that
+   * added rather than multiplied would grow grass on them at exactly the
+   * distance the player cannot walk over and check.
+   */
+  const farGrass = smoothstep(u.farGrassStart, u.farGrassEnd, dist).mul(u.farGrassGain);
+  const grassW = splat.r
+    .mul(rockSlope.oneMinus())
+    .mul(nVar.mul(0.12).add(0.92))
+    .mul(roadMask.oneMinus())
+    .mul(farGrass.add(1))
+    .toVar();
   const dirtW = splat.g.mul(mix(float(1), float(0.32), rockSlope)).mul(mix(float(1), float(0.22), roadMask)).toVar();
   const rockW = max(splat.b, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
   const gravelW = roadMask.toVar();

@@ -135,6 +135,20 @@ export function createMaterialPanel(options: {
     .add(materialSettings, "grassSpeedThin")
     .name("thin far rings at speed")
     .onChange(options.onGrass);
+  // The ground's stand-in for cards that have faded out. Terrain uniforms, so
+  // these are onChange and land the same frame.
+  folders.grass
+    .add(materialSettings, "farGrassStart", 0, 400, 5)
+    .name("ground cover from (m)")
+    .onChange(onTerrain);
+  folders.grass
+    .add(materialSettings, "farGrassEnd", 100, 1500, 10)
+    .name("ground cover full at (m)")
+    .onChange(onTerrain);
+  folders.grass
+    .add(materialSettings, "farGrassGain", 0, 4, 0.1)
+    .name("ground cover boost")
+    .onChange(onTerrain);
 
   folders.debug = gui.addFolder("Debug");
   folders.debug.add(materialSettings, "debugView", {
