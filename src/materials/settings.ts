@@ -31,6 +31,18 @@ export const materialSettings = {
   quality: "high" as QualityTier,
   detailQ: 1,
   detailDistanceQ: 1,
+  // Ground-cover field (vegetation.js). Draw distances of 0 mean "use the
+  // tier value"; any other value overrides it and rebuilds the scatter on
+  // release. Fade start is a fraction of the draw distance where the cover
+  // begins dissolving (0.803 keeps full cover to ~4/5 of the disc); it is a
+  // shader uniform, so it updates live. Cell scale multiplies the ring cell
+  // sizes — under 1 plants denser, over 1 sparser. Speed thinning is the
+  // far-ring hold-back that keeps the outer rings fed at gallop.
+  grassRadius: 0,
+  sageRadius: 0,
+  grassFadeStart: 0.803,
+  grassCellScale: 1,
+  grassSpeedThin: true,
   grassTiling: TEXTURE_SETS.grass.tiling,
   dirtTiling: TEXTURE_SETS.dirt.tiling,
   rockTiling: TEXTURE_SETS.rock.tiling,

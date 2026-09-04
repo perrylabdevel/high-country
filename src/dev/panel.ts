@@ -14,9 +14,10 @@ export function createMaterialPanel(options: {
   onWalls?: () => void;
   onQuality?: () => void;
   onWater?: () => void;
+  onGrass?: () => void;
 } = {}) {
   const gui = new GUI({ title: "Materials", closeFolders: true });
-  const folders: { env?: GUI; clouds?: GUI; terrain?: GUI; walls?: GUI; roads?: GUI; water?: GUI; quality?: GUI; debug?: GUI } = {};
+  const folders: { env?: GUI; clouds?: GUI; terrain?: GUI; walls?: GUI; roads?: GUI; water?: GUI; quality?: GUI; grass?: GUI; debug?: GUI } = {};
   const onTerrain = options.onTerrain || (() => {});
   const onWalls = options.onWalls || onTerrain;
   const onQuality = options.onQuality || onTerrain;
@@ -107,6 +108,33 @@ export function createMaterialPanel(options: {
   folders.water.add(materialSettings, "foamStrength", 0, 2, 0.01).name("foam strength").onChange(onWater);
   folders.water.add(materialSettings, "whitewaterSlope", 0, 3, 0.05).name("whitewater slope").onChange(onWater);
   folders.water.add(materialSettings, "whitewaterStrength", 0, 3, 0.05).name("whitewater strength").onChange(onWater);
+
+  // Ground-cover field (vegetation.js). Draw distance is the knob for "grass
+  // should be visible further out": 0 defers to the device tier, anything
+  // else overrides it. The structural dials rebuild the scatter on release
+  // (one ~150 ms replant — onFinishChange, not per drag tick); fade start is
+  // a shader uniform and updates live.
+  folders.grass = gui.addFolder("Grass");
+  folders.grass
+    .add(materialSettings, "grassRadius", 0, 1500, 10)
+    .name("draw distance · 0 = tier")
+    .onFinishChange(options.onGrass);
+  folders.grass
+    .add(materialSettings, "sageRadius", 0, 900, 10)
+    .name("sage distance · 0 = tier")
+    .onFinishChange(options.onGrass);
+  folders.grass
+    .add(materialSettings, "grassFadeStart", 0.3, 1, 0.01)
+    .name("fade start (× distance)")
+    .onChange(options.onGrass);
+  folders.grass
+    .add(materialSettings, "grassCellScale", 0.5, 2, 0.05)
+    .name("cell scale (density)")
+    .onFinishChange(options.onGrass);
+  folders.grass
+    .add(materialSettings, "grassSpeedThin")
+    .name("thin far rings at speed")
+    .onChange(options.onGrass);
 
   folders.debug = gui.addFolder("Debug");
   folders.debug.add(materialSettings, "debugView", {

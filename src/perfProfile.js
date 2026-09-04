@@ -56,7 +56,7 @@ export const PERF_TIERS = {
     antialias: false,
     shadowMapSize: 1024,
     shadows: true,
-    grassRadius: 170,
+    grassRadius: 240,
     grassCellScale: 1.5,
     sageRadius: 150,
     treeDrawDist: 1400,
@@ -73,20 +73,20 @@ export const PERF_TIERS = {
     antialias: true,
     shadowMapSize: 2048,
     shadows: true,
-    grassRadius: 260,
+    grassRadius: 400,
     grassCellScale: 1.15,
     sageRadius: 220,
     treeDrawDist: 2000,
     terrainTier: "medium"
   },
-  /** Desktop discrete. The values the game shipped with. */
+  /** Desktop discrete. */
   high: {
     name: "high",
     pixelRatio: 2,
     antialias: true,
     shadowMapSize: 4096,
     shadows: true,
-    grassRadius: 330,
+    grassRadius: 550,
     grassCellScale: 1,
     sageRadius: 280,
     treeDrawDist: 2600,
