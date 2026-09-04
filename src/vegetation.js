@@ -2308,6 +2308,11 @@ export function createVegetation(scene, maps = {}) {
   const GRASS_FADE_SECS = 0.45;
   let vegClock = 0;
   let instantBorn = true;
+  // The panel's speed-thinning toggle. Read at tile ADMISSION, where the
+  // hold-back is now decided; the old gate lived in scatterPass, which the
+  // tile cache replaced, and the toggle had gone dead — measured, tiles came
+  // back thinned 0.3 with the toggle both on and off.
+  let speedThinOn = true;
   // Speed band for the far-tile hold-back (SPEED_THIN). Declared up here, not
   // beside the rest of the motion state further down, because the initial
   // plant runs at construction and reads it through updateTiles — leaving it
@@ -3156,7 +3161,7 @@ export function createVegetation(scene, maps = {}) {
         // tile is never rebuilt while resident, so an unthinned one stays
         // unthinned and a thinned one is refreshed only when the player
         // leaves and comes back. See SPEED_THIN.
-        thin: lod.thinnable ? SPEED_THIN[thinLevel] : 0,
+        thin: lod.thinnable && speedThinOn ? SPEED_THIN[thinLevel] : 0,
         // Whether this tile should skip its birth fade — see finishTile.
         instant: instantBorn,
         job: true,
@@ -3246,10 +3251,31 @@ export function createVegetation(scene, maps = {}) {
       }
     }
 
-    // Evict everything the descent did not ask for.
+    // Evict everything the descent did not ask for — plus anything still
+    // holding hold-back the current speed no longer calls for.
+    //
+    // A tile's thinning is frozen when it is admitted, and a resident tile is
+    // never rebuilt, so a tile planted at a gallop would keep its missing
+    // third for as long as the player stayed near it: ride out, stop, and the
+    // far field around you stays permanently sparse. Under the old rings a
+    // re-centre eventually came along and refilled it — the hazard is named in
+    // the susSpeed comment — but with world-space residency nothing ever does.
+    // So a tile whose hold-back exceeds what the current speed asks for is
+    // evicted and rebuilt by the next descent, faded in, so the refill is a
+    // dissolve rather than a pop.
+    //
+    // Worth knowing: the hold-back is no longer load-bearing. It existed
+    // because the ring scheme's re-centres cost O(band area) per step and the
+    // outer rings starved. Measured on tiles at 1x, 2x and 4x gallop, the
+    // build queue peaks at 3, 4 and 8 tiles mid-build with the hold-back OFF
+    // and never empties the near field. It is kept because the panel exposes
+    // it and it still buys headroom on a slow device, not because the field
+    // needs it.
+    const wantThin = speedThinOn ? SPEED_THIN[thinLevel] : 0;
     for (const lod of grassLods) {
       for (const [key, tile] of lod.live) {
-        if (!wanted.has(key)) {
+        const staleThin = !tile.job && lod.thinnable && tile.thin > wantThin;
+        if (!wanted.has(key) || staleThin) {
           scene.remove(tile.body.mesh);
           releaseTileBody(lod, tile);
           lod.live.delete(key);
@@ -3841,6 +3867,7 @@ export function createVegetation(scene, maps = {}) {
         next.sage !== grassOverride.sage ||
         next.cell !== grassOverride.cell;
       grassOverride = next;
+      speedThinOn = next.thin;
       applyProfile();
       grassFadeInU.value = GRASS_FADE_IN;
       grassFadeOutU.value = GRASS_FADE_OUT;
