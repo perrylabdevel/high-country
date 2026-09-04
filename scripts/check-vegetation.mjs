@@ -45,7 +45,7 @@ function assert(cond, msg) {
 
 clearColliders();
 bakeHeightfield();
-const scene = { add() {} };
+const scene = { add() {}, remove() {} };
 createLandmarks(scene);
 createInteriors(scene);
 createRanch();
@@ -131,7 +131,10 @@ assert(fadeIn / radius > 0.7, `grass starts dissolving at ${fadeIn.toFixed(0)}/$
 // crownDist.instanceColor.needsUpdate in bucketTrees safe to call.
 const { createVegetation } = await import("../src/vegetation.js");
 const vegAdded = [];
-createVegetation({ add: (...o) => vegAdded.push(...o) }, {});
+createVegetation({
+  add: (...o) => vegAdded.push(...o),
+  remove: (...o) => { for (const x of o) { const i = vegAdded.indexOf(x); if (i >= 0) vegAdded.splice(i, 1); } }
+}, {});
 const instanced = [];
 for (const root of vegAdded) {
   if (root.traverse) {

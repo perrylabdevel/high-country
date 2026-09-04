@@ -76,7 +76,7 @@ function check(cond, msg) {
 }
 
 bakeHeightfield();
-const sceneStub = { add() {} };
+const sceneStub = { add() {}, remove() {} };
 clearStructures();
 clearColliders();
 createRanch();

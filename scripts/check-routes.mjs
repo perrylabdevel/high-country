@@ -58,7 +58,7 @@ const failures = [];
 
 // --- environment: the world, then the graph ---------------------------------
 bakeHeightfield();
-const sceneStub = { add() {} };
+const sceneStub = { add() {}, remove() {} };
 clearStructures();
 clearColliders();
 createRanch();

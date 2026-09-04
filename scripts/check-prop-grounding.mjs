@@ -57,7 +57,7 @@ const GROUNDED_YOFF = 0.10;
 clearColliders();
 bakeHeightfield();
 const roots = [];
-const scene = { add: (...o) => roots.push(...o) };
+const scene = { add: (...o) => roots.push(...o), remove: (...o) => { for (const x of o) { const i = roots.indexOf(x); if (i >= 0) roots.splice(i, 1); } } };
 createLandmarks(scene);
 createInteriors(scene);
 createRanch();

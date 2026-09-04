@@ -39,7 +39,7 @@ function assert(cond, msg) {
 
 clearColliders();
 bakeHeightfield();
-const scene = { add() {} };
+const scene = { add() {}, remove() {} };
 createLandmarks(scene);
 createInteriors(scene);
 createRanch();
