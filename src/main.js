@@ -24,7 +24,8 @@ import { createPlayer } from "./player.js";
 import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
 import { createLivestock } from "./livestock.js";
-import { addCylinderCollider, resolvePosition } from "./collision.js";
+import { createTraffic } from "./traffic.js";
+import { addCylinderCollider, resolvePosition, clearanceAt } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
 import { POS, placeAt, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
@@ -155,6 +156,7 @@ async function boot() {
   let player;
   let horse;
   let livestock;
+  let traffic;
   let input;
 
   let materialGui;
@@ -264,6 +266,29 @@ async function boot() {
     window.__materialSettings = materialSettings;
     window.__POS = POS;
     window.__heightAt = heightAt;
+    // Buildable-space probe for placement and route work: distance to the
+    // nearest collider edge, negative when the point is inside one.
+    window.__clearanceAt = (x, z, r) => clearanceAt(x, z, r);
+    // Live road traffic poses for scripted capture: one entry per traveler
+    // (kind, world position, route distance, group yaw). Undefined outside ?dev.
+    // Mount/dismount without standing in the interact radius: probes verify the
+    // mounted avatar pose from any angle without steering a live input layer
+    // that isBlocked() gates shut under automation.
+    window.__devMount = (on = true) => {
+      player.state.mounted = on;
+      horse.mounted = on;
+      horse.collider.radius = on ? 0.05 : horse.radius;
+      player.state.snapCam = true;
+    };
+    window.__traffic = () => traffic?.travelers.map((t) => ({
+      kind: t.kind,
+      x: t.group.position.x,
+      y: t.group.position.y,
+      z: t.group.position.z,
+      rotY: t.group.rotation.y,
+      s: t.s,
+      resting: t.resting
+    }));
     /**
      * The canonical aperture inventory (src/buildings/apertures.js), re-derived
      * after a reset — the same records the deterministic aperture check reads.
@@ -772,6 +797,11 @@ async function boot() {
   // It has to stay out of `statics` — these move.
   livestock = createLivestock();
   scene.add(livestock.group);
+  // Road traffic rides the named road polylines, which are collider-clear by
+  // nav construction — it follows rails rather than fighting fences, so it
+  // can come after every collider exists too.
+  traffic = createTraffic();
+  scene.add(traffic.group);
 
   if (isDev) {
     // Built after the world so it can see every mesh. Also driveable from a
@@ -1713,6 +1743,9 @@ async function boot() {
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above.
     livestock.update(dt, camera.position, player.object.position);
+    // Riders and buggies work the roads on the same ambient clock as the
+    // stock and the settlers above.
+    traffic.update(dt, camera.position);
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
       // Arrival stages complete by proximity the instant you stand in them.
