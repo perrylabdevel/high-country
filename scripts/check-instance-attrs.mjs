@@ -161,7 +161,18 @@ assert(
 // rewritten.
 const veg = await readFile("src/vegetation.js", "utf8");
 const wired = [];
-for (const [attr, array] of [["aTint", "tints"], ["aSpecies", "speciesUV"], ["aWind", "windRot"]]) {
+// aFade joins the list because it is load-bearing in exactly the way aTint
+// was: it is written per tuft by the scatter and read only in the shader, so a
+// stale copy in GPU memory is silent. If it never uploads, every tuft compares
+// the two dissolves against whatever the first tile to occupy that slot
+// happened to hash to, and they degenerate back into the tile-at-a-time pop
+// they exist to prevent — with nothing on the CPU side wrong to find.
+for (const [attr, array] of [
+  ["aTint", "tints"],
+  ["aSpecies", "speciesUV"],
+  ["aWind", "windRot"],
+  ["aFade", "fade"]
+]) {
   const varMatch = veg.match(
     new RegExp(`const\\s+([\\w$]+)\\s*=\\s*new THREE\\.InstancedBufferAttribute\\(\\s*${array}\\b`)
   );
