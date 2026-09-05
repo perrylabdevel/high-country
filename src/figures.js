@@ -169,15 +169,18 @@ export function createFigure({
     if (mounted) {
       // Seated: thighs swing forward down the animal's sides, hands low and
       // forward for the reins (the figure's front is local +Z, the direction
-      // the mount travels). The seat keeps the figure still — only breathing
-      // moves.
+      // the mount travels). The rotations are NEGATIVE about X: the leg mesh
+      // hangs at -Y from its pivot, so a positive X rotation carries the knee
+      // toward -Z — behind the rider. Verified against the hair mesh, which
+      // sits at -Z and marks the figure's back. The seat keeps the figure
+      // still — only breathing moves.
       for (const [leg, side] of [["legL", -1], ["legR", 1]]) {
-        parts[leg].rotation.x = 1.22;
+        parts[leg].rotation.x = -1.22;
         parts[leg].rotation.z = 0.3 * side;
       }
-      parts.armL.rotation.x = 0.5;
-      parts.armR.rotation.x = 0.5;
-      parts.torso.rotation.x = 0.04;
+      parts.armL.rotation.x = -0.5;
+      parts.armR.rotation.x = -0.5;
+      parts.torso.rotation.x = 0.04; // +Y top rotated +X leans toward +Z: a forward seat
       bob.position.y = Math.sin(idleT * 1.7) * 0.008;
     } else if (moving) {
       parts.legL.rotation.x = swing;
