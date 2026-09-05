@@ -23,6 +23,7 @@ import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.
 import { createPlayer } from "./player.js";
 import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
+import { createLivestock } from "./livestock.js";
 import { addCylinderCollider, resolvePosition } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
 import { POS, placeAt, placeLabel, headingVector } from "./map.js";
@@ -153,6 +154,7 @@ async function boot() {
   let talking = null;
   let player;
   let horse;
+  let livestock;
   let input;
 
   let materialGui;
@@ -763,6 +765,13 @@ async function boot() {
   resetNavGraph();
   navGraph();
   linkApproaches(approachLinkRows());
+
+  // Live stock comes last: every collider it must avoid (buildings, fences,
+  // nav approach anchors) already exists, and the nav graph priced its edges
+  // against a stock-free boot state, so the herds never skew route pricing.
+  // It has to stay out of `statics` — these move.
+  livestock = createLivestock();
+  scene.add(livestock.group);
 
   if (isDev) {
     // Built after the world so it can see every mesh. Also driveable from a
@@ -1701,6 +1710,9 @@ async function boot() {
     for (const npc of npcs) {
       npc.figure.update(dt, 0);
     }
+    // Stock grazes and wanders on the same clock — ambient life runs whether
+    // or not the player has entered, exactly like the settlers above.
+    livestock.update(dt, camera.position, player.object.position);
     if (started && !talking && !debug.isOpen()) {
       player.update(dt, input, horse);
       // Arrival stages complete by proximity the instant you stand in them.
