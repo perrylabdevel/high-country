@@ -3227,6 +3227,75 @@ export function createVegetation(scene, maps = {}) {
     const wanted = new Set();
     let changed = false;
 
+    /**
+     * Is this tile's ground ALREADY covered by a tile at an adjacent band?
+     *
+     * The birth dissolve rests on one precondition — a landing tile is ground
+     * nothing was drawing before — and that is true only at the frontier. It
+     * is false for every tile the quadtree produces by REFINING, and those are
+     * the majority and the near ones. `descend` splits a node when its centre
+     * reaches the finer band's outer radius, and those radii are 34, 82, 168
+     * and 330 m, so walking forward retires a parent and admits four children
+     * at each of them. Measured over a 35 m walk at 2.5 m/s: 79 tile births,
+     * 39 of them with their nearest edge inside 90 m, 16 of those band 0 at a
+     * median 16.6 m — one at 0.0 m, under the player. Dissolving those reads
+     * as patches of ground fading in a few strides away, because the ground
+     * was green a frame earlier and the fade starts it from nothing.
+     *
+     * Look at EVERY coarser band, not just the parent. `descend` is depth
+     * first and only admits at leaves, so a node that qualifies to split never
+     * becomes a tile: a band 3 tile near the camera splits through bands 2 and
+     * 1 straight to band 0 in one pass, and the intermediate tiles never
+     * existed. Checking only the immediate parent found nothing and left 27 of
+     * the 39 near births still dissolving — the diagnostic read
+     * `up1:false up2:false up3:true` on a band 0 tile landing at 0.0 m.
+     *
+     * The finer direction is the same relation upside down: riding away merges
+     * 4^k fine tiles back into one coarse one, and that coarse tile is landing
+     * on ground those fine tiles were drawing. It is bounded by the ladder
+     * depth (at most 4 + 16 + 64 + 256 lookups for the coarsest band) and only
+     * paid when a tile is admitted, which is a handful of times a frame.
+     *
+     * Eviction happens after the whole descent, so `live` still holds the
+     * previous frame's set here and both scans see what is about to be
+     * replaced.
+     *
+     * A tile re-admitted because its speed hold-back went stale has neither an
+     * ancestor nor a descendant live — the old tile at its OWN key was the one
+     * evicted — so it still dissolves, which is what the eviction comment
+     * below asks for. Only the quad bands nest; the dial-only extension bands
+     * are a plain grid with no parent/child relation, hence the `.quad` guards.
+     */
+    const groundAlreadyCovered = (lod, tx, tz) => {
+      if (!lod.quad) {
+        return false;
+      }
+      for (let k = 1; ; k += 1) {
+        const up = grassLods[lod.l + k];
+        if (!up || !up.quad) {
+          break;
+        }
+        if (up.live.has(`${up.l}:${tx >> k}:${tz >> k}`)) {
+          return true;
+        }
+      }
+      for (let k = 1; ; k += 1) {
+        const down = grassLods[lod.l - k];
+        if (!down || !down.quad) {
+          break;
+        }
+        const span = 2 ** k;
+        for (let dx = 0; dx < span; dx += 1) {
+          for (let dz = 0; dz < span; dz += 1) {
+            if (down.live.has(`${down.l}:${tx * span + dx}:${tz * span + dz}`)) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    };
+
     const admit = (lod, tx, tz, near) => {
       const key = `${lod.l}:${tx}:${tz}`;
       wanted.add(key);
@@ -3245,8 +3314,11 @@ export function createVegetation(scene, maps = {}) {
         // unthinned and a thinned one is refreshed only when the player
         // leaves and comes back. See SPEED_THIN.
         thin: lod.thinnable && speedThinOn ? SPEED_THIN[thinLevel] : 0,
-        // Whether this tile should skip its birth fade — see finishTile.
-        instant: instantBorn,
+        // Whether this tile should skip its birth fade — see finishTile. A
+        // teleport skips it because the whole resident set is replaced at
+        // once; a refinement or a merge skips it because the ground it covers
+        // was already being drawn and only the density is changing.
+        instant: instantBorn || groundAlreadyCovered(lod, tx, tz),
         job: true,
         jobI: 0,
         slot: 0,
