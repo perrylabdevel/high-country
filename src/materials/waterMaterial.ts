@@ -329,7 +329,7 @@ export function createWaterMaterial(
   const bankNoise = mx_noise_float(pos.mul(0.7)).mul(0.12).add(0.18);
   const shoreOpacity = smoothstep(bankNoise, bankNoise.add(0.65), shoreDistance);
   mat.opacityNode = depthSource === "attribute"
-    ? shoreOpacity.mul(smoothstep(float(0), float(0.12), depth))
+    ? shoreOpacity.mul(smoothstep(float(0), float(0.12), depth)).mul(attribute("aJoin", "float") as Node<"float">)
     : shoreOpacity;
   mat.colorNode = waterCol;
   mat.roughnessNode = mix(u.waterRoughness as FloatUniform, float(0.65), totalFoam);
