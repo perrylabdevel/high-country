@@ -24,6 +24,7 @@ import {
   positionWorld,
   cameraPosition,
   smoothstep,
+  step,
   mix,
   max,
   dot,
@@ -2253,7 +2254,7 @@ export function createVegetation(scene, maps = {}) {
    *
    *  - The unit of pop is now one tile, not one band. The largest tile carries
    *    2,500 candidates against the 27,016 a ring rebuild swapped, and it
-   *    lands with a fade rather than on one frame (see `born`).
+   *    lands with a fade rather than on one frame (see `aFade`).
    *
    *  - Tile meshes can be frustum-culled, and a ring mesh could not. A ring
    *    spanned the whole 360 deg disc, so `frustumCulled` was false and every
@@ -2410,11 +2411,34 @@ export function createVegetation(scene, maps = {}) {
     // than per-mesh because every tile shares one material — a per-mesh
     // uniform would mean a material per tile, and a shader recompile per
     // frontier tile at a gallop.
-    const born = new Float32Array(capacity);
+    /**
+     * Everything the dissolve needs, per instance, in ONE vec2: x is when the
+     * tuft was planted on the field clock, y is its place in the dissolve
+     * order (uniform in (0, 1) — see the HASHED ALPHA block on
+     * grassMat.opacityNode).
+     *
+     * They are packed together because the tuft geometry is at the WebGPU
+     * ceiling. A pipeline gets `maxVertexBuffers` vertex buffers and the
+     * guaranteed floor — which is what this adapter reports — is EIGHT: the
+     * card's own position/normal/uv, instanceMatrix, and aTint/aSpecies/aWind
+     * make exactly eight. Adding the dither as a ninth attribute of its own
+     * fails pipeline creation outright:
+     *
+     *   Render pipeline creation failed: Vertex buffer count (9) exceeds the
+     *   maximum number of vertex buffers (8).
+     *
+     * three logs that and carries on, so the symptom is not an exception — it
+     * is the ENTIRE ground cover silently not drawing, with the instance
+     * count, the matrices and every CPU-side reading still perfect. Both
+     * values are written by the same code at the same moment and read by the
+     * same three lines of shader, so one vec2 costs nothing and keeps a slot
+     * free for whatever needs the next one.
+     */
+    const fade = new Float32Array(capacity * 2);
     const tintAttrib = new THREE.InstancedBufferAttribute(tints, 3);
     const speciesAttrib = new THREE.InstancedBufferAttribute(speciesUV, 2);
     const windRotAttrib = new THREE.InstancedBufferAttribute(windRot, 2);
-    const bornAttrib = new THREE.InstancedBufferAttribute(born, 1);
+    const fadeAttrib = new THREE.InstancedBufferAttribute(fade, 2);
     // No setUsage(DynamicDrawUsage) on any of the three — see makeWindAttrib
     // for why that hint costs a full per-frame re-upload under WebGPU.
     // finishTile marks all of them needsUpdate when a tile's build lands,
@@ -2423,7 +2447,7 @@ export function createVegetation(scene, maps = {}) {
     geo.setAttribute("aTint", tintAttrib);
     geo.setAttribute("aSpecies", speciesAttrib);
     geo.setAttribute("aWind", windRotAttrib);
-    geo.setAttribute("aBorn", bornAttrib);
+    geo.setAttribute("aFade", fadeAttrib);
     const mesh = new THREE.InstancedMesh(geo, grassMat, capacity);
     mesh.castShadow = false;
     mesh.receiveShadow = wantGrassShadow;
@@ -2439,8 +2463,8 @@ export function createVegetation(scene, maps = {}) {
     mesh.count = 0;
     mesh.visible = false;
     return {
-      mesh, tints, speciesUV, windRot, born,
-      tintAttrib, speciesAttrib, windRotAttrib, bornAttrib, capacity
+      mesh, tints, speciesUV, windRot, fade,
+      tintAttrib, speciesAttrib, windRotAttrib, fadeAttrib, capacity
     };
   }
 
@@ -2589,29 +2613,72 @@ export function createVegetation(scene, maps = {}) {
   const sageFadeInU = uniform(SAGE_FADE_IN);
   const sageFadeOutU = uniform(SAGE_FADE_OUT);
   /**
-   * Two fades multiplied: the distance dissolve at the edge of the disc, and
-   * the birth dissolve of a tile that has just landed.
+   * HASHED ALPHA — why the two fades are a threshold and not an opacity.
    *
-   * The birth fade is the answer to what the player actually complained about
-   * — cover arriving in visible steps while riding. The tile cache made the
-   * steps eleven times smaller; this makes each one a dissolve instead of an
-   * edit. Because opacity feeds an alpha-TESTED material (0.32), a tuft at
-   * low opacity does not go translucent, it erodes: blades thin out and fill
-   * in over the window, which reads as grass growing rather than as a card
-   * appearing.
+   * There are two dissolves: the distance one at the edge of the disc, and
+   * the birth one for a tile that has just landed. Multiplied together they
+   * give `cover`, the fraction of this ground's tufts that should be drawn.
    *
-   * Note this is only correct because residency is world-space. On the old
-   * rings a rebuild rewrote the whole band, four fifths of it with cover that
-   * had not changed, so a birth fade would have pulsed the entire band on
-   * every re-centre — worse than the pop it was meant to hide. A landing tile
-   * is new ground by construction, so everything in it SHOULD arrive.
+   * The obvious wiring is `opacityNode = cover`, and that is what shipped. It
+   * did nothing. This material is OPAQUE — `transparent` is never set, so
+   * there is no blend, and three feeds the fragment alpha to exactly one
+   * thing: `if (alpha < alphaTest) discard`. An opacity on an opaque material
+   * is not a fade, it is a moving discard threshold.
+   *
+   * The comment that stood here claimed the alpha test would turn it into an
+   * erosion — blades thinning out and filling in — and that is true only if
+   * the atlas carries a broad soft alpha ramp to erode through. It does not.
+   * `__grassAtlasBase(0.32)` reports `paintedBaseFrac` and
+   * `alphaTestedBaseFrac` equal to four decimals on all four panels
+   * (0.0195/0.0195, 0.0195/0.0195, 0.0205/0.0205, 0.0195/0.0195): the painted
+   * silhouette and the surviving silhouette are the same shape, because
+   * `paintBladePanel` lays down solid `fill()`s and the only partial alpha is
+   * the canvas antialiasing on a blade's own outline.
+   *
+   * So on a landing tile the multiplier sat under 0.32 for the first 0.144 s
+   * with every fragment discarding, then swept past the threshold and the
+   * whole tile arrived at once. Measured off the recording: one 68 m tile of
+   * ground going from bare dirt to full cover between two consecutive frames.
+   * The dissolve was written, stamped and aged correctly on the CPU — the
+   * value simply had nowhere to go. Same failure at the disc rim, where the
+   * distance fade held full cover and then stopped dead in a straight line.
+   *
+   * The fix is to stop asking one tuft to be half-drawn and instead draw half
+   * the tufts. Every tuft carries a fixed hash in (0, 1) (`aFade.y`, from its
+   * world cell), and is drawn only while `cover` is above it. Cover falling
+   * from 1 to 0 retires tufts one at a time in spatially white-noise order;
+   * cover rising does the reverse. This is hashed alpha testing at instance
+   * granularity, and it is the standard answer for alpha-tested foliage
+   * precisely because it keeps the material opaque: no blending, no sorting
+   * of 50k double-sided instances, no dependence on MSAA (`antialias` is
+   * false on the `low` tier, which rules out alphaToCoverage).
+   *
+   * The hash is per instance, not per fragment, and world-derived rather than
+   * screen-derived. Both matter: a per-fragment hash fizzes inside a blade,
+   * and a screen-space one crawls across the field as the camera moves. A
+   * tuft's dither is a property of the ground it stands on, so it survives a
+   * rebuild and a tuft never flickers back and forth across the threshold.
+   *
+   * Note the birth half is only correct because residency is world-space. On
+   * the old rings a rebuild rewrote the whole band, four fifths of it with
+   * cover that had not changed, so a birth fade would have pulsed the entire
+   * band on every re-centre — worse than the pop it was meant to hide. A
+   * landing tile is new ground by construction, so everything in it SHOULD
+   * arrive.
    */
   const grassNowU = uniform(0);
-  const grassBorn = attribute("aBorn", "float");
+  const grassFade = attribute("aFade", "vec2");
+  const grassBorn = grassFade.x;
+  const grassDither = grassFade.y;
   const grassAge = grassNowU.sub(grassBorn).div(GRASS_FADE_SECS).clamp(0, 1);
-  grassMat.opacityNode = float(1)
+  const grassCover = float(1)
     .sub(smoothstep(grassFadeInU, grassFadeOutU, cameraPosition.sub(positionWorld).length()))
     .mul(grassAge);
+  // step(edge, x) is 1 where x >= edge, so this is 1 for a tuft the fades
+  // still admit and 0 for one they have retired. Multiplied into the sampled
+  // alpha it either leaves the blade exactly as painted or drives it to zero,
+  // where alphaTest 0.32 discards the whole card.
+  grassMat.opacityNode = step(grassDither, grassCover);
   sageMat.opacityNode = float(1).sub(smoothstep(sageFadeInU, sageFadeOutU, cameraPosition.sub(positionWorld).length()));
   /**
    * Wind profile exponent, as a uniform so it can be flipped live.
@@ -2899,6 +2966,16 @@ export function createVegetation(scene, maps = {}) {
     tile.body.windRot[slot * 2] = Math.cos(rotY) / (cardW / GRASS_CARD_W);
     tile.body.windRot[slot * 2 + 1] = Math.sin(rotY) / (cardW / GRASS_CARD_W);
 
+    // Dissolve order. Salt 41 is its own hash, uncorrelated with the ones
+    // driving position, species and tint, so the tufts a fade holds back are
+    // spatially white noise rather than a pattern picked out of the field.
+    //
+    // Nudged strictly inside (0, 1): the fades compare `cover > dither`, and
+    // hash2 can return exactly 0, which would leave one tuft in every few
+    // billion drawn at zero cover — visible as a lone blade standing past the
+    // edge of the disc.
+    tile.body.fade[slot * 2 + 1] = 0.001 + hash2(ix, jz, 41) * 0.998;
+
     const lush = GRASSINESS[biome] ?? 0;
     const dry = biome === "range" || biome === "badlands" || biome === "iron" ? 0.18 : 0;
     tile.body.tints[slot * 3] = 0.32 + lush * 0.22 + hash2(ix, jz, 6) * 0.12 + dry;
@@ -3039,7 +3116,7 @@ export function createVegetation(scene, maps = {}) {
     tile.job = false;
     body.mesh.count = tile.slot;
     // Stamp the whole tile with one birth time and let the shader dissolve it
-    // in (see the aBorn/fadeIn block on grassMat.opacityNode). Every tuft in a
+    // in (see the aFade/HASHED ALPHA block on grassMat.opacityNode). Every tuft in a
     // landing tile is genuinely new ground — that is what the tile cache buys,
     // and it is why the fade is correct here and would not have been on rings,
     // where four fifths of a rebuilt band was cover that had not changed and
@@ -3050,12 +3127,18 @@ export function createVegetation(scene, maps = {}) {
     // every teleported tile fade in anyway (measured: 22.7% from settled a
     // frame after a jump, against 2.3% with fades off).
     tile.bornAt = tile.instant ? vegClock - GRASS_FADE_SECS : vegClock;
-    body.born.fill(tile.bornAt, 0, tile.slot);
+    // Strided, not fill(): the birth time is the x of a packed vec2 whose y is
+    // the tuft's dither, written per slot by plantBlade. Filling the whole
+    // range would flatten every tuft's place in the dissolve order to the same
+    // number and put the tile back to arriving as one block.
+    for (let i = 0; i < tile.slot; i += 1) {
+      body.fade[i * 2] = tile.bornAt;
+    }
     body.mesh.instanceMatrix.needsUpdate = true;
     body.tintAttrib.needsUpdate = true;
     body.speciesAttrib.needsUpdate = true;
     body.windRotAttrib.needsUpdate = true;
-    body.bornAttrib.needsUpdate = true;
+    body.fadeAttrib.needsUpdate = true;
     // A real, static bounding sphere over the tile's own square, so frustum
     // culling can reject it. Radius covers the square's half-diagonal plus
     // the tallest card the band plants and the terrain relief inside it.
