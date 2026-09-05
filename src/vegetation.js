@@ -388,6 +388,51 @@ function applyProfile() {
  * per tuft: the tuned ramp inside the tier disc, and growth that outpaces
  * distance beyond it so far cards clear the pixel grid instead of
  * alpha-testing away to nothing. See the RAMP_ANCHOR block comment.
+ *
+ * The ramp inside the disc was 1 + t * 0.5 and 1 + t * 0.7, and reported as a
+ * bare-looking band between the near field and the shrubs. It is a seam in the
+ * cell ladder, and the ramp is what was supposed to hide it: RING_SHAPE's own
+ * comment says "at those ranges a tuft is a few pixels and the card's scale
+ * ramp carries the coverage". Measured at the ranch, card area per square
+ * metre of ground:
+ *
+ *     60-80 m   0.557        the last of band 1 (cell 0.70)
+ *    80-100 m   0.195        band 2 begins at 82 m (cell 2.60)
+ *   100-120 m   0.074
+ *   120-140 m   0.054
+ *
+ * A 7.5x collapse across 40 m. The cells step 0.34 / 0.70 / 2.60 / 5.20 / 9 —
+ * every rung about x2 except that one, which is x3.7, so cell/outer reads
+ * 0.010, 0.0085, 0.0155, 0.0158, 0.0164: bands 0-1 follow one rule and 2-4
+ * another, and the seam is exactly where the eye finds the band. Against a
+ * 13.8x drop in tufts per square metre the old ramp grew band 2's cards 12%
+ * taller and 17% wider. It was not carrying the coverage; it was not close.
+ *
+ * The terrain hand-off cannot reach this either. farGrass ramps
+ * smoothstep(90, 700, dist), which is 0.007 at 120 m, and the band is not bare
+ * DIRT — grass already wins the splat blend there, so a greener ground tint
+ * changes nothing. Sweeping farGrassEnd from 700 down to 180 and the gain to
+ * 2.4 moved 0.03% of pixels. What is missing at 100 m is not colour, it is
+ * things standing up.
+ *
+ * So the ramp does the job it is documented as doing. 1.3 and 1.9 restore
+ * roughly a third to a half of the lost cover (80-100 m: 0.195 -> 0.251,
+ * 100-120: 0.074 -> 0.106, 140-160: 0.033 -> 0.051) for no instances, no draw
+ * calls and no triangles: 84,734 planted and 3.567M tris before and after,
+ * frame time 16.6 -> 16.7 ms p50.
+ *
+ * Proportion is the thing to watch, since growing width faster than height is
+ * what once stretched far tufts into mush. Measured across the disc, card w:h
+ * runs 0.94 at 0-20 m to 1.06 at 200 m and card height 0.70 m to 1.04 m — the
+ * cards stay square-ish and plant-sized, and a metre-tall card at 200 m is
+ * still only a few pixels, which is the whole argument in RAMP_ANCHOR.
+ *
+ * The alternative was fixing the ladder itself — cells 0.34 / 0.70 / 1.8 /
+ * 3.9 / 7.5, an even x2 throughout. That recovers more (100-120 m reaches
+ * 0.150) but costs 84,734 -> 105,951 instances and takes the frame from 16.6
+ * to 19.2 ms p50 on a high-tier desktop, which is off 60 Hz. Worth revisiting
+ * with the grader; not worth spending a quarter of the ground-cover budget on
+ * an ungraded hunch.
  */
 function bandRamp(inner, outer) {
   // Area-weighted mean radius of the annulus: the distance that splits the
@@ -398,7 +443,7 @@ function bandRamp(inner, outer) {
   const t = Math.min(dist / RAMP_ANCHOR, 1);
   const over = dist / RAMP_ANCHOR;
   const far = over > 1 ? 1 + (over - 1) * 2.5 : 1;
-  return { h: far * (1 + t * 0.5), w: far * (1 + t * 0.7), dist };
+  return { h: far * (1 + t * 1.3), w: far * (1 + t * 1.9), dist };
 }
 
 /**
