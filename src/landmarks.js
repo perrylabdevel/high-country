@@ -1232,10 +1232,10 @@ export function createWater(scene, {
 
   const creekMat = fallback
     ? createWaterFallbackMaterial()
-    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction });
+    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });
   const toxicMat = fallback
     ? createWaterFallbackMaterial(true)
-    : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction });
+    : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });
   const washMat = new THREE.MeshStandardNodeMaterial({
     color: 0xc2a070,
     roughness: 0.95
