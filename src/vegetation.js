@@ -2688,7 +2688,21 @@ export function createVegetation(scene, maps = {}) {
   // alpha it either leaves the blade exactly as painted or drives it to zero,
   // where alphaTest 0.32 discards the whole card.
   grassMat.opacityNode = step(grassDither, grassCover);
-  sageMat.opacityNode = float(1).sub(smoothstep(sageFadeInU, sageFadeOutU, cameraPosition.sub(positionWorld).length()));
+  /**
+   * Sage takes the same treatment, for the same reason: its opacity was on an
+   * opaque alphaTest 0.32 material too, so the "fade" was a discard threshold
+   * and the shrubs held full cover to the edge of their disc and then stopped
+   * dead in a line. Sage is the dominant cover in dry country, so that line is
+   * the one the eye actually finds out there.
+   *
+   * There is no birth term here — sage still uses the ring scheme, not the
+   * tile cache, so it has no per-tile birth clock to ride. That is a separate
+   * piece of work; this is only the rim.
+   */
+  const sageDitherAttr = attribute("aDither", "float");
+  const sageCover = float(1)
+    .sub(smoothstep(sageFadeInU, sageFadeOutU, cameraPosition.sub(positionWorld).length()));
+  sageMat.opacityNode = step(sageDitherAttr, sageCover);
   /**
    * Wind profile exponent, as a uniform so it can be flipped live.
    *
@@ -2766,6 +2780,15 @@ export function createVegetation(scene, maps = {}) {
       const capacity = offsets[r + 1] - i0;
       const geo = sageGeo.clone();
       const windAttrib = makeWindAttrib(geo, capacity);
+      // Dissolve order, one per bush — the same hashed alpha the ground cover
+      // uses, so the disc rim thins out instead of ending in a line. Its own
+      // buffer rather than packed like the grass tuft's: the sage card carries
+      // position/normal/uv, instanceMatrix and aWind, five of the eight vertex
+      // buffers WebGPU guarantees, so there is room here where there was none
+      // there.
+      const sageDither = new Float32Array(capacity);
+      const sageDitherAttrib = new THREE.InstancedBufferAttribute(sageDither, 1);
+      geo.setAttribute("aDither", sageDitherAttrib);
       const mesh = new THREE.InstancedMesh(geo, sageMat, capacity);
       mesh.castShadow = false;
       mesh.frustumCulled = false;
@@ -2777,6 +2800,7 @@ export function createVegetation(scene, maps = {}) {
         r,
         mesh,
         windAttrib,
+        sageDitherAttrib,
         capacity,
         cell: SAGE_RING_SHAPE[r].cell,
         outer: SAGE_RING_SHAPE[r].outer,
@@ -3059,6 +3083,10 @@ export function createVegetation(scene, maps = {}) {
     // Same wind frame as grass: world gust rotated into this bush's frame.
     rec.windAttrib.array[slot * 2] = Math.cos(rotY) / sx;
     rec.windAttrib.array[slot * 2 + 1] = Math.sin(rotY) / sx;
+    // Salt 41, the same one the tufts use: a bush and a tuft on the same
+    // ground are different scatters, so sharing the salt cannot correlate
+    // them, and one number means one thing across the whole module.
+    rec.sageDitherAttrib.array[slot] = 0.001 + hash2(ix, jz, 41) * 0.998;
     return true;
   }
 
@@ -3091,6 +3119,7 @@ export function createVegetation(scene, maps = {}) {
       rec.windRotAttrib.needsUpdate = true;
     } else {
       rec.windAttrib.needsUpdate = true;
+      rec.sageDitherAttrib.needsUpdate = true;
     }
     rec.mesh.boundingSphere.center.set(rec.cx, heightAt(rec.cx, rec.cz), rec.cz);
     rec.mesh.boundingSphere.radius = rec.outer + rec.step + 40;

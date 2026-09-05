@@ -171,7 +171,13 @@ for (const [attr, array] of [
   ["aTint", "tints"],
   ["aSpecies", "speciesUV"],
   ["aWind", "windRot"],
-  ["aFade", "fade"]
+  ["aFade", "fade"],
+  // The shrubs' half of the same wiring. Sage keeps the ring scheme rather
+  // than the tile cache, so its dither rides its own buffer and is published
+  // by finishRing instead of finishTile — a separate path that can rot on its
+  // own, and whose failure is the same silent one: bushes comparing the fade
+  // against a stale hash.
+  ["aDither", "sageDither"]
 ]) {
   const varMatch = veg.match(
     new RegExp(`const\\s+([\\w$]+)\\s*=\\s*new THREE\\.InstancedBufferAttribute\\(\\s*${array}\\b`)
