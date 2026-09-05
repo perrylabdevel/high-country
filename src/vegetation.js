@@ -2307,6 +2307,15 @@ export function createVegetation(scene, maps = {}) {
    * reads as a glitch rather than as cover arriving.
    */
   const GRASS_FADE_SECS = 0.45;
+  /**
+   * How long a superseded tile may be held while its replacement builds, on
+   * the same field clock. See replacementPending: this is the leak guard, not
+   * a tuning dial. A normal split resolves in a handful of frames; two seconds
+   * is far past that and still short enough that a genuinely starved queue
+   * shows as the old bare patch rather than an unbounded pile of tiles nobody
+   * retires.
+   */
+  const TILE_HOLD_SECS = 2;
   let vegClock = 0;
   let instantBorn = true;
   // The panel's speed-thinning toggle. Read at tile ADMISSION, where the
@@ -3266,7 +3275,7 @@ export function createVegetation(scene, maps = {}) {
      * below asks for. Only the quad bands nest; the dial-only extension bands
      * are a plain grid with no parent/child relation, hence the `.quad` guards.
      */
-    const groundAlreadyCovered = (lod, tx, tz) => {
+    const overlappingLive = (lod, tx, tz, hit) => {
       if (!lod.quad) {
         return false;
       }
@@ -3275,7 +3284,8 @@ export function createVegetation(scene, maps = {}) {
         if (!up || !up.quad) {
           break;
         }
-        if (up.live.has(`${up.l}:${tx >> k}:${tz >> k}`)) {
+        const t = up.live.get(`${up.l}:${tx >> k}:${tz >> k}`);
+        if (t && hit(t)) {
           return true;
         }
       }
@@ -3287,7 +3297,8 @@ export function createVegetation(scene, maps = {}) {
         const span = 2 ** k;
         for (let dx = 0; dx < span; dx += 1) {
           for (let dz = 0; dz < span; dz += 1) {
-            if (down.live.has(`${down.l}:${tx * span + dx}:${tz * span + dz}`)) {
+            const t = down.live.get(`${down.l}:${tx * span + dx}:${tz * span + dz}`);
+            if (t && hit(t)) {
               return true;
             }
           }
@@ -3295,6 +3306,35 @@ export function createVegetation(scene, maps = {}) {
       }
       return false;
     };
+
+    const groundAlreadyCovered = (lod, tx, tz) => overlappingLive(lod, tx, tz, () => true);
+
+    /**
+     * Is a tile that is about to REPLACE this one still being built?
+     *
+     * The other half of the same relation. Eviction used to be unconditional:
+     * a tile the descent did not ask for was removed on the spot, and a split
+     * asks for four children in the same pass that stops asking for the
+     * parent. The children take several frames of scatter budget to fill, so
+     * the parent vanished and the ground under it was BARE until they landed —
+     * at the 34, 82, 168 and 330 m split radii, which is to say in front of
+     * the player. That is the bare patch in the original report, the one the
+     * birth dissolve was mistakenly papering over.
+     *
+     * So a tile is retired only once nothing that supersedes it is still in
+     * flight. The cost is transient DOUBLE coverage on that square — parent
+     * and children drawn together for the few frames the build takes — which
+     * reads as cover briefly thickening. Cover that thickens for three frames
+     * is a far cheaper error than ground that disappears, and it is the same
+     * trade the band edges already make where a coarse tile straddles a fine
+     * band (see THE TILE CACHE).
+     *
+     * `wanted` is required as well as `job`: a tile mid-build that the descent
+     * has ALSO stopped asking for is being abandoned, not promoted, and
+     * waiting on it would hold the old tile until the deadline for nothing.
+     */
+    const replacementPending = (lod, tile) =>
+      overlappingLive(lod, tile.tx, tile.tz, (t) => t.job && wanted.has(t.key));
 
     const admit = (lod, tx, tz, near) => {
       const key = `${lod.l}:${tx}:${tz}`;
@@ -3430,12 +3470,32 @@ export function createVegetation(scene, maps = {}) {
     for (const lod of grassLods) {
       for (const [key, tile] of lod.live) {
         const staleThin = !tile.job && lod.thinnable && tile.thin > wantThin;
-        if (!wanted.has(key) || staleThin) {
-          scene.remove(tile.body.mesh);
-          releaseTileBody(lod, tile);
-          lod.live.delete(key);
-          changed = true;
+        if (wanted.has(key) && !staleThin) {
+          tile.holdUntil = 0;
+          continue;
         }
+        // Deferred retire — see replacementPending. Only for a tile the
+        // descent stopped asking for: a staleThin eviction is a rebuild at the
+        // tile's OWN key, so there is no other band to wait on and deferring
+        // it would just stall the refill until the deadline.
+        //
+        // The deadline is the leak guard. A held tile is one whose replacement
+        // is mid-build, and if the queue is backed up worse than this — a
+        // gallop into unbuilt country on a slow device — the hole comes back
+        // rather than the field growing without bound. Bounded failure beats
+        // an unbounded one.
+        if (!staleThin && replacementPending(lod, tile)) {
+          if (!tile.holdUntil) {
+            tile.holdUntil = vegClock + TILE_HOLD_SECS;
+          }
+          if (vegClock < tile.holdUntil) {
+            continue;
+          }
+        }
+        scene.remove(tile.body.mesh);
+        releaseTileBody(lod, tile);
+        lod.live.delete(key);
+        changed = true;
       }
     }
 
