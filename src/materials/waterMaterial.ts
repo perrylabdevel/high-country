@@ -16,6 +16,7 @@ import type { Node } from "three/webgpu";
 import {
   attribute,
   cameraNear,
+  cameraViewMatrix,
   cameraFar,
   clamp,
   float,
@@ -149,21 +150,28 @@ export function makeWaterNormalTexture(): THREE.Texture {
     const v = smooth(fy);
     return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
   };
+  // Derive both slope components from a periodic height field. Using the
+  // same noise value for x and y biases every ripple toward one diagonal.
+  const heights = new Float32Array(512 * 512);
   for (let y = 0; y < 512; y += 1) {
     for (let x = 0; x < 512; x += 1) {
       const u = x / 512;
       const v = y / 512;
-      const n1 = noise2(u * 7, v * 7, 7, 1) * 1.0;
-      const n2 = noise2(u * 19 + 4.7, v * 19 + 9.1, 19, 2) * 0.45;
-      const n3 = noise2(u * 53 + 2.3, v * 53 + 6.8, 53, 3) * 0.22;
-      const nx = (n1 - 0.5) * 1.7 + (n2 - 0.5) * 0.9 + (n3 - 0.5) * 0.4;
-      const nz = (n1 - 0.5) * 1.4 + (n2 - 0.5) * 0.7 + (n3 - 0.5) * 0.3;
-      const nxN = nx / Math.sqrt(nx * nx + nz * nz + 1) * 1.6;
-      const nzN = nz / Math.sqrt(nx * nx + nz * nz + 1) * 1.6;
+      heights[y * 512 + x] = noise2(u * 7, v * 7, 7, 1)
+        + noise2(u * 19 + 4.7, v * 19 + 9.1, 19, 2) * 0.3
+        + noise2(u * 53 + 2.3, v * 53 + 6.8, 53, 3) * 0.07;
+    }
+  }
+  const height = (x: number, y: number) => heights[((y + 512) % 512) * 512 + (x + 512) % 512];
+  for (let y = 0; y < 512; y += 1) {
+    for (let x = 0; x < 512; x += 1) {
+      const dx = (height(x - 1, y) - height(x + 1, y)) * 12;
+      const dy = (height(x, y - 1) - height(x, y + 1)) * 12;
+      const length = Math.hypot(dx, dy, 1);
       const i = (y * 512 + x) * 4;
-      data[i] = (nxN * 0.5 + 0.5) * 255;
-      data[i + 1] = (nzN * 0.5 + 0.5) * 255;
-      data[i + 2] = 255;
+      data[i] = (dx / length * 0.5 + 0.5) * 255;
+      data[i + 1] = (dy / length * 0.5 + 0.5) * 255;
+      data[i + 2] = (1 / length * 0.5 + 0.5) * 255;
       data[i + 3] = 255;
     }
   }
@@ -171,6 +179,10 @@ export function makeWaterNormalTexture(): THREE.Texture {
   tex.colorSpace = THREE.NoColorSpace;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 4;
   tex.needsUpdate = true;
   return tex;
 }
@@ -212,15 +224,15 @@ export function createWaterMaterial(
     const surfaceDist = positionView.z.negate();
     depth = floorDist.sub(surfaceDist);
   } else {
-    depth = attribute("aDepth", "float");
+    depth = attribute("aDepth", "float") as Node<"float">;
   }
-  depth = depth.toVar();
+  depth = depth.max(0).toVar();
 
   const dNorm = smoothstep(float(0), u.waterDepthFalloff as FloatUniform, depth).toVar();
   const baseCol = mix(shallow, deep, dNorm).toVar();
 
-  const flow = depthSource === "attribute" ? attribute("aFlow", "vec2") : vec2(1, 0);
-  const slope = depthSource === "attribute" ? attribute("aSlope", "float") : float(0);
+  const flow = depthSource === "attribute" ? (attribute("aFlow", "vec2") as Node<"vec2">) : vec2(1, 0);
+  const slope = depthSource === "attribute" ? (attribute("aSlope", "float") as Node<"float">) : float(0);
   const whitewater = smoothstep(
     u.whitewaterSlope as FloatUniform,
     (u.whitewaterSlope as FloatUniform).mul(1.6),
@@ -231,7 +243,8 @@ export function createWaterMaterial(
   const flowLen = flow.length();
 
   const scrollA = (flow.mul(flowLen).mul(u.waterNormalSpeed1 as FloatUniform)).mul(time);
-  const scrollB = (flow.mul(flowLen).mul(u.waterNormalSpeed2 as FloatUniform)).mul(time).add(float(3.7));
+  const crossFlow = vec2(flow.y.negate(), flow.x);
+  const scrollB = (flow.mul(0.35).add(crossFlow.mul(0.65)).mul(flowLen).mul(u.waterNormalSpeed2 as FloatUniform)).mul(time).add(float(3.7));
   const uvA = pos.mul(u.waterNormalScale1 as FloatUniform).add(scrollA);
   const uvB = pos.mul(u.waterNormalScale2 as FloatUniform).add(scrollB);
 
@@ -240,22 +253,27 @@ export function createWaterMaterial(
   // A third, small-scale octave: the two large scrolls give the swell, but
   // glint needs metre-scale ripples to catch the sun in.
   const uvC = pos.mul(u.waterNormalScale3 as FloatUniform).add(
-    flow.mul(flowLen).mul(u.waterNormalSpeed3 as FloatUniform).mul(time)
+    flow.mul(-0.4).add(crossFlow.mul(0.6)).mul(flowLen).mul(u.waterNormalSpeed3 as FloatUniform).mul(time)
   );
   const nC = texture(normalMap, uvC).rgb.mul(2).sub(1);
-  const combined = vec3(nA.xy.add(nB.xy).add(nC.xy), nA.z.mul(nB.z).mul(nC.z));
-
-  const perturb2 = combined.xy.mul(perturbStrength);
+  // Fade sub-metre detail into the distance to keep the horizon stable.
+  const detailFade = smoothstep(float(25), float(180), cameraPosition.sub(positionWorld).length()).oneMinus();
+  const perturb2 = nA.xy.add(nB.xy.mul(0.55)).add(nC.xy.mul(detailFade.mul(0.25)))
+    .mul(perturbStrength).toVar();
+  const surfaceNormal = vec3(perturb2.x, 1, perturb2.y).normalize().toVar();
 
   const depthClamp = clamp(depth, float(0), u.waterRefractionDepth as FloatUniform).div(u.waterRefractionDepth as FloatUniform);
-  const sceneUv = screenUV.add(perturb2.mul(u.waterRefraction as FloatUniform).mul(depthClamp));
+  const sceneUv = screenUV.add(perturb2.mul(u.waterRefraction as FloatUniform).mul(depthClamp)).clamp(0.001, 0.999);
   const refracted = screenRefraction ? viewportSharedTexture(sceneUv).rgb : baseCol;
 
-  const phaseA = smoothstep(float(0), float(0.6), fract(time.mul(u.waterFlowSpeed as FloatUniform)));
-  const phaseB = smoothstep(float(0), float(0.6), fract(time.mul(u.waterFlowSpeed as FloatUniform).add(float(0.5))));
-  const flowA = pos.mul(u.waterFlowTiling as FloatUniform).add(flow.mul(phaseA).mul(2.2)).mul(u.foamNoiseScale as FloatUniform);
-  const flowB = pos.mul(u.waterFlowTiling as FloatUniform).add(flow.mul(phaseB).mul(2.2)).mul(u.foamNoiseScale as FloatUniform);
-  const foamNoise = mix(mx_noise_float(flowA), mx_noise_float(flowB), mix(phaseA, phaseB, float(0.5)));
+  // Cross-fade two staggered flow phases; the wrapping sample has zero
+  // weight so the foam never jumps when the animation loops.
+  const phaseA = fract(time.mul(u.waterFlowSpeed as FloatUniform));
+  const phaseB = fract(phaseA.add(0.5));
+  const flowA = pos.mul(u.waterFlowTiling as FloatUniform).sub(flow.mul(phaseA).mul(2.2)).mul(u.foamNoiseScale as FloatUniform);
+  const flowB = pos.mul(u.waterFlowTiling as FloatUniform).sub(flow.mul(phaseB).mul(2.2)).mul(u.foamNoiseScale as FloatUniform);
+  const phaseWeight = phaseA.sub(0.5).abs().mul(2);
+  const foamNoise = mix(mx_noise_float(flowA), mx_noise_float(flowB), phaseWeight);
   const foamNoise01 = foamNoise.mul(0.5).add(0.5).toVar();
   // Shore foam as a wandering band, not a stripe: the depth where the foam
   // starts rides the same noise as its brightness, so the waterline breaks
@@ -263,11 +281,15 @@ export function createWaterMaterial(
   // shore. Intensity also fades with the noise — a full-strength band along
   // every shore read as a painted line (audit lakeMercy). Per-body foamScale
   // keeps shallow creeks out of the band entirely (see the option comment).
+  const shoreDistance = attribute("aShore", "float") as Node<"float">;
   const foamScaleU = uniform(opts.foamScale ?? 1, "float");
   const foamEdge = (u.foamThreshold as FloatUniform).mul(foamScaleU).mul(foamNoise01.mul(0.4).add(0.45));
-  const shoreMask = smoothstep(foamEdge.mul(0.4), foamEdge, depth).oneMinus();
+  // Authored basin depth changes over tens of metres; using it for foam
+  // painted a wide white wedge around the lake. Measure the actual bank band.
+  const shoreMetric = depthSource === "lake" ? shoreDistance : depth;
+  const shoreMask = smoothstep(foamEdge.mul(0.4), foamEdge, shoreMetric).oneMinus();
   const foam = shoreMask.mul(foamNoise01.mul(0.8).add(0.2)).mul(u.foamStrength as FloatUniform);
-  const totalFoam = clamp(foam.add(whitewater.mul(0.6)), float(0), float(1.4)).toVar();
+  const totalFoam = clamp(foam.add(whitewater.mul(0.6)), float(0), float(1)).toVar();
 
   // How much of the surface colour is the water itself vs what lies under it.
   // The old fixed 0.55 floor kept even knee-deep water 45% paint, so the
@@ -288,7 +310,7 @@ export function createWaterMaterial(
   // view-space normalView·positionViewDirection dot came out inverted
   // against the geometry (near field tinted, horizon dark).
   const toCam = cameraPosition.sub(positionWorld).normalize();
-  const upDot = toCam.y.abs().clamp(0, 1);
+  const upDot = toCam.dot(surfaceNormal).abs().clamp(0, 1);
   const fresnel = upDot.oneMinus().pow(3).mul(u.waterFresnel as FloatUniform)
     .mul(totalFoam.oneMinus());
   const waterCol = mix(
@@ -304,10 +326,16 @@ export function createWaterMaterial(
     depthWrite: false,
     envMapIntensity: 1.0
   });
+  const bankNoise = mx_noise_float(pos.mul(0.7)).mul(0.12).add(0.18);
+  const shoreOpacity = smoothstep(bankNoise, bankNoise.add(0.65), shoreDistance);
+  mat.opacityNode = depthSource === "attribute"
+    ? shoreOpacity.mul(smoothstep(float(0), float(0.12), depth))
+    : shoreOpacity;
   mat.colorNode = waterCol;
-  mat.roughnessNode = u.waterRoughness as FloatUniform;
+  mat.roughnessNode = mix(u.waterRoughness as FloatUniform, float(0.65), totalFoam);
   mat.metalnessNode = float(0.0);
-  mat.normalNode = vec3(perturb2.x, perturb2.y, 1).normalize();
+  // NodeMaterial expects a view-space normal; our water slopes are world-space.
+  mat.normalNode = surfaceNormal.transformDirection(cameraViewMatrix);
   mat.side = THREE.DoubleSide;
   return mat;
 }

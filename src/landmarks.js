@@ -1,5 +1,6 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
+import { meshHeightAt } from "./heightfield.js";
 import { addBoxCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
 import { POS, WATER, mapToWorld, CREEKS, lakeFactor, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
@@ -1052,7 +1053,7 @@ function buildCreekRibbon(creek) {
     const a = mapToWorld(creek.pts[i][0], creek.pts[i][1]);
     const b = mapToWorld(creek.pts[i + 1][0], creek.pts[i + 1][1]);
     const len = Math.hypot(b.x - a.x, b.z - a.z);
-    const n = Math.max(1, Math.ceil(len / 5));
+    const n = Math.max(1, Math.ceil(len / 1.5));
     for (let j = 0; j < n; j += 1) {
       const t = j / n;
       samples.push({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
@@ -1061,6 +1062,19 @@ function buildCreekRibbon(creek) {
   const last = creek.pts[creek.pts.length - 1];
   const end = mapToWorld(last[0], last[1]);
   samples.push({ x: end.x, z: end.z });
+
+  // A short local smoothing window rounds the authored corners without
+  // moving the creek away from its carved channel or bridge crossings.
+  const raw = samples.map(p => ({ ...p }));
+  for (let i = 1; i < samples.length - 1; i += 1) {
+    let x = 0, z = 0, weight = 0;
+    for (let j = -8; j <= 8; j += 1) {
+      const p = raw[Math.max(0, Math.min(raw.length - 1, i + j))];
+      const w = 9 - Math.abs(j);
+      x += p.x * w; z += p.z * w; weight += w;
+    }
+    samples[i] = { x: x / weight, z: z / weight };
+  }
 
   // Trim the run to the part outside Lake Mercy. highCountry ends at the lake's
   // centre and silver starts beside it, so both used to lay a ribbon across the
@@ -1090,8 +1104,12 @@ function buildCreekRibbon(creek) {
   const depths = [];
   const flows = [];
   const slopes = [];
+  const shores = [];
+  const across = [-1, -0.8, 0, 0.8, 1];
+  let distance = 0;
   for (let i = 0; i < kept.length; i += 1) {
-    const p = kept[i];
+    const p = { ...kept[i] };
+    if (i > 0) distance += Math.hypot(p.x - kept[i - 1].x, p.z - kept[i - 1].z);
     const prev = kept[Math.max(0, i - 1)];
     const next = kept[Math.min(kept.length - 1, i + 1)];
     let tx = next.x - prev.x;
@@ -1101,6 +1119,9 @@ function buildCreekRibbon(creek) {
     tz /= tl;
     const px = -tz;
     const pz = tx;
+    const meander = halfW * 0.22 * Math.sin(distance * 0.035);
+    p.x += px * meander;
+    p.z += pz * meander;
     const bed = heightAt(p.x, p.z);
     const e = 3;
     const slope = Math.hypot(heightAt(p.x + e, p.z) - bed, heightAt(p.x, p.z + e) - bed) / (2 * e);
@@ -1116,9 +1137,26 @@ function buildCreekRibbon(creek) {
     const lake = lakeFactor(p.x, p.z);
     const surface = (bed + CREEK_DEPTH) * (1 - lake) + WATER * lake;
 
-    for (const s of [1, -1]) {
-      const vx = p.x + px * halfW * s;
-      const vz = p.z + pz * halfW * s;
+    for (const s of across) {
+      // Different phases on each bank avoid a uniform hose-like outline.
+      const phase = s < 0 ? 1.7 : 4.2;
+      let bankWidth = halfW * (1 + 0.22 * Math.sin(distance * 0.045 + phase)
+        + 0.1 * Math.sin(distance * 0.13 + phase * 2));
+      // End the ribbon at the bank, rather than letting coarse terrain
+      // triangles cut through it before its opacity can fade out.
+      const side = s < 0 ? -1 : 1;
+      if (!creek.dry && meshHeightAt(p.x + px * bankWidth * side, p.z + pz * bankWidth * side) > surface - 0.04) {
+        let lo = 0, hi = bankWidth;
+        for (let j = 0; j < 10; j += 1) {
+          const mid = (lo + hi) / 2;
+          if (meshHeightAt(p.x + px * mid * side, p.z + pz * mid * side) < surface - 0.04) lo = mid;
+          else hi = mid;
+        }
+        bankWidth = lo;
+      }
+      const vx = p.x + px * bankWidth * s;
+      const vz = p.z + pz * bankWidth * s;
+      shores.push((1 - Math.abs(s)) * bankWidth);
       positions.push(vx, creek.dry ? bed + 0.06 : surface, vz);
       // Depth per vertex against the real bed under it, so the channel shades
       // deep mid-stream and shallows out where the banks rise into it.
@@ -1132,78 +1170,91 @@ function buildCreekRibbon(creek) {
   geo.setAttribute("aDepth", new THREE.Float32BufferAttribute(depths, 1));
   geo.setAttribute("aFlow", new THREE.Float32BufferAttribute(flows, 2));
   geo.setAttribute("aSlope", new THREE.Float32BufferAttribute(slopes, 1));
+  geo.setAttribute("aShore", new THREE.Float32BufferAttribute(shores, 1));
   const indices = [];
   for (let i = 0; i < kept.length - 1; i += 1) {
-    const l = i * 2;
-    const r = l + 1;
-    indices.push(l, r, l + 2, l + 2, r, r + 2);
+    for (let j = 0; j < across.length - 1; j += 1) {
+      const a = i * across.length + j;
+      const b = a + across.length;
+      indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
   }
   geo.setIndex(indices);
+  geo.computeVertexNormals();
   return geo;
 }
 
-/**
- * Lake Mercy's water surface.
- *
- * Was a CircleGeometry, so however good the water shader looked the lake was
- * unmistakably a stamped ellipse. It is now a fan whose rim follows
- * lakeShoreRadius — the same shoreline the terrain carve uses — so the water
- * plane and the ground it floods agree on where the bays are.
- *
- * The rim is pushed out past the fully-flooded ellipse (lakeFactor reaches
- * open water at 0.72 of the nominal rim) so the plane runs into rising ground
- * instead of stopping short of it. That is what removes the mud band: the
- * visible waterline becomes plane-meets-terrain, which is irregular for free,
- * rather than the edge of the disc itself.
- */
-const LAKE_RIM_SEGMENTS = 192;
-const LAKE_MESH_RIM = 1.02;
+/** Lake shoreline sampled against the rendered terrain, with dense edge rings
+ * for a narrow shallow-water transition and a softly irregular outline. */
+const LAKE_RIM_SEGMENTS = 1024;
 
 function buildLakeGeometry() {
+  // Trace the actual terrain intersection, then retreat slightly into the
+  // shallows. This gives the water its own feathered boundary before the
+  // coarse terrain triangles can clip it into a hard sawtooth.
+  const radii = [];
+  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
+    const a = i / LAKE_RIM_SEGMENTS * Math.PI * 2;
+    const x = Math.cos(a) * LAKE_NOMINAL_RX;
+    const z = -Math.sin(a) * LAKE_NOMINAL_RZ;
+    let lo = 0;
+    let hi = lakeShoreRadius(-a) * 1.2;
+    for (let j = 0; j < 16; j += 1) {
+      const mid = (lo + hi) / 2;
+      if (meshHeightAt(POS.lakeMercy.x + x * mid, POS.lakeMercy.z + z * mid) < WATER) lo = mid;
+      else hi = mid;
+    }
+    radii.push(lo);
+  }
+  // Smooth an inward envelope, not min(raw, average): that min operation
+  // retained every convex terrain-grid corner. Eroding first keeps the
+  // filtered curve submerged without reintroducing the raw polygon edges.
+  const radiusAt = i => radii[(i + LAKE_RIM_SEGMENTS) % LAKE_RIM_SEGMENTS];
+  const inset = radii.map((_, i) => {
+    let r = Infinity;
+    for (let j = -16; j <= 16; j += 1) r = Math.min(r, radiusAt(i + j));
+    return r;
+  });
+  const smoothRadii = inset.map((_, i) => {
+    let sum = 0, weights = 0;
+    for (let j = -16; j <= 16; j += 1) {
+      const weight = 17 - Math.abs(j);
+      sum += inset[(i + j + LAKE_RIM_SEGMENTS) % LAKE_RIM_SEGMENTS] * weight;
+      weights += weight;
+    }
+    return sum / weights;
+  });
   const positions = [0, 0, 0];
   const depths = [7];
-  for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
-    const a = (i / LAKE_RIM_SEGMENTS) * Math.PI * 2;
-    const r = lakeShoreRadius(a) * LAKE_MESH_RIM;
-    positions.push(Math.cos(a) * r, Math.sin(a) * r, 0);
-    // The visual lake basin is intentionally deeper at its centre than the
-    // collision terrain, which stays shallow for gameplay. Shallow out well
-    // before the rim so the shallows read as shallows where they meet land.
-    depths.push(0);
-  }
-  // A single fan would make every triangle meet at the centre, so the depth
-  // gradient would be linear from the middle out. Two intermediate rings give
-  // the shader a basin profile to shade against.
-  const rings = [0.42, 0.76];
-  const ringStart = [];
-  for (const t of rings) {
-    ringStart.push(positions.length / 3);
-    for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
-      const a = (i / LAKE_RIM_SEGMENTS) * Math.PI * 2;
-      const r = lakeShoreRadius(a) * LAKE_MESH_RIM * t;
-      positions.push(Math.cos(a) * r, Math.sin(a) * r, 0);
-      depths.push(7 * Math.pow(1 - t, 0.8));
-    }
-  }
-
+  const shores = [100];
   const indices = [];
-  const inner = ringStart[0];
-  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
-    indices.push(0, inner + i, inner + i + 1);
-  }
-  const bands = [ringStart[0], ringStart[1], 1];
-  for (let b = 0; b < bands.length - 1; b += 1) {
-    const a0 = bands[b];
-    const a1 = bands[b + 1];
-    for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
-      indices.push(a0 + i, a1 + i, a0 + i + 1);
-      indices.push(a0 + i + 1, a1 + i, a1 + i + 1);
+  const rings = [0.3, 0.6, 0.85, 0.96, 0.992, 1];
+  for (const t of rings) {
+    for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
+      const k = i % LAKE_RIM_SEGMENTS;
+      const a = k / LAKE_RIM_SEGMENTS * Math.PI * 2;
+
+      const retreat = 3.5 + 2 * Math.sin(a * 17 + 0.7)
+        + 0.9 * Math.sin(a * 41 - 1.2) + 0.5 * Math.sin(a * 83);
+      const rim = smoothRadii[k] - retreat / LAKE_NOMINAL_RX;
+      positions.push(Math.cos(a) * rim * t, Math.sin(a) * rim * t, 0);
+      depths.push(7 * Math.pow(1 - t, 0.8));
+      shores.push((1 - t) * rim * LAKE_NOMINAL_RX);
     }
   }
-
+  const stride = LAKE_RIM_SEGMENTS + 1;
+  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) indices.push(0, 1 + i, 2 + i);
+  for (let r = 0; r < rings.length - 1; r += 1) {
+    for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
+      const a = 1 + r * stride + i;
+      const b = a + stride;
+      indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute("aDepth", new THREE.Float32BufferAttribute(depths, 1));
+  geo.setAttribute("aShore", new THREE.Float32BufferAttribute(shores, 1));
   geo.setIndex(indices);
   geo.computeVertexNormals();
   return geo;
