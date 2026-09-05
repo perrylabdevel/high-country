@@ -80,10 +80,15 @@ export function createFort(scene, maps = {}) {
   cylAt(group, barracksX + 4.7, barracksZ - 1.55, 0.34, 0.38, 0.78, dark);
   cylAt(group, fort.x + 2.55, fort.z - 5.35, 0.36, 0.4, 0.82, rust);
 
+  // Hitching rail along the inner face of the north wall, EAST of the
+  // gateway. It used to stand directly across the entrance approach — its
+  // east post landed in the middle of the 6.4 m gateway corridor and the rail
+  // barred the way in like a closed barrier (the one thing you saw in front
+  // of the gate). Horses tie up beside a gate, not in it.
   const hitchZ = fort.z - 10.5;
-  boxAt(group, fort.x - 5, hitchZ, 0.18, 1.15, 0.18, dark);
-  boxAt(group, fort.x + 1, hitchZ, 0.18, 1.15, 0.18, dark);
-  boxAt(group, fort.x - 2, hitchZ, 6.2, 0.12, 0.12, dark, false, 1.02);
+  boxAt(group, fort.x + 5.7, hitchZ, 0.18, 1.15, 0.18, dark);
+  boxAt(group, fort.x + 11.3, hitchZ, 0.18, 1.15, 0.18, dark);
+  boxAt(group, fort.x + 8.5, hitchZ, 6.0, 0.12, 0.12, dark, false, 1.02);
 
   const wagonX = fort.x + 18;
   const wagonZ = fort.z - 8.5;

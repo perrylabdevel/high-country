@@ -653,21 +653,62 @@ export function createLandmarks(scene, maps = {}) {
   // North gate, face-on to the audit camera (heading 155 puts the camera
   // north-east, so -Z is the near wall). The earlier east and south gates were
   // both on the far side and never read (F1).
-  for (const gx of [fort.x - gateHalf, fort.x + gateHalf]) {
-    boxOnGround(group, gx, fort.z - fortDepth, 0.55, fortWallH + 2.6, 0.55, stone, false);
+  //
+  // Two stone pylons flank the gateway, their inner faces flush with the
+  // 6.4 m collider gap (±3.2), so the corridor keeps its full checked width
+  // — the old posts stood at ±3.0 and ate 0.275 m into it on each side. They
+  // rise 1.4 m above the wall under a projecting cap, which is what makes the
+  // entrance read as a built structure instead of the wall simply stopping.
+  // The cap covers the pylon top: the previous posts ran 0.85 m past the
+  // lintel with nothing on them.
+  for (const s of [-1, 1]) {
+    boxOnGround(group, fort.x + s * 3.85, fort.z - fortDepth, 1.3, fortWallH + 1.4, 1.5, stone, false);
+    boxOnGround(group, fort.x + s * 3.85, fort.z - fortDepth, 1.6, 0.28, 1.8, stone, false, fortWallH + 1.4);
   }
-  boxAt(group, fort.x, fort.z - fortDepth, 6.6, 0.55, 0.55, facadeWood, false, fortWallH + 1.2);
-  // The leaves stand OPEN against the gateposts, flat against the INNER wall
-  // face: closed leaves plus the full-width wall collider made the fort a
-  // physics prison — nav could not thread the gateway at all (the gate
-  // corridor check in check-approaches surfaced this as a hard failure).
-  // Open leaves leave the gateway centre clear and the gate still reads as a
-  // gate (posts + lintel remain). They sat at the wall's centreline before,
-  // which the solid north wall hid; now the wall has a gap, so they move
-  // inside it where an open door leaf hangs.
+  // Layered timber header between the pylons: a heavy beam bearing to within
+  // 0.15 m of each pylon's outer face, with a lighter one a hand's width
+  // below it. The single bare 6.6 m stick read as scaffolding.
+  boxAt(group, fort.x, fort.z - fortDepth, 8.7, 0.5, 0.5, facadeWood, false, fortWallH + 0.9);
+  boxAt(group, fort.x, fort.z - fortDepth, 7.6, 0.3, 0.4, dark, false, fortWallH + 0.5);
+  // The leaves stand OPEN against the inner wall face: closed leaves plus the
+  // full-width wall collider made the fort a physics prison — nav could not
+  // thread the gateway at all (the gate corridor check in check-approaches
+  // surfaced this as a hard failure). They used to be single flat slabs flush
+  // with the wall, which read as patched wall, not doors; each leaf is now a
+  // small plank gate — vertical planks, two ledges and a diagonal brace, iron
+  // hinges on the pylon edge — standing a hand's width proud of the wall so
+  // its own thickness catches light.
   const leafZ = fort.z - fortDepth + 0.6 + 0.05;
-  for (const gx of [fort.x - gateHalf - 1.6, fort.x + gateHalf + 1.6]) {
-    boxAt(group, gx, leafZ, 3.2, fortWallH + 0.25, 0.08, facadeWood, false);
+  const leafW = 3.1;
+  const leafH = fortWallH - 0.1;
+  const braceAngle = Math.atan2(leafH - 0.9, leafW);
+  const braceLen = Math.hypot(leafH - 0.9, leafW) + 0.3;
+  for (const s of [-1, 1]) {
+    const leaf = new THREE.Group();
+    for (let i = 0; i < 6; i += 1) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.5, leafH, 0.07), facadeWood);
+      plank.position.set(-1.3 + i * 0.52, leafH / 2, 0);
+      plank.castShadow = true;
+      leaf.add(plank);
+    }
+    for (const ly of [0.45, leafH - 0.45]) {
+      const ledge = new THREE.Mesh(new THREE.BoxGeometry(leafW, 0.16, 0.05), dark);
+      ledge.position.set(0, ly, 0.03);
+      ledge.castShadow = true;
+      leaf.add(ledge);
+    }
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(braceLen, 0.14, 0.05), dark);
+    brace.position.set(0, leafH / 2, 0.06);
+    brace.rotation.z = s * braceAngle;
+    brace.castShadow = true;
+    leaf.add(brace);
+    for (const hy of [0.55, leafH / 2, leafH - 0.55]) {
+      const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1), iron);
+      hinge.position.set(-s * 1.62, hy, 0.02);
+      leaf.add(hinge);
+    }
+    leaf.position.set(fort.x + s * (3.25 + leafW / 2), heightAt(fort.x + s * (3.25 + leafW / 2), leafZ), leafZ);
+    group.add(leaf);
   }
   addBoxCollider(fort.x, fort.z + fortDepth, 14, 0.7);
   // North wall colliders mirror the two visual segments: 10.8 m of wall each
