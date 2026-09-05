@@ -25,7 +25,7 @@ import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
 import { createLivestock } from "./livestock.js";
 import { createTraffic } from "./traffic.js";
-import { addCylinderCollider, resolvePosition, clearanceAt } from "./collision.js";
+import { addCylinderCollider, resolvePosition, clearanceAt, deckHeightAt, moveAndSlide } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
 import { POS, placeAt, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
@@ -1079,6 +1079,19 @@ async function boot() {
     };
   }
 
+  // Silver Creek's street frame, matching street() in landmarks.js: the
+  // storefront row runs at yaw 0.15 from the town centre, facades on a line
+  // 5.5 m out (boardwalk deck 1.5..5.5), the painted road centred on perp 0.
+  // `along` is metres down the street axis — the nine lots sit at -56..56 in
+  // steps of 14 (sheriff, newspaper, doctor, hotel, store, church, saloon,
+  // blacksmith, livery). Riders hold the road centreline, so townsfolk stand
+  // clear of roughly perp -1.5..1.5.
+  const TOWN_YAW = 0.15;
+  const townSpot = (along, perp) => ({
+    x: POS.silverCreek.x + Math.cos(TOWN_YAW) * along - Math.sin(TOWN_YAW) * perp,
+    z: POS.silverCreek.z + Math.sin(TOWN_YAW) * along + Math.cos(TOWN_YAW) * perp
+  });
+
   const npcs = [
     {
       name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
@@ -1100,23 +1113,331 @@ async function boot() {
       name: "Wade Calder", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
       look: { shirt: 0x6a4e32, vest: 0x4a2e18, pants: 0x33261a, hat: 0x2e2118 },
       line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing."
+    },
+
+    // --- Silver Creek: the people who work the street -------------------------
+    {
+      name: "Dutch Malloy", ...townSpot(41, 4.6),
+      wander: { r: 6, v: 0.95 },
+      look: { shirt: 0x4a3a30, vest: 0x2a2018, pants: 0x26201a, hat: 0x241a12, skin: 0xc9a074 },
+      face: townSpot(41, 9),
+      // Hammering: the right arm rises high and strikes, the left steadies
+      // the work, the torso rides the swing.
+      pose: (p, t) => {
+        const swing = Math.max(0, Math.sin(t * 3.1));
+        p.torso.rotation.x = 0.18 + swing * 0.1;
+        p.armR.rotation.x = -1.9 + swing * 1.5;
+        p.armR.rotation.z = -0.25;
+        p.armL.rotation.x = -0.55;
+        p.armL.rotation.z = 0.3;
+      },
+      line: [
+        "Shoeing the mine team Thursday. Iron's been scarce since the Silver Strike played out.",
+        "You hear that hammer? Only music left in this town that still pays."
+      ]
+    },
+    {
+      name: "Ruth Halloran", ...townSpot(5, 3.5),
+      wander: { r: 8, v: 1 },
+      look: { shirt: 0x8a5a34, hatStyle: "hair", hair: 0x4a2e18, skirt: true, height: 1.66 },
+      face: townSpot(5, -6),
+      // Sweeping the boardwalk: broom arms low and forward, shoulders swing
+      // with the stroke.
+      pose: (p, t) => {
+        const sw = Math.sin(t * 1.6);
+        p.torso.rotation.x = 0.14;
+        p.torso.rotation.y = sw * 0.22;
+        p.armL.rotation.x = -0.9;
+        p.armL.rotation.z = 0.35;
+        p.armR.rotation.x = -0.75;
+        p.armR.rotation.z = -0.3;
+      },
+      line: [
+        "Sweep before the dust rolls in, or sweep it twice.",
+        "Flour, coffee, shells. If the mine pay comes through I'll stock sugar again."
+      ]
+    },
+    {
+      name: "Amos Pike", ...townSpot(53, 3.5),
+      wander: { r: 9, v: 1 },
+      look: { shirt: 0x5f4a2e, vest: 0x3a2c1a, pants: 0x2e2418, hat: 0x3a2a1a },
+      face: townSpot(56, 7),
+      // Coiling rope: both arms forward, hands turning against each other.
+      pose: (p, t) => {
+        const c = Math.sin(t * 2.2);
+        p.torso.rotation.x = 0.1;
+        p.armL.rotation.x = -1.1 + c * 0.25;
+        p.armL.rotation.z = 0.5;
+        p.armR.rotation.x = -0.9 - c * 0.25;
+        p.armR.rotation.z = -0.5;
+      },
+      line: [
+        "Board's a dollar a night, and that includes a rubdown.",
+        "Don't leave that horse of yours tied in the sun. She'll remember it."
+      ]
+    },
+    {
+      name: "Sheriff Tom Cassidy", ...townSpot(-53, 3.5),
+      wander: { r: 12, v: 1.05 },
+      look: { shirt: 0x6a5a48, vest: 0x241c14, pants: 0x2a241c, hat: 0x1f1712 },
+      face: townSpot(-53, -6),
+      // Working the street with his eyes: a slow head-and-shoulders scan,
+      // hands resting at the belt.
+      pose: (p, t) => {
+        const scan = Math.sin(t * 0.35);
+        p.torso.rotation.y = scan * 0.3;
+        p.head.rotation.y = scan * 0.45;
+        p.armL.rotation.z = 0.35;
+        p.armR.rotation.z = -0.35;
+      },
+      line: [
+        "Town's been quiet. Quiet is how I like it and how it never stays.",
+        "Keep your iron cased on my street. I don't warn twice."
+      ]
+    },
+
+    // --- and the ones who lounge ----------------------------------------------
+    {
+      name: "Floyd Wicks", ...townSpot(30, 4.9),
+      // Lazy: a small patch, a slow amble, and long spells leaning.
+      wander: { r: 5, v: 0.8, dwell: [6, 14] },
+      look: { shirt: 0x7a6a50, vest: 0x4a3a28, pants: 0x3a3026, hat: 0x443626 },
+      face: townSpot(30, -6),
+      // Leaning on the saloon front: weight back, arms folded.
+      pose: (p) => {
+        p.torso.rotation.x = -0.12;
+        p.legL.rotation.z = -0.1;
+        p.legR.rotation.z = 0.22;
+        p.armL.rotation.x = -0.85;
+        p.armL.rotation.z = 0.55;
+        p.armR.rotation.x = -0.85;
+        p.armR.rotation.z = -0.55;
+      },
+      line: [
+        "I ain't lazy. I'm between fortunes.",
+        "Saloon opens at noon. I'm just guarding the door from out here."
+      ]
+    },
+    {
+      name: "Ida Bell", ...townSpot(-16, 3.6),
+      wander: { r: 6, v: 0.9 },
+      look: { shirt: 0x8a4a3a, hatStyle: "hair", hair: 0x2e2118, skirt: true, height: 1.68 },
+      face: townSpot(-16, -6),
+      // Keeping an eye on the street from the hotel porch: hands clasped,
+      // a slow, appraising turn of the head.
+      pose: (p, t) => {
+        p.armL.rotation.x = -0.35;
+        p.armL.rotation.z = 0.45;
+        p.armR.rotation.x = -0.35;
+        p.armR.rotation.z = -0.45;
+        p.head.rotation.y = Math.sin(t * 0.5) * 0.4;
+      },
+      line: [
+        "Two bits a night, and breakfast if you're up before the coffee's gone.",
+        "Beds are honest here, and the walls keep most opinions to themselves."
+      ]
+    },
+    {
+      name: "Doc Alvin Frey", ...townSpot(-30, 3.6),
+      wander: { r: 6, v: 0.85 },
+      look: { shirt: 0x9a8a72, vest: 0x3a342c, pants: 0x2a2620, hatStyle: "hair", hair: 0x8a8478 },
+      face: townSpot(-30, -6),
+      // Pipe on the doctor's own porch: the hand comes up and stays there,
+      // the head bows to it.
+      pose: (p, t) => {
+        const puff = Math.sin(t * 0.8);
+        p.armR.rotation.x = -1.5 + puff * 0.08;
+        p.armR.rotation.z = -0.35;
+        p.armL.rotation.z = 0.3;
+        p.head.rotation.x = 0.08;
+      },
+      line: [
+        "Smoke on the north wind again. Lungs will be my business soon enough.",
+        "The pipe is the last bad habit I allow myself. Doctor's orders — mine."
+      ]
+    },
+    {
+      name: "Willie Grady", ...townSpot(-44.5, 2.5),
+      // The kid ranges widest and never stands still for long.
+      wander: { r: 14, v: 1.5, dwell: [1, 4] },
+      look: { shirt: 0x6a7a8a, pants: 0x3a342c, hatStyle: "hair", hair: 0x5a3a1e, height: 1.38 },
+      face: townSpot(-44.5, -6),
+      // A newsboy can't hold still: weight rocking, head darting after
+      // anything that moves on the street.
+      pose: (p, t) => {
+        p.torso.rotation.y = Math.sin(t * 1.3) * 0.15;
+        p.head.rotation.y = Math.sin(t * 2.1) * 0.5;
+        p.legL.rotation.z = -0.06 + Math.sin(t * 0.9) * 0.04;
+        p.legR.rotation.z = 0.06 - Math.sin(t * 0.9) * 0.04;
+      },
+      line: [
+        "Paper's a nickel! Fort Grant's haunted, probably!",
+        "You're from the ranch? I'd trade my whole stack for one ride on that horse."
+      ]
     }
   ];
+
+  // Joints every pose owns. While a townsperson is strolling, the stride
+  // owns the limbs and the pose must yield — see the pose wrapper below.
+  const POSE_JOINTS = ["legL", "legR", "armL", "armR", "torso", "head"];
 
   function makeNpc(npc) {
     // R9: settlers are the same dressed figures as the player, each with a
     // distinct palette, standing at their post with idle motion.
     npc.figure = createFigure({ skin: 0xe0c29a, ...npc.look });
     const g = npc.figure.group;
-    g.position.set(npc.x, heightAt(npc.x, npc.z), npc.z);
-    // Face the ranch yard, not default +Z, so nobody stares at a wall.
-    g.rotation.y = Math.atan2(POS.ranch.x - npc.x, POS.ranch.z - npc.z);
+    // A townsperson on the boardwalk stands on the deck, not the dirt under
+    // it — deckHeightAt answers -Infinity off the planks, so the ground wins.
+    const groundY = heightAt(npc.x, npc.z);
+    const deckY = deckHeightAt(npc.x, npc.z, groundY + 1.2);
+    g.position.set(npc.x, deckY > groundY ? deckY : groundY, npc.z);
+    // Face a given point — the family default keeps facing the ranch yard,
+    // so nobody stares at a wall; every townsperson names their own.
+    const face = npc.face ?? POS.ranch;
+    g.rotation.y = Math.atan2(face.x - npc.x, face.z - npc.z);
     scene.add(g);
     npc.object = g;
     npc.collider = addCylinderCollider(npc.x, npc.z, 0.45);
+    if (npc.wander) {
+      npc.homeX = npc.x;
+      npc.homeZ = npc.z;
+      npc.wanderWait = 1 + Math.random() * 4; // settle in before the first stroll
+    }
+    if (npc.pose) {
+      // The idle loop settles every joint home each frame, so a pose set once
+      // would be wiped by the next update. Wrap update instead: the idle
+      // runs (breathing, weight-shift), then the pose layers over the limbs.
+      // The pose clock desyncs like the figure's own idle phase.
+      //
+      // A wandering figure only wears its pose at rest, and the pose eases
+      // in over the joints' current rotations so resuming work after a
+      // stroll doesn't snap the arms.
+      const baseUpdate = npc.figure.update;
+      let poseT = Math.random() * 10;
+      npc.poseW = 1;
+      npc.figure.update = (dt, speed, mounted = false) => {
+        baseUpdate(dt, speed, mounted);
+        const p = npc.figure.parts;
+        npc.poseW += ((speed < 0.15 ? 1 : 0) - npc.poseW) * Math.min(1, dt * 2.5);
+        if (npc.poseW > 0.01) {
+          const rest = POSE_JOINTS.map((j) => ({
+            j, x: p[j].rotation.x, y: p[j].rotation.y, z: p[j].rotation.z
+          }));
+          poseT += dt;
+          npc.pose(p, poseT);
+          if (npc.poseW < 1) {
+            for (const s of rest) {
+              for (const ax of ["x", "y", "z"]) {
+                p[s.j].rotation[ax] = s[ax] + (p[s.j].rotation[ax] - s[ax]) * npc.poseW;
+              }
+            }
+          }
+        } else {
+          // The stride only drives the joints' x. These axes are pose-only,
+          // so walk them home while the figure is in motion.
+          const k = 1 - Math.min(1, dt * 3);
+          for (const j of POSE_JOINTS) {
+            p[j].rotation.z *= k;
+          }
+          p.torso.rotation.y *= k;
+          p.head.rotation.y *= k;
+          p.head.rotation.x *= k;
+        }
+      };
+    }
   }
 
   npcs.forEach(makeNpc);
+
+  // Townsfolk wander within reason. Each drifts around their own post —
+  // never further than their `wander` radius, and only the Silver Creek set
+  // carries one: the Calders stand at mission posts. They resolve against
+  // the same colliders the player does, keep off the road's wheel ruts (the
+  // rider drives the painted centreline), and a conversation stops a
+  // townsperson where they were caught. Returns the frame's walk speed so
+  // the figure's stride follows the feet.
+  const WANDER_DWELL = [3, 9];
+  function dwellFor(npc) {
+    const [lo, hi] = npc.wander.dwell ?? WANDER_DWELL;
+    return lo + Math.random() * (hi - lo);
+  }
+
+  function wanderNpc(npc, dt) {
+    const w = npc.wander;
+    if (!w) {
+      return 0;
+    }
+    const g = npc.object;
+    // Talking owns the body: stand where you were caught, face the player.
+    if (talking && talking.npc === npc) {
+      npc.wanderTarget = null;
+      g.rotation.y = Math.atan2(
+        player.object.position.x - g.position.x,
+        player.object.position.z - g.position.z
+      );
+      return 0;
+    }
+    let speed = 0;
+    if (npc.wanderTarget) {
+      const dx = npc.wanderTarget.x - g.position.x;
+      const dz = npc.wanderTarget.z - g.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < 0.35) {
+        npc.wanderTarget = null;
+        npc.wanderWait = dwellFor(npc);
+      } else {
+        speed = w.v;
+        const step = Math.min(speed * dt, dist);
+        const ox = g.position.x;
+        const oz = g.position.z;
+        const moved = moveAndSlide(ox, oz, (dx / dist) * step, (dz / dist) * step, 0.45, npc.collider);
+        g.position.x = moved.x;
+        g.position.z = moved.z;
+        // A collider ate the step — a barrel, another townsperson. Give up
+        // on this destination and loiter where the street allows.
+        if (Math.hypot(moved.x - ox, moved.z - oz) < step * 0.35) {
+          npc.wanderTarget = null;
+          npc.wanderWait = dwellFor(npc);
+        } else {
+          g.rotation.y = Math.atan2(dx, dz);
+        }
+      }
+    } else {
+      npc.wanderWait -= dt;
+      if (npc.wanderWait <= 0) {
+        for (let tries = 0; tries < 6 && !npc.wanderTarget; tries += 1) {
+          const a = Math.random() * Math.PI * 2;
+          const r = w.r * (0.35 + Math.random() * 0.65);
+          const cx = npc.homeX + Math.cos(a) * r;
+          const cz = npc.homeZ + Math.sin(a) * r;
+          // Nobody strolls down the middle of the street: the rider holds
+          // the painted centreline, so targets near perp 0 are re-drawn.
+          const relX = cx - POS.silverCreek.x;
+          const relZ = cz - POS.silverCreek.z;
+          const perp = -Math.sin(TOWN_YAW) * relX + Math.cos(TOWN_YAW) * relZ;
+          if (Math.abs(perp) < 2.2) {
+            continue;
+          }
+          const cand = resolvePosition(cx, cz, 0.45);
+          // A candidate shoved far off by a wall isn't a stroll, it's a
+          // scrape along a facade — only near-untouched points count.
+          if (Math.hypot(cand.x - cx, cand.z - cz) < 0.3) {
+            npc.wanderTarget = { x: cand.x, z: cand.z };
+          }
+        }
+        if (!npc.wanderTarget) {
+          npc.wanderWait = 2; // a crowded patch; try again shortly
+        }
+      }
+    }
+    // The boardwalk deck rides 0.55 above the dirt under it. Ease between
+    // them, so stepping off the deck reads as a step, not a pop.
+    const groundY = heightAt(g.position.x, g.position.z);
+    const deckY = deckHeightAt(g.position.x, g.position.z, groundY + 1.2);
+    const targetY = deckY > groundY ? deckY : groundY;
+    g.position.y += (targetY - g.position.y) * Math.min(1, dt * 8);
+    return speed;
+  }
 
   // Episode 1's smallest loop. The family's dialogue flows through it, so it
   // is created next to them and consulted whenever anyone speaks.
@@ -1737,8 +2058,11 @@ async function boot() {
 
     liveInteract = null;
     // R9: settlers breathe and shift weight even when nothing else moves.
+    // Townsfolk wander their patch on the same ambient clock — wanderNpc
+    // returns the walk speed so the stride follows the feet.
     for (const npc of npcs) {
-      npc.figure.update(dt, 0);
+      const speed = wanderNpc(npc, dt);
+      npc.figure.update(dt, speed);
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above.
