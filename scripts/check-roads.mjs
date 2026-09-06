@@ -12,6 +12,7 @@ import {
   measureRoadNetwork
 } from "../src/map.js";
 import { heightAt, bakeHeightfield } from "../src/heightfield.js";
+import { materialSettings, RUT_TONE } from "../src/materials/settings.ts";
 
 function assert(cond, msg) {
   if (!cond) {
@@ -32,6 +33,27 @@ for (const road of ROADS) {
   assert(road.width > 1 && road.width < 16, `${road.name} width should be a trail-to-stage scale`);
   assert(road.pts.length >= 2, `${road.name} needs a polyline`);
 }
+
+// Wheel ruts darken gravel by albedo *= 1 - rut*rutDepth*RUT_TONE. Nothing
+// clamps that expression before the multiply, so once rutDepth * max(RUT_TONE)
+// reaches 1 the deepest part of the groove goes to pure black and the road
+// renders as a tar streak — and Silver Creek's main street, which is wide
+// enough to hold a full-strength rut down its middle, reads as a canal.
+// rutDepth shipped at 3.5 (2.7x over) with no error and no failing check.
+const rutPeak = materialSettings.rutDepth * Math.max(...RUT_TONE);
+assert(
+  rutPeak < 0.85,
+  `rutDepth ${materialSettings.rutDepth} drives rut albedo attenuation to ${rutPeak.toFixed(2)}; ` +
+    `must stay under 0.85 (rutDepth < ${(0.85 / Math.max(...RUT_TONE)).toFixed(2)}) or grooves clip to black`
+);
+// The ruts sit at |lat| ~ rutOffset, inside the centre band. If roadCompact
+// darkens that band hard the grooves have nothing brighter to read against,
+// which is the state the ruts were built to replace.
+assert(
+  materialSettings.roadCompact < 0.35,
+  `roadCompact ${materialSettings.roadCompact} re-darkens the band the wheel ruts live in; ` +
+    "keep it under 0.35 so the crown between the wheels stays brighter than the grooves"
+);
 
 const stage = ROADS.find((r) => r.kind === "stage");
 const rail = ROADS.find((r) => r.kind === "rail");
@@ -70,6 +92,7 @@ console.log(JSON.stringify({
   roads: ROADS.length,
   creeks: CREEKS.map((c) => c.name),
   lift: ROAD_LIFT,
+  rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact },
   stats,
   near: {
     ranch: nearestRoadDistance(POS.ranch.x, POS.ranch.z),

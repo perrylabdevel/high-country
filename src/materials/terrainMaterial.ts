@@ -31,7 +31,7 @@ import {
   equal
 } from "three/tsl";
 import { WORLD } from "../map.js";
-import { materialSettings } from "./settings.ts";
+import { materialSettings, RUT_TONE } from "./settings.ts";
 import type { LoadedSet, TerrainMaps } from "./loadSet.ts";
 
 const NUMERIC_KEYS = [
@@ -64,6 +64,10 @@ const NUMERIC_KEYS = [
   "roadCenterHi",
   "roadCompact",
   "roadEdgeBright",
+  "rutOffset",
+  "rutWidth",
+  "rutDepth",
+  "rutWobble",
   "farGrassStart",
   "farGrassEnd",
   "farGrassGain",
@@ -209,7 +213,16 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
     .mul(farGrass.add(1))
     .toVar();
   const dirtW = splat.g.mul(mix(float(1), float(0.32), rockSlope)).mul(mix(float(1), float(0.22), roadMask)).toVar();
-  const rockW = max(splat.b, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
+  // The splat's B channel carries more than rock on roads: the bake packs
+  // B = rock + latNorm*road, where latNorm is the signed lateral offset the
+  // wheel-track decode needs (see splatMap.ts). Reading B raw as a rock
+  // weight let the packed offsets — up to 0.87 across a road's half-width —
+  // enter as rock, and the rock layer then won the height blend on every
+  // road, displacing the gravel the ruts darken. Strip the packed lateral
+  // term: off-road A≈0 and this is just B again.
+  const lat = splat.b.sub(0.5).mul(4);
+  const rockFromSplat = splat.b.sub(lat.mul(0.25).add(0.5).mul(splat.a)).max(float(0));
+  const rockW = max(rockFromSplat, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
   const gravelW = roadMask.toVar();
 
   const grassUv = worldUv(u.grassTiling);
@@ -236,20 +249,64 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
       )
     : rockUvAlb;
   const gravelBase = twoScaleAlbedo(maps.gravel, u.gravelTiling, near, useTwoScale);
+
+  /**
+   * Wheel tracks. The splat's road channel is one scalar — it cannot say
+   * where "0.9 m left of centre" is, so until now the "wheel-track" was a
+   * single dark band across the whole middle (roadCompact). The splat's B
+   * channel carries the signed lateral offset to the nearest centreline,
+   * packed as mix(rock, lat/4 + 0.5, road) — see splatMap.ts — and two
+   * grooves at a wagon's gauge fall out of it directly: a Gaussian band where
+   * ||lat| - gauge| is small.
+   *
+   * The ruts wander (wobble noise shifts the gauge), they come and go along
+   * the road (a long-frequency stretch noise — drivers picked the easiest
+   * line, and grass reclaimed the rest), and they fade with distance so the
+   * sub-meter detail does not shimmer at the horizon.
+   *
+   * deepRoad gates the decode: off the road B is rock, not lat, and only
+   * where the road weight is high is the packed value trustworthy. The gate
+   * sits below the rut band's own road weight (~0.95 for a 7 m road, ~0.89
+   * for a 3.5 m trail) so real ruts pass at full strength while the
+   * rock-mixing error at the road margin — at most a few cm inside the band —
+   * is killed with the gate.
+   */
+  const deepRoad = smoothstep(float(0.8), float(0.9), splat.a);
+  const rutOff = u.rutOffset.add(mx_noise_float(positionWorld.xz.mul(0.4)).mul(u.rutWobble));
+  const rutD = lat.abs().sub(rutOff);
+  const rutBand = rutD.mul(rutD).div(u.rutWidth.mul(u.rutWidth).mul(2)).negate().exp();
+  const rutStretch = smoothstep(float(-0.55), float(0.15), mx_noise_float(positionWorld.xz.mul(0.05)));
+  const rut = rutBand
+    .mul(rutStretch)
+    .mul(deepRoad)
+    .mul(mix(float(0.35), float(1), near))
+    .toVar();
+
+  // Packed mud is darker than the loose gravel margins, and cooler — the
+  // groove holds moisture the bright shoulders have already lost.
+  const rutTone = vec3(...RUT_TONE).mul(u.rutDepth);
   const gravelAlb = mix(
     gravelBase.mul(u.roadEdgeBright),
     gravelBase.mul(float(1).sub(u.roadCompact)),
     center
-  );
+  ).mul(rut.mul(rutTone).oneMinus());
 
   const grass = sampleOrmNormal(maps.grass, grassUv);
   const dirt = sampleOrmNormal(maps.dirt, dirtUv);
   const rock = sampleOrmNormal(maps.rock, rockUv);
   const gravel = sampleOrmNormal(maps.gravel, gravelUv);
-  // Deeper, smoother wheel-track center: the track should read as recessed
-  // (height) and polished (roughness) against the loose bright margins.
+  // Smoother wheel-track center: the track reads as polished (roughness)
+  // against the loose bright margins. The ruts deepen the polish. NOTE: the
+  // rut must NOT lower gravel's blend height — vC = max(0, vPrime − (maxW −
+  // sharp)) is a zero-sum competition, and a 0.07-0.13 drop pushes gravel's
+  // share to exactly zero wherever the rut is strong. The groove then renders
+  // as dirt/rock (which ignore rut) and the wheel tracks erase themselves —
+  // at full strength up close, faintly from afar. There is no displacement
+  // here; height only drives the blend, so recessing it buys nothing.
   const gravelHeight = mix(gravel.height.add(0.05), gravel.height.sub(0.08), center);
-  const gravelRough = mix(gravel.rough.mul(1.1), gravel.rough.mul(0.55), center).add(nVar.mul(0.04));
+  const gravelRough = mix(gravel.rough.mul(1.1), gravel.rough.mul(0.55), center)
+    .add(nVar.mul(0.04))
+    .mul(rut.mul(0.4).oneMinus());
 
   const gPrime = grassW.mul(grass.height.add(u.grassHeightBias));
   const dPrime = dirtW.mul(dirt.height.add(u.dirtHeightBias));
@@ -280,7 +337,7 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const color = albedo.mul(ao).mul(macro).mul(biome).mul(u.albedoGain).mul(rockShare.mul(strata).add(1));
 
   const weightsRgb = vec3(gC.div(sum), dC.div(sum), rC.div(sum));
-  const roadRgb = vec3(roadMask, center, splat.a);
+  const roadRgb = vec3(roadMask, rut, splat.a);
   const normalRgb = normalWorld.mul(0.5).add(0.5);
   const slopeRgb = vec3(slope, rockSlope, altRock);
   const debugColor = select(

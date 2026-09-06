@@ -86,6 +86,12 @@ export function createMaterialPanel(options: {
   folders.roads.add(materialSettings, "roadCenterHi", 0.4, 1, 0.01).name("center end").onChange(onTerrain);
   folders.roads.add(materialSettings, "roadCompact", 0, 0.5, 0.01).name("center darken").onChange(onTerrain);
   folders.roads.add(materialSettings, "roadEdgeBright", 0.8, 1.4, 0.01).name("shoulder bright").onChange(onTerrain);
+  folders.roads.add(materialSettings, "rutOffset", 0.3, 2.5, 0.01).name("rut gauge").onChange(onTerrain);
+  folders.roads.add(materialSettings, "rutWidth", 0.1, 1, 0.01).name("rut width").onChange(onTerrain);
+  // Up to 3: the useful range runs past 1, and the clip-to-black point
+  // (~2.1) has to be reachable on the slider to be recognisable as a wall.
+  folders.roads.add(materialSettings, "rutDepth", 0, 3, 0.01).name("rut depth").onChange(onTerrain);
+  folders.roads.add(materialSettings, "rutWobble", 0, 0.6, 0.01).name("rut wobble").onChange(onTerrain);
 
   folders.water = gui.addFolder("Water");
   folders.water.addColor(materialSettings, "waterShallow").name("shallow").onChange(onWater);

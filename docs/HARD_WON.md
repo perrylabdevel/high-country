@@ -345,6 +345,52 @@ workload, check that the workload is real — and when a fix's benefit is
 measured on hardware where a different bug dominates the frame, the benefit
 being attributed to it may belong to the bug.
 
+### 1.11 Wheel ruts shipped at 2.7x their clip point — every road a tar streak
+
+**Symptom:** the ranch road and Silver Creek's main street rendered as two
+pitch-black grooves; from above the town street read as a glossy blue-black
+canal running between the boardwalks. Measured on a straight-down frame: rut
+floor 16 luminance against a 164 shoulder — 0.10x, when packed damp earth
+should sit near 0.5x.
+
+**Cause:** two settings, each wrong on its own, compounding.
+
+1. `rutDepth: 3.5`. The groove albedo is `1 - rut*rutDepth*RUT_TONE`, and
+   `RUT_TONE`'s blue term is 0.78, so the multiplier goes negative above
+   `1/0.78 = 1.28` and clamps to zero. 3.5 is 2.7x past that. Nothing clamps
+   the expression before the multiply and nothing errors — the road just goes
+   black. The dev panel's own slider for the value capped at 1, so the shipped
+   default was outside the range of the control built to tune it.
+2. `roadCompact: 0.68`. That centre band *was* the old fake wheel-track, from
+   when a scalar road channel could not say where a wheel ran. The real ruts
+   sit at `|lat| ~ 0.9 m`, i.e. inside that band, so with it still at full
+   strength the grooves darkened ground that was already 0.32x and read as a
+   smear. Whoever cranked `rutDepth` to 3.5 was almost certainly fighting
+   this: the ruts look invisible at sane depths *because the band is
+   swallowing them*, so the response is to turn them up until they punch
+   through, which is exactly when they clip.
+
+**Fix:** `rutDepth: 0.85`, `roadCompact: 0.15`. Rut floor 77 against a 164
+shoulder (0.47x) with a bright loose crown at ~120 between the wheels — the
+grooves finally have something brighter to be darker than. `RUT_TONE` is now
+exported from `settings.ts` instead of inlined in the shader, and
+`check:roads` asserts `rutDepth * max(RUT_TONE) < 0.85` and
+`roadCompact < 0.35`. Both assertions were confirmed by reintroducing each
+value and watching the check fail.
+
+**Found by:** a straight-down capture plus a luminance scanline. The first
+tell was numeric — a live sweep of `rutDepth` barely moved the *darkest*
+pixel, because the darkest pixel is the road centre where the rut is zero by
+construction. Measuring the wrong statistic hid the effect for a whole pass;
+differencing whole frames instead showed the change was real, linear, and
+localised. The `debugView: 2` road mask (green = rut) is what proved the rut
+signal itself was healthy and the tone was the only problem.
+
+**Lesson:** a default outside the range of its own tuning slider is a debug
+value someone forgot to put back. Treat it as a bug on sight.
+
+---
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD

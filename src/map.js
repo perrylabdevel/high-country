@@ -478,6 +478,48 @@ export function distToPolyline(x, z, pts) {
 }
 
 /**
+ * Nearest point on a polyline with the signed lateral offset from it.
+ * lat is positive on the left of travel direction (dirx, dirz) and negative
+ * on the right — the wheel-track bake uses it to place ruts either side of
+ * the centreline. dist is unsigned; |lat| === dist when the nearest point is
+ * strictly inside a segment (not past an endpoint).
+ */
+export function nearestOnPolyline(x, z, pts) {
+  const { segs } = polylineCache(pts);
+  let best = Infinity;
+  let bestLat = 0;
+  let bestDirx = 0;
+  let bestDirz = 1;
+  for (let i = 0; i < segs.length; i += 4) {
+    const ax = segs[i];
+    const az = segs[i + 1];
+    const bx = segs[i + 2];
+    const bz = segs[i + 3];
+    const abx = bx - ax;
+    const abz = bz - az;
+    const len = abx * abx + abz * abz;
+    let t = 0;
+    if (len >= 1e-8) {
+      t = Math.max(0, Math.min(1, ((x - ax) * abx + (z - az) * abz) / len));
+    }
+    const qx = ax + abx * t;
+    const qz = az + abz * t;
+    const d = Math.hypot(x - qx, z - qz);
+    if (d < best) {
+      best = d;
+      const segLen = Math.sqrt(len) || 1;
+      const dirx = abx / segLen;
+      const dirz = abz / segLen;
+      // Perpendicular component of (point - closest): cross(dir, offset).
+      bestLat = (x - qx) * dirz - (z - qz) * dirx;
+      bestDirx = dirx;
+      bestDirz = dirz;
+    }
+  }
+  return { dist: best, lat: bestLat, dirx: bestDirx, dirz: bestDirz };
+}
+
+/**
  * Per-SEGMENT bounds for roadFactor and creekFactor.
  *
  * Those two reject with a bounding box around an ENTIRE polyline, which is

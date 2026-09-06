@@ -15,6 +15,15 @@ export const QUALITY_TIERS: Record<QualityTier, {
   high: { detail: 1, detailDist: 1 }
 };
 
+/**
+ * Per-channel albedo attenuation of a wheel rut at full strength, before
+ * rutDepth scales it. The groove albedo is 1 - rut*rutDepth*RUT_TONE, so
+ * rutDepth * max(RUT_TONE) must stay below 1 or the groove clips to black —
+ * check-roads asserts exactly that. Exported rather than inlined in
+ * terrainMaterial so the assertion cannot drift from the shader.
+ */
+export const RUT_TONE = [0.5, 0.62, 0.78] as const;
+
 export const materialSettings = {
   environmentIntensity: 0.38,
   hdri: "midday",
@@ -115,8 +124,38 @@ export const materialSettings = {
   roadEdgeHi: 0.6,
   roadCenterLo: 0.55,
   roadCenterHi: 0.85,
-  roadCompact: 0.68,
+  // The centre band. This USED to be the wheel-track: one dark stripe down the
+  // middle of the road, because a scalar road channel cannot say where a wheel
+  // ran. The ruts below are the real thing now, and they sit at |lat| ~ 0.9 m —
+  // inside this band. At the old 0.68 the middle was already 0.32x, so the
+  // grooves landed on ground that was dark anyway and read as a smear rather
+  // than as tracks; measured, dropping to 0.15 is what makes the loose crown
+  // between the wheels bright enough for the grooves to have something to be
+  // darker THAN. Keep it small: it is now just the compaction the whole
+  // travelled width gets, not a stand-in for the tracks.
+  roadCompact: 0.15,
   roadEdgeBright: 1.5,
+  // Wheel tracks, decoded from the signed lateral offset the splat bake packs
+  // into the B channel (see splatMap.ts): two worn grooves at a fixed gauge
+  // either side of the centreline, plus the intermittency of real traffic —
+  // ruts wander a little and vanish on stretches where the ground was harder
+  // or grass reclaimed the track.
+  //  - rutOffset — gauge half-width in meters (wagon track ≈ 1.5 m between
+  //    wheels, so the groove centres sit ~0.75-1 m out)
+  //  - rutWidth — groove half-width in meters (sigma of the falloff)
+  //  - rutDepth — how far the groove darkens vs the loose bright margins.
+  //    Scales RUT_TONE, so the groove albedo is 1 - rut*rutDepth*RUT_TONE.
+  //    Past 1/0.78 = 1.28 the blue term crosses 1 and the groove clips to
+  //    pure black; 3.5 shipped that way for a while and turned every road
+  //    into a tar streak. check-roads holds the product under 0.85, which
+  //    caps rutDepth at 1.09 and leaves the groove a third of its albedo at
+  //    full strength. Measured at 0.85: groove 0.52x the shoulder, and 1.2
+  //    is not visibly deeper — the headroom is free.
+  //  - rutWobble — how far traffic wanders off the centreline, in meters
+  rutOffset: 0.9,
+  rutWidth: 0.3,
+  rutDepth: 0.85,
+  rutWobble: 0.15,
   debugView: 0,
   waterShallow: 0x508d8b,
   waterDeep: 0x183f50,

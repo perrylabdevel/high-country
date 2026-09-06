@@ -4,11 +4,22 @@
  * R=grass G=dirt B=rock A=road/gravel. Sampled in worldToMap UV.
  */
 import * as THREE from "three/webgpu";
-import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, ROADS } from "../map.js";
-import { distToPolyline, polylineCache } from "../map.js";
+import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, ROADS, nearestOnPolyline } from "../map.js";
+import { polylineCache } from "../map.js";
 
 const SPLAT_W = 2048;
 const SPLAT_H = 2560;
+
+// Wheel-track lateral offset rides in the B channel alongside rock, packed as
+// B = rock + clamp(lat, -2, 2)/4 * road ... latNorm = lat/4 + 0.5 (±2 m of
+// range — ruts never sit beyond ~1.5 m out — over 256 levels ≈ 1.6 cm
+// precision on the road itself). This works because the bake already zeroes
+// rock on roads
+// (rock * (1 - road)) and the material suppresses the rock weight by roadMask
+// in exactly the same band, so the two signals never contend for the channel.
+// A separate flow texture was tried first and had to be reverted: the terrain
+// fragment stage was already at 16 sampled textures, WebGPU's per-stage limit,
+// and the 17th made the bind group layout invalid (everything rendered white).
 
 const GRASSY = new Set(["lake", "ranch", "pines", "tribal", "foothills", "valley", "range"]);
 const DIRTY = new Set(["town", "burn", "iron"]);
@@ -79,30 +90,35 @@ function weightsAt(x: number, z: number) {
   // 1.15x). The material derives both the road extent and the wheel-track
   // center from this one channel: on the wide profile the center band covered
   // nearly the whole road, so the wheel-track never read (audit G1).
-  const narrow = (() => {
-    let w = 0;
-    for (const road of ROADS) {
-      if (road.kind === "rail") {
-        // Rails get their own ballast ribbon and ties in roads.js; painting a
-        // gravel road under them made the rail bed read as a road (audit G1).
-        continue;
-      }
-      const falloff = (road.width || 6) * 0.55;
-      const c = polylineCache(road.pts);
-      const pad = falloff * 3;
-      if (x < c.minX - pad || x > c.maxX + pad || z < c.minZ - pad || z > c.maxZ + pad) {
-        continue;
-      }
-      const d = distToPolyline(x, z, road.pts);
-      w = Math.max(w, Math.exp(-((d * d) / (falloff * falloff))));
+  // nearestOnPolyline (not distToPolyline) also yields the signed lateral
+  // offset to the winning centreline, which rides in the B channel for the
+  // wheel-track ruts — see the packing note at the top of this file.
+  let narrow = 0;
+  let lat = 0;
+  for (const road of ROADS) {
+    if (road.kind === "rail") {
+      // Rails get their own ballast ribbon and ties in roads.js; painting a
+      // gravel road under them made the rail bed read as a road (audit G1).
+      continue;
     }
-    return w;
-  })();
+    const falloff = (road.width || 6) * 0.55;
+    const c = polylineCache(road.pts);
+    const pad = falloff * 3;
+    if (x < c.minX - pad || x > c.maxX + pad || z < c.minZ - pad || z > c.maxZ + pad) {
+      continue;
+    }
+    const near = nearestOnPolyline(x, z, road.pts);
+    const w = Math.exp(-((near.dist * near.dist) / (falloff * falloff)));
+    if (w > narrow) {
+      narrow = w;
+      lat = near.lat;
+    }
+  }
   const road = Math.min(1, Math.pow(narrow, 0.52));
   grass = Math.max(0, grass * (1 - creek * 0.8) * (1 - lake * 0.5) * (1 - road));
   dirt = Math.min(1, Math.max(dirt, creek * 0.75, lake * 0.55) * (1 - road * 0.85));
   rock = Math.min(1, Math.max(rock, creek * 0.08) * (1 - road));
-  return { grass, dirt, rock, road };
+  return { grass, dirt, rock, road, lat };
 }
 
 export function bakeSplatMap(width = SPLAT_W, height = SPLAT_H): THREE.DataTexture {
@@ -117,7 +133,12 @@ export function bakeSplatMap(width = SPLAT_W, height = SPLAT_H): THREE.DataTextu
       const i = (py * width + px) * 4;
       data[i] = Math.round(w.grass * 255);
       data[i + 1] = Math.round(w.dirt * 255);
-      data[i + 2] = Math.round(w.rock * 255);
+      // B = rock + latNorm * road, latNorm = clamp(lat, ±2)/4 + 0.5 — see the
+      // packing note at the top. The bake's rock is already scaled by
+      // (1 - road), so the sum stays <= 1.
+      const latClamped = Math.min(2, Math.max(-2, w.lat));
+      const latNorm = Math.min(1, Math.max(0, w.rock + (latClamped / 4 + 0.5) * w.road));
+      data[i + 2] = Math.round(latNorm * 255);
       data[i + 3] = Math.round(w.road * 255);
     }
   }
