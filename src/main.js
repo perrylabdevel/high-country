@@ -1091,6 +1091,14 @@ async function boot() {
     x: POS.silverCreek.x + Math.cos(TOWN_YAW) * along - Math.sin(TOWN_YAW) * perp,
     z: POS.silverCreek.z + Math.sin(TOWN_YAW) * along + Math.cos(TOWN_YAW) * perp
   });
+  // The north row is Silver Creek's second storefront street — five
+  // false-front lots with their own boardwalk deck (the town has two), whose
+  // facades face north onto their own street from an origin 22 m up-axis of
+  // the town centre. Same street frame, shifted origin.
+  const northSpot = (along, perp) => ({
+    x: POS.silverCreek.x + Math.cos(TOWN_YAW) * along - Math.sin(TOWN_YAW) * perp,
+    z: POS.silverCreek.z - 22 + Math.sin(TOWN_YAW) * along + Math.cos(TOWN_YAW) * perp
+  });
 
   const npcs = [
     {
@@ -1273,6 +1281,47 @@ async function boot() {
       line: [
         "Paper's a nickel! Fort Grant's haunted, probably!",
         "You're from the ranch? I'd trade my whole stack for one ride on that horse."
+      ]
+    },
+
+    // --- the north row: the town's second storefront street -------------------
+    {
+      name: "Hattie Reed", ...northSpot(-14, 4.2),
+      look: { shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64 },
+      face: northSpot(-14, -6),
+      // Wash day on the north boardwalk: hands working a washboard, arms
+      // rubbing against each other.
+      pose: (p, t) => {
+        const rub = Math.sin(t * 3.4);
+        p.torso.rotation.x = 0.22;
+        p.armL.rotation.x = -0.8 + rub * 0.3;
+        p.armL.rotation.z = 0.3;
+        p.armR.rotation.x = -0.7 - rub * 0.3;
+        p.armR.rotation.z = -0.3;
+      },
+      wander: { r: 6, v: 0.9 },
+      line: [
+        "Wash day. Whether it's needed or not — that's calendar, not weather.",
+        "The creek's been running gray since the mine started hammering. Even the water needs a boil first now."
+      ]
+    },
+    {
+      name: "Cole Mercer", ...northSpot(16, 4.4),
+      look: { shirt: 0x554434, vest: 0x2e241a, pants: 0x30281e, hat: 0x33281c },
+      face: northSpot(16, -6),
+      // Holding up the north end: hat low, hands tucked away, weight on one
+      // heel — and in no hurry to change any of it.
+      pose: (p) => {
+        p.head.rotation.x = 0.18;
+        p.torso.rotation.x = -0.06;
+        p.armL.rotation.z = 0.4;
+        p.armR.rotation.z = -0.4;
+        p.legR.rotation.z = 0.18;
+      },
+      wander: { r: 5, v: 0.75, dwell: [8, 16] },
+      line: [
+        "I keep the north end honest. Mostly by standing on it.",
+        "Boardwalk's cooler on this side of town. That's the whole reason."
       ]
     }
   ];

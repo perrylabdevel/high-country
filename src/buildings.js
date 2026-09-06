@@ -586,7 +586,14 @@ export function createRanch(maps = {}) {
   });
 
   // ---------------- Hitching rail ----------------
-  groundBox(ox + 8, oz + 14, 0.16, 1.1, 3.4, darkWood);
+  // Two posts and a bar, not the solid 3.4 m plank it used to be — a hitching
+  // rail is something you tie to, with daylight under the bar; a plank wall
+  // read as a fence section sunk in the grass (audit: side-on at the rail).
+  // Same footprint and collider, so the dismount arrival and the trough gap
+  // measured against the old rail still hold.
+  groundBox(ox + 8, oz + 14 - 1.55, 0.16, 1.15, 0.16, darkWood);
+  groundBox(ox + 8, oz + 14 + 1.55, 0.16, 1.15, 0.16, darkWood);
+  groundBox(ox + 8, oz + 14, 0.12, 0.12, 3.6, darkWood, 1.02 - 0.06);
   addBoxCollider(ox + 8, oz + 14, 0.35, 1.8);
 
   // ---------------- Wagon (front wheels smaller) ----------------

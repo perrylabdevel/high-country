@@ -485,12 +485,53 @@ export function createLandmarks(scene, maps = {}) {
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
   boxAt(group, town.x + 8, town.z + 40, 16, 3.2, 8, rust);
 
+  // Hitching rails at the street edge of the boardwalk, one per pair of lots.
+  // These used to be lone 1.15 m posts at perp 3.4 — the middle of the
+  // walking deck — and seated on heightAt, the dirt under it, so they stood
+  // shin-high in the middle of the walkway (the dismount arrival at along -8
+  // pointed at a stump, not a rail). A rail lives at the deck edge: posts in
+  // the street just off the planks (perp 1.25), horses tied in the street
+  // outside them, the bar running parallel to the deck line.
   const hitchC = Math.cos(townYaw);
   const hitchS = Math.sin(townYaw);
+  const hitchSpot = (along, perp) => ({
+    x: town.x + hitchC * along - hitchS * perp,
+    z: town.z + hitchS * along + hitchC * perp
+  });
   for (const along of [-28, -8, 12, 32]) {
-    const hx = town.x + hitchC * along - hitchS * 3.4;
-    const hz = town.z + hitchS * along + hitchC * 3.4;
-    boxAt(group, hx, hz, 0.16, 1.15, 0.16, dark, false);
+    for (const off of [-2.2, 2.2]) {
+      const p = hitchSpot(along + off, 1.25);
+      boxAt(group, p.x, p.z, 0.16, 1.15, 0.16, dark);
+    }
+    const mid = hitchSpot(along, 1.25);
+    // rotation.y = -yaw maps local +X to (cos yaw, sin yaw) — the street
+    // axis (same frame the boardwalk groups use) — so the bar runs parallel
+    // to the deck edge instead of skewing 0.37 m across its length.
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.9, 0.12, 0.12), dark);
+    bar.position.set(mid.x, heightAt(mid.x, mid.z) + 1.02, mid.z);
+    bar.rotation.y = -townYaw;
+    bar.castShadow = true;
+    group.add(bar);
+  }
+  // The north row is a second false-front street with its own boardwalk —
+  // Silver Creek has two decks. Its storefronts face north onto their own
+  // street (facade line perp 6.5, deck 2.5..6.5 in that street's frame), so
+  // its rails stand at that deck's street edge by the same pattern.
+  const northRailSpot = (along, perp) => ({
+    x: town.x + hitchC * along - hitchS * perp,
+    z: town.z - 22 + hitchS * along + hitchC * perp
+  });
+  for (const along of [-21, 7, 35]) {
+    for (const off of [-2.2, 2.2]) {
+      const p = northRailSpot(along + off, 1.25);
+      boxAt(group, p.x, p.z, 0.16, 1.15, 0.16, dark);
+    }
+    const mid = northRailSpot(along, 1.25);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.9, 0.12, 0.12), dark);
+    bar.position.set(mid.x, heightAt(mid.x, mid.z) + 1.02, mid.z);
+    bar.rotation.y = -townYaw;
+    bar.castShadow = true;
+    group.add(bar);
   }
   const wagonX = town.x + 42;
   const wagonZ = town.z + 16;
