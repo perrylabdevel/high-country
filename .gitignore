@@ -40,3 +40,7 @@ assets-src/
 # Throwaway Playwright probes. They must live in the repo root to resolve
 # node_modules, but they are scratch and never part of the build.
 tmp-*.mjs
+
+# AI harness transient state
+.ai/runtime/
+.ai/metrics/*.jsonl

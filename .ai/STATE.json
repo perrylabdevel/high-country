@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "currentCampaign": "finish-uncommitted",
+  "currentObjective": "Install the multi-model coding harness",
+  "defaultRoutingMode": "balanced",
+  "lastRole": "scout",
+  "lastModel": "gpt-5.6-luna",
+  "expertCallsThisCampaign": 0,
+  "lastCheckpoint": "2026-09-06T02:39:51.957Z",
+  "verificationStatus": "unknown"
+}

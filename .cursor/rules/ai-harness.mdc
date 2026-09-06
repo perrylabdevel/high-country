@@ -1,0 +1,14 @@
+---
+description: Canonical AI harness state and model-role routing
+alwaysApply: true
+---
+
+# AI harness
+
+Canonical AI project state lives in `.ai/`. Do not overwrite `.ai/ROUTING.md` or global `~/.ai-harness/config/` unless the user asked to change routing policy.
+
+Before major implementation, read `.ai/REQUIREMENTS.md` and `.ai/HANDOFF.md`. Keep HANDOFF current at meaningful checkpoints.
+
+Use the same roles as the router: Scout (Luna), Worker (Terra), Senior (Sol), Expert (Astra). Do not treat Astra as the default coding model.
+
+When OpenAI delegation is useful, prefer `airoute` rather than inventing a parallel routing scheme.

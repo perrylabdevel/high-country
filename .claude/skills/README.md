@@ -60,6 +60,19 @@ Hand these to a stronger model, or stop and ask:
 - Anything needing a judgement call about whether the *game* is fun.
 - Publishing a release bundle for the first time on a new machine.
 
+## Routing skills (shared harness)
+
+These were added by `airoute init` and do not replace the six measurement skills above:
+
+| Skill | Use it when |
+|---|---|
+| `route` | Classify or delegate through `airoute` |
+| `scout` | Luna investigation / evidence |
+| `worker` | Terra implementation |
+| `senior` | Sol diagnosis / review |
+| `expert` | Astra architecture decision (scarce) |
+| `checkpoint` | Refresh `.ai/HANDOFF.md` |
+
 ## Required reading before the first change
 
 - `docs/HARD_WON.md` — the defect register. Symptom → cause → fix, and how it
