@@ -1,6 +1,6 @@
 # Current Objective
 
-Install the multi-model coding harness
+Finish the uncommitted in-flight work: wheel-track ruts and hitching rails
 
 # Current State
 
@@ -45,6 +45,47 @@ b8cc7a5 Refactor creek rendering and lake interaction in landmarks.js
 6e61672 Creeks were straight hoses clipped by terrain triangles, and the lake rim was a smooth ellipse the ground kept sawtoothing through
 cf895f4 The water read as painted navy: a non-wrapping noise lattice seamed a grid into every surface, foam striped every shore and filled the creeks solid, and the colour mix never let the bottom or the sky through
 7aaa626 Road traffic rode the polylines blind: the figure kit's mounted seat hung the boots backward, and the box-horse's legs stopped 28 cm above the ground
+```
+
+Campaign finish-uncommitted CLOSED. Two threads were in flight uncommitted with no campaign attached.
+
+THREAD 1 - wheel-track ruts (map.js nearestOnPolyline, splatMap B-channel lateral packing, terrainMaterial decode). Decode was correct and complete; the tone was left at a debug value. rutDepth 3.5 drove groove albedo attenuation to 2.73 (clip point 1.28), so every road rendered as black tar and Silver Creek's main street read as a blue-black canal from above. Compounding cause: roadCompact 0.68 - the OLD fake single-band wheel-track - still at full strength, swallowing the real ruts so they looked invisible at sane depths. Shipped rutDepth 0.85 / roadCompact 0.15. Measured rut floor 77 vs 164 shoulder (0.47x) with a bright crown at 120. RUT_TONE exported from settings.ts; check:roads now asserts rutDepth*max(RUT_TONE) < 0.85 and roadCompact < 0.35. Both assertions verified by reintroducing the bad values. HARD_WON 1.11 written.
+
+THREAD 2 - hitching rails: ranch plank to posts+bar, town rails moved from mid-boardwalk to deck edge with correct bar yaw, north row rails plus two NPCs (Hattie Reed, Cole Mercer). Verified by capture at the ranch and both town streets.
+
+Verification: npm run build built in 4.34s; npm run check 21 PASS (unchanged from pre-change baseline). Visual evidence captured at eye level and straight-down over the ranch road and the town street.
+
+Committed on branch finish/wheel-ruts-and-hitching-rails (3 commits, not merged or pushed).
+
+OPEN: audit/evidence/nav-routes-*.json - check:routes writes a new timestamped evidence file on every invocation; 15 untracked copies have accumulated today. Either gitignore the pattern or have the check overwrite one file.
+
+Git status:
+```
+## finish/wheel-ruts-and-hitching-rails
+?? audit/evidence/nav-routes-2026-09-06T00-51-51.json
+?? audit/evidence/nav-routes-2026-09-06T00-55-02.json
+?? audit/evidence/nav-routes-2026-09-06T01-01-07.json
+?? audit/evidence/nav-routes-2026-09-06T02-00-38.json
+?? audit/evidence/nav-routes-2026-09-06T02-01-37.json
+?? audit/evidence/nav-routes-2026-09-06T02-06-05.json
+?? audit/evidence/nav-routes-2026-09-06T03-50-25.json
+?? audit/evidence/nav-routes-2026-09-06T03-51-00.json
+?? audit/evidence/nav-routes-2026-09-06T14-14-06.json
+?? audit/evidence/nav-routes-2026-09-06T14-15-33.json
+?? audit/evidence/nav-routes-2026-09-06T14-16-58.json
+?? audit/evidence/nav-routes-2026-09-06T14-47-59.json
+?? audit/evidence/nav-routes-2026-09-06T14-49-32.json
+?? audit/evidence/nav-routes-2026-09-06T14-59-15.json
+?? audit/evidence/nav-routes-2026-09-06T15-01-41.json
+```
+
+Recent commits:
+```
+d5cbd70 Install the airoute multi-model harness alongside the existing measurement skills
+13eb591 Hitching rails were a solid plank at the ranch and lone shin-high posts stranded in the middle of the town boardwalk, and the north row had rails but nobody on it
+1c1d404 Every road was a tar streak and the town's main street a blue-black canal: the wheel ruts shipped at 2.7x the depth that clips their albedo to zero
+b8cc7a5 Refactor creek rendering and lake interaction in landmarks.js
+58dd2dd A hitching rail stood across the gateway approach with one post in the middle of the corridor, and the gate itself was two bare sticks under a floating slat with the "doors" flat against the wall reading as patches
 ```
 
 # Architecture
