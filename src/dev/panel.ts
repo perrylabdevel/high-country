@@ -90,8 +90,10 @@ export function createMaterialPanel(options: {
   folders.roads.add(materialSettings, "rutWidth", 0.1, 1, 0.01).name("rut width").onChange(onTerrain);
   // Up to 3: the useful range runs past 1, and the clip-to-black point
   // (~2.1) has to be reachable on the slider to be recognisable as a wall.
-  folders.roads.add(materialSettings, "rutDepth", 0, 3, 0.01).name("rut depth").onChange(onTerrain);
+  folders.roads.add(materialSettings, "rutDepth", 0, 3, 0.01).name("rut darken").onChange(onTerrain);
   folders.roads.add(materialSettings, "rutWobble", 0, 0.6, 0.01).name("rut wobble").onChange(onTerrain);
+  folders.roads.add(materialSettings, "rutReliefMeters", 0, 0.2, 0.005).name("rut relief (m)").onChange(onTerrain);
+  folders.roads.add(materialSettings, "roadRoughnessMin", 0.75, 1, 0.01).name("dry roughness").onChange(onTerrain);
 
   folders.water = gui.addFolder("Water");
   folders.water.addColor(materialSettings, "waterShallow").name("shallow").onChange(onWater);

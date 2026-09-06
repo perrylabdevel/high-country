@@ -1,8 +1,20 @@
 # Current Objective
 
-Finish the uncommitted in-flight work: wheel-track ruts and hitching rails
+Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
 
-# Current State
+## Latest checkpoint — 2026-09-06
+
+- User explicitly chose "Continue here", overriding Astra routing for this task only. No model delegation or routing-policy changes.
+- Reproduced on production WebGPU at the ranch stage road and Silver Creek. Prior tone fix was incomplete: ruts did not affect normals, while roughness was multiplied by 0.55 and then 0.6. Source gravel mean 0.869 became about 0.287 at full rut strength.
+- Local uncommitted patch: separate `rutReliefMeters: 0.12` surface-gradient normal profile with shallow dirt lips, `roadRoughnessMin: 0.82`, and `rutDepth` darkening reduced from 0.85 to 0.35. Existing texture assets, road layout, blend heights, and collision geometry unchanged. Depth and darkening are separate dev controls.
+- This is normal-based relief only. There is no parallax, self-occlusion, or geometric recess; actual wheel-depth geometry still needs terrain tessellation and grounding work. The current grid is 12.5 m.
+- Extended `check:roads`: actual material graph must connect the rut height derivatives to normals and dry floor to roughness; scalar TSL tests cover roughness bounds and height signs. Original normal wiring failed; reintroduced 0.6 polish failed at roughness 0.492; restored code passes the targeted check.
+- Diagnostic script `scripts/capture-ruts.mjs`; matched captures in `audit/ruts-before/` and `audit/ruts-after/` (12 each), standard ranch eye captures in `audit/ruts-before-eye/`, relief-only ablation in `audit/ruts-no-relief/` (4). The first cabinTrail vantage was at its ranch junction; the final script targets a genuinely narrow stretch, captured separately in `audit/ruts-trail-after/` (4). After captures report production WebGPU, settled vegetation, and zero errors. Inspected ranch/town/narrow-trail detail frames and the relief-disabled control; user acceptance remains open, especially if actual geometric depth is required.
+- Final serial verification passed: `npm run build` printed `built in 1.37s`; `npm run check` exited 0 with all 23 scripts successful (21 standalone PASS lines, plus missions/save PASSED). Grass-scatter timing initially failed at 7.13 ms > 6 ms during concurrent browser captures; it passed at 1.96 ms isolated and 1.97 ms in the final full suite. No checks were changed or weakened to bypass that timing gate. Only the pre-existing Vite large-chunk warning remains.
+- No full audit grade or comparative score claimed. The terrain-normal change requires a new baseline for the next full audit. HARD_WON 1.12 and VISUAL_STATUS record the limited scope.
+- Pre-existing `.ai/STATE.json` modification and untracked navigation evidence were left untouched. Nothing committed or pushed. Existing preview on port 8765 served a different build; this task started a separate preview on 8766.
+
+# Previous State
 
 Harness initialized. No active campaign.
 

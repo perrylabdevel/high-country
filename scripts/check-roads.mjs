@@ -13,12 +13,66 @@ import {
 } from "../src/map.js";
 import { heightAt, bakeHeightfield } from "../src/heightfield.js";
 import { materialSettings, RUT_TONE } from "../src/materials/settings.ts";
+import * as THREE from "three/webgpu";
+import { float } from "three/tsl";
+import * as terrain from "../src/materials/terrainMaterial.ts";
 
 function assert(cond, msg) {
   if (!cond) {
     throw new Error(msg);
   }
 }
+
+function dependencies(root, seen = new Set()) {
+  if (!root?.isNode || seen.has(root)) return seen;
+  seen.add(root);
+  for (const child of root.getChildren()) dependencies(child, seen);
+  return seen;
+}
+
+function scalar(node) {
+  if (node.isConstNode || node.isUniformNode) return node.value;
+  if (node.isVarNode || node.isConvertNode) return scalar(node.node);
+  const a = scalar(node.aNode), b = node.bNode ? scalar(node.bNode) : 0;
+  if (node.isOperatorNode) {
+    if (node.op === "+") return a + b;
+    if (node.op === "-") return a - b;
+    if (node.op === "*") return a * b;
+    if (node.op === "/") return a / b;
+  }
+  if (node.method === "max") return Math.max(a, b);
+  if (node.method === "min") return Math.min(a, b);
+  if (node.method === "mix") return a + (b - a) * scalar(node.cNode);
+  throw new Error(`Unsupported scalar node ${node.constructor.name} ${node.method || node.op}`);
+}
+
+const fixture = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1);
+const maps = Object.fromEntries(["grass", "dirt", "rock", "gravel"].map((name) => [name, { name, albedo: fixture, normal: fixture, orm: fixture }]));
+const terrainMat = terrain.createTerrainMaterial(maps, fixture);
+const normalNodes = [...dependencies(terrainMat.normalNode)];
+assert(normalNodes.some((n) => n.isUniformNode && n.name === "rutReliefMeters"), "Wheel ruts do not affect the terrain normal: connect the recessed profile to normalNode instead of painting flat dark tracks");
+for (const method of ["dFdx", "dFdy"]) {
+  assert(normalNodes.some((n) => n.method === method), `Rut relief is missing ${method}: both surface-height derivatives must reach the normal`);
+}
+assert(materialSettings.rutReliefMeters >= 0.04 && materialSettings.rutReliefMeters <= 0.2, "rutReliefMeters must describe a shallow 4–20 cm dirt groove, not zero relief or a trench");
+assert(materialSettings.roadRoughnessMin >= 0.75, "Dry road roughness must stay >= 0.75; polished wheel tracks read as oil");
+assert([...dependencies(terrainMat.roughnessNode)].some((n) => n.isUniformNode && n.name === "roadRoughnessMin"), "The terrain roughness bypasses the dry-road floor; connect roadRoughness to roughnessNode");
+let minRoadRoughness = 1;
+for (const source of [0, 0.25, 0.5, 0.85, 1]) {
+  for (const center of [0, 0.5, 1]) {
+    for (const variation of [-1, 0, 1]) {
+      const rough = scalar(terrain.roadRoughness(float(source), float(center), float(variation)));
+      assert(rough >= 0.75 && rough <= 1, `Road roughness ${rough} is outside dry-earth range [0.75, 1]`);
+      minRoadRoughness = Math.min(minRoadRoughness, rough);
+    }
+  }
+}
+const grooveFloor = scalar(terrain.rutReliefHeight(float(1), float(0), float(1)));
+const grooveLip = scalar(terrain.rutReliefHeight(float(0), float(1), float(1)));
+assert(grooveFloor < -0.04 && grooveLip > 0 && grooveLip < 0.04, "Rut height must recess the floor and raise a shallow displaced-dirt lip");
+assert(scalar(terrain.rutReliefHeight(float(1), float(1), float(0))) === 0, "Rut relief must vanish where the road/traffic mask is zero");
+terrainMat.dispose();
+fixture.dispose();
 
 const KINDS = ["stage", "road", "trail", "rail"];
 
@@ -92,7 +146,7 @@ console.log(JSON.stringify({
   roads: ROADS.length,
   creeks: CREEKS.map((c) => c.name),
   lift: ROAD_LIFT,
-  rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact },
+  rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact, grooveFloor, grooveLip, minRoadRoughness },
   stats,
   near: {
     ranch: nearestRoadDistance(POS.ranch.x, POS.ranch.z),

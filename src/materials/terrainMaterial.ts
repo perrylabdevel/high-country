@@ -20,6 +20,8 @@ import {
   uniform,
   pow,
   positionWorld,
+  positionView,
+  normalView,
   normalWorld,
   cameraPosition,
   mx_noise_float,
@@ -68,6 +70,8 @@ const NUMERIC_KEYS = [
   "rutWidth",
   "rutDepth",
   "rutWobble",
+  "rutReliefMeters",
+  "roadRoughnessMin",
   "farGrassStart",
   "farGrassEnd",
   "farGrassGain",
@@ -80,13 +84,33 @@ type FloatUniform = Node<"float"> & { value: number };
 
 const u = {} as Record<NumericKey, FloatUniform>;
 for (const key of NUMERIC_KEYS) {
-  u[key] = uniform(materialSettings[key], "float") as FloatUniform;
+  u[key] = uniform(materialSettings[key], "float").setName(key) as FloatUniform;
 }
 
 export function syncTerrainUniforms(): void {
   for (const key of NUMERIC_KEYS) {
     u[key].value = materialSettings[key];
   }
+}
+
+export function roadRoughness(rough: Node<"float">, center: Node<"float">, variation: Node<"float">) {
+  return mix(rough.mul(1.1), rough.mul(0.95), center)
+    .add(variation.mul(0.04)).max(u.roadRoughnessMin).min(1);
+}
+
+export function rutReliefHeight(band: Node<"float">, lip: Node<"float">, strength: Node<"float">) {
+  return lip.mul(0.18).sub(band).mul(strength).mul(u.rutReliefMeters);
+}
+
+function reliefNormal(height: Node<"float">, detailNormal: Node<"vec3">) {
+  const dx = positionView.dFdx();
+  const dy = positionView.dFdy();
+  const rx = dy.cross(normalView);
+  const ry = normalView.cross(dx);
+  const det = dx.dot(rx);
+  const gradient = rx.mul(height.dFdx()).add(ry.mul(height.dFdy()))
+    .mul(det.sign().div(det.abs().max(1e-8)));
+  return detailNormal.sub(gradient).normalize();
 }
 
 function dummyLinear(r: number, g: number, b: number): THREE.DataTexture {
@@ -276,11 +300,11 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const rutD = lat.abs().sub(rutOff);
   const rutBand = rutD.mul(rutD).div(u.rutWidth.mul(u.rutWidth).mul(2)).negate().exp();
   const rutStretch = smoothstep(float(-0.55), float(0.15), mx_noise_float(positionWorld.xz.mul(0.05)));
-  const rut = rutBand
-    .mul(rutStretch)
-    .mul(deepRoad)
-    .mul(mix(float(0.35), float(1), near))
-    .toVar();
+  const rutStrength = rutStretch.mul(deepRoad).mul(mix(float(0.35), float(1), near));
+  const rut = rutBand.mul(rutStrength).toVar();
+  const lipD = rutD.abs().sub(u.rutWidth.mul(2.2));
+  const lipBand = lipD.mul(lipD).div(u.rutWidth.mul(u.rutWidth).mul(0.32)).negate().exp();
+  const rutHeight = rutReliefHeight(rutBand, lipBand, rutStrength).toVar();
 
   // Packed mud is darker than the loose gravel margins, and cooler — the
   // groove holds moisture the bright shoulders have already lost.
@@ -304,9 +328,7 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   // at full strength up close, faintly from afar. There is no displacement
   // here; height only drives the blend, so recessing it buys nothing.
   const gravelHeight = mix(gravel.height.add(0.05), gravel.height.sub(0.08), center);
-  const gravelRough = mix(gravel.rough.mul(1.1), gravel.rough.mul(0.55), center)
-    .add(nVar.mul(0.04))
-    .mul(rut.mul(0.4).oneMinus());
+  const gravelRough = roadRoughness(gravel.rough, center, nVar);
 
   const gPrime = grassW.mul(grass.height.add(u.grassHeightBias));
   const dPrime = dirtW.mul(dirt.height.add(u.dirtHeightBias));
@@ -359,6 +381,6 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   mat.emissiveNode = select(isDebug, debugColor, vec3(0, 0, 0));
   mat.roughnessNode = rough;
   mat.metalnessNode = float(0.02);
-  mat.normalNode = normalMap(nrm, vec2(near.mul(u.detailQ), near.mul(u.detailQ)));
+  mat.normalNode = reliefNormal(rutHeight.mul(vC.div(sum)), normalMap(nrm, vec2(near.mul(u.detailQ), near.mul(u.detailQ))));
   return mat;
 }

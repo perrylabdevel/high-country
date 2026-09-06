@@ -391,6 +391,38 @@ value someone forgot to put back. Treat it as a bug on sight.
 
 ---
 
+### 1.12 Ruts still looked oily after unclipping their albedo
+
+**Symptom (2026-09-06):** the user still saw slick oil/tar marks rather than
+recessed dirt tracks after 1.11. Reproduced in production WebGPU road-level
+and close-downward frames at the ranch stage road and Silver Creek.
+
+**Cause:** the normal path never used the rut signal. `rutDepth` was only
+albedo attenuation, not depth. Meanwhile the roughness path multiplied the
+road centre by 0.55, then full-strength ruts by another 0.6. The packed gravel
+ORM has mean roughness 0.869, so a full groove at zero variation became 0.287.
+Unclipping the colour fixed black pixels, not this flat polished surface.
+
+**Local correction:** a separate 0.12 m recessed height profile with shallow
+positive dirt lips feeds screen-space surface gradients into the existing
+normal-map result. The gradients retain metre scale; no added texture sampler
+or road mesh. The gravel roughness has a 0.82 floor, and colour attenuation
+is reduced from peak 0.663 to 0.273 (`rutDepth` 0.85 to 0.35). Blend height is
+unchanged: it selects materials and still is not displacement.
+
+**Limits:** this is normal-based relief, not parallax, mesh displacement,
+self-occlusion, or a change to player/horse collision heights. The 12.5 m
+terrain grid cannot resolve sub-metre wheel grooves. Actual recessed geometry
+requires a separate terrain-meshing and grounding change.
+
+**Evidence:** `audit/ruts-before/` and `audit/ruts-after/` carry matched
+WebGPU captures and manifests; `audit/ruts-no-relief/` disables only the new
+height signal. `check:roads` traverses the actual material graph to require
+rut-height derivatives in the normal path and the dry floor in roughness;
+it also evaluates the scalar TSL profile/roughness expressions. The original
+normal path fails the new check, and restoring a 0.6 polishing multiplier
+fails at roughness 0.492. Neither check substitutes for the visible result.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD

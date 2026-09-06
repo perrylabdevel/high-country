@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "finish-uncommitted",
-  "currentObjective": "Install the multi-model coding harness",
+  "currentObjective": "Finish the uncommitted in-flight work: wheel-track ruts and hitching rails",
   "defaultRoutingMode": "balanced",
   "lastRole": "scout",
   "lastModel": "gpt-5.6-luna",
   "expertCallsThisCampaign": 0,
-  "lastCheckpoint": "2026-09-06T02:39:51.957Z",
+  "lastCheckpoint": "2026-09-06T15:07:24.253Z",
   "verificationStatus": "unknown"
 }

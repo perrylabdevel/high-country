@@ -154,8 +154,10 @@ export const materialSettings = {
   //  - rutWobble — how far traffic wanders off the centreline, in meters
   rutOffset: 0.9,
   rutWidth: 0.3,
-  rutDepth: 0.85,
+  rutDepth: 0.35,
   rutWobble: 0.15,
+  rutReliefMeters: 0.12,
+  roadRoughnessMin: 0.82,
   debugView: 0,
   waterShallow: 0x508d8b,
   waterDeep: 0x183f50,

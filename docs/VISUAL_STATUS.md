@@ -1,5 +1,21 @@
 # Visual status — completion audit
 
+## Local road-rut correction — 2026-09-06 (ungraded)
+
+The user still reported oily, flat tracks after the earlier colour-clipping
+fix. Production WebGPU captures reproduce it. The material had no rut-normal
+contribution and reduced mean source roughness 0.869 to roughly 0.287 in a
+full groove. The local patch introduces a 12 cm normal-relief profile with
+small lips, a dry gravel roughness floor of 0.82, and less albedo darkening.
+It does not displace the mesh or change collision heights. HARD_WON 1.12
+records the cause, limits, and fault-tested regression checks.
+
+Matched eye/detail captures: `audit/ruts-before/`, `audit/ruts-after/`.
+Relief-only ablation: `audit/ruts-no-relief/`. These are diagnostic evidence,
+not a full audit grade or proof that physical rut geometry exists. No score
+improvement is claimed; the next full audit needs a new baseline because the
+terrain normal path changed. Historical scores below remain historical.
+
 **Updated:** 2026-08-28 · baseline is `audit/reports/pass-98.json`
 (**83 fails / 292 scored** — NEW BASELINE on the pinned-clock capture,
 d616d64). Its same-tree variance twin is `pass-99.json`
