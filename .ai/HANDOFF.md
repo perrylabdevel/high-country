@@ -2,6 +2,32 @@
 
 Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
 
+## Latest checkpoint — 2026-09-07
+
+- Completed the road terrain refinement and query optimization. Coarse road
+  cells use a 25x25 fine triangle mesh with shared `meshHeightAt`/`heightAt`
+  values, world-space segment bounds, conservative segment-vs-expanded-cell
+  refinement coverage, and bounded fine-cell corner caches.
+- `npm run check:road-geometry` passes: 18 samples, minimum paired trough
+  depth 0.060822 m, maximum query-to-mesh error 0.00000198 m. The crossing-cell
+  fixture also passes.
+- `npm run check:nav-graph` passes with 915 nodes, 844 edges, deterministic
+  rebuild, and 46–47 ms graph build time against the unchanged 50 ms budget.
+- Serial `npm run build && npm run check` passed. Build completed in 1.48 s;
+  all checks passed, including grass budget, routes, weather, and nav graph.
+  The existing Vite large-chunk warning remains.
+- No commits or pushes were made. Other uncommitted weather, livestock,
+  navigation, and audit work remains in place.
+
+- Final road state: 25x25 fine road cells; `townMain` uses a 0.28 m physical
+  rut profile for visual separation, while stage and trail retain 0.11 m.
+  Shared-attribute 200 m render chunks preserve geometry while culling
+  off-screen terrain. Geometry check is 0.078133 m minimum trough depth with
+  0.00000198 m query-to-mesh error. Town chunked captures in
+  `audit/ruts-town-chunked-deeper/` pass Luna review for paired ruts in both
+  lights with no seams or tar sheen. The latest hot-path optimization hoists
+  fine-cell cache lookup/allocation and lazy segment lookup per mesh query.
+
 ## Latest checkpoint — 2026-09-06
 
 - User explicitly chose "Continue here", overriding Astra routing for this task only. No model delegation or routing-policy changes.
@@ -134,6 +160,23 @@ unknown
 (none recorded)
 
 # Next Actions
+
+## Road material follow-up — 2026-09-06
+
+- Luna implementation updated `terrainMaterial.ts` and `settings.ts`: A-normalized
+  lateral decode on roads, terrain normal green-channel correction for the rotated
+  plane UV basis, rut width 0.24 m, and fragment relief 0.20 m. The packed decode
+  still has a residual rock/A term because B contains `rock + latNorm*road`; it is
+  normalized for the road signal but is not exact where residual rock remains.
+- Added `check:roads` coverage for normalized narrow-road decode and the green
+  channel orientation node. `npm run check:roads` passes; full serial `npm run check`
+  passes all checks, including the isolated grass budget.
+- Fresh production WebGPU captures: `audit/ruts-luna-final/` (stage),
+  `audit/ruts-luna-town/` (townMain), and `audit/ruts-luna-trail/` (cabinTrail).
+  Luna review transcript: `audit/ruts-luna-vision-town-trail.txt`. Town ruts remain
+  subtly recessed; narrow trail reads more convincingly. Neither shows tar sheen or
+  a broad painted stripe. Relief is a fragment normal profile, not geometric
+  tessellation/displacement.
 
 - In this repo: `claude`
 - Delegate with `airoute run auto "<task>"` or `/scout` `/worker` `/senior` `/expert`

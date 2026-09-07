@@ -22,6 +22,18 @@ const BASE = process.argv[2] || "http://127.0.0.1:8765";
 const OUT = process.argv[3] || "audit/current";
 const BACKEND = process.env.CAPTURE_BACKEND || "webgpu";
 const MODE = process.env.CAPTURE_MODE || "audit";
+// Weather for the pass. Default "clear" keeps every multiplier at exactly 1.0,
+// the rain mesh at count 0 and the ground dry, so the graded baseline stays
+// comparable (HARD_WON 3.4). storm/rain/... are diagnostic-only: the mud
+// multiplier and fog cut are NOT the conditions the audit graded.
+const CAPTURE_WEATHER = process.env.CAPTURE_WEATHER || "clear";
+const WEATHER_STATES = ["clear", "buildup", "overcast", "rain", "storm", "clearing"];
+if (!WEATHER_STATES.includes(CAPTURE_WEATHER)) {
+  throw new Error(`CAPTURE_WEATHER must be one of ${WEATHER_STATES.join(", ")}, got ${CAPTURE_WEATHER}`);
+}
+if (CAPTURE_WEATHER !== "clear" && OUT === "audit/current") {
+  throw new Error("non-clear CAPTURE_WEATHER is diagnostic-only; write it outside audit/current");
+}
 
 if (!["webgpu", "webgl"].includes(BACKEND)) {
   throw new Error(`CAPTURE_BACKEND must be "webgpu" or "webgl", got ${BACKEND}`);
@@ -263,6 +275,37 @@ async function main() {
   await page.evaluate(() => document.getElementById("btn-enter")?.click());
   await page.waitForTimeout(6000);
   await page.evaluate(() => window.__captureMode(true));
+  // Pin the weather before any settle wait: the ~0.5 s force ramp finishes
+  // inside the first shadow/scatter wait, so the frame is settled. Pinned
+  // until the page dies — no state transition can move mid-pass.
+  //
+  // __weatherForce is assigned late in boot (after the texture loads — the
+  // TDZ ordering documented in main.js), so the fixed 9s+6s waits above do not
+  // guarantee it exists: on a slow first boot the old optional call
+  // `__weatherForce?.(s)` no-oped silently and the pass rendered the default
+  // state — a storm pass came back pixel-identical to clear (mean abs diff
+  // 0.081 vs the clear baseline). Poll for the hook, then verify the readback:
+  // a forced pass that did not take must fail loudly, not grade the wrong sky.
+  let weatherHook = false;
+  for (let i = 0; i < 240 && !weatherHook; i += 1) {
+    weatherHook = await page.evaluate(() => typeof window.__weatherForce === "function");
+    if (!weatherHook) {
+      await page.waitForTimeout(500);
+    }
+  }
+  if (!weatherHook) {
+    throw new Error(
+      "window.__weatherForce never appeared within 120s — boot never reached the " +
+        "dev-hook block, so weather cannot be pinned. Check for a boot error above."
+    );
+  }
+  await page.evaluate((s) => window.__weatherForce(s), CAPTURE_WEATHER);
+  const weatherNow = await page.evaluate(() => window.__weatherState());
+  if (weatherNow !== CAPTURE_WEATHER) {
+    throw new Error(
+      `weather force did not take: requested "${CAPTURE_WEATHER}", page reports "${weatherNow}"`
+    );
+  }
 
   const captureInfo = await page.evaluate(() => window.__captureInfo?.());
   if (!captureInfo?.backend) {
@@ -386,6 +429,7 @@ async function main() {
   const manifest = {
     version: 1,
     mode: MODE,
+    weather: CAPTURE_WEATHER,
     backend: captureInfo.backend,
     adapter: captureInfo.adapter || "unknown",
     antialias: captureInfo.antialias,

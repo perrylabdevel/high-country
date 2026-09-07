@@ -1,12 +1,61 @@
 # Visual status — completion audit
 
+## Current road-rut geometry — 2026-09-07
+
+The current production build uses 25x25 fine terrain triangles in road cells,
+so the wheel-track relief is physical terrain geometry shared by rendering and
+grounding. It supersedes the material-only limitation described in the
+historical section below. `check:road-geometry` passes with a 0.060822 m
+minimum paired trough and 0.00000198 m maximum query-to-mesh error. Fresh
+WebGPU captures are in `audit/ruts-optimized-stage/`,
+`audit/ruts-optimized-town/`, and `audit/ruts-optimized-trail/`. Luna's review
+found all three roads dry and matte, with no tar sheen, painted stripe,
+banding, cracks, or visible fine-mesh seams. CabinTrail has the clearest paired
+ruts, Stage is moderate, and TownMain remains visually restrained and partly
+occluded. Capture metadata reported no runtime or WebGPU errors. Golden detail
+views show frame-rate drops in the existing performance overlay. The capture
+manifests contain no frame-time series, so the cause and any regression versus
+the prior geometry are not established by this evidence.
+
+An isolated stationary frame-time diagnostic on the unoccluded town straight
+section measured optimized geometry at 46.35/45.94 ms mean for midday eye/detail
+and 40.76/41.32 ms for golden eye/detail (about 21.6–24.5 mean FPS; p95
+50.7–65.9 ms). A controlled temporary coarse-index build at the identical
+camera positions measured 27.87/27.87 ms midday and 27.03/28.15 ms golden
+(about 35.5–37.0 mean FPS). This establishes a material frame-time cost for
+the fine road geometry in this scene; the source was restored to 25x25 and
+rebuilt afterward. The unoccluded town captures are in
+`audit/ruts-town-unoccluded/`, and Luna found paired ruts in all four views,
+subtle in midday eye view but visible, with no occlusion, sheen, stripe,
+banding, cracks, or seams.
+
+A controlled 20x refinement experiment reduced those means to 30.0–33.6 ms,
+but Luna could not resolve paired ruts in any of its four views. It was
+rejected and the validated 25x geometry was restored; the 25x build remains
+the current source and production build.
+
+The current 25x geometry is rendered through shared-attribute 200 m spatial
+index chunks. The same town stationary diagnostic now measures 17.65–29.97 ms
+mean in midday and 25.49–29.27 ms in golden. Smoke captures under
+`audit/ruts-chunked-stage-smoke/` and `audit/ruts-chunked-trail-smoke/` report
+no runtime errors; the chunked town visual review found no visible chunk seams.
+This preserves the 6.08 cm physical trough and brings render cost close to the
+coarse-index baseline without reducing road refinement.
+
+TownMain uses a dedicated 0.28 m physical rut profile because the shared
+0.11 m profile remained visually diffuse in the town street. The resulting
+unoccluded chunked captures are in `audit/ruts-town-chunked-deeper/`; Luna
+confirmed paired recessed ruts in all four views under both lights, with no
+stripe, sheen, banding, cracks, or chunk seams.
+
 ## Local road-rut correction — 2026-09-06 (ungraded)
 
 The user still reported oily, flat tracks after the earlier colour-clipping
 fix. Production WebGPU captures reproduce it. The material had no rut-normal
 contribution and reduced mean source roughness 0.869 to roughly 0.287 in a
-full groove. The local patch introduces a 12 cm normal-relief profile with
-small lips, a dry gravel roughness floor of 0.82, and less albedo darkening.
+full groove. The local patch now uses a 20 cm normal-relief profile with
+small lips, a dry gravel roughness floor of 0.82, corrected terrain normal
+orientation, normalized narrow-road lateral decoding, and less albedo darkening.
 It does not displace the mesh or change collision heights. HARD_WON 1.12
 records the cause, limits, and fault-tested regression checks.
 
@@ -982,3 +1031,26 @@ surroundings, not because it is blown out or un-lit.
   `close-cycleB.mjs` now carries the wall-tiling NAMES/prompt,
   `--stdin-prompt`-only, resolver resolved codex-vision, BEFORE_DIR/AFTER_DIR
   env overrides.
+- **Road rut terrain follow-up (COMPLETE, measured 2026-09-07):** the road
+  surface now uses 25x25 fine terrain cells over coarse road cells, with the
+  same `meshHeightAt` and `heightAt` surface used for drawing and grounding.
+  World-space road segments and bounded fine-corner caches keep road-aware nav
+  queries within the 50 ms startup budget. `check:road-geometry` reports paired
+  troughs at 6.08 cm minimum depth and 0.000002 m maximum query-to-mesh error;
+  `check:nav-graph` reports 46–47 ms with deterministic topology. Fresh
+  production captures remain dry and matte with no tar sheen or broad painted
+  stripe. This is geometric road relief with a 0.11 m rut profile, not a
+  promise of full road tessellation outside refined road cells.
+- **Road rut material follow-up (measured 2026-09-06):** fresh
+  production WebGPU captures after the material pass are in
+  `audit/ruts-luna-final/`, `audit/ruts-luna-town/`, and
+  `audit/ruts-luna-trail/`; Luna's transcript is
+  `audit/ruts-luna-vision-town-trail.txt`. The road remains dry and matte with
+  no tar sheen or painted stripe. Town roads show two subtle recessed paths;
+  the narrower cabin trail reads more clearly. The pass corrected the rotated
+  plane's normal-map green orientation, normalized packed lateral decoding by
+  road coverage on narrow roads, tightened rut width to 0.24 m, and raised the
+  fragment relief profile to 0.20 m. B still includes residual rock, so the
+  normalized decode is an approximation where rock/A is nonzero. This remains
+  normal-profile relief rather than geometric road recess; town rut separation
+  is still restrained. `npm run check` passes serially.

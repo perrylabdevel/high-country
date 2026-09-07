@@ -423,6 +423,28 @@ it also evaluates the scalar TSL profile/roughness expressions. The original
 normal path fails the new check, and restoring a 0.6 polishing multiplier
 fails at roughness 0.492. Neither check substitutes for the visible result.
 
+### 1.13 `Color.multiply(Vector3)` poisons every channel with `NaN`
+
+**Symptom (2026-09-06):** none visible — the fog colour was `NaN/NaN/NaN` from
+the weather system's first update. Found by a NaN sweep in
+`scripts/check-weather.mjs`, not by looking at anything.
+
+**Cause:** `THREE.Color.multiply` reads the argument's `.r/.g/.b`. A `Vector3`
+exposes `.x/.y/.z`, so every component read as `undefined` and the target
+`Color` went `NaN` — the same read-the-wrong-properties shape as 1.1, one level
+up: there a `Color` was packed as a `vec3` uniform, here a `Vector3` was
+multiplied into a `Color`. The trap is that both types are three-component
+float holders and TypeScript is no help (`Color.multiply` accepts any
+`Color`-shaped value at the call site's peril in plain-JS modules).
+
+**Fix:** storm tints are constructed as `new Color(...)` (see
+`TINT_STORM` in `src/weather/weather.js`), with a comment at the declaration.
+`check:weather` now sweeps all six states for NaN and fails naming the fog
+colour when a non-`Color` is multiplied back in.
+
+**Found by:** the check, before the first browser run — the cheapest possible
+place for it to fire.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
@@ -536,6 +558,51 @@ and buildings (already four-corner seated).
 
 ---
 
+### 2.10 Livestock heads walked into walls — the collider guarded only the torso
+
+**Symptom (2026-09-06):** animal heads visibly poked into buildings while the
+herds wandered. The player-side collision was fine; the animals were the
+movers.
+
+**Cause:** `moveAndSlide` resolves one circle per mover. Livestock's circle
+uses the species' body radius (cow 0.62 m, sheep 0.40, deer 0.45), but each
+rig reaches far forward of its origin — the cow's muzzle tip sits ~1.5 m
+ahead of the origin, sheep ~0.85, deer ~1.16 (measured as the world bbox of
+the built rig at forward=+X, not read off the builder code). Head-on, the
+resolver stopped the torso 0.62 m from a wall and left the muzzle most of a
+metre inside it. Nothing errored; the resolver did exactly what it was asked.
+
+**Measured** (headless, real herds driven through their real state machines,
+8 sim-minutes, camera rotated across all four herd homes): cows sat with the
+muzzle inside a box collider for ~70% of their active ticks (15,004
+penetrating ticks across 6 cows), worst 0.38 m deep; sheep 3,639 ticks, worst
+0.44 m. Deer read zero only because their wander rings hold no buildings —
+safe by geography, not by design.
+
+**Fix:** the species table carries `headReach`/`headRadius` (the measured
+head-up forward extent and a small probe circle there); each movement slice
+probes that circle against the same colliders and shifts the body by the
+push it receives, so sliding along walls still works. Spawn settling runs
+the same probe for all four cardinal facings. The head-up reach is used even
+while grazing (the pitched-down head is shorter), so a grazing animal is
+held slightly clear — conservative on purpose. Penetrations went to zero
+with herd travel distances unchanged.
+
+**Locked in by:** `check:livestock-heads` — it runs the herds and asserts
+zero head-tip-inside-collider ticks plus a minimum travel distance (so the
+clearance cannot "pass" by freezing the animals). Negative-tested by
+disabling the head settle: it fails naming 5 cows and 1 sheep with depths.
+
+**Two instrument notes that cost a round each:** (1) the first probe read
+all-zero because `CULL_DIST` (320 m) culled every herd away from a camera
+parked at the ranch — a clean zero means "not simulated", not "not
+defective"; the camera must visit every herd home. (2) The check's
+"animal never moved" guard tripped on a 2-minute window because a sheep can
+legitimately graze through its whole active slice — the guard needs a window
+long enough that walking is expected, not lucky.
+
+---
+
 ## 3. Verification — the expensive lessons
 
 ### 3.1 A check that cannot fail is not a check
@@ -641,6 +708,17 @@ raycast, or an ID-buffer read. It is not an adjective.
   positional argument to decide image-vs-prompt; a multi-KB prompt arg dies
   with `OSError: [Errno 63] File name too long` before any grading happens.
   Use `codex-vision --stdin-prompt <image>` with the prompt on stdin.
+- **Optional-chaining a late-assigned dev hook silently grades the wrong
+  state (2026-09-06).** The capture script called
+  `window.__weatherForce?.(s)` after fixed 9s+6s waits, but `__weatherForce`
+  is assigned late in boot (after the texture loads — the TDZ ordering in
+  main.js). On a slow first boot the hook was still `undefined`, the call
+  no-oped, and a full storm pass rendered the default clear state — manifest
+  said `"weather": "storm"`, pixels said clear (mean abs diff 0.081 vs the
+  clear baseline). The manifest records what was *requested*, never what
+  took. `capture-poi.mjs` now polls for the hook (120 s budget) and verifies
+  the `__weatherState()` readback, failing loudly on either. Any new
+  page-side hook a capture depends on needs the same poll-then-verify.
 
 ---
 

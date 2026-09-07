@@ -12,7 +12,8 @@ Thumbs.db
 !.env.example
 *.local
 
-# Audit screenshots are regenerable: npm run capture
+# Audit screenshots are regenerable: npm run capture (and capture-poi)
+audit/**/*.png
 audit/current/
 audit/pass-*/
 audit/close/

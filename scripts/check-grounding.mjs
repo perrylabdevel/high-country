@@ -2,7 +2,7 @@
  * Trees must sit on the visible terrain mesh, and walking hills
  * must not produce nauseating high-frequency camera motion.
  */
-import { WORLD, heightAt, sourceHeightAt, bakeHeightfield } from "../src/heightfield.js";
+import { WORLD, heightAt, meshHeightAt, sourceHeightAt, roadRefinedCell, bakeHeightfield } from "../src/heightfield.js";
 import { POS } from "../src/map.js";
 
 const SPACING_X = WORLD.width / WORLD.segmentsX;
@@ -11,21 +11,13 @@ const HALF_X = WORLD.width / 2;
 const HALF_Z = WORLD.depth / 2;
 
 function meshHeight(x, z) {
-  const fx = (x + HALF_X) / SPACING_X;
-  const fz = (z + HALF_Z) / SPACING_Z;
-  const ix = Math.max(0, Math.min(WORLD.segmentsX - 1, Math.floor(fx)));
-  const iz = Math.max(0, Math.min(WORLD.segmentsZ - 1, Math.floor(fz)));
-  const tx = Math.max(0, Math.min(1, fx - ix));
-  const tz = Math.max(0, Math.min(1, fz - iz));
-  const x0 = -HALF_X + ix * SPACING_X;
-  const z0 = -HALF_Z + iz * SPACING_Z;
-  const h00 = sourceHeightAt(x0, z0);
-  const h10 = sourceHeightAt(x0 + SPACING_X, z0);
-  const h01 = sourceHeightAt(x0, z0 + SPACING_Z);
-  const h11 = sourceHeightAt(x0 + SPACING_X, z0 + SPACING_Z);
-  const a = h00 * (1 - tx) + h10 * tx;
-  const b = h01 * (1 - tx) + h11 * tx;
-  return a * (1 - tz) + b * tz;
+  const fx = (x + HALF_X) / SPACING_X, fz = (z + HALF_Z) / SPACING_Z;
+  const ix = Math.max(0, Math.min(WORLD.segmentsX - 1, Math.floor(fx))), iz = Math.max(0, Math.min(WORLD.segmentsZ - 1, Math.floor(fz)));
+  if (roadRefinedCell(ix, iz)) return meshHeightAt(x, z);
+  const tx = Math.max(0, Math.min(1, fx - ix)), tz = Math.max(0, Math.min(1, fz - iz));
+  const x0 = -HALF_X + ix * SPACING_X, z0 = -HALF_Z + iz * SPACING_Z;
+  const h00 = sourceHeightAt(x0, z0), h10 = sourceHeightAt(x0 + SPACING_X, z0), h01 = sourceHeightAt(x0, z0 + SPACING_Z), h11 = sourceHeightAt(x0 + SPACING_X, z0 + SPACING_Z);
+  return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
 }
 
 function treeFloatStats() {

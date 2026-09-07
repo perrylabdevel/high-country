@@ -111,6 +111,26 @@ for (let i = 0; i < 60; i += 1) {
 }
 await page.waitForTimeout(1500);
 
+// Optional weather state (WEATHER=storm): pin it BEFORE the sample so the
+// per-frame weather writes (sky/fog/wind uniforms, rain intensity) are inside
+// what this probe measures. Same poll-then-verify as capture-poi.mjs — the
+// hook is assigned late in boot, and a silent no-op here would report dry
+// numbers for a wet run.
+const WEATHER = process.env.WEATHER || "";
+if (WEATHER) {
+  let hook = false;
+  for (let i = 0; i < 240 && !hook; i += 1) {
+    hook = await page.evaluate(() => typeof window.__weatherForce === "function");
+    if (!hook) await page.waitForTimeout(500);
+  }
+  if (!hook) throw new Error("window.__weatherForce never appeared within 120s; cannot pin WEATHER");
+  await page.evaluate((s) => window.__weatherForce(s), WEATHER);
+  await page.waitForTimeout(1500); // let the force ramp + first rain frames land
+  const got = await page.evaluate(() => window.__weatherState());
+  if (got !== WEATHER) throw new Error(`weather force did not take: requested "${WEATHER}", page reports "${got}"`);
+  console.log(`weather pinned: ${WEATHER}`);
+}
+
 // Legitimately dirty attributes: the ones whose version moved between frames.
 const churn = await page.evaluate(() => new Promise((res) => {
   const snap = () => {
