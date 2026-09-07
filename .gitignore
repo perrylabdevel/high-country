@@ -12,7 +12,11 @@ Thumbs.db
 !.env.example
 *.local
 
-# Audit screenshots are regenerable: npm run capture (and capture-poi)
+# Audit screenshots are regenerable: npm run capture (and capture-poi).
+# On 2026-09-07 the 315 non-golden PNGs were purged from all history with
+# git filter-repo. The 191 golden frames stay tracked because grade.mjs scores
+# captures against them; this pattern does not untrack them. To add a NEW
+# golden, use `git add -f audit/<dir>/<poi>-golden.png`.
 audit/**/*.png
 audit/current/
 audit/pass-*/
