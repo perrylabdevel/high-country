@@ -17,7 +17,9 @@ import { POS, WATER, clampWorld } from "./map.js";
  * that scatters drifts back on its own. Movement reuses the horse's
  * contract: headingVector yaw, moveAndSlide against the world's colliders,
  * the slope gate, a lerped seat on heightAt, and a synced cylinder collider
- * so the player cannot walk through a cow.
+ * so the player cannot walk through a cow. Because the collider circle only
+ * guards the torso, movement also settles a small probe circle at the
+ * rig's measured head reach — without it the muzzle walked into walls.
  *
  * The rig is a pivot hierarchy so a future skinned model drops in the same
  * way the horse's contract promises:
@@ -313,6 +315,16 @@ const SPECIES = {
   cow: {
     build: buildCow,
     radius: 0.62,
+    // The body circle stops the torso, but the rig reaches far forward of the
+    // group origin — a cow's muzzle tip sits ~1.5 m ahead of a 0.62 m collider
+    // circle, so head-on the head ended up most of a metre inside a wall.
+    // headReach/headRadius are the measured forward extent (world bbox of the
+    // neck+head branch at forward=+X) and a small probe circle there; the
+    // mover settles that probe against the same colliders. Values are the
+    // head-UP reach, so a grazing animal (head pitched down, shorter) is
+    // held slightly clear — conservative on purpose.
+    headReach: 1.55,
+    headRadius: 0.18,
     walkSpeed: 0.9,
     palette: [0x6b4a2f, 0x8a7a66, 0x40301f],
     grazeShare: 0.55, // portion of the idle cycle spent head-down
@@ -321,6 +333,8 @@ const SPECIES = {
   sheep: {
     build: buildSheep,
     radius: 0.4,
+    headReach: 0.9,
+    headRadius: 0.15,
     walkSpeed: 0.8,
     palette: [0xd8cfc0],
     grazeShare: 0.7,
@@ -329,6 +343,8 @@ const SPECIES = {
   deer: {
     build: buildDeer,
     radius: 0.45,
+    headReach: 1.2,
+    headRadius: 0.15,
     walkSpeed: 1.5,
     palette: [0x9c7a52],
     grazeShare: 0.4,
@@ -351,8 +367,12 @@ const HERDS = [
  * own standard, and is pushed out of any built collider by resolvePosition.
  * Up to `tries` draws, then the last candidate wins — imperfect ground beats
  * a missing animal.
+ *
+ * The spawn yaw is random, so the head settle runs for all four cardinal
+ * facings: a spot that resolves the body clear can still start with the
+ * muzzle inside a wall the animal happens to face.
  */
-function pickSpot(home, ringMin, ringMax, radius, tries = 24) {
+function pickSpot(home, ringMin, ringMax, sp, tries = 24) {
   let spot = null;
   for (let i = 0; i < tries; i += 1) {
     const ang = Math.random() * Math.PI * 2;
@@ -368,7 +388,24 @@ function pickSpot(home, ringMin, ringMax, radius, tries = 24) {
     }
     break;
   }
-  const fixed = resolvePosition(spot.x, spot.z, radius);
+  let fixed = resolvePosition(spot.x, spot.z, sp.radius);
+  for (let pass = 0; pass < 2; pass += 1) {
+    let pushed = false;
+    for (const [dx, dz] of [[1, 0], [0, -1], [-1, 0], [0, 1]]) {
+      const hx = fixed.x + dx * sp.headReach;
+      const hz = fixed.z + dz * sp.headReach;
+      const clear = resolvePosition(hx, hz, sp.headRadius);
+      const px = clear.x - hx;
+      const pz = clear.z - hz;
+      if (px !== 0 || pz !== 0) {
+        pushed = true;
+        fixed = resolvePosition(fixed.x + px, fixed.z + pz, sp.radius);
+      }
+    }
+    if (!pushed) {
+      break;
+    }
+  }
   return { x: fixed.x, z: fixed.z };
 }
 
@@ -392,7 +429,7 @@ export function createLivestock() {
     for (let i = 0; i < herd.count; i += 1) {
       const hide = hides[i % hides.length];
       const rig = sp.build(hide, dark, light, herd.kind === "deer" && i % 2 === 0);
-      const spot = pickSpot(herd.home, herd.ringMin, herd.ringMax, sp.radius);
+      const spot = pickSpot(herd.home, herd.ringMin, herd.ringMax, sp);
       rig.group.position.set(spot.x, heightAt(spot.x, spot.z), spot.z);
       group.add(rig.group);
       const collider = addCylinderCollider(spot.x, spot.z, sp.radius);
@@ -472,7 +509,7 @@ export function createLivestock() {
     return false;
   }
 
-  function update(a, dt, playerPos) {
+  function update(a, dt, playerPos, mudAt = 1) {
     a.stateT -= dt;
     a.grazeT += dt;
 
@@ -493,7 +530,7 @@ export function createLivestock() {
     let speedTarget = 0;
     switch (a.state) {
       case "flee":
-        speedTarget = a.species.fleeSpeed;
+        speedTarget = a.species.fleeSpeed * mudAt;
         if (a.stateT <= 0) {
           setState(a, "idle", 2 + Math.random() * 2);
           a.target = null;
@@ -521,7 +558,7 @@ export function createLivestock() {
         }
         break;
       case "walk": {
-        speedTarget = a.species.walkSpeed;
+        speedTarget = a.species.walkSpeed * mudAt;
         const dx = a.target.x - a.rig.group.position.x;
         const dz = a.target.z - a.rig.group.position.z;
         const dist2 = dx * dx + dz * dz;
@@ -545,7 +582,9 @@ export function createLivestock() {
 
     // Movement: the horse's contract — heading vector, sliced moveAndSlide,
     // slope gate, lerped seat. Fleeing animals also clamp to the world edge.
-    const maxSpeed = a.state === "flee" ? a.species.fleeSpeed : a.species.walkSpeed;
+    // mudAt is the weather multiplier (src/weather/weather.js): wet ground
+    // slows the herds, roads first.
+    const maxSpeed = (a.state === "flee" ? a.species.fleeSpeed : a.species.walkSpeed) * mudAt;
     const accel = a.state === "flee" ? 6 : 2.2;
     a.speed += (speedTarget - a.speed) * Math.min(1, accel * dt);
     if (a.speed < 0.05 && speedTarget === 0) {
@@ -561,6 +600,22 @@ export function createLivestock() {
         const next = moveAndSlide(held.x, held.z, fx * travel / slices, fz * travel / slices, a.species.radius, a.collider);
         held.x = next.x;
         held.z = next.z;
+        // Head clearance: the body circle leaves the rig's forward extent
+        // (up to headReach) unguarded, so probe a small circle at the muzzle
+        // and shift the whole animal back by whatever push it receives. The
+        // push direction is the collider's shortest-exit vector, so sliding
+        // along a wall still works; the body re-resolve covers the rare case
+        // where backing off seats the torso into something behind it.
+        const hx = held.x + fx * a.species.headReach;
+        const hz = held.z + fz * a.species.headReach;
+        const clear = resolvePosition(hx, hz, a.species.headRadius, a.collider);
+        const pushX = clear.x - hx;
+        const pushZ = clear.z - hz;
+        if (pushX !== 0 || pushZ !== 0) {
+          const body = resolvePosition(held.x + pushX, held.z + pushZ, a.species.radius, a.collider);
+          held.x = body.x;
+          held.z = body.z;
+        }
       }
       const c = clampWorld(held.x, held.z);
       const slope = normalAt(c.x, c.z);
@@ -580,7 +635,7 @@ export function createLivestock() {
 
   return {
     group,
-    update(dt, cameraPos, playerPos) {
+    update(dt, cameraPos, playerPos, mudAt) {
       for (const a of animals) {
         const dx = a.rig.group.position.x - cameraPos.x;
         const dz = a.rig.group.position.z - cameraPos.z;
@@ -594,7 +649,7 @@ export function createLivestock() {
         if (!a.rig.group.visible) {
           a.rig.group.visible = true;
         }
-        update(a, dt, playerPos);
+        update(a, dt, playerPos, mudAt ? mudAt(a.rig.group.position.x, a.rig.group.position.z, a.rig.group) : 1);
       }
     }
   };
