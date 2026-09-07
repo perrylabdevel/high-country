@@ -199,7 +199,7 @@ export function createPlayer(camera) {
     );
   }
 
-  function update(dt, input, horse) {
+  function update(dt, input, horse, mud) {
     if (input.consume("flyTap")) {
       toggleFly(horse);
     }
@@ -223,7 +223,7 @@ export function createPlayer(camera) {
     setFacing(state.yaw);
 
     if (state.mounted && horse) {
-      horse.update(dt, input, state.yaw);
+      horse.update(dt, input, state.yaw, mud ? mud(object.position.x, object.position.z) : 1);
       // Seat the figure on the horse's back: hips at RIDE_SEAT means the
       // avatar origin rides RIDE_SEAT - RIDE_HIPS above the horse's ground.
       object.position.set(
@@ -247,7 +247,7 @@ export function createPlayer(camera) {
       if (moving) {
         wish.normalize();
       }
-      const max = (input.held("sprint") ? 6.2 : 3.4) * tune.speed;
+      const max = (input.held("sprint") ? 6.2 : 3.4) * tune.speed * (mud ?? 1);
       const accel = (moving ? 14 : 16) * tune.speed;
       const target = moving ? max : 0;
       state.speed += (target - state.speed) * Math.min(1, accel * dt);

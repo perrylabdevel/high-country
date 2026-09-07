@@ -20,6 +20,8 @@ import { createPines } from "./pines.js";
 import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
+import { createWeather } from "./weather/weather.js";
+import { createRain } from "./weather/rain.js";
 import { createPlayer } from "./player.js";
 import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
@@ -27,7 +29,7 @@ import { createLivestock } from "./livestock.js";
 import { createTraffic } from "./traffic.js";
 import { addCylinderCollider, resolvePosition, clearanceAt, deckHeightAt, moveAndSlide } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
-import { POS, placeAt, placeLabel, headingVector } from "./map.js";
+import { POS, ROADS, mapToWorld, placeAt, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
 import { resetNavGraph, navGraph, linkApproaches } from "./nav/graph.js";
 import { approachLinkRows, APPROACHES, primaryApproach } from "./nav/arrivals.js";
@@ -52,6 +54,7 @@ import Stats from "stats.js";
 
 const placeEl = document.getElementById("hud-place");
 const placeNoteEl = document.getElementById("hud-place-note");
+const weatherEl = document.getElementById("hud-weather");
 const hintEl = document.getElementById("hud-hint");
 const promptEl = document.getElementById("prompt");
 const compassEl = document.getElementById("compass");
@@ -67,6 +70,14 @@ const enterBtn = document.getElementById("btn-enter");
 const params = new URLSearchParams(window.location.search);
 const isLab = params.has("lab");
 const isDev = params.has("dev") || isLab;
+const WEATHER_LABELS = {
+  clear: "clear",
+  buildup: "clouding",
+  overcast: "overcast",
+  rain: "rain",
+  storm: "storm",
+  clearing: "clearing"
+};
 
 if (isLab) {
   titleEl.classList.add("hidden");
@@ -215,6 +226,11 @@ async function boot() {
   // previously put the call inside sunOffset's temporal dead zone.
   const SUN_DIST = 290;
   const sunOffset = new THREE.Vector3();
+  // Declared here, assigned once the vegetation exists below: the dev hooks
+  // in the isDev block above the texture loads can fire mid-boot (that trap
+  // is documented at the updateSunOffset note above), so the binding must
+  // already be initialised — null until weather exists.
+  let weather = null;
   // This frame's interact probe, shared by missions.update and the HUD
   // prompt. Reset to null each frame on the non-playing branch so a stale
   // target can never be read.
@@ -605,6 +621,7 @@ async function boot() {
       syncTerrainUniforms();
       syncWallUniforms();
       syncWaterUniforms();
+      weather?.refresh();
     };
     // Park the camera at an explicit pose and hide the HUD and player body, so
     // captures frame the subject instead of the back of the player's head.
@@ -726,6 +743,17 @@ async function boot() {
   }
   const terrainMesh = await createTerrain();
   scene.add(terrainMesh);
+  // CPU/browser acceptance hook: returns the actual triangle intersections for
+  // a road cross-section, independent of material shading.
+  window.__roadTerrainCrossSection = (name, segment = 0, t = 0.5, offsets = [-1.6, -0.9, 0, 0.9, 1.6]) => {
+    const road = ROADS.find((r) => r.name === name);
+    if (!road || segment >= road.pts.length - 1) return null;
+    const a = mapToWorld(...road.pts[segment]), b = mapToWorld(...road.pts[segment + 1]);
+    const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
+    const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+    const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0);
+    return offsets.map((lat) => { const px = x + dz * lat, pz = z - dx * lat; ray.set(new THREE.Vector3(px, 200, pz), down); const hit = ray.intersectObject(terrainMesh, true)[0]; return { lat, y: hit?.point.y ?? null, model: meshHeightAt(px, pz) }; });
+  };
   // depthSource: "buffer" (viewportDepthTexture) fails WebGPU bind-group
   // validation under antialias: true — the renderer's MSAA depth attachment
   // doesn't match the single-sample texture three.js allocates for it, so
@@ -777,6 +805,29 @@ async function boot() {
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
   const smoke = createSmoke(scene);
+  // Weather owns the multiplicative sky/fog/light/wind response and the mud
+  // multiplier; rain is its GPU particle layer. Created after the sky rig and
+  // vegetation exist (it captures bases off both) and before the frame loop —
+  // see src/weather/weather.js for the ownership rules it lives by.
+  let lastWetSynced = 0;
+  weather = createWeather({
+    scene,
+    skyRig,
+    vegetation,
+    // Wetness IS a materialSettings key (the panel slider and
+    // syncTerrainUniforms must tell the truth about it), but the 40-key
+    // uniform sync only runs when the value has moved meaningfully —
+    // never write the uniform directly, syncTerrainUniforms is re-run from
+    // the GUI and __syncMaterialSettings and would stomp it.
+    applyGroundWetness: (w) => {
+      materialSettings.groundWetness = w;
+      if (Math.abs(w - lastWetSynced) > 0.002) {
+        lastWetSynced = w;
+        syncTerrainUniforms();
+      }
+    }
+  });
+  const rain = createRain(scene, camera, {});
   player = createPlayer(camera);
   scene.add(player.object);
   horse = createHorse();
@@ -897,6 +948,11 @@ async function boot() {
       vegetation.gustStrength.value = Number(gust);
       return { sway: vegetation.windStrength.value, gust: vegetation.gustStrength.value };
     };
+    // Force a weather state ("clear"|"buildup"|"overcast"|"rain"|"storm"|
+    // "clearing") for a capture or a probe; force(null) hands control back to
+    // the seeded state machine. Envelopes settle over ~0.5 s.
+    window.__weatherForce = (s) => weather.force(s);
+    window.__weatherState = () => weather.state();
     window.__grassMips = (on) => vegetation.debugGrassMips(on);
     /**
      * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
@@ -1535,6 +1591,9 @@ async function boot() {
       horse.mounted = false;
       horse.collider.radius = horse.radius;
     }
+    if (saved.weather) {
+      weather.restore(saved.weather);
+    }
   }
 
   // Whichever place the player boots into — the fresh-game ranch or a
@@ -1584,7 +1643,8 @@ async function boot() {
       horse: {
         x: horse.object.position.x,
         z: horse.object.position.z
-      }
+      },
+      weather: weather.serialize()
     };
   }
   function autosave() {
@@ -2047,6 +2107,9 @@ async function boot() {
     skyRig.cloudWarpY.value = materialSettings.cloudWarpY;
     skyRig.cloudDetailBias.value = materialSettings.cloudDetailBias;
     skyRig.cloudBoundK.value = materialSettings.cloudBoundK;
+    // Base the weather system multiplies (src/weather/weather.js); refreshed
+    // here so a panel drag or settings push re-derives it in the same tick.
+    skyRig.sunBase = skyRig.sun.intensity;
   }
   updateSunOffset();
 
@@ -2094,6 +2157,16 @@ async function boot() {
       if (!home) {
         return;
       }
+      // Rain dampens the column: thinner (opacity) and smaller. Bases are
+      // recorded on first sight because the constructor's opacity/size are
+      // per-puff authored values, not recoverable later.
+      if (puff.userData.smokeBase === undefined) {
+        puff.userData.smokeBase = puff.material.opacity;
+        puff.userData.smokeSize = puff.scale.x;
+      }
+      const damp = weather.smokeMul();
+      puff.material.opacity = puff.userData.smokeBase * damp;
+      puff.scale.setScalar(puff.userData.smokeSize * (1 - 0.35 * (1 - damp)));
       const phase = puff.userData.phase || 0;
       const rise = puff.userData.rise || 0;
       // Higher puffs have lost the column's momentum, so they wander more.
@@ -2114,13 +2187,14 @@ async function boot() {
       npc.figure.update(dt, speed);
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
-    // or not the player has entered, exactly like the settlers above.
-    livestock.update(dt, camera.position, player.object.position);
+    // or not the player has entered, exactly like the settlers above. The
+    // fourth arg is the weather mud multiplier (roads turn to mud first).
+    livestock.update(dt, camera.position, player.object.position, weather.movementMulAt);
     // Riders and buggies work the roads on the same ambient clock as the
     // stock and the settlers above.
     traffic.update(dt, camera.position);
     if (started && !talking && !debug.isOpen()) {
-      player.update(dt, input, horse);
+      player.update(dt, input, horse, weather.movementMulAt);
       // Arrival stages complete by proximity the instant you stand in them.
       // The autosave keys off the stage delta, not off the event: an arrival
       // whose next stage carries no entrance event legitimately returns null.
@@ -2165,6 +2239,13 @@ async function boot() {
     placeEl.textContent = curPlace
       ? curPlace.name
       : placeLabel(player.object.position.x, player.object.position.z);
+    // Weather label rides the place block, updated only when the state name
+    // changes (no per-frame DOM writes).
+    const weatherName = WEATHER_LABELS[weather.state()] || weather.state();
+    if (weatherEl.textContent !== weatherName) {
+      weatherEl.textContent = weatherName;
+      weatherEl.classList.remove("hidden");
+    }
     if (curPlace && !visitedPlaces.has(curPlace.id)) {
       visitedPlaces.add(curPlace.id);
       announceArrival(curPlace);
@@ -2207,6 +2288,16 @@ async function boot() {
       camera.lookAt(view.tx, view.ty, view.tz);
     }
     followLight();
+    // Weather applies AFTER followLight (which repositions the sun/sky but
+    // writes nothing weather owns) and after __captureView has moved the
+    // camera, so rain and fog follow the capture pose too; BEFORE the render.
+    // A/B kill switch for measurement: window.__weatherOff = true freezes the
+    // weather path entirely, so a capture pair can isolate what weather writes
+    // in a given state from everything else in the frame.
+    if (!window.__weatherOff) {
+      weather.update(dt, camera.position);
+      rain.setIntensity(weather.rainIntensity());
+    }
     vegetation.update(camera.position);
     renderer.render(scene, planCamera || camera);
     if (stats) {

@@ -228,11 +228,11 @@ export function createHorse() {
     radius: HORSE_RADIUS,
     collider,
     parts,
-    update(dt, input, playerYaw) {
+    update(dt, input, playerYaw, mud = 1) {
       this.yaw = playerYaw;
       applyFacing(this.yaw);
       const wish = (input.held("forward") ? 1 : 0) + (input.held("back") ? -0.4 : 0);
-      const gait = (input.held("sprint") ? 14.5 : 7.6) * tune.speed;
+      const gait = (input.held("sprint") ? 14.5 : 7.6) * tune.speed * mud;
       const target = wish * gait;
       this.speed += (target - this.speed) * Math.min(1, 3.4 * tune.speed * dt);
       if (Math.abs(this.speed) < 0.08 && wish === 0) {

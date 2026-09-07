@@ -1498,7 +1498,9 @@ export function createVegetation(scene, maps = {}) {
   const gustFreq = uniform(3.2);
   const gustStrength = uniform(0.11);
   const warmGreen = uniform(new THREE.Vector3(0.35, 0.55, 0.25));
-  const windDir = normalize(vec3(1.0, 0.0, 0.6));
+  // Same normalised vector the baked constant held — a uniform so the weather
+  // system can swing the field's direction (src/weather/weather.js).
+  const windDir = uniform(new THREE.Vector3(0.857493, 0, 0.514496));
 
   const leafTex = maps.needleAlbedo || leafTexture();
   const leafSample = texture(leafTex, uv());
@@ -4014,6 +4016,7 @@ export function createVegetation(scene, maps = {}) {
     windStrength,
     gustFreq,
     gustStrength,
+    windDir,
     grassInstances: g,
     // The painted blade atlas, so a dev build can measure where the blades
     // actually sit inside their panel rather than inferring it from the

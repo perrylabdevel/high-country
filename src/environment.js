@@ -12,7 +12,7 @@ import {
   normalView, normalize, positionLocal, positionViewDirection, pow, smoothstep,
   time, uniform, vec2, vec3
 } from "three/tsl";
-import { WORLD, heightAt, bakeHeightfield, grassTexture } from "./world.js";
+import { WORLD, heightAt, meshHeightAt, roadRefinedCell, ROAD_SUBDIVISIONS, bakeHeightfield, grassTexture } from "./world.js";
 import { biomeAt, roadFactor, lakeFactor, creekFactor } from "./map.js";
 import { loadTerrainMaps } from "./materials/loadSet.ts";
 import { bakeSplatMap } from "./materials/splatMap.ts";
@@ -47,46 +47,116 @@ function canvasGrassMaterial() {
 let terrainMesh = null;
 let terrainMaps = null;
 
-export async function createTerrain() {
-  bakeHeightfield();
-  const geo = new THREE.PlaneGeometry(WORLD.width, WORLD.depth, WORLD.segmentsX, WORLD.segmentsZ);
-  geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position;
-  const colors = [];
-  for (let i = 0; i < pos.count; i += 1) {
-    const x = pos.getX(i);
-    const z = pos.getZ(i);
-    const y = heightAt(x, z);
-    pos.setY(i, y);
-    const slope = Math.min(1, Math.abs(heightAt(x + 3, z) - y) * 0.28);
-    const biome = biomeAt(x, z);
-    const base = BIOME[biome] || BIOME.valley;
-    const road = roadFactor(x, z);
-    const creek = creekFactor(x, z);
-    const lake = lakeFactor(x, z);
+export function makeTerrainGeometry() {
+  const geo = new THREE.BufferGeometry();
+  const p = [], c = [], uv = [], idx = [];
+  const vertices = new Map();
+  const sx = WORLD.width / WORLD.segmentsX, sz = WORLD.depth / WORLD.segmentsZ;
+  const hx = WORLD.width / 2, hz = WORLD.depth / 2;
+  const coarseColors = new Float32Array((WORLD.segmentsX + 1) * (WORLD.segmentsZ + 1) * 3);
+  const colorAt = (x, z, out, oi) => {
+    const y = heightAt(x, z), slope = Math.min(1, Math.abs(heightAt(x + 3, z) - y) * 0.28);
+    const base = BIOME[biomeAt(x, z)] || BIOME.valley;
+    const road = roadFactor(x, z), creek = creekFactor(x, z), lake = lakeFactor(x, z);
     let r = base[0] * (1 - slope * 0.45) + 0.3 * slope;
     let g = base[1] * (1 - slope * 0.45) + 0.28 * slope;
     let b = base[2] * (1 - slope * 0.35) + 0.26 * slope;
-    r = r * (1 - road) + 0.42 * road;
-    g = g * (1 - road) + 0.28 * road;
-    b = b * (1 - road) + 0.16 * road;
-    r = r * (1 - creek * 0.4) + 0.22 * creek;
-    g = g * (1 - creek * 0.4) + 0.32 * creek;
-    b = b * (1 - creek * 0.4) + 0.28 * creek;
-    if (lake > 0.5) {
-      r = r * (1 - lake) + 0.2 * lake;
-      g = g * (1 - lake) + 0.28 * lake;
-      b = b * (1 - lake) + 0.22 * lake;
+    r = r * (1 - road) + 0.42 * road; g = g * (1 - road) + 0.28 * road; b = b * (1 - road) + 0.16 * road;
+    r = r * (1 - creek * 0.4) + 0.22 * creek; g = g * (1 - creek * 0.4) + 0.32 * creek; b = b * (1 - creek * 0.4) + 0.28 * creek;
+    if (lake > 0.5) { r = r * (1 - lake) + 0.2 * lake; g = g * (1 - lake) + 0.28 * lake; b = b * (1 - lake) + 0.22 * lake; }
+    out[oi] = r; out[oi + 1] = g; out[oi + 2] = b;
+  };
+  for (let iz = 0; iz <= WORLD.segmentsZ; iz += 1) for (let ix = 0; ix <= WORLD.segmentsX; ix += 1) colorAt(-hx + ix * sx, -hz + iz * sz, coarseColors, (iz * (WORLD.segmentsX + 1) + ix) * 3);
+  const interpolatedColor = (x, z) => {
+    const fx = Math.max(0, Math.min(WORLD.segmentsX - 1e-6, (x + hx) / sx));
+    const fz = Math.max(0, Math.min(WORLD.segmentsZ - 1e-6, (z + hz) / sz));
+    const ix = Math.floor(fx), iz = Math.floor(fz), tx = fx - ix, tz = fz - iz;
+    const at = (xx, zz) => { const o = (zz * (WORLD.segmentsX + 1) + xx) * 3; return [coarseColors[o], coarseColors[o + 1], coarseColors[o + 2]]; };
+    const a = at(ix, iz), b = at(ix + 1, iz), c0 = at(ix, iz + 1), d = at(ix + 1, iz + 1);
+    const w = tx + tz <= 1 ? [1 - tx - tz, tx, tz, 0] : [0, 1 - tz, 1 - tx, tx + tz - 1];
+    return [a[0] * w[0] + b[0] * w[1] + c0[0] * w[2] + d[0] * w[3], a[1] * w[0] + b[1] * w[1] + c0[1] * w[2] + d[1] * w[3], a[2] * w[0] + b[2] * w[1] + c0[2] * w[2] + d[2] * w[3]];
+  };
+  const add = (x, z, u, v) => {
+    const key = `${Math.round(x * 1000)},${Math.round(z * 1000)}`;
+    const prior = vertices.get(key);
+    if (prior !== undefined) return prior;
+    p.push(x, meshHeightAt(x, z), z);
+    const col = interpolatedColor(x, z); c.push(col[0], col[1], col[2]); uv.push((x + hx) / WORLD.width, 1 - (z + hz) / WORLD.depth);
+    const out = p.length / 3 - 1; vertices.set(key, out); return out;
+  };
+  for (let iz = 0; iz < WORLD.segmentsZ; iz += 1) for (let ix = 0; ix < WORLD.segmentsX; ix += 1) {
+    const x0 = -hx + ix * sx, z0 = -hz + iz * sz;
+    const n = roadRefinedCell(ix, iz) ? ROAD_SUBDIVISIONS : 1;
+    const rows = [];
+    for (let j = 0; j <= n; j += 1) {
+      rows[j] = [];
+      for (let i = 0; i <= n; i += 1) rows[j][i] = add(x0 + sx * i / n, z0 + sz * j / n, i / n, j / n);
     }
-    colors.push(r, g, b);
+    for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+      const a = rows[j][i], b = rows[j + 1][i], cc = rows[j + 1][i + 1], d = rows[j][i + 1];
+      idx.push(a, b, d, b, cc, d);
+    }
   }
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(c, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
   geo.computeVertexNormals();
-  try {
-    geo.computeTangents();
-  } catch (err) {
-    console.warn("Terrain tangents skipped", err);
+  try { geo.computeTangents(); } catch (err) { console.warn("Terrain tangents skipped", err); }
+  return geo;
+}
+
+// Keep the exact shared terrain attributes, but split the index into 200 m
+// spatial chunks for rendering. Fine road triangles then get frustum culled
+// with their local terrain instead of paying the draw cost for the whole map.
+function makeTerrainChunks(source) {
+  const positions = source.getAttribute("position");
+  const sourceIndex = source.index.array;
+  const sx = WORLD.width / WORLD.segmentsX;
+  const sz = WORLD.depth / WORLD.segmentsZ;
+  const chunkX = 16, chunkZ = 16;
+  const columns = Math.ceil(WORLD.segmentsX / chunkX);
+  const buckets = new Map();
+  for (let i = 0; i < sourceIndex.length; i += 3) {
+    const a = sourceIndex[i], b = sourceIndex[i + 1], c = sourceIndex[i + 2];
+    const cx = (positions.getX(a) + positions.getX(b) + positions.getX(c)) / 3;
+    const cz = (positions.getZ(a) + positions.getZ(b) + positions.getZ(c)) / 3;
+    const ix = Math.max(0, Math.min(columns - 1, Math.floor((cx + WORLD.width / 2) / (sx * chunkX))));
+    const iz = Math.max(0, Math.min(Math.ceil(WORLD.segmentsZ / chunkZ) - 1, Math.floor((cz + WORLD.depth / 2) / (sz * chunkZ))));
+    const key = iz * columns + ix;
+    let list = buckets.get(key);
+    if (!list) { list = []; buckets.set(key, list); }
+    list.push(a, b, c);
   }
+  const group = new THREE.Group();
+  for (const list of buckets.values()) {
+    const chunk = new THREE.BufferGeometry();
+    for (const name of ["position", "normal", "color", "uv", "tangent"]) {
+      const attr = source.getAttribute(name);
+      if (attr) chunk.setAttribute(name, attr);
+    }
+    chunk.setIndex(new THREE.Uint32BufferAttribute(list, 1));
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (const index of list) {
+      const x = positions.getX(index), y = positions.getY(index), z = positions.getZ(index);
+      minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
+      maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
+    }
+    chunk.boundingBox = new THREE.Box3(new THREE.Vector3(minX, minY, minZ), new THREE.Vector3(maxX, maxY, maxZ));
+    chunk.boundingSphere = new THREE.Sphere();
+    chunk.boundingBox.getBoundingSphere(chunk.boundingSphere);
+    const mesh = new THREE.Mesh(chunk, null);
+    mesh.receiveShadow = true;
+    mesh.castShadow = false;
+    group.add(mesh);
+  }
+  return group;
+}
+
+export async function createTerrain() {
+  bakeHeightfield();
+  const geo = makeTerrainGeometry();
 
   let mat;
   try {
@@ -100,11 +170,10 @@ export async function createTerrain() {
   if (!mat) {
     mat = canvasGrassMaterial();
   }
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.receiveShadow = true;
-  mesh.castShadow = false;
-  terrainMesh = mesh;
-  return mesh;
+  const group = makeTerrainChunks(geo);
+  group.traverse((child) => { if (child.isMesh) child.material = mat; });
+  terrainMesh = group;
+  return group;
 }
 
 export function rebuildTerrainMaterial() {
@@ -112,8 +181,12 @@ export function rebuildTerrainMaterial() {
     return;
   }
   const mat = createTerrainMaterial(terrainMaps, bakeSplatMap());
-  terrainMesh.material = mat;
-  terrainMesh.material.needsUpdate = true;
+  terrainMesh.traverse((child) => {
+    if (child.isMesh) {
+      child.material = mat;
+      child.material.needsUpdate = true;
+    }
+  });
 }
 
 /**
@@ -427,6 +500,7 @@ export function createSky(scene) {
 
   return {
     sun, hemi, sky, sunMesh, updateSun, cover,
-    cloudScale, cloudWarpX, cloudWarpY, cloudDetailBias, cloudBoundK
+    cloudScale, cloudWarpX, cloudWarpY, cloudDetailBias, cloudBoundK,
+    bot // weather re-derives the fog colour from this live stop (see src/weather/weather.js)
   };
 }

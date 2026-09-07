@@ -40,6 +40,8 @@
  *                                   >1 means fewer, larger tufts.
  * @property {number} sageRadius    Shrub draw distance, metres.
  * @property {number} treeDrawDist  Beyond this a tree is not submitted.
+ * @property {number} rainDensity   Fraction of the rain system's max streak
+ *                                  count this tier draws (src/weather/rain.js).
  * @property {string} terrainTier   Feeds setQualityTier in materials/settings.
  */
 
@@ -60,6 +62,7 @@ export const PERF_TIERS = {
     grassCellScale: 1.5,
     sageRadius: 150,
     treeDrawDist: 1400,
+    rainDensity: 0.35,
     terrainTier: "low"
   },
   /**
@@ -77,6 +80,7 @@ export const PERF_TIERS = {
     grassCellScale: 1.15,
     sageRadius: 220,
     treeDrawDist: 2000,
+    rainDensity: 0.65,
     terrainTier: "medium"
   },
   /** Desktop discrete. */
@@ -90,6 +94,7 @@ export const PERF_TIERS = {
     grassCellScale: 1,
     sageRadius: 280,
     treeDrawDist: 2600,
+    rainDensity: 1.0,
     terrainTier: "high"
   }
 };
