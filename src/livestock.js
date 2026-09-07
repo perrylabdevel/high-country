@@ -72,14 +72,19 @@ function buildCow(hide, dark) {
   const parts = { legs: [] };
 
   const bodyGroup = new THREE.Group();
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.74), hide);
+  // Rounded volume gives stock a shoulder, barrel and haunch silhouette at
+  // grazing distance; boxes made every animal read like a crate on legs.
+  const barrel = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), hide);
   barrel.position.set(-0.08, 0.98, 0);
+  barrel.scale.set(0.68, 0.39, 0.4);
   barrel.castShadow = true;
-  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.66, 0.68), hide);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), hide);
   chest.position.set(0.55, 0.92, 0);
+  chest.scale.set(0.34, 0.38, 0.36);
   chest.castShadow = true;
-  const haunch = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.72, 0.7), hide);
+  const haunch = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), hide);
   haunch.position.set(-0.68, 1.0, 0);
+  haunch.scale.set(0.38, 0.42, 0.38);
   haunch.castShadow = true;
   bodyGroup.add(barrel, chest, haunch);
   bob.add(bodyGroup);
@@ -103,6 +108,13 @@ function buildCow(hide, dark) {
     const ear = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.08), hide);
     ear.position.set(0.02, 0.12, 0.16 * side);
     headGroup.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), dark);
+    eye.position.set(0.18, 0.055, 0.16 * side);
+    headGroup.add(eye);
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.22, 5), dark);
+    horn.position.set(-0.02, 0.17, 0.17 * side);
+    horn.rotation.x = side * Math.PI / 2;
+    headGroup.add(horn);
   }
   headGroup.add(skull, muzzle);
   neckGroup.add(headGroup);
@@ -127,14 +139,21 @@ function buildCow(hide, dark) {
   ]) {
     const hip = new THREE.Group();
     hip.position.set(lx, 0.78, lz);
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.66, 0.19), hide);
-    upper.position.y = -0.33;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.2), hide);
+    upper.position.y = -0.22;
     upper.castShadow = true;
-    const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.18), dark);
-    hoof.position.y = -0.72;
-    hip.add(upper, hoof);
+    const knee = new THREE.Group();
+    knee.position.y = -0.44;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.24, 0.16), hide);
+    lower.position.y = -0.12;
+    lower.castShadow = true;
+    const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.12, 0.2), dark);
+    hoof.position.set(0.035, -0.28, 0);
+    hoof.castShadow = true;
+    knee.add(lower, hoof);
+    hip.add(upper, knee);
     bob.add(hip);
-    parts.legs.push({ hip });
+    parts.legs.push({ hip, knee });
   }
 
   parts.bob = bob;
@@ -157,14 +176,17 @@ function buildSheep(wool, dark) {
   const parts = { legs: [] };
 
   const bodyGroup = new THREE.Group();
-  const fleece = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.62, 0.6), wool);
+  const fleece = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), wool);
   fleece.position.set(-0.02, 0.66, 0);
+  fleece.scale.set(0.53, 0.37, 0.36);
   fleece.castShadow = true;
-  const rump = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.54, 0.52), wool);
+  const rump = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), wool);
   rump.position.set(-0.52, 0.64, 0);
+  rump.scale.set(0.23, 0.3, 0.3);
   rump.castShadow = true;
-  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.5), wool);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), wool);
   chest.position.set(0.44, 0.62, 0);
+  chest.scale.set(0.22, 0.27, 0.27);
   chest.castShadow = true;
   bodyGroup.add(fleece, rump, chest);
   bob.add(bodyGroup);
@@ -181,6 +203,9 @@ function buildSheep(wool, dark) {
     const ear = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.06), dark);
     ear.position.set(0.04, 0.1, 0.11 * side);
     headGroup.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), dark);
+    eye.position.set(0.12, 0.085, 0.11 * side);
+    headGroup.add(eye);
   }
   headGroup.add(skull, muzzle);
   neckGroup.add(headGroup);
@@ -194,12 +219,19 @@ function buildSheep(wool, dark) {
   ]) {
     const hip = new THREE.Group();
     hip.position.set(lx, 0.5, lz);
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.5, 0.12), dark);
-    upper.position.y = -0.25;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.28, 0.11), dark);
+    upper.position.y = -0.14;
     upper.castShadow = true;
-    hip.add(upper);
+    const knee = new THREE.Group();
+    knee.position.y = -0.28;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.18, 0.095), dark);
+    lower.position.y = -0.09;
+    const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.07, 0.13), dark);
+    hoof.position.set(0.025, -0.18, 0);
+    knee.add(lower, hoof);
+    hip.add(upper, knee);
     bob.add(hip);
-    parts.legs.push({ hip });
+    parts.legs.push({ hip, knee });
   }
 
   parts.bob = bob;
@@ -222,14 +254,17 @@ function buildDeer(hide, dark, light, buck) {
   const parts = { legs: [] };
 
   const bodyGroup = new THREE.Group();
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.48, 0.42), hide);
+  const barrel = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), hide);
   barrel.position.set(-0.04, 0.92, 0);
+  barrel.scale.set(0.54, 0.28, 0.26);
   barrel.castShadow = true;
-  const haunch = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.52, 0.44), hide);
+  const haunch = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), hide);
   haunch.position.set(-0.52, 0.94, 0);
+  haunch.scale.set(0.31, 0.3, 0.28);
   haunch.castShadow = true;
-  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.5, 0.4), hide);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), hide);
   chest.position.set(0.42, 0.9, 0);
+  chest.scale.set(0.23, 0.28, 0.24);
   chest.castShadow = true;
   // The rump patch: a lighter plate on the rear face of the haunches.
   const rump = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.34, 0.3), light);
@@ -256,6 +291,9 @@ function buildDeer(hide, dark, light, buck) {
     ear.position.set(-0.04, 0.14, 0.09 * side);
     ear.rotation.x = 0.2 * side;
     headGroup.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 4), dark);
+    eye.position.set(0.13, 0.065, 0.105 * side);
+    headGroup.add(eye);
   }
   if (buck) {
     for (const side of [-1, 1]) {
@@ -289,12 +327,19 @@ function buildDeer(hide, dark, light, buck) {
   ]) {
     const hip = new THREE.Group();
     hip.position.set(lx, 0.72, lz);
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.72, 0.1), hide);
-    upper.position.y = -0.36;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.46, 0.1), hide);
+    upper.position.y = -0.23;
     upper.castShadow = true;
-    hip.add(upper);
+    const knee = new THREE.Group();
+    knee.position.y = -0.46;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.22, 0.08), dark);
+    lower.position.y = -0.11;
+    const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.12), dark);
+    hoof.position.set(0.025, -0.22, 0);
+    knee.add(lower, hoof);
+    hip.add(upper, knee);
     bob.add(hip);
-    parts.legs.push({ hip });
+    parts.legs.push({ hip, knee });
   }
 
   parts.bob = bob;
@@ -461,7 +506,11 @@ export function createLivestock() {
       a.phase += dt * (4.2 + sp * 1.1);
       const amp = Math.min(0.32, 0.14 + sp * 0.03);
       for (const [i, leg] of p.legs.entries()) {
-        leg.hip.rotation.z = Math.sin(a.phase - WALK_PHASE[i] * Math.PI * 2) * amp;
+        const swing = Math.sin(a.phase - WALK_PHASE[i] * Math.PI * 2);
+        leg.hip.rotation.z = swing * amp;
+        // Fold the lifted lower leg through recovery; the planted half stays
+        // straight so new articulated legs still meet the ground cleanly.
+        leg.knee.rotation.z = -Math.max(0, swing) * (0.34 + amp * 0.6);
       }
       p.bob.position.y = Math.abs(Math.sin(a.phase)) * (0.015 + sp * 0.004);
       p.bob.rotation.z = 0;
@@ -469,6 +518,7 @@ export function createLivestock() {
       const settle = Math.min(1, dt * 5);
       for (const leg of p.legs) {
         leg.hip.rotation.z *= 1 - settle;
+        leg.knee.rotation.z *= 1 - settle;
       }
       p.bob.position.y = Math.sin(a.grazeT * 1.6) * 0.004;
       p.bob.rotation.z *= 1 - settle;
