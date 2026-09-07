@@ -222,8 +222,13 @@ export function createPlayer(camera) {
     state.pitch = Math.max(WALK_PITCH_MIN, Math.min(WALK_PITCH_MAX, state.pitch));
     setFacing(state.yaw);
 
+    // mud arrives as the weather's movementMulAt function (main.js); resolve
+    // it once here — a number must never reach the speed math below as a
+    // multiplier, or walk speed goes NaN and the player freezes.
+    const mudMul = typeof mud === "function" ? mud(object.position.x, object.position.z) : (mud ?? 1);
+
     if (state.mounted && horse) {
-      horse.update(dt, input, state.yaw, mud ? mud(object.position.x, object.position.z) : 1);
+      horse.update(dt, input, state.yaw, mudMul);
       // Seat the figure on the horse's back: hips at RIDE_SEAT means the
       // avatar origin rides RIDE_SEAT - RIDE_HIPS above the horse's ground.
       object.position.set(
@@ -247,7 +252,7 @@ export function createPlayer(camera) {
       if (moving) {
         wish.normalize();
       }
-      const max = (input.held("sprint") ? 6.2 : 3.4) * tune.speed * (mud ?? 1);
+      const max = (input.held("sprint") ? 6.2 : 3.4) * tune.speed * mudMul;
       const accel = (moving ? 14 : 16) * tune.speed;
       const target = moving ? max : 0;
       state.speed += (target - state.speed) * Math.min(1, accel * dt);

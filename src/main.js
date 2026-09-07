@@ -2188,13 +2188,17 @@ async function boot() {
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above. The
-    // fourth arg is the weather mud multiplier (roads turn to mud first).
+    // fourth arg is the weather mud multiplier FUNCTION: livestock calls it
+    // per animal (the rig group is its mud-cache key). The player gets a
+    // resolved NUMBER below — a function in the player's speed math goes NaN
+    // and freezes walk mode (src/player.js resolves defensively too).
     livestock.update(dt, camera.position, player.object.position, weather.movementMulAt);
     // Riders and buggies work the roads on the same ambient clock as the
     // stock and the settlers above.
     traffic.update(dt, camera.position);
     if (started && !talking && !debug.isOpen()) {
-      player.update(dt, input, horse, weather.movementMulAt);
+      const mudMul = weather.movementMulAt(player.object.position.x, player.object.position.z);
+      player.update(dt, input, horse, mudMul);
       // Arrival stages complete by proximity the instant you stand in them.
       // The autosave keys off the stage delta, not off the event: an arrival
       // whose next stage carries no entrance event legitimately returns null.
