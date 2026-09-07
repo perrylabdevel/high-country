@@ -327,7 +327,7 @@ button {
   color: #e8c36a;
 }
 #debug-panel {
-  width: 248px;
+  width: 292px;
   padding: 10px 12px 8px;
   z-index: 6;
 }
@@ -347,6 +347,22 @@ button {
   line-height: 1.2;
   background: transparent;
   border-color: #6a4e32;
+}
+#debug-panel .debug-section {
+  margin: 10px 0 2px;
+  color: #c4a36a;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(106, 78, 50, 0.5);
+  padding-bottom: 2px;
+}
+#debug-panel .debug-section:first-of-type {
+  margin-top: 4px;
+}
+#debug-panel button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 #debug-panel .debug-row {
   display: flex;

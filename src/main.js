@@ -680,6 +680,25 @@ async function boot() {
       // the pinning that matters, not the number.
       window.__pinClock(on ? CAPTURE_CLOCK : null);
     };
+    // Tester HUD: the diagnostics that only exist under ?dev register here,
+    // in the same block that owns their window.__ hooks.
+    debug.setTester({
+      navOverlay: (on) => window.__navOverlay(on),
+      groundLines: (on) => window.__groundLines(on),
+      grassPins: (on) => window.__grassPins(on),
+      terrainView: (view) => {
+        materialSettings.debugView = view;
+        syncTerrainUniforms();
+      },
+      terrainViewNow: () => materialSettings.debugView,
+      pinClock: (on) => window.__pinClock(on ? CAPTURE_CLOCK : null),
+      devMount: (on) => window.__devMount(on),
+      // player is created further down boot (the trap __devMount's own
+      // comments warn about) — guards are mandatory in getters the frame
+      // loop paints from.
+      mounted: () => Boolean(player && player.state.mounted)
+    });
+
     // True once the amortised ground-cover scatter has caught up with the
     // camera. Capture tooling waits on this: the scatter spans ~73 frames on
     // the high tier, so a screenshot straight after a jump shows the previous
@@ -833,6 +852,29 @@ async function boot() {
   horse = createHorse();
   scene.add(horse.object);
 
+  // Tester HUD (backtick panel): quick toggles registered as plain closures,
+  // so they work with or without ?dev. The ?dev-only diagnostics register
+  // inside the dev blocks below, next to the window.__ hooks they wrap.
+  debug.setTester({
+    weather: (s) => weather.force(s),
+    weatherState: () => weather.state(),
+    hideGrass: (on) => window.__hideGrass(on),
+    soloGrass: (name) => vegetation.soloGrass(name, camera.position),
+    speciesNames: () => vegetation.grassSpecies,
+    speciesColour: (mode) => vegetation.debugSpeciesColour(mode),
+    windOff: (on) => {
+      // weather.update() rewrites the wind uniforms every frame, so "wind
+      // off" freezes the sim (the A/B kill switch the frame loop reads at
+      // the weather.update call) and zeroes the amplitudes once.
+      window.__weatherOff = on;
+      if (on) {
+        vegetation.windStrength.value = 0;
+        vegetation.gustStrength.value = 0;
+      }
+    },
+    windOffNow: () => Boolean(window.__weatherOff)
+  });
+
   // The nav graph prices every edge against the real world, so it builds
   // once the colliders exist (check-approaches dry-builds in this same
   // order; a graph built before createIndustry would price all its collider
@@ -953,6 +995,9 @@ async function boot() {
     // the seeded state machine. Envelopes settle over ~0.5 s.
     window.__weatherForce = (s) => weather.force(s);
     window.__weatherState = () => weather.state();
+    // Probes assert the force/release pair against this: force() pins the
+    // machine, force(null) hands it back to the seeded rolls.
+    window.__weatherPinned = () => weather.serialize().pinned;
     window.__grassMips = (on) => vegetation.debugGrassMips(on);
     /**
      * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
@@ -1055,6 +1100,10 @@ async function boot() {
 
     const xray = createXray(scene);
     window.__xray = (n) => xray.setMode(n);
+    debug.setTester({
+      xrayCycle: () => xray.cycle(),
+      xrayMode: () => xray.mode()
+    });
 
     /**
      * Compare each tuft against the terrain AS RENDERED, at its own (x, z).

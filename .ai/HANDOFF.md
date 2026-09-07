@@ -2,7 +2,37 @@
 
 Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
 
-## Latest checkpoint — 2026-09-07
+## Latest checkpoint — 2026-09-07 (tester HUD)
+
+- Built the tester quick-toggle HUD into the backtick debug panel
+  (`src/debug.js`): sectioned rows for Weather (6 states + Auto release,
+  active button tracks the live `weather.state()`), Overlays (Nav,
+  Ground lines, Grass pins, X-ray cycle), Terrain view (final/weights/
+  road/normal/slope), Pin clock 12:00, Grass (Hide grass, Species colour
+  cycle, Solo species select, Wind off), Movement (Mount). Toggle actions
+  are registered from `main.js` as plain closures via `debug.setTester()`
+  — boot-scope ones (weather, grass) work without ?dev; ?dev-only
+  diagnostics register inside the dev blocks and render disabled without
+  it. No `window.__` indirection in the UI.
+- Fixes made along the way: hide-grass now persists across tile replants
+  (`vegetation.js` — `hidden` flag read by the plant path; the flag lives
+  outside the window guard; no-arg `__hideGrass()` is now a read-only
+  query); `window.__weatherOff` is now actually assigned (Wind off
+  freezes the weather sim + zeroes wind uniforms); `window.__weatherPinned`
+  added for probes; a pre-player `mounted()` getter crashed boot and is
+  guarded.
+- New probe `scripts/probe-tester-panel.mjs` (single in-page evaluate;
+  headless falls back to WebGL2 software rendering, where per-call
+  round-trips are seconds slow — do NOT leave browsers open on throw, the
+  finally-close is load-bearing). Verified: sections present, no disabled
+  buttons under ?dev, Storm forces+pins, Auto releases the pin, Hide grass
+  zeroes the scatter count and restores it. PROBE PASSED.
+- Serial verification: `npm run build` green; `npm run check` 26/26 PASS
+  (21.6 s idle). One earlier nav-graph timing failure was machine load
+  from an orphaned probe browser, not a regression.
+- Nothing committed or pushed. The road-rut checkpoint below stands.
+
+## Previous checkpoint — 2026-09-07
 
 - Completed the road terrain refinement and query optimization. Coarse road
   cells use a 25x25 fine triangle mesh with shared `meshHeightAt`/`heightAt`

@@ -2337,6 +2337,12 @@ export function createVegetation(scene, maps = {}) {
   // Every live grass tile, rebuilt whenever residency changes. Kept as a flat
   // array so the per-frame pass does not walk eight Maps.
   let grassTiles = [];
+  // Declared beside the tile state, ahead of the plant path that reads it:
+  // plantAllTiles runs inside createVegetation, before the window.__hideGrass
+  // hook that writes it is even defined (HARD_WON-adjacent TDZ trap). Outside
+  // the window guard below so the plant path can honour it — without that,
+  // hiding then walking lets newly planted tiles pop back in visible.
+  let hidden = false;
   // Tiles waiting to be built or still mid-build, nearest first.
   let grassQueue = [];
   /**
@@ -3234,7 +3240,7 @@ export function createVegetation(scene, maps = {}) {
       new THREE.Vector3(cx, heightAt(cx, cz), cz),
       Math.hypot(half, half) + 40
     );
-    body.mesh.visible = tile.slot > 0;
+    body.mesh.visible = tile.slot > 0 && !hidden;
     g = grassTiles.reduce((sum, t) => sum + t.count, 0);
   }
 
@@ -3817,13 +3823,17 @@ export function createVegetation(scene, maps = {}) {
   // Stand still between the two shots. A tile that leaves range and comes
   // back is rebuilt, which restores its count.
   //
+  // Hiding is a visibility flag on the live tiles, not a saved count: tiles
+  // come and go, so a count saved against one residency set would be restored
+  // onto a different one.
   // Guarded because the headless checks import this module with no window.
   if (typeof window !== "undefined") {
-    // Hiding is a visibility flag on the live tiles, not a saved count: tiles
-    // come and go, so a count saved against one residency set would be
-    // restored onto a different one.
-    let hidden = false;
+    // No argument reads without mutating: probe scripts can assert the hide
+    // state without toggling it off by accident.
     window.__hideGrass = (on) => {
+      if (on === undefined) {
+        return hidden ? 0 : grassTiles.reduce((sum, t) => sum + t.count, 0);
+      }
       hidden = Boolean(on);
       for (const tile of grassTiles) {
         if (tile.body) {
