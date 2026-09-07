@@ -2,7 +2,7 @@
 import * as THREE from "three/webgpu";
 import { normalAt as sampleNormal } from "./heightfield.js";
 
-export { WORLD, heightAt, bakeHeightfield } from "./heightfield.js";
+export { WORLD, heightAt, meshHeightAt, roadRefinedCell, roadRutHeight, ROAD_SUBDIVISIONS, bakeHeightfield } from "./heightfield.js";
 
 function noise(x, y) {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;

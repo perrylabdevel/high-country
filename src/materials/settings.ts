@@ -153,11 +153,20 @@ export const materialSettings = {
   //    is not visibly deeper — the headroom is free.
   //  - rutWobble — how far traffic wanders off the centreline, in meters
   rutOffset: 0.9,
-  rutWidth: 0.3,
+  // A tighter groove keeps the two wheel paths legible at eye level; the
+  // previous 30 cm Gaussian spread into one broad diffuse band.
+  rutWidth: 0.24,
   rutDepth: 0.35,
   rutWobble: 0.15,
-  rutReliefMeters: 0.12,
+  // The physical heightfield supplies the main depression. Keep only a small
+  // fragment-normal lift; stronger values differentiate the 1.95 m splat
+  // texel boundaries and create visible cross-banding.
+  rutReliefMeters: 0.05,
   roadRoughnessMin: 0.82,
+  // Ground wetness, 0 = dry. Written by the weather system (src/weather/
+  // weather.js) through syncTerrainUniforms as rain soaks the ground; the
+  // panel exposes it so the wet look can be A/B'd against the dry baseline.
+  groundWetness: 0,
   debugView: 0,
   waterShallow: 0x508d8b,
   waterDeep: 0x183f50,

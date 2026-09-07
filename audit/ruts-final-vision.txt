@@ -1,0 +1,7 @@
+VISION_ANALYSIS
+
+- Wheel grooves read as dry, recessed dirt with a raised center crown across all three locations. The effect is clearest in the stage eye/detail and cabinTrail detail frames, where darker parallel depressions flank a lighter central strip.
+- No slick oil/tar sheen remains. Road surfaces are matte and granular in both lighting conditions; golden light adds warm/pink coloration but no specular streaking or wet-looking reflections.
+- Stage: Midday frames show broad, subtle groove bands and a center crown, with visible coarse tonal/splat patching across the foreground. Golden frames preserve the dry relief; low-resolution tonal banding is more noticeable because of the warm color grading.
+- townMain: The road reads mostly flat and dry, with shallow recessed tracks and a weak center crown. No oil sheen is visible. Broad splat mottling is present, but obvious geometry striping/banding is limited; the strongest stair-stepping is along the dock and building edges rather than the road.
+- cabinTrail: Grooves and center crown are most legible, especially in the detail views, with darker wheel paths and a lighter raised middle. The surface remains matte in both lights. Low-resolution splat/geometry transitions are visible as broad longitudinal patches and stepped grass-road edges, particularly in the foreground detail frames.

@@ -1,0 +1,7 @@
+Verdict: Yes. `townMain` now visibly shows two longitudinal, physically recessed wheel ruts in both eye and detail views, under both midday and golden light. The relief remains readable through changing illumination, especially in the foreground and along the deck edge.
+
+- No broad artificial stripe dominates the road.
+- No tar-like sheen is visible.
+- No obvious texture banding or chunk seams.
+- No prominent cracks are present.
+- The ruts look somewhat soft and weathered rather than sharply carved, but they read as geometry/relief rather than a flat painted effect.

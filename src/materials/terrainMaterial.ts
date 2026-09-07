@@ -20,8 +20,6 @@ import {
   uniform,
   pow,
   positionWorld,
-  positionView,
-  normalView,
   normalWorld,
   cameraPosition,
   mx_noise_float,
@@ -72,6 +70,7 @@ const NUMERIC_KEYS = [
   "rutWobble",
   "rutReliefMeters",
   "roadRoughnessMin",
+  "groundWetness",
   "farGrassStart",
   "farGrassEnd",
   "farGrassGain",
@@ -102,17 +101,6 @@ export function rutReliefHeight(band: Node<"float">, lip: Node<"float">, strengt
   return lip.mul(0.18).sub(band).mul(strength).mul(u.rutReliefMeters);
 }
 
-function reliefNormal(height: Node<"float">, detailNormal: Node<"vec3">) {
-  const dx = positionView.dFdx();
-  const dy = positionView.dFdy();
-  const rx = dy.cross(normalView);
-  const ry = normalView.cross(dx);
-  const det = dx.dot(rx);
-  const gradient = rx.mul(height.dFdx()).add(ry.mul(height.dFdy()))
-    .mul(det.sign().div(det.abs().max(1e-8)));
-  return detailNormal.sub(gradient).normalize();
-}
-
 function dummyLinear(r: number, g: number, b: number): THREE.DataTexture {
   const tex = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1);
   tex.colorSpace = THREE.NoColorSpace;
@@ -131,11 +119,25 @@ function sampleOrmNormal(set: LoadedSet, uvNode: ReturnType<typeof worldUv>) {
   const nrm = texture(set.normal ?? FLAT_NORMAL, uvNode);
   const orm = texture(set.orm ?? FLAT_ORM, uvNode);
   return {
-    normal: nrm.rgb,
+    // PlaneGeometry is rotated -PI/2, so its UV bitangent points toward -Z
+    // while worldUv's V axis points toward +Z. Flip the OpenGL normal green
+    // channel before TBN reconstruction to keep relief oriented correctly.
+    normal: vec3(nrm.r, nrm.g.oneMinus(), nrm.b),
     ao: orm.r,
     rough: orm.g,
     height: orm.b
   };
+}
+
+/** Decode the signed lateral offset packed into B on a road splat. */
+export function normalizedRoadLateral(road: Node<"float">, packed: Node<"float">) {
+  return packed.div(road.max(float(0.001))).sub(0.5).mul(4);
+}
+
+export function decodeRoadLateral(road: Node<"float">, packed: Node<"float">) {
+  const legacy = packed.sub(0.5).mul(4);
+  const normalized = normalizedRoadLateral(road, packed);
+  return mix(legacy, normalized, smoothstep(float(0.2), float(0.7), road));
 }
 
 function twoScaleAlbedo(set: LoadedSet, tiling: FloatUniform, near: Node<"float">, useTwoScale: boolean) {
@@ -244,7 +246,10 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   // enter as rock, and the rock layer then won the height blend on every
   // road, displacing the gravel the ruts darken. Strip the packed lateral
   // term: off-road A≈0 and this is just B again.
-  const lat = splat.b.sub(0.5).mul(4);
+  // B packs rock + latNorm*road. Normalize by A on narrow trails; the old
+  // (B-.5)*4 decode skewed the signed offset toward centre as A fell below 1.
+  // Keep the legacy value off-road, where B is ordinary rock.
+  const lat = decodeRoadLateral(splat.a, splat.b);
   const rockFromSplat = splat.b.sub(lat.mul(0.25).add(0.5).mul(splat.a)).max(float(0));
   const rockW = max(rockFromSplat, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
   const gravelW = roadMask.toVar();
@@ -357,6 +362,15 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const strata = smoothstep(float(0.25), float(0.75), strataBand).sub(0.5).mul(0.55);
   const rockShare = rC.div(sum).mul(near).toVar();
   const color = albedo.mul(ao).mul(macro).mul(biome).mul(u.albedoGain).mul(rockShare.mul(strata).add(1));
+  // Wet ground (weather writes u.groundWetness through syncTerrainUniforms):
+  // rain-darkened albedo and lowered roughness, applied AFTER the layer
+  // assembly rather than inside roadRoughness — that path clamps with
+  // .max(roadRoughnessMin), and the floor must not re-apply to wet ground.
+  // Sitting after the rut albedo product is also what makes the grooves read
+  // as water-filled tracks for free. Multiplies downward only, so
+  // check-roads' groove-clip assertion is untouched.
+  const wetColor = color.mul(mix(vec3(1), vec3(0.8, 0.78, 0.76), u.groundWetness));
+  const wetRough = rough.mul(float(1).sub(u.groundWetness.mul(0.55)));
 
   const weightsRgb = vec3(gC.div(sum), dC.div(sum), rC.div(sum));
   const roadRgb = vec3(roadMask, rut, splat.a);
@@ -377,10 +391,12 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
     metalness: 0.02,
     roughness: 0.9
   });
-  mat.colorNode = select(isDebug, vec3(0, 0, 0), color);
+  mat.colorNode = select(isDebug, vec3(0, 0, 0), wetColor);
   mat.emissiveNode = select(isDebug, debugColor, vec3(0, 0, 0));
-  mat.roughnessNode = rough;
+  mat.roughnessNode = wetRough;
   mat.metalnessNode = float(0.02);
-  mat.normalNode = reliefNormal(rutHeight.mul(vC.div(sum)), normalMap(nrm, vec2(near.mul(u.detailQ), near.mul(u.detailQ))));
+  // Wheel ruts are geometric terrain now; derivative relief from the coarse
+  // splat recreated visible cell banding. Keep only the authored texture normal.
+  mat.normalNode = normalMap(nrm, vec2(near.mul(u.detailQ), near.mul(u.detailQ)));
   return mat;
 }

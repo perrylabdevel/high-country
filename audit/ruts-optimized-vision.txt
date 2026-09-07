@@ -1,0 +1,29 @@
+## Overall verdict
+
+All captures read as dry, matte dirt roads. No broad painted stripe, tar-like sheen, obvious texture banding, or visible cracking appears. Fine road geometry does not introduce visible seams.
+
+The wheel ruts are most legible on cabinTrail, moderately visible on stage, and largely indeterminate on townMain because the views show a broad street/courtyard and are partially occluded.
+
+### stage
+
+- **Eye/detail, midday:** Broad pale dirt surface with subtle darker wheel-track depressions and irregular wear. Matte response; no stripe or sheen.
+- **Eye/detail, golden:** Same road structure under warm lighting. The pink-brown tint is consistent with illumination, not a painted band.
+- **Geometry:** No tiling seams or hard transitions visible.
+- **Metadata:** Approximately 563–569 draws, 6.69–6.71M tris, 47–50 textures, 163–227MB. No runtime/WebGPU error text visible.
+
+### townMain
+
+- **Eye, midday:** Road surface reads as dry dirt, though the central foreground is dominated by a large dark vehicle/object and the wheel-rut structure is not assessable.
+- **Detail, midday:** Street surface appears mostly broad and flat, with natural mottling rather than two clearly recessed ruts.
+- **Eye/detail, golden:** Warm lighting changes the dirt toward mauve-brown but does not create a stripe or reflective coating. Ruts remain weak or obscured.
+- **Geometry:** No visible seams, cracks, or repeating bands.
+- **Metadata:** Approximately 315–330 draws, 6.71–6.72M tris, 44–47 textures, 163–227MB. No runtime/WebGPU error text visible.
+
+### cabinTrail
+
+- **Eye/detail, midday:** Clearest road example. Two darker longitudinal wheel paths and a lighter raised center/shoulder area give the road a convincing recessed-rut read.
+- **Eye/detail, golden:** Rut shading remains visible and coherent under warm light. The surface stays matte; no tar sheen or painted strip appears.
+- **Geometry:** No visible seams across the fine road geometry. The irregular grass boundary is visible but does not expose road mesh tiling.
+- **Metadata:** Approximately 235–274 draws, 7.13–7.16M tris, 44–47 textures, 163–227MB. No runtime/WebGPU error text visible.
+
+Performance overlays do show severe golden-light frame-rate drops in detail views—especially townMain and cabinTrail—but these are performance readings, not visible runtime/WebGPU errors.

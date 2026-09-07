@@ -1,0 +1,7 @@
+VISION_ANALYSIS
+
+Town: Dry dirt reads correctly with a loose, bright crown and no oil/tar sheen or painted stripe. Two wheel paths are visible, especially in the detail frame, but their recession is subtle and mostly expressed through tire texture/shadow rather than clearly defined grooves. The broad town road supports two ruts, yet the center remains relatively flat and the rut relief could be stronger.
+
+Trail: Behavior is more convincing. The narrow road has a bright crowned center with two naturally darker, gently recessed wheel tracks, varied surface texture, and no artificial sheen or stripe. Relief remains subtle but appropriate for the narrower path.
+
+Remaining defect: Town ruts need slightly clearer geometric depression and separation; avoid increasing darkness alone, since the current lighting and material response are otherwise natural.

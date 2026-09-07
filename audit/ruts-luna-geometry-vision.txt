@@ -1,0 +1,9 @@
+VISION_ANALYSIS
+
+1. The road shows a convincing longitudinal two-groove rut pattern with a raised central crown, especially in the eye-level frames. The depression is subtle but reads as geometry rather than only colour variation.
+
+2. Noticeable horizontal/longitudinal banding remains across the rut floors and some edges under both midday and golden lighting. It appears as repetitive fine striping/texture interference, strongest in the foreground detail views.
+
+3. The material reads predominantly dry and matte. Surface normals provide useful relief, but the repeated patterned response makes them look somewhat synthetic rather than fully natural.
+
+4. No clear tar sheen or painted road stripes are visible. Dark tracks appear to be dirt/rut shading and relief, not glossy asphalt or markings.

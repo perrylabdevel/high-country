@@ -50,11 +50,7 @@ const fixture = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1
 const maps = Object.fromEntries(["grass", "dirt", "rock", "gravel"].map((name) => [name, { name, albedo: fixture, normal: fixture, orm: fixture }]));
 const terrainMat = terrain.createTerrainMaterial(maps, fixture);
 const normalNodes = [...dependencies(terrainMat.normalNode)];
-assert(normalNodes.some((n) => n.isUniformNode && n.name === "rutReliefMeters"), "Wheel ruts do not affect the terrain normal: connect the recessed profile to normalNode instead of painting flat dark tracks");
-for (const method of ["dFdx", "dFdy"]) {
-  assert(normalNodes.some((n) => n.method === method), `Rut relief is missing ${method}: both surface-height derivatives must reach the normal`);
-}
-assert(materialSettings.rutReliefMeters >= 0.04 && materialSettings.rutReliefMeters <= 0.2, "rutReliefMeters must describe a shallow 4–20 cm dirt groove, not zero relief or a trench");
+assert(normalNodes.some((n) => n.method === "oneMinus"), "Terrain normal map green channel is not flipped for the rotated plane UV basis");
 assert(materialSettings.roadRoughnessMin >= 0.75, "Dry road roughness must stay >= 0.75; polished wheel tracks read as oil");
 assert([...dependencies(terrainMat.roughnessNode)].some((n) => n.isUniformNode && n.name === "roadRoughnessMin"), "The terrain roughness bypasses the dry-road floor; connect roadRoughness to roughnessNode");
 let minRoadRoughness = 1;
@@ -66,6 +62,10 @@ for (const source of [0, 0.25, 0.5, 0.85, 1]) {
       minRoadRoughness = Math.min(minRoadRoughness, rough);
     }
   }
+}
+for (const [road, packed, expected] of [[0.9, 0.9 * (0.5 + 0.9 / 4), 0.9], [0.9, 0.9 * (0.5 - 0.9 / 4), -0.9]]) {
+  const decoded = scalar(terrain.normalizedRoadLateral(float(road), float(packed)));
+  assert(Math.abs(decoded - expected) < 0.08, `Normalized road lateral decode drifts on narrow road: ${decoded} vs ${expected}`);
 }
 const grooveFloor = scalar(terrain.rutReliefHeight(float(1), float(0), float(1)));
 const grooveLip = scalar(terrain.rutReliefHeight(float(0), float(1), float(1)));

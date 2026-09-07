@@ -94,6 +94,9 @@ export function createMaterialPanel(options: {
   folders.roads.add(materialSettings, "rutWobble", 0, 0.6, 0.01).name("rut wobble").onChange(onTerrain);
   folders.roads.add(materialSettings, "rutReliefMeters", 0, 0.2, 0.005).name("rut relief (m)").onChange(onTerrain);
   folders.roads.add(materialSettings, "roadRoughnessMin", 0.75, 1, 0.01).name("dry roughness").onChange(onTerrain);
+  // Wet-ground A/B dial. The weather system writes this key as rain soaks in;
+  // dragging it here shows the same look without waiting for the sky.
+  folders.roads.add(materialSettings, "groundWetness", 0, 1, 0.01).name("ground wetness").onChange(onTerrain);
 
   folders.water = gui.addFolder("Water");
   folders.water.addColor(materialSettings, "waterShallow").name("shallow").onChange(onWater);
