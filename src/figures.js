@@ -51,6 +51,13 @@ export function createFigure({
   const skinMat = mat(skin, SKIN_ROUGHNESS);
   const shirtMat = mat(shirt);
   const pantsMat = mat(pants);
+  // These are deliberately small, high-contrast details. At the camera
+  // distances where a figure is only a few pixels tall, a face, collar and
+  // vest edge communicate a person far better than another broad colour
+  // block does.
+  const leatherMat = mat(boots, 0.78);
+  const eyeMat = mat(0x18120e, 0.68);
+  const metalMat = mat(0xb29a6c, 0.48);
 
   const parts = {};
 
@@ -62,8 +69,10 @@ export function createFigure({
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15 * s, 0.9 * s, 0.17 * s), pantsMat);
     leg.position.y = -0.46 * s;
     leg.castShadow = true;
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.17 * s, 0.15 * s, 0.21 * s), mat(boots));
-    boot.position.set(0, -0.85 * s, 0.02 * s);
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.17 * s, 0.15 * s, 0.24 * s), leatherMat);
+    // The toe projects toward local +Z, the same direction as the figure's
+    // face. It gives a planted foot rather than a pair of square stilts.
+    boot.position.set(0, -0.85 * s, 0.04 * s);
     boot.castShadow = true;
     hip.add(leg, boot);
     hip.rotation.z = 0.03 * side; // a hair of stance
@@ -82,18 +91,32 @@ export function createFigure({
   chest.castShadow = true;
   torso.add(chest);
   if (vest) {
-    const vestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45 * s, 0.4 * s, 0.27 * s), mat(vest));
-    vestMesh.position.y = 1.18 * s;
+    const vestMat = mat(vest);
+    // A front panel keeps the shirt visible at the shoulders and sides; the
+    // old solid cuboid read as a second, featureless torso.
+    const vestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42 * s, 0.42 * s, 0.035 * s), vestMat);
+    vestMesh.position.set(0, 1.18 * s, 0.137 * s);
     vestMesh.castShadow = true;
     torso.add(vestMesh);
+    for (const side of [-1, 1]) {
+      const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.09 * s, 0.24 * s, 0.045 * s), leatherMat);
+      lapel.position.set(0.105 * s * side, 1.29 * s, 0.158 * s);
+      lapel.rotation.z = -0.24 * side;
+      torso.add(lapel);
+    }
+    for (const y of [1.19, 1.1]) {
+      const button = new THREE.Mesh(new THREE.SphereGeometry(0.023 * s, 6, 4), metalMat);
+      button.position.set(0, y * s, 0.17 * s);
+      torso.add(button);
+    }
   }
   const belt = new THREE.Mesh(new THREE.BoxGeometry(0.46 * s, 0.07 * s, 0.28 * s), mat(0x1f150e));
   belt.position.y = 0.94 * s;
   torso.add(belt);
   if (skirt) {
-    // A full skirt: one tapered box from hip to mid-shin, a gentle sway in
-    // update() stands in for the stride the hidden legs no longer show.
-    const skirtMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46 * s, 0.78 * s, 0.34 * s), pantsMat);
+    // A four-panel taper gives the skirt a real hem silhouette while keeping
+    // the low-poly language and the existing single sway joint.
+    const skirtMesh = new THREE.Mesh(new THREE.ConeGeometry(0.31 * s, 0.76 * s, 4), pantsMat);
     skirtMesh.position.y = 0.56 * s;
     skirtMesh.castShadow = true;
     torso.add(skirtMesh);
@@ -112,6 +135,9 @@ export function createFigure({
     const hand = new THREE.Mesh(new THREE.BoxGeometry(0.09 * s, 0.1 * s, 0.1 * s), skinMat);
     hand.position.y = -0.56 * s;
     shoulder.add(sleeve, hand);
+    const cuff = new THREE.Mesh(new THREE.BoxGeometry(0.125 * s, 0.055 * s, 0.135 * s), leatherMat);
+    cuff.position.y = -0.48 * s;
+    shoulder.add(cuff);
     shoulder.rotation.z = -0.06 * side;
     bob.add(shoulder);
     parts[side < 0 ? "armL" : "armR"] = shoulder;
@@ -126,13 +152,29 @@ export function createFigure({
   head.position.y = 0.19 * s;
   head.castShadow = true;
   headGroup.add(neck, head);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.125 * s, 0.115 * s, 0.055 * s, 8), shirtMat);
+  collar.position.y = -0.035 * s;
+  headGroup.add(collar);
+  // Front is local +Z. Tiny inset eyes and nose survive the broad-brim
+  // silhouette without turning the kit into a high-detail portrait system.
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.035 * s, 0.032 * s, 0.018 * s), eyeMat);
+    eye.position.set(0.065 * s * side, 0.23 * s, 0.134 * s);
+    headGroup.add(eye);
+  }
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.035 * s, 0.045 * s, 0.025 * s), skinMat);
+  nose.position.set(0, 0.17 * s, 0.138 * s);
+  headGroup.add(nose);
   if (hatStyle === "hat") {
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.3 * s, 0.3 * s, 0.035 * s, 10), mat(hat));
+    const hatMat = mat(hat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.3 * s, 0.3 * s, 0.035 * s, 10), hatMat);
     brim.position.y = 0.32 * s;
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.19 * s, 0.15 * s, 10), mat(hat));
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.19 * s, 0.15 * s, 10), hatMat);
     crown.position.y = 0.4 * s;
     crown.castShadow = true;
-    headGroup.add(brim, crown);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.193 * s, 0.193 * s, 0.025 * s, 10), leatherMat);
+    band.position.y = 0.355 * s;
+    headGroup.add(brim, crown, band);
   } else if (hatStyle === "hair") {
     const cap = new THREE.Mesh(new THREE.BoxGeometry(0.26 * s, 0.12 * s, 0.27 * s), mat(hair, 0.9));
     cap.position.y = 0.31 * s;

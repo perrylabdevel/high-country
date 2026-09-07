@@ -111,8 +111,20 @@ function buildMount(hide, hideDark, dark) {
     const ear = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.13, 0.05), hideDark);
     ear.position.set(-0.02, 0.17, 0.08 * side);
     headGroup.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 4), dark);
+    eye.position.set(0.15, 0.07, 0.115 * side);
+    const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.25, 0.03), hideDark);
+    cheek.position.set(0.17, -0.01, 0.135 * side);
+    const rein = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.024, 0.024), hideDark);
+    rein.position.set(-0.11, 0.13, 0.19 * side);
+    rein.rotation.z = 0.15;
+    headGroup.add(eye, cheek, rein);
   }
-  headGroup.add(skull, muzzle);
+  const browband = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.3), hideDark);
+  browband.position.set(0.06, 0.11, 0);
+  const noseband = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.24), hideDark);
+  noseband.position.set(0.32, -0.04, 0);
+  headGroup.add(skull, muzzle, browband, noseband);
   neckGroup.add(headGroup);
   neckGroup.rotation.z = -0.15;
   bob.add(neckGroup);
@@ -137,14 +149,21 @@ function buildMount(hide, hideDark, dark) {
   ]) {
     const hip = new THREE.Group();
     hip.position.set(lx, 1.0, lz);
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.88, 0.17), hide);
-    upper.position.y = -0.44;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.52, 0.17), hide);
+    upper.position.y = -0.26;
     upper.castShadow = true;
+    const knee = new THREE.Group();
+    knee.position.y = -0.52;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.14), dark);
+    lower.position.y = -0.15;
+    lower.castShadow = true;
     const hoof = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.11, 0.16), dark);
-    hoof.position.y = -0.94;
-    hip.add(upper, hoof);
+    hoof.position.set(0.02, -0.425, 0);
+    hoof.castShadow = true;
+    knee.add(lower, hoof);
+    hip.add(upper, knee);
     bob.add(hip);
-    legs.push({ hip });
+    legs.push({ hip, knee });
   }
 
   return { mount, bob, legs, tail: tailGroup, backY: 1.42 };
@@ -158,7 +177,14 @@ function buildWheel(iron, radius, x, z, y) {
   // the buggy (X) so the hub group's rotation.x is the rolling spin.
   tire.rotation.z = Math.PI / 2;
   tire.castShadow = true;
-  hub.add(tire);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.17, radius * 0.17, 0.14, 8), iron);
+  axle.rotation.z = Math.PI / 2;
+  for (const turn of [0, Math.PI / 2]) {
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.055, radius * 1.55, 0.05), iron);
+    spoke.rotation.x = turn;
+    hub.add(spoke);
+  }
+  hub.add(tire, axle);
   return hub;
 }
 
@@ -348,7 +374,9 @@ export function createTraffic() {
       t.phase += dt * (4.2 + sp * 1.1);
       const amp = Math.min(0.34, 0.14 + sp * 0.035);
       for (const [i, leg] of m.legs.entries()) {
-        leg.hip.rotation.z = Math.sin(t.phase - WALK_PHASE[i] * Math.PI * 2) * amp;
+        const swing = Math.sin(t.phase - WALK_PHASE[i] * Math.PI * 2);
+        leg.hip.rotation.z = swing * amp;
+        leg.knee.rotation.z = -Math.max(0, swing) * (0.34 + amp * 0.55);
       }
       m.bob.position.y = Math.abs(Math.sin(t.phase)) * 0.02;
       m.mount.rotation.z = Math.sin(t.phase) * 0.02;
@@ -356,6 +384,7 @@ export function createTraffic() {
       const settle = Math.min(1, dt * 5);
       for (const leg of m.legs) {
         leg.hip.rotation.z *= 1 - settle;
+        leg.knee.rotation.z *= 1 - settle;
       }
       m.bob.position.y *= 1 - settle;
       m.mount.rotation.z *= 1 - settle;

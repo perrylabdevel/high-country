@@ -45,6 +45,9 @@ export function createHorse() {
   const hide = new THREE.MeshStandardNodeMaterial({ color: 0x5e3f28, roughness: 0.75 });
   const hideDark = new THREE.MeshStandardNodeMaterial({ color: 0x472d1c, roughness: 0.8 });
   const dark = new THREE.MeshStandardNodeMaterial({ color: 0x1c120c, roughness: 0.7 });
+  const leather = new THREE.MeshStandardNodeMaterial({ color: 0x2a1b12, roughness: 0.72 });
+  const brass = new THREE.MeshStandardNodeMaterial({ color: 0x9b7b42, roughness: 0.46 });
+  const blazeMat = new THREE.MeshStandardNodeMaterial({ color: 0xd8c7a5, roughness: 0.86 });
 
   const bob = new THREE.Group();
   object.add(bob);
@@ -71,6 +74,16 @@ export function createHorse() {
   const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.1, 0.58), hideDark);
   saddle.position.set(-0.08, 1.48, 0);
   bodyGroup.add(blanket, saddle);
+  // Stirrups and their leather straps give the rider a credible connection
+  // to the mount instead of appearing to hover over a plain box saddle.
+  for (const side of [-1, 1]) {
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.43, 0.035), leather);
+    strap.position.set(-0.08, 1.28, 0.38 * side);
+    const stirrup = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 4, 6, Math.PI), brass);
+    stirrup.position.set(-0.08, 1.06, 0.38 * side);
+    stirrup.rotation.z = Math.PI / 2;
+    bodyGroup.add(strap, stirrup);
+  }
   bob.add(bodyGroup);
 
   // --- Neck and head: pivot on the topline at the withers, mane along the crest -------
@@ -105,7 +118,26 @@ export function createHorse() {
     headGroup.add(ear);
     ears.push(ear);
   }
-  headGroup.add(skull, muzzle, forelock);
+  // Dark eyes, a blaze and the bridle use the head pivot, so they follow the
+  // existing turn and nod animation without a second rig.
+  const blaze = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.13), blazeMat);
+  blaze.position.set(0.12, 0.08, 0);
+  headGroup.add(skull, muzzle, forelock, blaze);
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 4), dark);
+    eye.position.set(0.16, 0.075, 0.125 * side);
+    const cheek = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.28, 0.035), leather);
+    cheek.position.set(0.18, -0.015, 0.145 * side);
+    const rein = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.026, 0.026), leather);
+    rein.position.set(-0.13, 0.15, 0.2 * side);
+    rein.rotation.z = 0.15;
+    headGroup.add(eye, cheek, rein);
+  }
+  const browband = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.34), leather);
+  browband.position.set(0.07, 0.12, 0);
+  const noseband = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.27), leather);
+  noseband.position.set(0.34, -0.045, 0);
+  headGroup.add(browband, noseband);
   neckGroup.add(headGroup);
   neckGroup.rotation.z = -0.15; // carry the head up and forward
   bob.add(neckGroup);
