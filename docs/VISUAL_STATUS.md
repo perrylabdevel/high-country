@@ -1,5 +1,37 @@
 # Visual status — completion audit
 
+## MUST IMPROVE — creek/lake junction — 2026-09-08 (accepted as workable, not done)
+
+The user's close nadir of the Lake Mercy mouth still reads as two substances:
+a bright, glittering, sand-bottomed creek meeting a flat, opaque lake. What
+shipped this pass (all measured on GPU captures, overcast and clear):
+
+- **Mouth trench removed at the cause** (`heightfield.js`): the 3.4 m creek
+  carve ran at full depth to the end of every polyline, so each mouth arrived
+  at the shoreline as a 2.5-3 m walled gorge (bed 10.2 at (0,-460) against a
+  12.8 basin). The carve now clamps to `h - (WATER - 0.2)` — a creek cannot
+  cut below the water table — so mouths silt down to the basin floor and the
+  drowned channel bed *is* the lake bed.
+- **Join fade begins sooner** (`landmarks.js`, tester direction): the aJoin
+  crossfade now starts 18 m outside the rim and runs 45 m (was 6 m / 30 m), so
+  the ribbon arrives ~35% faded instead of ~10%.
+
+Measured junction state after both: overcast creek cast +9.5 → −2.5 vs lake
++5 (gap 15 → 7.5), brightness gap 11 → 0.5; clear-sun cast gap 18 → 10,
+brightness gap 11 → 0.5. The drowned reach and the lake now measure as one
+body (they did not before).
+
+**Why it is still a must-improve.** The creek over land reads as a dark band
+against bright sand banks: its bed is the dirt splat (0.75 weight, dark wet
+trough) where the user's reference reach runs over bright sand. Under sun the
+flowing reach glitters (whitewater + flow normals) while the lake beside it
+sits flat, and the fade, though sooner, still leaves the ribbon legible almost
+to the waterline. A future pass should: give creek beds a sand/gravel bed
+splat instead of dirt, decide deliberately how much sparkle asymmetry a
+flowing creek should keep, and consider starting the fade yet earlier or
+biasing its easing stronger early. Evidence: `audit/creek-tone-close-*.png`,
+`audit/creek-tone-close-clear.png`.
+
 ## Current road-rut geometry — 2026-09-07
 
 The current production build uses 25x25 fine terrain triangles in road cells,

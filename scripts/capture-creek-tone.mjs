@@ -114,6 +114,16 @@ async function run(browser) {
       view: { px: 40, py: 130, pz: -480, tx: 40, ty: 0, tz: -481 }
     },
     {
+      name: "close",
+      // Low nadir over the actual rim crossing: the channel (x=0, carved bed
+      // 10.2-12.8) crosses the shoreline at z≈-470 — land west of the channel,
+      // the 12.8 basin floor east of it (heights sampled x=-100..200,
+      // z=-340..-600). ~20 m over the water surface, creek and lake both in
+      // frame — the tester's close-in framing.
+      resolvePy: { px: 0, pz: -470, eye: 21 },
+      view: { px: 0, py: 0, pz: -470, tx: 0, ty: 0, tz: -470.5 }
+    },
+    {
       name: "grazing",
       // Bank-level on the straight reach (the channel runs x=0, z 0..-400),
       // looking north along the channel — the case refractBase exists for:
@@ -125,7 +135,14 @@ async function run(browser) {
     }
   ];
 
+  // Optional third arg: capture only the named vantage (e.g. `node
+  // scripts/capture-creek-tone.mjs after close`). Unset runs every vantage.
+  const only = process.argv[3];
+
   for (const v of vantages) {
+    if (only && v.name !== only) {
+      continue;
+    }
     if (v.resolvePy) {
       v.view.py = await page.evaluate(
         (p) => window.__heightAt(p.px, p.pz) + p.eye,

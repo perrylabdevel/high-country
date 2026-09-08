@@ -1258,10 +1258,11 @@ function buildCreekRibbon(creek, lakeDistance) {
       // that put 3-5 stations of a 1300-station ribbon in the fade (measured:
       // highCountry 17 mid-fade vertices of 6680, and toxic/granite/twin had
       // literally zero) — a hard edge with a token gesture at a blend. The
-      // band now starts 6 m OUTSIDE the rim and runs 30 m, so the creek is
-      // already fading as it arrives and lands fully faded well inside the
-      // lake, spanning ~24 stations instead of 3.
-      const overlap = Math.max(0, Math.min(1, (-lakeDistance(vx, vz) + 6) / 30));
+      // band now starts 18 m OUTSIDE the rim and runs 45 m (tester: begin the
+      // fade sooner — at 6 m out the ribbon was still only ~10% faded at the
+      // waterline; starting at 18 m it arrives ~35% faded and lands fully
+      // faded 27 m inside the lake, spanning ~30 stations instead of 3).
+      const overlap = Math.max(0, Math.min(1, (-lakeDistance(vx, vz) + 18) / 45));
       joins.push(1 - overlap * overlap * (3 - 2 * overlap));
       // Refraction warp, per vertex. The creek needs a hard screen-sample
       // smear upstream (CREEK_WARP) or its bed shows through undistorted and

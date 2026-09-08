@@ -2,7 +2,48 @@
 
 Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
 
-## Latest checkpoint — 2026-09-07 (creek/lake tone blend)
+## Latest checkpoint — 2026-09-08 (creek/lake junction: workable, must-improve logged)
+
+- User pulled latest (PR #3 join-blend merged; it kept refractBase 0.15 and
+  promoted the tape fix to a per-vertex aWarp eased to the lake's 1 at the
+  mouth — the merged code is a superset of the 2026-09-07 work) and sent a
+  close nadir of the mouth: bright glittering sand-bottomed creek vs flat
+  opaque lake, still two substances.
+- Reproduced at the real rim crossing (channel x=0 crosses the shoreline at
+  z≈-470; land west, 12.8 basin east — probed, not assumed; the creek's last
+  authored station (80,-700) is already inside the lake, centre (80,-800)
+  r220). Added a `close` vantage to scripts/capture-creek-tone.mjs (also
+  wired the vantage-name CLI arg: `node scripts/capture-creek-tone.mjs TAG close`).
+- Measured defect 1 — the mouth trench: `heightfield.js` carved
+  creekFactor·3.4 with no floor, so each mouth arrived at the shoreline as a
+  2.5-3 m walled gorge (bed 10.2 at (0,-460), banks 13-14, vs a 12.8 basin) —
+  a dark slot meeting a bright shallow. Fix: clamp the carve to
+  `h - (WATER - 0.2)` — a creek cannot cut below the water table, so mouths
+  silt to the basin floor. (First attempt scaled the carve by (1 - lake):
+  overcorrected — the mouth-reach bed rose ABOVE the water table and the
+  creek dried into a wet stripe before the lake; reverted to the clamp.)
+- Measured defect 2 — the fade started too late. Tester direction: "begin
+  the fade sooner and maybe stronger". aJoin band widened: starts 18 m
+  OUTSIDE the rim, runs 45 m (was 6/30) — the ribbon arrives ~35% faded
+  instead of ~10%.
+- After (close vantage): overcast creek cast +9.5 → −2.5 vs lake +5 (gap
+  15 → 7.5), brightness gap 11 → 0.5; clear-sun cast gap 18 → 10, brightness
+  gap 11 → 0.5; drowned reach matches the lake (unchanged from PR #3).
+  Evidence: audit/creek-tone-close-{close,clear}.png,
+  audit/creek-tone-close-{mouth,nadir,grazing}.png.
+- User verdict: "ok, that's workable for now. add this to the docs as a must
+  improve" → docs/VISUAL_STATUS.md MUST IMPROVE section (creek beds still
+  dirt-splat dark vs bright sand; sparkle asymmetry under sun; fade could go
+  sooner/stronger still).
+- Verification: build green (3.57 s). check:nav-graph over its 50 ms timing
+  gate under machine load 20-50 (controlled A/B polluted by load spikes:
+  84 ms pre-change vs 479 ms post-change, both far over the 46-47 ms idle
+  baseline; graph output deterministic-identical 915/844). Isolated re-run
+  pending a quiet machine; the change adds two clamps to the carve — no nav
+  structure touched. Other 26 checks green in the suite run.
+- Nothing committed or pushed.
+
+## Previous checkpoint — 2026-09-07 (creek/lake tone blend)
 
 - User report: the creek ribbons read as a different substance from the lake
   (flat pale-cyan ribbon vs the lake's water tone at Lake Mercy).

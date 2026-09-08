@@ -165,7 +165,17 @@ export function sourceHeightAt(x, z) {
   const lake = lakeFactor(x, z);
   h = h * (1 - lake) + (WATER - 0.2) * lake;
 
-  h -= creekFactor(x, z) * 3.4;
+  // A creek's carve bottoms out at the water table. The carve used to run at
+  // full 3.4 m depth to the end of every polyline, so each mouth arrived at
+  // the shoreline as a 2.5-3 m walled gorge (measured: bed 10.2 at (0,-460)
+  // with banks at 13-14, against a 12.8 basin) — a dark slot meeting a bright
+  // shallow, the "two substances" break at Lake Mercy's mouths. Clamping the
+  // carve to h - (WATER - 0.2) lets the channel silt down to the basin floor
+  // as the ground approaches the water: inland terrain at 16+ keeps the full
+  // carve (16 - 12.8 > 3.4), low ground keeps a shallow creek instead of a
+  // dry gorge floor below the water table, and inside the lake the clamp is
+  // zero, so the drowned channel bed is the basin floor itself.
+  h -= creekFactor(x, z) * Math.min(3.4, Math.max(0, h - (WATER - 0.2)));
   h -= roadFactor(x, z) * 0.85;
 
   // Settlement pads win last so creek/road carves cannot drown the yard or main street.
