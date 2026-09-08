@@ -1385,9 +1385,20 @@ export function createWater(scene, {
   // the hardest edge in the whole scene. The water plane now runs up into
   // rising ground, so there is no exposed lake bed left for it to cover.
 
+  // refractBase: the creek's body-colour floor. At CREEK_DEPTH (0.45 m) the
+  // depth ramp is ~2% down, so this floor IS the body-colour share. 0.55
+  // painted the ribbon 56% waterShallow teal — a different substance from
+  // the lake (measured hue 180 vs the lake's B>G blue); 0.25 still left a
+  // visible uniform film at direct overview (nadir ribbon rgb(38,60,60) vs
+  // lake rgb(45,55,51) — cooler, darker, unmodulated). 0.15 is the lake's
+  // own floor: at the same depth the two bodies now paint the same share,
+  // so the creek's tone comes from the same signals as the lake's shallows
+  // — bed through refraction, not a paint layer. The grazing-angle milk the
+  // floor was sized for is dominated by fresnel (measured: 0.25 → 0.15
+  // changes the grazing surface by ≤ 3/255).
   const creekMat = fallback
     ? createWaterFallbackMaterial()
-    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });
+    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.15, refractWarp: 4 });
   const toxicMat = fallback
     ? createWaterFallbackMaterial(true)
     : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });

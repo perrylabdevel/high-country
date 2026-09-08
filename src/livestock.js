@@ -361,14 +361,15 @@ const SPECIES = {
     build: buildCow,
     radius: 0.62,
     // The body circle stops the torso, but the rig reaches far forward of the
-    // group origin — a cow's muzzle tip sits ~1.5 m ahead of a 0.62 m collider
+    // group origin — farm-cow.glb's normalized mesh reaches ~1.71 m ahead of
+    // its root (the attachment refreshes this from the loaded model too).
     // circle, so head-on the head ended up most of a metre inside a wall.
     // headReach/headRadius are the measured forward extent (world bbox of the
     // neck+head branch at forward=+X) and a small probe circle there; the
     // mover settles that probe against the same colliders. Values are the
     // head-UP reach, so a grazing animal (head pitched down, shorter) is
     // held slightly clear — conservative on purpose.
-    headReach: 1.55,
+    headReach: 1.72,
     headRadius: 0.18,
     walkSpeed: 0.9,
     palette: [0x6b4a2f, 0x8a7a66, 0x40301f],
@@ -656,8 +657,9 @@ export function createLivestock() {
         // push direction is the collider's shortest-exit vector, so sliding
         // along a wall still works; the body re-resolve covers the rare case
         // where backing off seats the torso into something behind it.
-        const hx = held.x + fx * a.species.headReach;
-        const hz = held.z + fz * a.species.headReach;
+        const headReach = a.headReach ?? a.species.headReach;
+        const hx = held.x + fx * headReach;
+        const hz = held.z + fz * headReach;
         const clear = resolvePosition(hx, hz, a.species.headRadius, a.collider);
         const pushX = clear.x - hx;
         const pushZ = clear.z - hz;
@@ -685,6 +687,22 @@ export function createLivestock() {
 
   return {
     group,
+    /**
+     * Replace just the cattle render rigs while preserving their established
+     * movement, ground seating and head-clearance colliders.  The GLB uses
+     * local +Z forward; cattle's procedural contract is local +X forward,
+     * hence the quarter turn at attachment time.
+     */
+    installTexturedCowPilot(factory) {
+      for (const a of animals) {
+        if (a.species !== SPECIES.cow || a.texturedVisual) continue;
+        const visual = factory({ targetHeight: 1.42 });
+        a.rig.parts.bob.visible = false;
+        a.rig.group.add(visual.object);
+        a.texturedVisual = visual;
+        a.headReach = visual.forwardReach;
+      }
+    },
     update(dt, cameraPos, playerPos, mudAt) {
       for (const a of animals) {
         const dx = a.rig.group.position.x - cameraPos.x;
@@ -700,6 +718,12 @@ export function createLivestock() {
           a.rig.group.visible = true;
         }
         update(a, dt, playerPos, mudAt ? mudAt(a.rig.group.position.x, a.rig.group.position.z, a.rig.group) : 1);
+        a.texturedVisual?.update(dt, {
+          speed: a.speed,
+          phase: a.phase,
+          grazing: a.state === "graze",
+          headPitch: a.headPitch
+        });
       }
     }
   };

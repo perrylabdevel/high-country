@@ -2,7 +2,56 @@
 
 Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
 
-## Latest checkpoint — 2026-09-07 (tester HUD)
+## Latest checkpoint — 2026-09-07 (creek/lake tone blend)
+
+- User report: the creek ribbons read as a different substance from the lake
+  (flat pale-cyan ribbon vs the lake's water tone at Lake Mercy).
+- Measured (GPU-rendered captures, overcast pinned, 1536x1024):
+  creek rgb(63,91,92) cyan-cast +28.5 with G≈B (hue 180 teal) vs lake
+  rgb(85,106,118) cast +24.5 with B>G (blue) — same cast, wrong hue family.
+  Cause confirmed by arithmetic: at CREEK_DEPTH 0.45 m the depth ramp is
+  ~2% down, so the creek's refractBase 0.55 floor WAS the body-colour share
+  — 56% waterShallow teal painted over the ribbon (lake paints ~17% at the
+  same depth). The material comment's fear (lower floor → grazing-angle
+  milk) was measured and did not materialize: at grazing angles fresnel
+  (waterFresnel 0.85) dominates and the surface is unchanged (Δ ≤ 3/255).
+- Fix round 1: `refractBase: 0.55 → 0.25` on creekMat. User rejected: hue
+  matched but at direct overview the ribbon still read as smooth tape.
+- Fix round 2 (final): `refractBase: 0.15` (the lake's own floor — at the
+  same depth the two bodies paint the same share) plus a new per-body
+  `refractWarp` option in `waterMaterial.ts` (multiplier on the depth-scaled
+  screen-sample offset; default 1). A creek is 0.45 m against the lake's
+  1-3 m, so at the shared waterRefraction uniform the creek's bed showed
+  through UNDISTORTED — the tape look. Creeks pass 4, so their bed smears
+  and moves under the same ripple normals. toxicMat left at 0.55/warp 1
+  deliberately: the toxic creek's palette is its identity (mine runoff).
+- After (mouth vantage): creek rgb(66,76,74) cast +9.0/+8.0 vs before
+  rgb(63,91,92) cast +28.5/+29.0; lake rgb(85,106,118) +27.0 and bank
+  (−27.5) byte-stable.
+- After (nadir, the user's rejected vantage): ribbon-over-land
+  rgb(40,57,56) cast 16.5 / rgb(49,54,48) cast 2.0 vs lake cast 8-16
+  nearby; luminance stddev ribbon 1.75 vs lake 1.71 in matched regions
+  (texture amplitude now equal); drowned continuation across the lake
+  rgb(41,58,56) vs adjacent lake rgb(43,60,58) — band no longer separable.
+  Grazing unchanged (fresnel dominates; no milk regression from the warp).
+  Evidence: `audit/creek-tone-{before,after}-{mouth,nadir,grazing}.png`
+  (before has no nadir — the vantage was added after the baseline run),
+  measured with `scripts/measure-creek-tone.mjs` + inline stddev boxes.
+- Tooling: `scripts/capture-creek-tone.mjs` (headed Chromium on darwin —
+  headless has no Metal adapter and falls back to SwiftShader; a peer
+  session's fix, adopted). Its diag readback (`__captureView` before the
+  shutter) exists because an earlier edit of the vantage loop silently
+  dropped the view assignment and captures came back as the spawn
+  overview with weather still pinned — "never set", not "cleared".
+- Also: `__captureMode(true)` now hides the dev stats/info overlays
+  (main.js — they are body children, not #hud children).
+- Verification: `npm run build` green (4.09 s). `npm run check` 25/26 —
+  check:nav-graph over its 50 ms budget at machine load 27.78; in
+  isolation it passes at 47 ms (915 nodes / 844 edges). Same conclusion
+  as the earlier controlled A/B: machine state, not a regression; the
+  water material options touch no nav path. Nothing committed or pushed.
+
+## Previous checkpoint — 2026-09-07 (tester HUD)
 
 - Built the tester quick-toggle HUD into the backtick debug panel
   (`src/debug.js`): sectioned rows for Weather (6 states + Auto release,

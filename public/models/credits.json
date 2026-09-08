@@ -1,0 +1,22 @@
+[
+  {
+    "file": "western-cowboy.glb",
+    "title": "Western Cowboy (Rigged)",
+    "author": "human being (stevedaman)",
+    "source": "https://sketchfab.com/3d-models/western-cowboy-rigged-160bf043b71c458984c81c717b7483c9",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "5d743f09c5642123287fb864270381dc0401623528d0da7672ab1f27a316dd2f",
+    "bytes": 5356268
+  },
+  {
+    "file": "farm-cow.glb",
+    "title": "Farm Cow Animated Dairy cattle",
+    "author": "Rukh3D",
+    "source": "https://sketchfab.com/3d-models/farm-cow-animated-dairy-cattle-0e780cb5ab6d457198ded7d4e191a03e",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "d00bf0a2367bccc513aca2004ef3334d79afd7f5f060f5c10fdcbd2be4d02ba6",
+    "bytes": 997484
+  }
+]

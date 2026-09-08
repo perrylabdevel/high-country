@@ -26,6 +26,7 @@ import { createPlayer } from "./player.js";
 import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
 import { createLivestock } from "./livestock.js";
+import { installTexturedPilot } from "./models/texturedActors.js";
 import { createTraffic } from "./traffic.js";
 import { addCylinderCollider, resolvePosition, clearanceAt, deckHeightAt, moveAndSlide } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
@@ -647,6 +648,15 @@ async function boot() {
       const hud = document.getElementById("hud");
       if (hud) {
         hud.style.display = on ? "none" : "";
+      }
+      // The dev perf overlays are body children, not #hud children, so hiding
+      // the HUD does not cover them — and a capture frame with an FPS graph
+      // baked into its corner is a frame that cannot be diffed cleanly.
+      if (stats?.dom) {
+        stats.dom.style.display = on ? "none" : "";
+      }
+      if (infoEl) {
+        infoEl.style.display = on ? "none" : "";
       }
       if (player && player.object) {
         player.object.visible = !on;
@@ -1503,6 +1513,23 @@ async function boot() {
 
   npcs.forEach(makeNpc);
 
+  // Textured-model pilot: Cole is deliberately the one named town NPC using
+  // the cowboy GLB. The figure below remains live but hidden, so dialogue,
+  // wandering and collision retain a known-safe fallback if loading fails.
+  const cole = npcs.find((npc) => npc.name === "Cole Mercer");
+  if (cole) {
+    void installTexturedPilot("/models/western-cowboy.glb", (factory) => {
+      const visual = factory({ targetHeight: 1.78 });
+      for (const child of cole.figure.group.children) child.visible = false;
+      cole.figure.group.add(visual.object);
+      cole.texturedVisual = visual;
+    });
+  }
+
+  void installTexturedPilot("/models/farm-cow.glb", (factory) => {
+    livestock.installTexturedCowPilot(factory);
+  });
+
   // Townsfolk wander within reason. Each drifts around their own post —
   // never further than their `wander` radius, and only the Silver Creek set
   // carries one: the Calders stand at mission posts. They resolve against
@@ -2234,6 +2261,7 @@ async function boot() {
     for (const npc of npcs) {
       const speed = wanderNpc(npc, dt);
       npc.figure.update(dt, speed);
+      npc.texturedVisual?.update(dt, speed);
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above. The

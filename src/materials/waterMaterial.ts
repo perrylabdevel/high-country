@@ -205,6 +205,13 @@ export function createWaterMaterial(
     // surface are the far bank, not its bed), so it needs a much higher
     // floor or it renders as washed-out milk.
     refractBase?: number;
+    // Multiplier on waterRefraction for the screen-sample offset. The offset
+    // is depth-scaled, and a creek is 0.45 m against the lake's 1-3 m, so at
+    // the shared uniform the creek's bed shows through UNDISTORTED — a crisp
+    // static image under a faint tint, which reads as tape laid on the
+    // ground rather than a water surface. Creeks pass ~4 so their bed smears
+    // and moves under the same ripple normals the lake shows.
+    refractWarp?: number;
   } = { depthSource: "buffer" }
 ): THREE.MeshStandardNodeMaterial {
   const toxic = Boolean(opts.toxic);
@@ -263,7 +270,8 @@ export function createWaterMaterial(
   const surfaceNormal = vec3(perturb2.x, 1, perturb2.y).normalize().toVar();
 
   const depthClamp = clamp(depth, float(0), u.waterRefractionDepth as FloatUniform).div(u.waterRefractionDepth as FloatUniform);
-  const sceneUv = screenUV.add(perturb2.mul(u.waterRefraction as FloatUniform).mul(depthClamp)).clamp(0.001, 0.999);
+  const warp = float(opts.refractWarp ?? 1);
+  const sceneUv = screenUV.add(perturb2.mul(u.waterRefraction as FloatUniform).mul(depthClamp).mul(warp)).clamp(0.001, 0.999);
   const refracted = screenRefraction ? viewportSharedTexture(sceneUv).rgb : baseCol;
 
   // Cross-fade two staggered flow phases; the wrapping sample has zero

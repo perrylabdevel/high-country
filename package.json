@@ -45,6 +45,7 @@
     "check:routes": "tsx scripts/check-routes.mjs",
     "check:apertures": "tsx scripts/check-apertures.mjs",
     "check:livestock-heads": "tsx scripts/check-livestock-heads.mjs",
+    "check:textured-model-pilot": "tsx scripts/check-textured-model-pilot.mjs",
     "check:weather": "tsx scripts/check-weather.mjs"
   },
   "dependencies": {
