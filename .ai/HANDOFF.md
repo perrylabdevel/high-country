@@ -282,9 +282,14 @@ Known-unfixed, pre-existing, not from this change:
   main. Via `npx tsx` directly: 25 pass. check-nav-graph fails only its 50 ms
   build-time budget (107 ms on clean main too); graph identical with the
   change (915 nodes / 844 edges / 1 component / 0 impassable drops).
-- Creek surface dips to 0.0007 m above WATER at the highCountry mouth
-  (intended separation 0.015 m) where the bed meets lake level — latent
-  z-fighting risk, predates this change, left alone.
+- The z-fighting risk flagged during this change was a BAD MEASUREMENT, now
+  retracted. It compared creek vertex Y against the WATER constant — a model
+  of the lake plane, not the drawn lake (the exact trap measure-first warns
+  about). Those 0.0007 m readings were upstream stations 660-1570 m from the
+  lake, where no lake geometry exists to fight with. Raycasting every creek
+  vertex down onto the real lake mesh: 271 verts genuinely have lake beneath
+  them, 0 are closer than 0.010 m, worst separation 0.01499 m — i.e. exactly
+  the intended 0.015 m. No fix needed; do not "correct" this margin.
 
 
 ## Road material follow-up — 2026-09-06
