@@ -207,10 +207,14 @@ export function createWaterMaterial(
     refractBase?: number;
     // Multiplier on waterRefraction for the screen-sample offset. The offset
     // is depth-scaled, and a creek is 0.45 m against the lake's 1-3 m, so at
-    // the shared uniform the creek's bed shows through UNDISTORTED — a crisp
-    // static image under a faint tint, which reads as tape laid on the
-    // ground rather than a water surface. Creeks pass ~4 so their bed smears
-    // and moves under the same ripple normals the lake shows.
+    // warp 1 a creek's bed shows through UNDISTORTED — a crisp static image
+    // under a faint tint, which reads as tape laid on the ground rather than
+    // a water surface.
+    // NOTE: creek ribbons no longer use this option. They carry a per-vertex
+    // aWarp attribute instead, so the warp can ease to the lake's 1 at the
+    // mouth (a constant 4 there smeared 5.6x harder than the lake it joins
+    // and read as a tone break). This stays for bodies without that
+    // attribute; it is ignored whenever depthSource is "attribute".
     refractWarp?: number;
   } = { depthSource: "buffer" }
 ): THREE.MeshStandardNodeMaterial {
@@ -270,7 +274,13 @@ export function createWaterMaterial(
   const surfaceNormal = vec3(perturb2.x, 1, perturb2.y).normalize().toVar();
 
   const depthClamp = clamp(depth, float(0), u.waterRefractionDepth as FloatUniform).div(u.waterRefractionDepth as FloatUniform);
-  const warp = float(opts.refractWarp ?? 1);
+  // Bodies carrying an aWarp attribute (creek ribbons) ramp their warp per
+  // vertex so it eases to the lake's 1 at the mouth; everything else takes the
+  // per-material constant. Without the ramp the two surfaces meet with a 5.6x
+  // difference in screen-sample smear and read as two different substances.
+  const warp = depthSource === "attribute"
+    ? (attribute("aWarp", "float") as Node<"float">)
+    : float(opts.refractWarp ?? 1);
   const sceneUv = screenUV.add(perturb2.mul(u.waterRefraction as FloatUniform).mul(depthClamp).mul(warp)).clamp(0.001, 0.999);
   const refracted = screenRefraction ? viewportSharedTexture(sceneUv).rgb : baseCol;
 

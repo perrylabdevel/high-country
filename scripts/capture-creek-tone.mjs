@@ -21,25 +21,42 @@ const TAG = process.argv[2] || "before";
 const OUT = `audit/creek-tone-${TAG}`;
 
 /**
- * Same reasoning as capture-poi.mjs launchOptions(): on macOS, headless
- * Chromium has no Metal GPU process, so requestAdapter() returns null and
- * three.js silently falls back to WebGL2/SwiftShader — captures crawl at
- * seconds per call and the tone numbers are software-rendered garbage.
- * Headed gets the real apple/metal-3 adapter, so launch headed on darwin.
+ * WebGPU is the shipping backend, and the water shader's screen refraction is
+ * disabled entirely under the WebGL fallback (main.js passes
+ * screenRefraction: !forceWebGL) -- so a WebGL frame cannot answer any
+ * question about creek-vs-lake refraction tone.
+ *
+ * Playwright's headless Chromium returns null from requestAdapter() on this
+ * box even with --enable-unsafe-webgpu alone, and headed Chromium cannot
+ * spawn here. Measured on win32: only the ANGLE/Vulkan combination below
+ * yields a real hardware adapter (amd / gcn-2) rather than null or Dawn's
+ * constrained software fallback.
  */
 function launchOptions() {
-  if (process.platform !== "darwin") {
-    return {};
+  if (process.env.PLAYWRIGHT_CHROMIUM) {
+    return { executablePath: process.env.PLAYWRIGHT_CHROMIUM };
   }
-  try {
-    const bundled = chromium.executablePath();
-    if (bundled && existsSync(bundled)) {
-      return { headless: false };
+  if (process.platform === "darwin") {
+    try {
+      const bundled = chromium.executablePath();
+      if (bundled && existsSync(bundled)) {
+        return { headless: false };
+      }
+    } catch {
+      // no bundled browser
     }
-  } catch {
-    // no bundled browser
+    return { headless: false };
   }
-  return { headless: false };
+  // Playwright's *bundled* Chromium finds the adapter but cannot create a
+  // device: requestDevice() throws "DynamicLib.Open: dxil.dll Windows Error
+  // 87" because that build ships no dxil.dll. three.js catches the failure
+  // and silently falls back to WebGL. An installed Chrome ships the DLL, so
+  // request the "chrome" channel and get a real device (measured: adapter
+  // amd, device true).
+  return {
+    channel: "chrome",
+    args: ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=d3d11"]
+  };
 }
 
 const browser = await chromium.launch(launchOptions());
@@ -66,6 +83,15 @@ async function run(browser) {
   }
   const info = await page.evaluate(() => window.__captureInfo?.());
   console.log("backend:", JSON.stringify(info));
+  // Refuse to shoot on the wrong backend. The WebGL fallback renders this
+  // water with screenRefraction off, so its tone numbers describe a shader
+  // that never ships -- a silent WebGL capture is worse than no capture.
+  if (info?.backend !== "webgpu") {
+    throw new Error(
+      `refusing to capture on backend "${info?.backend}" -- creek/lake tone is a `
+      + "WebGPU-only measurement (screen refraction is disabled under WebGL)"
+    );
+  }
 
   // Pin the weather before any settle wait (the ~0.5 s force ramp finishes
   // inside the settle), hide the HUD/player, park the camera per vantage.
