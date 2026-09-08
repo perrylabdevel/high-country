@@ -240,6 +240,58 @@ unknown
 
 # Next Actions
 
+## Creek/lake tone seam at Lake Mercy — 2026-09-08
+
+Tester report: creek and lake meet as two different colours with no blend.
+
+Measured first. The body-colour theory was DISPROVED: at the join the two
+bodies compute rgb(79,140,138) (creek) vs rgb(80,141,139) (lake) — one unit
+apart, so the shared shallow/deep ramp and the earlier refractBase work are
+fine. The seam had two other causes:
+
+1. The aJoin crossfade band was 5 m wide and started 3 m INSIDE the rim.
+   Creek stations sit ~1.5 m apart, so only 3-5 stations of a ~1300-station
+   ribbon were ever in the fade (highCountry 17 mid-fade verts of 6680;
+   toxic/granite/twin had zero — those three end 800 m+ from the lake, so
+   that part is correct, not a bug). Band now starts 6 m OUTSIDE the rim and
+   runs 30 m: mid-fade verts 17 -> 101 (highCountry), 15 -> 93 (silver).
+   The -10 sample cull had to go to -40, or the ribbon was truncated while
+   still ~48% opaque (aJoin 0.483 at its last station) — a half-opaque stub.
+2. refractWarp was a per-material constant: creek 4, lake 1. The offset is
+   depth-scaled and both are shallow at the mouth, so the creek smeared its
+   screen sample 5.6x harder than the lake it met (11.5 px vs 2.1 px at
+   1536 wide) — same colour, different texture. Now a per-vertex aWarp
+   attribute easing 4 -> 1 across the existing mouthBlend.
+
+Result (silver mouth axis transect, WebGPU, overcast): max luma step
+5.62 -> 3.43 (-39%), total variation 41.0 -> 25.4 (-38%), and the worst step
+moved OFF the junction (t=0.63 -> t=0.94) — the join is no longer the
+sharpest transition on the creek. Bank reference unchanged (cast -28 -> -27).
+Captures: audit/creek-tone-{before,after}-{mouth,nadir,grazing}.png.
+
+capture-creek-tone.mjs was silently shooting WebGL — where this water's
+screen refraction is disabled entirely, so its numbers described a shader
+that never ships. It now launches channel:"chrome" (Playwright's bundled
+Chromium finds an adapter but requestDevice() dies on a missing dxil.dll,
+and three falls back to WebGL) and ASSERTS backend === "webgpu" before the
+shutter.
+
+Known-unfixed, pre-existing, not from this change:
+- `npm run check` fails 27/27 on Windows with `spawn .../node_modules/.bin/tsx
+  ENOENT` (runner spawns the extensionless shim). Verified identical on clean
+  main. Via `npx tsx` directly: 25 pass. check-nav-graph fails only its 50 ms
+  build-time budget (107 ms on clean main too); graph identical with the
+  change (915 nodes / 844 edges / 1 component / 0 impassable drops).
+- The z-fighting risk flagged during this change was a BAD MEASUREMENT, now
+  retracted. It compared creek vertex Y against the WATER constant — a model
+  of the lake plane, not the drawn lake (the exact trap measure-first warns
+  about). Those 0.0007 m readings were upstream stations 660-1570 m from the
+  lake, where no lake geometry exists to fight with. Raycasting every creek
+  vertex down onto the real lake mesh: 271 verts genuinely have lake beneath
+  them, 0 are closer than 0.010 m, worst separation 0.01499 m — i.e. exactly
+  the intended 0.015 m. No fix needed; do not "correct" this margin.
+
+
 ## Road material follow-up — 2026-09-06
 
 - Luna implementation updated `terrainMaterial.ts` and `settings.ts`: A-normalized

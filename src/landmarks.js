@@ -1128,6 +1128,9 @@ export function createLandmarks(scene, maps = {}) {
 
 /** How deep a flowing creek sits below its own water surface. */
 const CREEK_DEPTH = 0.45;
+// Upstream refraction-warp multiplier for creek ribbons; eased to the lake's
+// 1 at the mouth. See the warps.push() comment in buildCreekRibbon.
+const CREEK_WARP = 4;
 
 function buildCreekRibbon(creek, lakeDistance) {
   const samples = [];
@@ -1163,7 +1166,11 @@ function buildCreekRibbon(creek, lakeDistance) {
   const dry = [];
   let run = [];
   for (const p of samples) {
-    if (lakeDistance(p.x, p.z) < -10) {
+    // Keep enough ribbon inside the lake for the join crossfade to finish.
+    // At -10 the ribbon was cut off while still ~48% opaque (measured: the
+    // last station of highCountry held aJoin 0.483), leaving a half-opaque
+    // stub edge — the widened fade needs the full band plus a margin.
+    if (lakeDistance(p.x, p.z) < -40) {
       if (run.length > dry.length) {
         dry.length = 0;
         dry.push(...run);
@@ -1186,6 +1193,7 @@ function buildCreekRibbon(creek, lakeDistance) {
   const slopes = [];
   const shores = [];
   const joins = [];
+  const warps = [];
   const across = [-1, -0.8, 0, 0.8, 1];
   let distance = 0;
   for (let i = 0; i < kept.length; i += 1) {
@@ -1244,8 +1252,27 @@ function buildCreekRibbon(creek, lakeDistance) {
       const vx = p.x + px * bankWidth * s;
       const vz = p.z + pz * bankWidth * s;
       shores.push((1 - Math.abs(s)) * bankWidth);
-      const overlap = Math.max(0, Math.min(1, (-lakeDistance(vx, vz) - 3) / 5));
+      // Crossfade the creek into the lake over a band wide enough to read as
+      // a blend. The old band ran (-lakeDistance - 3) / 5: 5 m wide and
+      // starting 3 m INSIDE the rim. Creek stations are spaced ~1.5 m, so
+      // that put 3-5 stations of a 1300-station ribbon in the fade (measured:
+      // highCountry 17 mid-fade vertices of 6680, and toxic/granite/twin had
+      // literally zero) — a hard edge with a token gesture at a blend. The
+      // band now starts 6 m OUTSIDE the rim and runs 30 m, so the creek is
+      // already fading as it arrives and lands fully faded well inside the
+      // lake, spanning ~24 stations instead of 3.
+      const overlap = Math.max(0, Math.min(1, (-lakeDistance(vx, vz) + 6) / 30));
       joins.push(1 - overlap * overlap * (3 - 2 * overlap));
+      // Refraction warp, per vertex. The creek needs a hard screen-sample
+      // smear upstream (CREEK_WARP) or its bed shows through undistorted and
+      // reads as tape laid on the ground; the lake uses 1. Because the offset
+      // is depth-scaled and both bodies are shallow at the mouth, holding the
+      // creek at 4 there made it smear 5.6x harder than the lake it meets
+      // (measured 11.5 px vs 2.1 px of screen offset at 1536 wide) — same
+      // colour, different texture, which reads as a tone break. Ease to the
+      // lake's 1 across the same mouthBlend that already eases the surface
+      // height, so the creek arrives matching what it joins.
+      warps.push(CREEK_WARP * (1 - mouthBlend) + 1 * mouthBlend);
       positions.push(vx, creek.dry ? bed + 0.06 : surface, vz);
       // Depth per vertex against the real bed under it, so the channel shades
       // deep mid-stream and shallows out where the banks rise into it.
@@ -1258,6 +1285,7 @@ function buildCreekRibbon(creek, lakeDistance) {
   geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   geo.setAttribute("aDepth", new THREE.Float32BufferAttribute(depths, 1));
   geo.setAttribute("aJoin", new THREE.Float32BufferAttribute(joins, 1));
+  geo.setAttribute("aWarp", new THREE.Float32BufferAttribute(warps, 1));
   geo.setAttribute("aFlow", new THREE.Float32BufferAttribute(flows, 2));
   geo.setAttribute("aSlope", new THREE.Float32BufferAttribute(slopes, 1));
   geo.setAttribute("aShore", new THREE.Float32BufferAttribute(shores, 1));
@@ -1398,7 +1426,7 @@ export function createWater(scene, {
   // changes the grazing surface by ≤ 3/255).
   const creekMat = fallback
     ? createWaterFallbackMaterial()
-    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.15, refractWarp: 4 });
+    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.15 });
   const toxicMat = fallback
     ? createWaterFallbackMaterial(true)
     : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });
