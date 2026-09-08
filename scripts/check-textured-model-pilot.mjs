@@ -41,19 +41,66 @@ assert.equal(cowboy.animations[0].duration, 0, "zero-duration cowboy pose must n
 assert.ok(cowboy.animations[0].tracks.some((track) => /Hips.*position/.test(track.name)), "cowboy pose has root-position data and must not tick");
 assert.ok(cowboyBounds.getSize(new THREE.Vector3()).y > 6.9, "cowboy dimensions must be read from the actual GLB");
 
-// This failed silently when the adapter looked for RightArm_033 although the
-// downloaded Mixamo skeleton calls that joint RightArm_028. Loading succeeded,
-// but Cole stood in a T-pose. Measure the rendered rig after its idle update.
-const cowboyVisual = createTexturedActorFactory(cowboy, "/models/western-cowboy.glb")({ targetHeight: 1.78 });
-cowboyVisual.update(1 / 60, { speed: 0, phase: 0 });
-cowboyVisual.object.updateMatrixWorld(true);
-const leftHand = cowboyVisual.object.getObjectByName("mixamorigLeftHand_010");
-const rightHand = cowboyVisual.object.getObjectByName("mixamorigRightHand_030");
-assert.ok(leftHand && rightHand, "cowboy rig must expose both hands for pose validation");
-const handSpan = leftHand.getWorldPosition(new THREE.Vector3()).distanceTo(
-  rightHand.getWorldPosition(new THREE.Vector3())
-);
-assert.ok(handSpan < 1.05, `cowboy idle hands span ${handSpan.toFixed(3)} m — arms are still in a T-pose`);
+// This failed silently twice. First when the adapter looked for RightArm_033
+// although the downloaded Mixamo skeleton calls that joint RightArm_028 — Cole
+// stood in a T-pose. Then again when the pose was applied about fixed world
+// axes: the in-game NPC group faces a point and re-rotates while wandering, so
+// at 90 degrees the arms stayed horizontal and at 180 they pointed up. The old
+// check only ever built at heading 0, so it could not see either. Measure the
+// rendered rig at four headings, idle and walking.
+const DEG = Math.PI / 180;
+function cowboyRig(headingDeg, speed, phase) {
+  const visual = createTexturedActorFactory(cowboy, "/models/western-cowboy.glb")({ targetHeight: 1.78 });
+  const parent = new THREE.Group();
+  parent.rotation.y = headingDeg * DEG;
+  parent.add(visual.object);
+  parent.updateMatrixWorld(true);
+  visual.update(1 / 60, { speed, phase });
+  parent.updateMatrixWorld(true);
+  return visual.object;
+}
+const headings = [0, 90, 180, -90];
+let handSpan = 0;
+for (const deg of headings) {
+  const rig = cowboyRig(deg, 0, 0);
+  const leftHand = rig.getObjectByName("mixamorigLeftHand_010");
+  const rightHand = rig.getObjectByName("mixamorigRightHand_030");
+  assert.ok(leftHand && rightHand, "cowboy rig must expose both hands for pose validation");
+  const span = leftHand.getWorldPosition(new THREE.Vector3()).distanceTo(
+    rightHand.getWorldPosition(new THREE.Vector3())
+  );
+  handSpan = Math.max(handSpan, span);
+  assert.ok(span < 0.72, `cowboy idle at ${deg}deg: hands span ${span.toFixed(3)} m — arms are spread`);
+  const arm = rig.getObjectByName("mixamorigLeftArm_08").getWorldPosition(new THREE.Vector3());
+  const hand = leftHand.getWorldPosition(new THREE.Vector3());
+  const dir = hand.sub(arm).normalize();
+  const fromDown = Math.acos(THREE.MathUtils.clamp(-dir.y, -1, 1)) / DEG;
+  assert.ok(fromDown < 22, `cowboy idle at ${deg}deg: arms ${fromDown.toFixed(1)}deg off vertical — not hanging`);
+}
+for (const deg of headings) {
+  const rig = cowboyRig(deg, 1.2, Math.PI / 2);
+  const leftFoot = rig.getObjectByName("mixamorigLeftFoot_049").getWorldPosition(new THREE.Vector3());
+  const rightFoot = rig.getObjectByName("mixamorigRightFoot_054").getWorldPosition(new THREE.Vector3());
+  const facing = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), deg * DEG);
+  const delta = leftFoot.sub(rightFoot);
+  const along = Math.abs(delta.dot(facing));
+  const across = Math.abs(delta.x * facing.z - delta.z * facing.x);
+  assert.ok(along > 0.3, `cowboy walk at ${deg}deg: feet stride only ${along.toFixed(3)} m along the facing`);
+  assert.ok(across < 0.25, `cowboy walk at ${deg}deg: feet stride ${across.toFixed(3)} m sideways`);
+}
+
+// Human scale. The factory normalizes the hat-inclusive GLB to 1.78 m and
+// grounds the feet, putting Cole's eyes near the player's 1.62 m eye line
+// (src/player.js EYE). The cowboy's hat is what fills 1.78 — the person below
+// it is a normal adult, not a child.
+{
+  const rig = cowboyRig(0, 0, 0);
+  const y = (name) => rig.getObjectByName(name).getWorldPosition(new THREE.Vector3()).y;
+  assert.ok(Math.abs(y("mixamorigHeadTop_End_06") - 1.78) < 0.06, `cowboy head top ${y("mixamorigHeadTop_End_06").toFixed(3)} m — not normalized to 1.78`);
+  assert.ok(y("mixamorigHead_05") > 1.45 && y("mixamorigHead_05") < 1.58, `cowboy head bone ${y("mixamorigHead_05").toFixed(3)} m — not human scale`);
+  const feet = Math.min(y("mixamorigLeftToe_End_051"), y("mixamorigRightToe_End_056"));
+  assert.ok(Math.abs(feet) < 0.06, `cowboy feet at ${feet.toFixed(3)} m — not grounded`);
+}
 
 for (const [label, gltf, joint] of [["cow", cow, "lfl1_017"], ["cowboy", cowboy, "mixamorigHips_01"]]) {
   const first = cloneSkeleton(gltf.scene);
@@ -72,5 +119,5 @@ for (const [label, gltf, joint] of [["cow", cow, "lfl1_017"], ["cowboy", cowboy,
   assert.deepEqual(first.position.toArray(), rootPosition.toArray(), `${label} animation/pose must leave its visual root stable`);
 }
 
-console.log(JSON.stringify({ cowboyIdleHandSpanMeters: Number(handSpan.toFixed(3)) }));
-console.log("TEXTURED MODEL PILOT PASS — actual cow/cowboy GLBs, relaxed idle pose, axes, dimensions, independent skeletons, and stable animation roots checked.");
+console.log(JSON.stringify({ cowboyWorstIdleHandSpanMeters: Number(handSpan.toFixed(3)) }));
+console.log("TEXTURED MODEL PILOT PASS — actual cow/cowboy GLBs, heading-independent idle and walk poses, axes, dimensions, independent skeletons, and stable animation roots checked.");

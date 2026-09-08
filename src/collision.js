@@ -1,5 +1,11 @@
 const boxes = [];
 const cylinders = [];
+// Colliders that move every frame (wandering NPCs). The spatial grid is baked
+// once, so a moving collider left in it is only found near its build-time cell:
+// once it crosses a 24 m cell boundary the player walks straight through it.
+// Dynamic cylinders are kept out of the grid and tested linearly instead —
+// there are only a handful, so the per-frame cost is negligible.
+const dynamicCylinders = [];
 
 const CELL_SIZE = 24;
 const CELL_OFFSET = 4096;
@@ -53,6 +59,9 @@ function buildGrids() {
     insertRange(boxGrid, box, cx - hx, cx + hx, cz - hz, cz + hz);
   }
   for (const cyl of cylinders) {
+    if (cyl.dynamic) {
+      continue;
+    }
     insertRange(cylinderGrid, cyl, cyl.x - cyl.radius, cyl.x + cyl.radius, cyl.z - cyl.radius, cyl.z + cyl.radius);
   }
 }
@@ -101,6 +110,7 @@ const decks = [];
 export function clearColliders() {
   boxes.length = 0;
   cylinders.length = 0;
+  dynamicCylinders.length = 0;
   decks.length = 0;
   markDirty();
 }
@@ -201,9 +211,16 @@ export function addOrientedBoxCollider(x, z, halfX, halfZ, yaw, span = null) {
   markDirty();
 }
 
-export function addCylinderCollider(x, z, radius, span = null) {
-  const cyl = { x, z, radius, minY: span ? span.minY : null, maxY: span ? span.maxY : null };
+/**
+ * `dynamic` colliders move after registration (see `dynamicCylinders`): update
+ * their `x`/`z` freely, they are resolved without the baked grid.
+ */
+export function addCylinderCollider(x, z, radius, span = null, dynamic = false) {
+  const cyl = { x, z, radius, minY: span ? span.minY : null, maxY: span ? span.maxY : null, dynamic };
   cylinders.push(cyl);
+  if (dynamic) {
+    dynamicCylinders.push(cyl);
+  }
   markDirty();
   return cyl;
 }
@@ -309,6 +326,14 @@ export function resolvePosition(x, z, radius, ignore = null, y = null) {
       cylX = r.x;
       cylZ = r.z;
     });
+    for (const cyl of dynamicCylinders) {
+      if (cyl === ignore || !spanApplies(cyl, y)) {
+        continue;
+      }
+      const r = resolveCircleCylinder(cylX, cylZ, radius, cyl);
+      cylX = r.x;
+      cylZ = r.z;
+    }
     px = cylX;
     pz = cylZ;
   }

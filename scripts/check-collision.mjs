@@ -26,7 +26,8 @@ const {
   clearColliders,
   colliderCounts,
   hasColliderNear,
-  movementBlocked
+  movementBlocked,
+  addCylinderCollider
 } = await import("../src/collision.js");
 const { createRanch } = await import("../src/buildings.js");
 const { createLandmarks } = await import("../src/landmarks.js");
@@ -128,6 +129,21 @@ for (let i = 0; i < 120; i += 1) {
 }
 const benchMs = performance.now() - benchStart;
 assert(benchMs < 250, `collision resolver too slow: ${benchMs.toFixed(1)}ms for ${probes} probes`);
+
+// A wandering NPC's collider moves with the body. The cowboy's does; this is
+// the contract that keeps the player from walking through him once he crosses
+// a grid cell. The grid is baked once, so a moving collider left in it is only
+// found near its build-time cell — the player walked through the visual and hit
+// empty air at his old spot.
+{
+  clearColliders();
+  const wanderer = addCylinderCollider(0, 0, 0.45, null, true);
+  assert(movementBlocked(-0.7, 0, 1.4, 0, PLAYER_RADIUS), "dynamic collider must block at its registered spot");
+  wanderer.x = 72; // three 24 m cells away
+  wanderer.z = 48;
+  assert(!movementBlocked(-0.7, 0, 1.4, 0, PLAYER_RADIUS), "dynamic collider must not block where it used to be");
+  assert(movementBlocked(71.3, 48, 1.4, 0, PLAYER_RADIUS), "dynamic collider must block after crossing grid cells");
+}
 
 console.log(JSON.stringify({
   counts,

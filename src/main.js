@@ -1461,7 +1461,9 @@ async function boot() {
     g.rotation.y = Math.atan2(face.x - npc.x, face.z - npc.z);
     scene.add(g);
     npc.object = g;
-    npc.collider = addCylinderCollider(npc.x, npc.z, 0.45);
+    // Wandering townsfolk move their collider with them, so it is registered
+    // dynamic and kept out of the baked grid. A standing post's never moves.
+    npc.collider = addCylinderCollider(npc.x, npc.z, 0.45, null, Boolean(npc.wander));
     if (npc.wander) {
       npc.homeX = npc.x;
       npc.homeZ = npc.z;
@@ -1574,6 +1576,10 @@ async function boot() {
         const moved = moveAndSlide(ox, oz, (dx / dist) * step, (dz / dist) * step, 0.45, npc.collider);
         g.position.x = moved.x;
         g.position.z = moved.z;
+        // The collider travels with the body: leaving it at the home spot let
+        // the player walk through the visual and hit empty air behind it.
+        npc.collider.x = moved.x;
+        npc.collider.z = moved.z;
         // A collider ate the step — a barrel, another townsperson. Give up
         // on this destination and loiter where the street allows.
         if (Math.hypot(moved.x - ox, moved.z - oz) < step * 0.35) {
