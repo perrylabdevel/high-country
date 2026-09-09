@@ -445,6 +445,53 @@ colour when a non-`Color` is multiplied back in.
 **Found by:** the check, before the first browser run — the cheapest possible
 place for it to fire.
 
+
+### 1.10 Edge noise added to a zero baseline — the road mask painted gravel across half the world
+
+**Symptom:** from any high vantage the ground read as a pale cellular web —
+soft blobs 10-25 m across over an olive base — reported as ground textures
+that "seem stretched". At eye level the ground between the grass tuft cards
+was pale cream instead of soil. Not stretched: the pattern was the road-mask
+noise itself, and it had been in every shipped capture.
+
+**Measured, not assumed.** The terrain material's own debug views settled it
+in two captures: `debugView=2` (roadMask in red) showed the web at roadMask ≈ 1
+across nearly all open ground — the real roads (the splat's A channel) were the
+clean bands crossing it — and `debugView=1` (layer weights) was uniform cyan:
+the grass layer's share was ~0 everywhere off-road. The green at eye level came
+almost entirely from the tuft cards, not the ground layer. Sampling the baked
+splat in node showed it healthy (ranch area grass ≈ 0.95, road channel 1.1% of
+the world), which moved the defect into the material.
+
+**Cause:** `roadRaw = splat.a + mx_noise_float(xz · roadNoiseScale) · 0.85`
+into `smoothstep(roadEdgeLo 0.03, 0.6, …)`. The rag was meant to noise-break
+the road's edge, but it was ADDED to a zero baseline: off-road, where
+splat.a = 0, the raw value was just the noise, and zero-mean ±0.85 perlin
+crosses a 0.03 floor over roughly half the world. Two downstream casualties:
+the gravel layer rendered as a pale web everywhere (gravelW = roadMask), and
+the ground grass layer was multiplied by roadMask.oneMinus() ≈ 0 — which also
+silently disabled the far-grass hand-off built earlier (its boost multiplies
+a weight that roadMask zeroes; the "world goes bald toward the horizon"
+measurement that motivated farGrass was measuring this bug's shadow and the
+fix was structurally unable to work). Values unchanged since the seed commit —
+pre-existing, found by a player eye, not an instrument.
+
+**Fix:** gate the rag by the road channel it decorates —
+`splat.a + noise · 0.85 · smoothstep(0.02, 0.12, splat.a)` — so open ground
+(splat.a = 0) is exactly mask 0, the falloff fringe keeps a partial rag, and
+the road core keeps its full wobble (unchanged on the road itself). Exposed as
+`roadRawNode` and pinned by check:roads: raw must be 0 at splat.a = 0 for
+noise ±1, and must still wobble at splat.a = 0.5. After: open ground is the
+grass layer the splat always said it was, roads read as continuous gravel
+ribbons with ragged edges. Captures: audit/ground-tiles/ (before) vs
+audit/ground-tiles-after/, probe `tmp-probe-ground.mjs` (scratch, gitignored).
+
+**The lesson:** an edge decoration added unconditionally to the signal it
+decorates is not an edge decoration — it is a second signal. Any
+`signal + noise` feeding a threshold must be checked at signal = 0; the
+material debug views (weights/road) that already existed made this a
+two-capture diagnosis, and the splat bake being sampleable in node made it
+falsifiable in minutes.
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD

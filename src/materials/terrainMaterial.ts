@@ -154,6 +154,19 @@ function twoScaleAlbedo(set: LoadedSet, tiling: FloatUniform, near: Node<"float"
   return mix(a, blendOverlay(a, b), u.twoScaleMix.mul(near));
 }
 
+/**
+ * The road channel plus its noise-broken edge rag, exposed for check:roads:
+ * the rag is scaled by the road channel itself, so at splat.a = 0 the raw
+ * value must be exactly 0 no matter what the noise does — noise added to a
+ * zero baseline once cleared the mask floor over half the world and painted
+ * the gravel layer as a pale web across every open vantage.
+ */
+export function roadRawNode(splatA: Node<"float">, edgeNoise: Node<"float">) {
+  return splatA.add(
+    edgeNoise.mul(u.roadEdgeNoise).mul(smoothstep(float(0.02), float(0.12), splatA))
+  );
+}
+
 function heightContrib(
   weight: Node<"float">,
   height: Node<"float">,
@@ -191,7 +204,19 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
 
   const nVar = mx_noise_float(positionWorld.xz.mul(0.014));
   const edgeNoise = mx_noise_float(positionWorld.xz.mul(u.roadNoiseScale));
-  const roadRaw = splat.a.add(edgeNoise.mul(u.roadEdgeNoise));
+  // The edge rag must perturb the road's own edge, not invent road on open
+  // ground. Added to a zero baseline, the ±0.85 noise alone crossed the mask
+  // floor (roadEdgeLo 0.03) over roughly half the world: the gravel layer
+  // rendered as a pale noise web across every open vantage (measured with
+  // debugView=2 — roadMask ≈ 1 almost everywhere off-road), and the ground
+  // grass layer was zeroed through roadMask.oneMinus(), which also silently
+  // disabled the far-grass hand-off below (a boost multiplied by ≈ 0).
+  // roadRawNode scales the rag by the road channel, confining it to the
+  // splat's own falloff band, and keeps splat.a = 0 exactly at mask 0. The
+  // 0.02-0.12 gate ramp keeps some rag at the falloff's outer fringe while
+  // the road core (splat.a ≥ 0.12) keeps its full wobble — unchanged from
+  // the shipped look on the road itself.
+  const roadRaw = roadRawNode(splat.a, edgeNoise).toVar();
   const roadMask = smoothstep(u.roadEdgeLo, u.roadEdgeHi, roadRaw).toVar();
   // The road channel is a broad Gaussian (falloff ~1.15x road width). pow^16
   // only fires when the channel is near its 1.0 peak, so roads whose splat

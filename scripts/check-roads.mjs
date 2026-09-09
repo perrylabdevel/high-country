@@ -43,6 +43,11 @@ function scalar(node) {
   if (node.method === "max") return Math.max(a, b);
   if (node.method === "min") return Math.min(a, b);
   if (node.method === "mix") return a + (b - a) * scalar(node.cNode);
+  if (node.method === "smoothstep") {
+    const lo = scalar(node.aNode), hi = scalar(node.bNode), x = scalar(node.cNode);
+    const t = Math.min(1, Math.max(0, (x - lo) / (hi - lo)));
+    return t * t * (3 - 2 * t);
+  }
   throw new Error(`Unsupported scalar node ${node.constructor.name} ${node.method || node.op}`);
 }
 
@@ -71,6 +76,15 @@ const grooveFloor = scalar(terrain.rutReliefHeight(float(1), float(0), float(1))
 const grooveLip = scalar(terrain.rutReliefHeight(float(0), float(1), float(1)));
 assert(grooveFloor < -0.04 && grooveLip > 0 && grooveLip < 0.04, "Rut height must recess the floor and raise a shallow displaced-dirt lip");
 assert(scalar(terrain.rutReliefHeight(float(1), float(1), float(0))) === 0, "Rut relief must vanish where the road/traffic mask is zero");
+// The edge rag must be gated by the road channel: noise alone, added to a
+// zero baseline, once cleared the mask floor over half the world and painted
+// gravel as a pale web across every open vantage while zeroing the ground
+// grass layer (roadMask.oneMinus()).
+assert(scalar(terrain.roadRawNode(float(0), float(1))) === 0, "Road edge rag must vanish at splat.a = 0; ungated noise invents road on open ground");
+assert(scalar(terrain.roadRawNode(float(0), float(-1))) === 0, "Road edge rag must vanish at splat.a = 0 for negative noise too");
+const ragHigh = scalar(terrain.roadRawNode(float(0.5), float(1)));
+const ragLow = scalar(terrain.roadRawNode(float(0.5), float(-1)));
+assert(ragHigh > 1.2 && ragLow < 0.2, `Road edge rag must still wobble on the road itself (got ${ragHigh}, ${ragLow})`);
 terrainMat.dispose();
 fixture.dispose();
 
