@@ -1264,7 +1264,7 @@ async function boot() {
 
   const npcs = [
     {
-      name: "Harlan Calder", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
+      name: "Harlan Calder", model: "cowboy", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
       look: { shirt: 0x5b3a24, vest: 0x3a2415, pants: 0x2a2018, hat: 0x3d2918 },
       line: [
         "Smoke on the north wind. Too early, and too steady.",
@@ -1272,7 +1272,7 @@ async function boot() {
       ]
     },
     {
-      name: "Nell Calder", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
+      name: "Nell Calder", model: "lillian", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
       look: { shirt: 0x7a3b1e, pants: 0x4a3a2c, hatStyle: "hair", hair: 0x3a2418, skirt: true },
       line: [
         "Juniper is ready. That smoke is not a trash burn.",
@@ -1280,14 +1280,14 @@ async function boot() {
       ]
     },
     {
-      name: "Wade Calder", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
+      name: "Wade Calder", model: "cowboy", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
       look: { shirt: 0x6a4e32, vest: 0x4a2e18, pants: 0x33261a, hat: 0x2e2118 },
       line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing."
     },
 
     // --- Silver Creek: the people who work the street -------------------------
     {
-      name: "Dutch Malloy", ...townSpot(41, 4.6),
+      name: "Dutch Malloy", model: "cowboy", ...townSpot(41, 4.6),
       wander: { r: 6, v: 0.95 },
       look: { shirt: 0x4a3a30, vest: 0x2a2018, pants: 0x26201a, hat: 0x241a12, skin: 0xc9a074 },
       face: townSpot(41, 9),
@@ -1307,7 +1307,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ruth Halloran", ...townSpot(5, 3.5),
+      name: "Ruth Halloran", model: "lucille", ...townSpot(5, 3.5),
       wander: { r: 8, v: 1 },
       look: { shirt: 0x8a5a34, hatStyle: "hair", hair: 0x4a2e18, skirt: true, height: 1.66 },
       face: townSpot(5, -6),
@@ -1328,7 +1328,7 @@ async function boot() {
       ]
     },
     {
-      name: "Amos Pike", ...townSpot(53, 3.5),
+      name: "Amos Pike", model: "cowboy", ...townSpot(53, 3.5),
       wander: { r: 9, v: 1 },
       look: { shirt: 0x5f4a2e, vest: 0x3a2c1a, pants: 0x2e2418, hat: 0x3a2a1a },
       face: townSpot(56, 7),
@@ -1347,7 +1347,7 @@ async function boot() {
       ]
     },
     {
-      name: "Sheriff Tom Cassidy", ...townSpot(-53, 3.5),
+      name: "Sheriff Tom Cassidy", model: "cowboy", ...townSpot(-53, 3.5),
       wander: { r: 12, v: 1.05 },
       look: { shirt: 0x6a5a48, vest: 0x241c14, pants: 0x2a241c, hat: 0x1f1712 },
       face: townSpot(-53, -6),
@@ -1368,7 +1368,7 @@ async function boot() {
 
     // --- and the ones who lounge ----------------------------------------------
     {
-      name: "Floyd Wicks", ...townSpot(30, 4.9),
+      name: "Floyd Wicks", model: "cowboy", ...townSpot(30, 4.9),
       // Lazy: a small patch, a slow amble, and long spells leaning.
       wander: { r: 5, v: 0.8, dwell: [6, 14] },
       look: { shirt: 0x7a6a50, vest: 0x4a3a28, pants: 0x3a3026, hat: 0x443626 },
@@ -1389,7 +1389,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ida Bell", ...townSpot(-16, 3.6),
+      name: "Ida Bell", model: "lucille", ...townSpot(-16, 3.6),
       wander: { r: 6, v: 0.9 },
       look: { shirt: 0x8a4a3a, hatStyle: "hair", hair: 0x2e2118, skirt: true, height: 1.68 },
       face: townSpot(-16, -6),
@@ -1408,7 +1408,7 @@ async function boot() {
       ]
     },
     {
-      name: "Doc Alvin Frey", ...townSpot(-30, 3.6),
+      name: "Doc Alvin Frey", model: "cowboy", ...townSpot(-30, 3.6),
       wander: { r: 6, v: 0.85 },
       look: { shirt: 0x9a8a72, vest: 0x3a342c, pants: 0x2a2620, hatStyle: "hair", hair: 0x8a8478 },
       face: townSpot(-30, -6),
@@ -1427,7 +1427,7 @@ async function boot() {
       ]
     },
     {
-      name: "Willie Grady", ...townSpot(-44.5, 2.5),
+      name: "Willie Grady", model: "childboy", ...townSpot(-44.5, 2.5),
       // The kid ranges widest and never stands still for long.
       wander: { r: 14, v: 1.5, dwell: [1, 4] },
       look: { shirt: 0x6a7a8a, pants: 0x3a342c, hatStyle: "hair", hair: 0x5a3a1e, height: 1.38 },
@@ -1448,7 +1448,7 @@ async function boot() {
 
     // --- the north row: the town's second storefront street -------------------
     {
-      name: "Hattie Reed", ...northSpot(-14, 4.2),
+      name: "Hattie Reed", model: "lucille", ...northSpot(-14, 4.2),
       look: {
         shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64,
         textureStyle: "hattie-workwear", outfit: "hattie-washday"
@@ -1471,7 +1471,7 @@ async function boot() {
       ]
     },
     {
-      name: "Cole Mercer", ...northSpot(16, 4.4),
+      name: "Cole Mercer", model: "cowboy", ...northSpot(16, 4.4),
       look: { shirt: 0x554434, vest: 0x2e241a, pants: 0x30281e, hat: 0x33281c },
       face: northSpot(16, -6),
       // Holding up the north end: hat low, hands tucked away, weight on one
@@ -1520,25 +1520,15 @@ async function boot() {
       npc.wanderWait = 1 + Math.random() * 4; // settle in before the first stroll
     }
     if (npc.pose) {
-      // The idle loop settles every joint home each frame, so a pose set once
-      // would be wiped by the next update. Wrap update instead: the idle
-      // runs (breathing, weight-shift), then the pose layers over the limbs.
-      // The pose clock desyncs like the figure's own idle phase.
-      //
-      // A wandering figure only wears its pose at rest, and the pose eases
-      // in over the joints' current rotations so resuming work after a
-      // stroll doesn't snap the arms.
-      const baseUpdate = npc.figure.update;
       let poseT = Math.random() * 10;
       npc.poseW = 1;
-      npc.figure.update = (dt, speed, mounted = false) => {
-        baseUpdate(dt, speed, mounted);
-        const p = npc.figure.parts;
+      npc.applyPose = (dt, speed) => {
+        const rig = npc.texturedVisual?.parts;
+        const p = rig ?? npc.figure.parts;
+        if (!p) return;
         npc.poseW += ((speed < 0.15 ? 1 : 0) - npc.poseW) * Math.min(1, dt * 2.5);
         if (npc.poseW > 0.01) {
-          const rest = POSE_JOINTS.map((j) => ({
-            j, x: p[j].rotation.x, y: p[j].rotation.y, z: p[j].rotation.z
-          }));
+          const rest = POSE_JOINTS.map((j) => p[j] ? { j, x: p[j].rotation.x, y: p[j].rotation.y, z: p[j].rotation.z } : null).filter(Boolean);
           poseT += dt;
           npc.pose(p, poseT);
           if (npc.poseW < 1) {
@@ -1549,32 +1539,65 @@ async function boot() {
             }
           }
         } else {
-          // The stride only drives the joints' x. These axes are pose-only,
-          // so walk them home while the figure is in motion.
           const k = 1 - Math.min(1, dt * 3);
-          for (const j of POSE_JOINTS) {
-            p[j].rotation.z *= k;
+          if (rig) {
+            // Rig handles have no idle loop settling joints home — the
+            // Eulers persist on the handles — so every axis decays toward
+            // zero while walking and the gait owns the bones.
+            for (const j of POSE_JOINTS) {
+              if (p[j]) { p[j].rotation.x *= k; p[j].rotation.y *= k; p[j].rotation.z *= k; }
+            }
+          } else {
+            // The stride only drives the joints' x (the figure's idle
+            // settles it home); these axes are pose-only, so walk them home.
+            for (const j of POSE_JOINTS) {
+              if (p[j]) p[j].rotation.z *= k;
+            }
+            if (p.torso) p.torso.rotation.y *= k;
+            if (p.head) { p.head.rotation.y *= k; p.head.rotation.x *= k; }
           }
-          p.torso.rotation.y *= k;
-          p.head.rotation.y *= k;
-          p.head.rotation.x *= k;
         }
+        // Handles only move bones when applied — after the gait primed them
+        // (visual.update ran earlier in this same frame).
+        if (rig) npc.texturedVisual.applyPose();
       };
     }
   }
 
   npcs.forEach(makeNpc);
 
-  // Textured-model pilot: Cole is deliberately the one named town NPC using
-  // the cowboy GLB. The figure below remains live but hidden, so dialogue,
-  // wandering and collision retain a known-safe fallback if loading fails.
-  const cole = npcs.find((npc) => npc.name === "Cole Mercer");
-  if (cole) {
-    void installTexturedPilot("/models/western-cowboy.glb", (factory) => {
-      const visual = factory({ targetHeight: 1.78 });
-      for (const child of cole.figure.group.children) child.visible = false;
-      cole.figure.group.add(visual.object);
-      cole.texturedVisual = visual;
+  const NPC_MODELS = {
+    cowboy: { url: "/models/western-cowboy.glb", height: 1.78 },
+    lucille: { url: "/models/lucille__vgdc.glb", height: 1.55 },
+    lillian: { url: "/models/lillian__vgdc.glb", height: 1.62 },
+    childboy: { url: "/models/child_boy_character_animated_blender.glb", height: 1.38 }
+  };
+  // Subtle per-NPC tints: one shared texture means identity comes from
+  // palette drift, not different faces. Near-white multiplies only.
+  const NPC_TINTS = {
+    "Harlan Calder": 0xf2e4d4,
+    "Wade Calder": 0xe8d9c8,
+    "Dutch Malloy": 0xf5e8d8,
+    "Amos Pike": 0xe4d2be,
+    "Sheriff Tom Cassidy": 0xd8d2d8,
+    "Floyd Wicks": 0xf0e0cc,
+    "Doc Alvin Frey": 0xfaf0e0,
+    "Cole Mercer": null, // pilot baseline, untinted
+    "Nell Calder": 0xf2d8c0,
+    "Ruth Halloran": 0xf5e0d0,
+    "Ida Bell": 0xf0d0c0,
+    "Hattie Reed": 0xece8e8,
+    "Willie Grady": null
+  };
+  for (const [model, cfg] of Object.entries(NPC_MODELS)) {
+    void installTexturedPilot(cfg.url, (factory) => {
+      for (const npc of npcs) {
+        if (npc.model !== model) continue;
+        const visual = factory({ targetHeight: cfg.height, tint: NPC_TINTS[npc.name] });
+        for (const child of npc.figure.group.children) child.visible = false;
+        npc.figure.group.add(visual.object);
+        npc.texturedVisual = visual;
+      }
     });
   }
 
@@ -2400,6 +2423,7 @@ async function boot() {
       }
       npc.figure.update(poseDt, speed);
       npc.texturedVisual?.update(poseDt, speed);
+      npc.applyPose?.(poseDt, speed);
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above. The

@@ -2,6 +2,39 @@ import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
+// GLTFLoader's PropertyBinding.sanitizeNodeName strips colons, dots and
+// slashes from node names and three's exporter renumbers with a trailing _NN,
+// so an authored `DEF-upper_arm.L_0122` arrives as `DEF-upper_armL_0122`.
+// Matching on a "core" (sanitized form with trailing _NN dropped) is robust
+// against both the authored and the runtime form and against the differing
+// numeric suffixes of the cowboy vs child skeletons.
+function coreBoneName(name) {
+  return name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "");
+}
+function boneByCore(bones, core) {
+  for (const [name, bone] of bones) {
+    if (coreBoneName(name) === core) return bone;
+  }
+  return null;
+}
+
+const CORES_DEF = {
+  armL: "DEF-upper_armL",
+  armR: "DEF-upper_armR",
+  legL: "DEF-thighL",
+  legR: "DEF-thighR",
+  torso: "DEF-spine",
+  head: "DEF-spine006"
+};
+const CORES_MIXA = {
+  armL: "mixamorigLeftArm",
+  armR: "mixamorigRightArm",
+  legL: "mixamorigLeftUpLeg",
+  legR: "mixamorigRightUpLeg",
+  torso: "mixamorigSpine1",
+  head: "mixamorigHead"
+};
+
 // The source models do not share a coordinate convention. The cow was measured
 // from its GLB rig: its muzzle is +Z of _rootJoint, while High Country actors
 // face local +X. Keep those facts here instead of making call sites guess.
@@ -11,7 +44,19 @@ const MODEL = {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
     // The only exported cowboy action is a zero-duration Mixamo pose with a
     // hips position track. It is not an idle/walk clip; never play it.
-    gait: true
+    gait: true, coreHandles: CORES_MIXA
+  },
+  lucille: {
+    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
+    idle: "Idle_g", walk: "Walk_g", coreHandles: CORES_DEF
+  },
+  lillian: {
+    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
+    idle: "Idle_g", walk: null, coreHandles: CORES_DEF
+  },
+  childboy: {
+    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
+    idle: null, walk: null, coreHandles: CORES_MIXA, gait: true
   }
 };
 
@@ -19,7 +64,11 @@ const templates = new Map();
 const legNames = ["lfl1_017", "lfr1_021", "lbl1_02", "lbr1_031"];
 
 function kindFor(url) {
-  return url.includes("farm-cow.glb") ? "cow" : "cowboy";
+  if (url.includes("farm-cow.glb")) return "cow";
+  if (url.includes("lucille")) return "lucille";
+  if (url.includes("lillian")) return "lillian";
+  if (url.includes("child")) return "childboy";
+  return "cowboy";
 }
 
 function prepare(scene, kind) {
@@ -35,7 +84,33 @@ function prepare(scene, kind) {
 
 function sourceBounds(scene) {
   scene.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(scene);
+  const boxes = [];
+  scene.traverse((node) => {
+    if (!node.isMesh) return;
+    if (node.isSkinnedMesh) {
+      // A Blender DEF-rig exported through Sketchfab binds the mesh in a
+      // different scale domain than the skinned result (Lucille: geometry
+      // bind height ~185 units, skinned height ~703). Raw geometry bbox
+      // therefore reports a tiny height and the factory scales the character
+      // metres tall. computeBoundingBox() gives the SKINNED local bounds;
+      // applying matrixWorld yields true world extent. For Mixamo models
+      // (bind ≈ skinned) this is a no-op.
+      node.computeBoundingBox();
+      boxes.push(node.boundingBox.clone().applyMatrix4(node.matrixWorld));
+      return;
+    }
+    node.geometry.computeBoundingBox();
+    boxes.push(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));
+  });
+  // Some Sketchfab exports carry orphan meshes far outside the body. A naive
+  // union would skew the grounding. Reject any mesh whose min.y is a clear
+  // outlier below the median min.y; the body's own meshes dominate.
+  const mins = boxes.map((b) => b.min.y).sort((a, b) => a - b);
+  const medianMin = mins[Math.floor(mins.length / 2)];
+  const kept = boxes.filter((b) => b.min.y > medianMin - 2.0);
+  const box = new THREE.Box3().makeEmpty();
+  for (const b of (kept.length ? kept : boxes)) box.union(b);
+  return box;
 }
 
 function findBones(object) {
@@ -60,6 +135,34 @@ function worldAxisPose(bone, rest, axis, angle) {
     .multiply(_axisQ.setFromAxisAngle(axis, angle))
     .multiply(_parentWorld);
   bone.quaternion.copy(_delta).multiply(rest);
+}
+
+// A pose authored for the procedural figure writes absolute Euler angles on
+// plain groups. A mixamorig bone's rest is a non-trivial bind pose, so an
+// absolute local Euler would snap the limb somewhere unmeant. A joint handle
+// keeps the pose's Euler semantics but applies each component as a world-axis
+// rotation composed onto the bone's CURRENT quaternion — the same mechanism
+// the gait uses — so authored poses transfer unchanged.
+// x -> pitch about lateral, y -> yaw about world up, z -> roll about forward.
+// Composition is safe from accumulation only because the gait re-primes every
+// handle bone from its own rest each frame (arms get the hanging arm-drop,
+// spine its idle sway, legs the stride or 0, head an identity prime), so the
+// bone's current quaternion is always bind-primed baseline, never last
+// frame's pose.
+const _UP = new THREE.Vector3(0, 1, 0);
+
+function makeJointHandle(bone, axes) {
+  const rotation = new THREE.Euler();
+  const apply = () => {
+    // Zero rotation leaves the bone untouched: while the NPC walks, the pose
+    // Eulers decay toward 0 and the gait owns the limbs.
+    if (!rotation.x && !rotation.y && !rotation.z) return;
+    const { forward, lateral } = axes();
+    if (rotation.x) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, lateral, rotation.x); }
+    if (rotation.y) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, _UP, rotation.y); }
+    if (rotation.z) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, forward, rotation.z); }
+  };
+  return { rotation, apply };
 }
 
 // Body-relative world axes, resolved every frame from the actor's actual
@@ -106,17 +209,17 @@ function makeCowGait(bones, object) {
   };
 }
 
-function makeCowboyGait(bones, object) {
-  const joint = (name) => {
-    const bone = bones.get(name);
+function makeCowboyGait(bones, object, axes = bodyAxes(object)) {
+  const joint = (core) => {
+    const bone = boneByCore(bones, core);
     return bone ? { bone, rest: bone.quaternion.clone() } : null;
   };
-  const leftArm = joint("mixamorigLeftArm_08");
-  const rightArm = joint("mixamorigRightArm_028");
-  const leftLeg = joint("mixamorigLeftUpLeg_047");
-  const rightLeg = joint("mixamorigRightUpLeg_052");
-  const spine = joint("mixamorigSpine1_03");
-  const axes = bodyAxes(object);
+  const leftArm = joint("mixamorigLeftArm");
+  const rightArm = joint("mixamorigRightArm");
+  const leftLeg = joint("mixamorigLeftUpLeg");
+  const rightLeg = joint("mixamorigRightUpLeg");
+  const spine = joint("mixamorigSpine1");
+  const head = joint("mixamorigHead");
   // Lower from the T-pose bind into a relaxed hang. 1.42 rad leaves the arm
   // ~9 degrees off vertical, a natural stance rather than the old A-pose.
   const ARM_DROP = 1.42;
@@ -145,11 +248,14 @@ function makeCowboyGait(bones, object) {
     if (leftLeg) worldAxisPose(leftLeg.bone, leftLeg.rest, lateral, stride);
     if (rightLeg) worldAxisPose(rightLeg.bone, rightLeg.rest, lateral, -stride);
     if (spine) worldAxisPose(spine.bone, spine.rest, lateral, moving ? 0.06 : Math.sin(phase * 0.23) * 0.012);
+    // Prime the head from its bind every frame so the pose handle can compose
+    // onto a known baseline (the gait itself never rotates the head).
+    if (head) head.bone.quaternion.copy(head.rest);
   };
 }
 
 function actorFactory(template) {
-  return ({ targetHeight, heading = 0 }) => {
+  return ({ targetHeight, heading = 0, tint }) => {
     const source = cloneSkeleton(template.scene);
     const config = MODEL[template.kind];
     const scale = targetHeight / template.height;
@@ -163,23 +269,64 @@ function actorFactory(template) {
     normalized.add(source);
     object.add(normalized);
 
+    if (tint != null) {
+      const tintColor = tint instanceof THREE.Color ? tint : new THREE.Color(tint);
+      source.traverse((node) => {
+        if (!node.isMesh || !node.material) return;
+        if (Array.isArray(node.material)) {
+          node.material = node.material.map((material) => {
+            const instanceMaterial = material.clone();
+            instanceMaterial.color?.multiply(tintColor);
+            return instanceMaterial;
+          });
+        } else {
+          node.material = node.material.clone();
+          node.material.color?.multiply(tintColor);
+        }
+      });
+    }
+
     const bones = findBones(source);
-    const idle = config.idle ? template.clips.find((clip) => clip.name === config.idle) : null;
-    const mixer = idle ? new THREE.AnimationMixer(source) : null;
-    const action = mixer ? mixer.clipAction(idle).play() : null;
-    const gait = config.gait ? (template.kind === "cow" ? makeCowGait(bones, object) : makeCowboyGait(bones, object)) : null;
+    const axes = template.kind === "cow" ? null : bodyAxes(object);
+    let parts;
+    if (config.coreHandles) {
+      parts = {};
+      for (const [name, core] of Object.entries(config.coreHandles)) {
+        const bone = boneByCore(bones, core);
+        if (bone) parts[name] = makeJointHandle(bone, axes);
+      }
+    }
+    const idleClip = config.idle ? template.clips.find((c) => c.name === config.idle) : null;
+    const walkClip = config.walk ? template.clips.find((c) => c.name === config.walk) : null;
+    const mixer = (idleClip || walkClip) ? new THREE.AnimationMixer(source) : null;
+    const idleAction = idleClip ? mixer.clipAction(idleClip).play() : null;
+    const walkAction = walkClip ? mixer.clipAction(walkClip).play() : null;
+    if (walkAction) walkAction.setEffectiveWeight(0);
+    const gait = config.gait ? (template.kind === "cow" ? makeCowGait(bones, object) : makeCowboyGait(bones, object, axes)) : null;
     const forwardReach = config.sourceForward.z > 0 ? template.bounds.max.z * scale : -template.bounds.min.z * scale;
     let phaseClock = 0;
 
     return {
       object,
+      parts,
       forwardReach,
+      // The pose author writes Eulers onto the handles; this applies them to
+      // the bones. Called after visual.update in the frame loop, so the gait
+      // has already primed every handle bone from its own rest.
+      applyPose() {
+        if (!parts) return;
+        for (const h of Object.values(parts)) h.apply();
+      },
       update(dt, state = {}) {
         if (typeof state === "number") state = { speed: state };
         phaseClock += dt * (state.speed > 0.05 ? 6.2 : 1.4);
         if (state.phase == null) state.phase = phaseClock;
-        if (action) action.timeScale = state.speed > 0.05 ? 0.35 : 0.7;
-        if (mixer) mixer.update(dt);
+        if (mixer) {
+          const walkWeight = walkAction ? THREE.MathUtils.clamp((state.speed - 0.05) / 0.5, 0, 1) : 0;
+          if (idleAction) idleAction.setEffectiveWeight(1 - walkWeight);
+          if (walkAction) walkAction.setEffectiveWeight(walkWeight);
+          mixer.update(dt);
+        }
         gait?.(state);
       }
     };

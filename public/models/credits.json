@@ -18,5 +18,35 @@
     "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
     "sha256": "d00bf0a2367bccc513aca2004ef3334d79afd7f5f060f5c10fdcbd2be4d02ba6",
     "bytes": 997484
+  },
+  {
+    "file": "lucille__vgdc.glb",
+    "title": "Lucille | VGDC",
+    "author": "MooKorea",
+    "source": "https://sketchfab.com/3d-models/lucille-vgdc-940ca0a626404fcd966a309c03ff2ad9",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "60b5a4bb29accfbe3116d2735f1a0ffb86a04f79d9076915735c26ce775909dd",
+    "bytes": 21394500
+  },
+  {
+    "file": "lillian__vgdc.glb",
+    "title": "Lillian | VGDC",
+    "author": "MooKorea",
+    "source": "https://sketchfab.com/3d-models/lillian-vgdc-dfe0231a096d48e0b8e5e3d0ba3de1bb",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "dc0a208fc3e49a27900ba70ff299ea32588459fb01270408de5713ece1953717",
+    "bytes": 8056812
+  },
+  {
+    "file": "child_boy_character_animated_blender.glb",
+    "title": "Child Boy Character Animated Blender",
+    "author": "nijatmursali",
+    "source": "https://sketchfab.com/3d-models/child-boy-character-animated-blender-28a769dffab9481b84740f4adcf124fd",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "e134112ab7d9202b13db44906ba892cc7a6b6ceac3b858f02f41343af6dc2d26",
+    "bytes": 9272652
   }
 ]
