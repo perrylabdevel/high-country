@@ -129,6 +129,7 @@ function makeTerrainChunks(source) {
     list.push(a, b, c);
   }
   const group = new THREE.Group();
+  let chunkIndex = 0;
   for (const list of buckets.values()) {
     const chunk = new THREE.BufferGeometry();
     for (const name of ["position", "normal", "color", "uv", "tangent"]) {
@@ -147,6 +148,8 @@ function makeTerrainChunks(source) {
     chunk.boundingSphere = new THREE.Sphere();
     chunk.boundingBox.getBoundingSphere(chunk.boundingSphere);
     const mesh = new THREE.Mesh(chunk, null);
+    mesh.name = `terrain-chunk-${chunkIndex}`;
+    chunkIndex += 1;
     mesh.receiveShadow = true;
     mesh.castShadow = false;
     group.add(mesh);
@@ -453,6 +456,7 @@ export function createSky(scene) {
   });
   skyMat.colorNode = mix(grad.add(glowCol.mul(glow)), cloudCol, cloudAmt);
   const sky = new THREE.Mesh(new THREE.SphereGeometry(3800, 32, 16), skyMat);
+  sky.name = "sky";
   scene.add(sky);
 
   // HDR core: over-unity color so tone mapping reads it as white-hot instead

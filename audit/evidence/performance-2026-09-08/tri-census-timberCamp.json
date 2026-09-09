@@ -1,0 +1,271 @@
+[
+ {
+  "key": "terrain-chunk@mesh",
+  "meshes": 500,
+  "instances": 500,
+  "tris": 4408096
+ },
+ {
+  "key": "pine-limb-far@instanced",
+  "meshes": 4,
+  "instances": 2022,
+  "tris": 1902720
+ },
+ {
+  "key": "pine-crown-dist@instanced",
+  "meshes": 4,
+  "instances": 3336,
+  "tris": 1701360
+ },
+ {
+  "key": "grass-tile@instanced",
+  "meshes": 65,
+  "instances": 50574,
+  "tris": 606888
+ },
+ {
+  "key": "pine-crown-far@instanced",
+  "meshes": 4,
+  "instances": 2022,
+  "tris": 570816
+ },
+ {
+  "key": "pine-trunk-far@instanced",
+  "meshes": 4,
+  "instances": 2022,
+  "tris": 161760
+ },
+ {
+  "key": "?@mesh",
+  "meshes": 3054,
+  "instances": 3054,
+  "tris": 81934
+ },
+ {
+  "key": "Object_62@mesh",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 56316
+ },
+ {
+  "key": "creek@mesh",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 52672
+ },
+ {
+  "key": "pine-limb-near@instanced",
+  "meshes": 4,
+  "instances": 28,
+  "tris": 38080
+ },
+ {
+  "key": "Object_7@mesh",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 35310
+ },
+ {
+  "key": "cotton-crown-dist@instanced",
+  "meshes": 2,
+  "instances": 544,
+  "tris": 23384
+ },
+ {
+  "key": "rail-ties@instanced",
+  "meshes": 1,
+  "instances": 1665,
+  "tris": 19980
+ },
+ {
+  "key": "rail@instanced",
+  "meshes": 1,
+  "instances": 964,
+  "tris": 11568
+ },
+ {
+  "key": "pine-crown-near@instanced",
+  "meshes": 4,
+  "instances": 28,
+  "tris": 11424
+ },
+ {
+  "key": "lake@mesh",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 11264
+ },
+ {
+  "key": "burnt-snag@instanced",
+  "meshes": 1,
+  "instances": 34,
+  "tris": 8840
+ },
+ {
+  "key": "sage-ring@instanced",
+  "meshes": 2,
+  "instances": 642,
+  "tris": 5136
+ },
+ {
+  "key": "?@instanced",
+  "meshes": 5,
+  "instances": 295,
+  "tris": 3540
+ },
+ {
+  "key": "pine-trunk-near@instanced",
+  "meshes": 4,
+  "instances": 28,
+  "tris": 2240
+ },
+ {
+  "key": "rocks@instanced",
+  "meshes": 1,
+  "instances": 44,
+  "tris": 1584
+ },
+ {
+  "key": "road@mesh",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 1338
+ },
+ {
+  "key": "cotton-trunk-far@instanced",
+  "meshes": 2,
+  "instances": 16,
+  "tris": 1280
+ },
+ {
+  "key": "cotton-crown-far@instanced",
+  "meshes": 2,
+  "instances": 16,
+  "tris": 1104
+ },
+ {
+  "key": "sky@mesh",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 960
+ },
+ {
+  "key": "Object_64@mesh",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 960
+ },
+ {
+  "key": "rocks-red@instanced",
+  "meshes": 1,
+  "instances": 14,
+  "tris": 504
+ },
+ {
+  "key": "cotton-trunk-near@instanced",
+  "meshes": 2,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "cotton-crown-near@instanced",
+  "meshes": 2,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "TOTAL(scene, frustum-independent)",
+  "meshes": 3691,
+  "instances": 0,
+  "tris": 9721058
+ },
+ {
+  "key": "SAMPLE_BIG_MESHES",
+  "big": [
+   {
+    "tris": 708400,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-limb-far-0",
+    "parent": "Scene"
+   },
+   {
+    "tris": 655040,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-limb-far-1",
+    "parent": "Scene"
+   },
+   {
+    "tris": 584970,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-dist-1",
+    "parent": "Scene"
+   },
+   {
+    "tris": 582930,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-dist-0",
+    "parent": "Scene"
+   },
+   {
+    "tris": 432640,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-limb-far-2",
+    "parent": "Scene"
+   },
+   {
+    "tris": 383010,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-dist-2",
+    "parent": "Scene"
+   },
+   {
+    "tris": 212520,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-far-0",
+    "parent": "Scene"
+   },
+   {
+    "tris": 196512,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-far-1",
+    "parent": "Scene"
+   },
+   {
+    "tris": 150450,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-dist-3",
+    "parent": "Scene"
+   },
+   {
+    "tris": 131552,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "terrain-chunk-267",
+    "parent": "Group"
+   },
+   {
+    "tris": 129792,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-crown-far-2",
+    "parent": "Scene"
+   },
+   {
+    "tris": 106640,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "pine-limb-far-3",
+    "parent": "Scene"
+   },
+   {
+    "tris": 104096,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "terrain-chunk-190",
+    "parent": "Group"
+   },
+   {
+    "tris": 101600,
+    "mat": "MeshStandardNodeMaterial",
+    "name": "terrain-chunk-210",
+    "parent": "Group"
+   }
+  ]
+ }
+]

@@ -1,3 +1,51 @@
+# Performance campaign — 2026-09-08/09 (exhaustive pass, complete)
+
+Ledger with all evidence paths: `docs/PERFORMANCE_PASS.md` (read it before
+touching any perf-sensitive code — it also records REJECTED optimizations and
+the critic pass). Evidence: `audit/evidence/performance-2026-09-08/`.
+
+Scope: CPU frame work, GPU triangles, HUD/DOM, NPC pose, nav, startup, plus a
+hostile critic pass that found and fixed 3 code defects (one of them a P0
+scene-wide freeze the campaign itself had introduced) and dismantled several
+unevidenced ledger claims.
+
+Headline (interleaved display-paced A/B, frozen dist trees, n=5/POI/side,
+evidence `fps-ab-interleaved-{pre,post}.jsonl`):
+
+- northernPines 29.2→35.1 fps (+20%), worst frame 54.8→38.2 ms
+- lakeMercy 23.7→31.4 (+33%), worst 98.0→82.1 ms
+- timberCamp 25.8→30.3 (+17%), worst 108.1→106.0 ms
+- elPaso/badlands at the ~60 compositor cap both sides (fps flat by
+  construction); submitted tris 0.41M→0.25M / 0.53M→0.30M
+- Heavy-POI submitted triangles −35-44% (5.59M→3.11M / 4.21M→2.74M /
+  6.77M→3.95M), horizon silhouettes preserved (audit/pine-dist-ab/)
+
+Critic-pass fixes (all verified empirically): C1 `freezeTransforms(scene.add(x))`
+had frozen the ENTIRE scene graph (sky/sun/windmill-fans dead) — now freezes
+only the merged group; C2 instant grass tiles could land invisible (uniform
+gate) — every landing now refreshes `lastGrassBorn`; C3 minimap missed
+replanned routes — route identity joins the change gate; P2 smoke bases now
+captured on frame 1 (rain could permanently dampen them); 2 more checks wired
+into check:sequential. Known flakiness recorded: probe-play's two overlook
+"arrival event" steps fail identically on pre AND post trees (probe-path
+timing, arrival completes on a later crossing) — pre-existing, not campaign.
+
+Known measurement traps (do not re-trip): Object3D.add() returns the PARENT;
+tri-census (frustum-independent) and renderer.info (post-cull) are different
+instruments; uncapped-vsync probe flags inject fake worst-frame stalls
+(display-paced is now the default; VSYNC=0 env restores); zsh does not
+word-split unquoted scalars; port 8765 was a long-lived DEV server — A/B
+needs static preview servers of frozen dist trees.
+
+Not done (deferred, ledger has details): writeBuffer uniform batching
+(upstream three.js), terrain chunk consolidation, shadow redraw throttling,
+sky-octave capping, 3,054 hidden merge originals structural fix; sparse-grass
+capture cause not established (TILE_HOLD_SECS candidate).
+
+Nothing committed or pushed.
+
+---
+
 # Current Objective
 
 Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.

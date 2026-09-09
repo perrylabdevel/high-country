@@ -1,0 +1,5 @@
+{"poi":"northernPines","frames":175,"seconds":5.0000999999046325,"worstFrameMs":90.1,"drawCalls":238,"triangles":3107279,"textures":44,"textureBytes":171255205,"dpr":1,"fps":35}
+{"poi":"lakeMercy","frames":190,"seconds":5.072600000023842,"worstFrameMs":378.9,"drawCalls":236,"triangles":2744093,"textures":44,"textureBytes":171255205,"dpr":1,"fps":37.5}
+{"poi":"timberCamp","frames":148,"seconds":5.0005,"worstFrameMs":88.4,"drawCalls":373,"triangles":3945347,"textures":44,"textureBytes":171255205,"dpr":1,"fps":29.6}
+{"poi":"badlands","frames":212,"seconds":5.015299999952316,"worstFrameMs":97.5,"drawCalls":141,"triangles":298639,"textures":45,"textureBytes":171255206,"dpr":1,"fps":42.3}
+{"poi":"elPaso","frames":234,"seconds":5.013799999952316,"worstFrameMs":35.9,"drawCalls":99,"triangles":249111,"textures":47,"textureBytes":171255208,"dpr":1,"fps":46.7}

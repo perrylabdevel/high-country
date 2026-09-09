@@ -1635,7 +1635,13 @@ export function createVegetation(scene, maps = {}) {
     far: makePineCanopy(farTiers, farCards, radius, baseY, topY),
     // The distant band is crown-only and cheapest; fuller cards keep the
     // horizon reading as tree silhouettes instead of smeared specks (U6).
-    distant: makePineCanopy(9, 13, radius, baseY, topY),
+    // "Cheapest" was stale: 9 tiers × 13 cards made the distant crown 255
+    // quads — a third MORE cards than the near crown — so the 520 m+ band,
+    // where most of the map's trees sit, drew ~2 M of the frame's triangles.
+    // 7 × 5 keeps the vertical tiers (silhouette continuity, U6) at 40% of
+    // the cards; at 520 m a tree is ~10-25 px tall and reads as a specked
+    // cone either way. A/B evidence: audit/pine-dist-ab/.
+    distant: makePineCanopy(9, 6, radius, baseY, topY),
     trunk: makePineTrunk(topY + 0.75, baseR, Math.max(0.045, baseR * 0.16))
   });
   // Crown radius against tree height. A conifer is roughly 0.3-0.5 as wide as
@@ -1666,13 +1672,17 @@ export function createVegetation(scene, maps = {}) {
   // other biome's silhouette.
   const MAIN_TREE_BUDGET = 3200;
   const MAX = 7600;
-  const pines = PINE.map((proto) => {
+  const pines = PINE.map((proto, protoIndex) => {
     const trunkNear = new THREE.InstancedMesh(proto.trunk, bark, MAX);
     const crownNear = new THREE.InstancedMesh(proto.near.leaves, pineLeafMat, MAX);
     const limbNear = new THREE.InstancedMesh(proto.near.limbs, limbMat, MAX);
     const trunkFar = new THREE.InstancedMesh(proto.trunk, bark, MAX);
     const crownFar = new THREE.InstancedMesh(proto.far.leaves, pineLeafMat, MAX);
-    const limbFar = new THREE.InstancedMesh(proto.far.limbs, limbMat, MAX);
+    // The far band (120-520 m) carries no limb cylinders: at 120 m a 0.065 m
+    // limb is ~0.5 px wide, hidden under the far crown's needle cards, and the
+    // capped 5-gon limbs measured ~942 tris per tree — 1.5-1.9 M submitted
+    // triangles at the pine POIs (audit/tri-census-*.json). Limbs survive in
+    // the near band, where the tree fills the screen and bare branches show.
     // Distant band: crown only. At 520 m a trunk is 1.2 px wide and by 900 m
     // it is under one — it renders nothing but the bare pole that shows through
     // a thin crown. Dropping it removes that artefact and returns ~245k
@@ -1683,7 +1693,10 @@ export function createVegetation(scene, maps = {}) {
     const windNear = makeWindAttrib(proto.near.leaves, MAX);
     const windFar = makeWindAttrib(proto.far.leaves, MAX);
     const windDist = makeWindAttrib(proto.distant.leaves, MAX);
-    for (const mesh of [trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist]) {
+    const treeNames = ["pine-trunk-near", "pine-crown-near", "pine-limb-near", "pine-trunk-far", "pine-crown-far", "pine-crown-dist"];
+    for (let m = 0; m < 6; m += 1) {
+      const mesh = [trunkNear, crownNear, limbNear, trunkFar, crownFar, crownDist][m];
+      mesh.name = `${treeNames[m]}-${protoIndex}`;
       mesh.count = 0;
       mesh.frustumCulled = false;
     }
@@ -1695,7 +1708,7 @@ export function createVegetation(scene, maps = {}) {
     trunkNear.castShadow = true;
     crownNear.castShadow = true;
     limbNear.castShadow = false;
-    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, limbFar, crownDist, windNear, windFar, windDist };
+    return { trunkNear, crownNear, limbNear, trunkFar, crownFar, crownDist, windNear, windFar, windDist };
   });
 
   const treePos = new Float32Array(MAX * 3);
@@ -1735,6 +1748,7 @@ export function createVegetation(scene, maps = {}) {
   }
 
   const burnt = new THREE.InstancedMesh(makeBurntSnag(5.2, 0.26, 0.1), char, 400);
+    burnt.name = "burnt-snag";
 
   const dummy = new THREE.Object3D();
   let placed = 0;
@@ -1781,6 +1795,10 @@ export function createVegetation(scene, maps = {}) {
     return { trunkNear, crownNear, trunkFar, crownFar, crownDist, windNear, windFar, windDist };
   });
   const broadMeshes = broads.flatMap((b) => [b.trunkNear, b.crownNear, b.trunkFar, b.crownFar, b.crownDist]);
+  const broadNames = ["cotton-trunk-near", "cotton-crown-near", "cotton-trunk-far", "cotton-crown-far", "cotton-crown-dist"];
+  for (let m = 0; m < broadMeshes.length; m += 1) {
+    broadMeshes[m].name = `${broadNames[m % broadNames.length]}-${Math.floor(m / broadNames.length)}`;
+  }
   for (const mesh of [...broadMeshes, burnt]) {
     mesh.frustumCulled = false;
   }
@@ -2371,6 +2389,13 @@ export function createVegetation(scene, maps = {}) {
   const TILE_HOLD_SECS = 2;
   let vegClock = 0;
   let instantBorn = true;
+  // Field-clock time of the most recent tile landing — the birth dissolve's
+  // window. grassAge clamps at 1, so once every landing tile is past
+  // GRASS_FADE_SECS the grassNowU uniform is a no-op write and the frame loop
+  // can stop touching it (a settled field is the common case). Instant
+  // landings keep the tracker fresh too: their blades are born backdated, and
+  // the uniform must be at least that birth time or they discard themselves.
+  let lastGrassBorn = -GRASS_FADE_SECS;
   // The panel's speed-thinning toggle. Read at tile ADMISSION, where the
   // hold-back is now decided; the old gate lived in scatterPass, which the
   // tile cache replaced, and the toggle had gone dead — measured, tiles came
@@ -2511,6 +2536,7 @@ export function createVegetation(scene, maps = {}) {
     geo.setAttribute("aWind", windRotAttrib);
     geo.setAttribute("aFade", fadeAttrib);
     const mesh = new THREE.InstancedMesh(geo, grassMat, capacity);
+    mesh.name = "grass-tile";
     mesh.castShadow = false;
     mesh.receiveShadow = wantGrassShadow;
     // Frustum culling is ON, which it could never be for a ring.
@@ -2843,6 +2869,7 @@ export function createVegetation(scene, maps = {}) {
       const sageDitherAttrib = new THREE.InstancedBufferAttribute(sageDither, 1);
       geo.setAttribute("aDither", sageDitherAttrib);
       const mesh = new THREE.InstancedMesh(geo, sageMat, capacity);
+      mesh.name = "sage-ring";
       mesh.castShadow = false;
       mesh.frustumCulled = false;
       mesh.boundingSphere = new THREE.Sphere(
@@ -3218,6 +3245,15 @@ export function createVegetation(scene, maps = {}) {
     // every teleported tile fade in anyway (measured: 22.7% from settled a
     // frame after a jump, against 2.3% with fades off).
     tile.bornAt = tile.instant ? vegClock - GRASS_FADE_SECS : vegClock;
+    // Any landing tile needs the field clock alive on the GPU. A
+    // genuinely-birthing one rides the dissolve up from 0; an instant
+    // (teleported) one lands "already aged" only if grassNowU is at least its
+    // backdated birth time — the uniform freezes once the gate closes, so an
+    // instant tile landing later than one fade-window after the last write
+    // would compute grassAge = 0 and discard every blade it holds (whole
+    // field blank after a teleport or a panel replant). Reopening the gate
+    // here costs one uniform write and makes the age come out exactly 1.
+    lastGrassBorn = vegClock;
     // Strided, not fill(): the birth time is the x of a packed vec2 whose y is
     // the tuft's dither, written per slot by plantBlade. Filling the whole
     // range would flatten every tuft's place in the dissolve order to the same
@@ -3783,6 +3819,7 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
     const mesh = new THREE.InstancedMesh(rockGeo, material, group.length);
+    mesh.name = isRed ? "rocks-red" : "rocks";
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     for (let n = 0; n < group.length; n += 1) {
@@ -3799,7 +3836,7 @@ export function createVegetation(scene, maps = {}) {
   }
 
   for (const p of pines) {
-    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.limbFar, p.crownDist);
+    scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.crownDist);
   }
   // Grass tiles add and remove THEMSELVES as residency changes (updateTiles),
   // so there is no static list of grass meshes to add here any more.
@@ -3930,7 +3967,6 @@ export function createVegetation(scene, maps = {}) {
         const n = farCounts[t];
         pines[t].trunkFar.setMatrixAt(n, lodDummy.matrix);
         pines[t].crownFar.setMatrixAt(n, lodDummy.matrix);
-        pines[t].limbFar.setMatrixAt(n, lodDummy.matrix);
         writeWind(pines[t].windFar, n, treeWind, i);
         pines[t].crownFar.setColorAt(n, tintColor);
         farCounts[t] = n + 1;
@@ -3942,13 +3978,11 @@ export function createVegetation(scene, maps = {}) {
       pines[t].limbNear.count = nearCounts[t];
       pines[t].trunkFar.count = farCounts[t];
       pines[t].crownFar.count = farCounts[t];
-      pines[t].limbFar.count = farCounts[t];
       pines[t].trunkNear.instanceMatrix.needsUpdate = true;
       pines[t].crownNear.instanceMatrix.needsUpdate = true;
       pines[t].limbNear.instanceMatrix.needsUpdate = true;
       pines[t].trunkFar.instanceMatrix.needsUpdate = true;
       pines[t].crownFar.instanceMatrix.needsUpdate = true;
-      pines[t].limbFar.instanceMatrix.needsUpdate = true;
       pines[t].crownDist.count = distCounts[t];
       pines[t].crownDist.instanceMatrix.needsUpdate = true;
       pines[t].crownNear.instanceColor.needsUpdate = true;
@@ -4291,6 +4325,11 @@ export function createVegetation(scene, maps = {}) {
      * Width and height are the card's, in metres; the painted plant is
      * BLADE_PANEL_W of the width and `fill` of the height.
      */
+    /** Cheap residency snapshot for the frame-jitter probe: tile counts only. */
+    grassQueueStats() {
+      return { live: grassTiles.length, queued: grassQueue.length, clock: +vegClock.toFixed(2) };
+    },
+
     grassStats(cameraPos, radius = 15) {
       const m = new THREE.Matrix4();
       const p = new THREE.Vector3();
@@ -4379,7 +4418,12 @@ export function createVegetation(scene, maps = {}) {
       // 100 ms above, which is what a backgrounded tab needs: the clock
       // crawls rather than leaping past every fade in flight.
       vegClock += dt;
-      grassNowU.value = vegClock;
+      // Reach the GPU only while a dissolve is in flight: grassAge clamps at
+      // 1, so a settled field — the common case, where nothing has landed
+      // inside the fade window — renders identically without the write.
+      if (vegClock - lastGrassBorn < GRASS_FADE_SECS) {
+        grassNowU.value = vegClock;
+      }
       // Frontier tiles fade in. A TELEPORT does not: a mission jump or a fast
       // travel replaces the whole resident set at once, and dissolving all of
       // it reads as the world growing in rather than as cover arriving —

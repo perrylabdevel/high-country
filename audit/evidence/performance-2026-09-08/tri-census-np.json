@@ -1,0 +1,602 @@
+[
+ {
+  "kind": "instanced",
+  "parent": "Scene",
+  "type": "Mesh",
+  "instances": 717,
+  "trisPer": 510,
+  "tris": 365670,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "instanced",
+  "parent": "Scene",
+  "type": "Mesh",
+  "instances": 624,
+  "trisPer": 510,
+  "tris": 318240,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "instanced",
+  "parent": "Scene",
+  "type": "Mesh",
+  "instances": 554,
+  "trisPer": 510,
+  "tris": 282540,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "instanced",
+  "parent": "Scene",
+  "type": "Mesh",
+  "instances": 424,
+  "trisPer": 510,
+  "tris": 216240,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 131552,
+  "tris": 131552,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 104096,
+  "tris": 104096,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 101600,
+  "tris": 101600,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 95360,
+  "tris": 95360,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 82880,
+  "tris": 82880,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 80384,
+  "tris": 80384,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 75392,
+  "tris": 75392,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 74144,
+  "tris": 74144,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 67904,
+  "tris": 67904,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 66656,
+  "tris": 66656,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 65408,
+  "tris": 65408,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 65408,
+  "tris": 65408,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 64160,
+  "tris": 64160,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 64160,
+  "tris": 64160,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 64160,
+  "tris": 64160,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 64160,
+  "tris": 64160,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 62912,
+  "tris": 62912,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 62912,
+  "tris": 62912,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 61664,
+  "tris": 61664,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 61664,
+  "tris": 61664,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 59168,
+  "tris": 59168,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 59168,
+  "tris": 59168,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 59168,
+  "tris": 59168,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 57920,
+  "tris": 57920,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 56672,
+  "tris": 56672,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 56672,
+  "tris": 56672,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 56672,
+  "tris": 56672,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 54176,
+  "tris": 54176,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 54176,
+  "tris": 54176,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 54176,
+  "tris": 54176,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 54176,
+  "tris": 54176,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 52928,
+  "tris": 52928,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 52928,
+  "tris": 52928,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 52928,
+  "tris": 52928,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 52928,
+  "tris": 52928,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 50432,
+  "tris": 50432,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 49184,
+  "tris": 49184,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 49184,
+  "tris": 49184,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 47936,
+  "tris": 47936,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 47936,
+  "tris": 47936,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 47936,
+  "tris": 47936,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 46688,
+  "tris": 46688,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 45440,
+  "tris": 45440,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 44192,
+  "tris": 44192,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 44192,
+  "tris": 44192,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 42944,
+  "tris": 42944,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 42944,
+  "tris": 42944,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 40448,
+  "tris": 40448,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 40448,
+  "tris": 40448,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 40448,
+  "tris": 40448,
+  "castShadow": false,
+  "visible": true
+ },
+ {
+  "kind": "mesh",
+  "parent": "Group",
+  "type": "Mesh",
+  "instances": 1,
+  "trisPer": 39200,
+  "tris": 39200,
+  "castShadow": false,
+  "visible": true
+ }
+]

@@ -46,7 +46,8 @@ const args = [
   "--disable-gpu-vsync",
   "--disable-frame-rate-limit"
 ];
-const browser = await chromium.launch({ headless: false, args });
+const browser = await chromium.launch({ channel: "chrome", headless: false, args });
+try {
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 
 // Installed before any page script runs. GPUQueue may not exist yet on the
@@ -62,6 +63,25 @@ await page.addInitScript(() => {
       const size = a[4] !== undefined ? a[4] * (data.BYTES_PER_ELEMENT || 1) : (data.byteLength ?? 0);
       const t0 = performance.now();
       const r = orig.apply(this, a);
+      const dt = performance.now() - t0;
+      const w = window.__wb;
+      w.calls += 1; w.bytes += size; w.ms += dt;
+      const st = new Error().stack.split("\n").slice(2, 7)
+        .map((s) => s.trim().replace(/^at /, "").split(" (")[0]).join(" < ");
+      const e = w.byStack.get(st) || { n: 0, bytes: 0, ms: 0 };
+      e.n += 1; e.bytes += size; e.ms += dt;
+      w.byStack.set(st, e);
+      return r;
+    };
+    // writeTexture is a distinct WebGPU upload path. DataTexture churn does
+    // not appear in writeBuffer, and a stationary scene used to hide it from
+    // this probe entirely even when it dominated CPU samples.
+    const origTexture = window.GPUQueue.prototype.writeTexture;
+    window.GPUQueue.prototype.writeTexture = function (...a) {
+      if (!window.__wb.on) return origTexture.apply(this, a);
+      const size = a[1]?.byteLength ?? 0;
+      const t0 = performance.now();
+      const r = origTexture.apply(this, a);
       const dt = performance.now() - t0;
       const w = window.__wb;
       w.calls += 1; w.bytes += size; w.ms += dt;
@@ -132,6 +152,21 @@ if (WEATHER) {
 }
 
 // Legitimately dirty attributes: the ones whose version moved between frames.
+// Attribute versions do not expose DataTextures held by node uniforms. Trace
+// three's texture entry point as well, preserving its receiver so this is only
+// observational and cannot change the render path.
+await page.evaluate(() => {
+  const utils = window.__renderer?.backend?.textureUtils;
+  if (!utils?.updateTexture || utils.__probeWrapped) return;
+  const original = utils.updateTexture;
+  window.__textureUpdates = new Map();
+  utils.updateTexture = function (tex, ...rest) {
+    const key = `${tex.name || "unnamed"} ${tex.uuid} v${tex.version} ${tex.image?.width || 0}x${tex.image?.height || 0}`;
+    window.__textureUpdates.set(key, (window.__textureUpdates.get(key) || 0) + 1);
+    return original.call(this, tex, ...rest);
+  };
+  utils.__probeWrapped = true;
+});
 const churn = await page.evaluate(() => new Promise((res) => {
   const snap = () => {
     const m = new Map();
@@ -142,6 +177,13 @@ const churn = await page.evaluate(() => new Promise((res) => {
       for (const [k, a] of Object.entries(g.attributes)) m.set(`${tag}.${k}`, { v: a.version, bytes: a.array?.byteLength ?? 0 });
       if (o.instanceMatrix) m.set(`${tag}.instanceMatrix`, { v: o.instanceMatrix.version, bytes: o.instanceMatrix.array.byteLength });
       if (o.instanceColor) m.set(`${tag}.instanceColor`, { v: o.instanceColor.version, bytes: o.instanceColor.array.byteLength });
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const mat of mats) {
+        if (!mat) continue;
+        for (const [key, value] of Object.entries(mat)) {
+          if (value?.isTexture) m.set(`${tag}.material.${key}`, { v: value.version, bytes: value.image?.data?.byteLength ?? 0 });
+        }
+      }
     });
     return m;
   };
@@ -174,15 +216,22 @@ const out = await page.evaluate(() => new Promise((res) => {
   };
   requestAnimationFrame(tick);
 }));
+const textureUpdates = await page.evaluate(() => [...(window.__textureUpdates || new Map()).entries()].sort((a, b) => b[1] - a[1]).slice(0, 12));
 await browser.close();
 
 if (out.error) throw new Error(out.error);
 console.log(`${ID} @ ${BASE} — ${out.frames} frames in ${out.secs.toFixed(1)}s (${(out.frames / out.secs).toFixed(0)} fps, vsync off)`);
-console.log(`writeBuffer: ${out.calls} calls, ${(out.bytes / 1e6).toFixed(1)} MB, ${out.ms.toFixed(0)} ms`);
+console.log(`buffer + texture uploads: ${out.calls} calls, ${(out.bytes / 1e6).toFixed(1)} MB, ${out.ms.toFixed(0)} ms`);
 console.log(`  per frame: ${(out.calls / out.frames).toFixed(1)} calls, ${(out.bytes / out.frames / 1e6).toFixed(2)} MB, ${(out.ms / out.frames).toFixed(1)} ms`);
 for (const t of out.top) {
   console.log(`  ${t.ms.toFixed(0).padStart(5)}ms  ${String(t.n).padStart(5)} calls  ${(t.bytes / 1e6).toFixed(1).padStart(6)}MB  ${t.k}`);
 }
 console.log(`\nattributes marked dirty over two frames: ${churn.length ? "" : "none"}`);
 for (const c of churn) console.log(`  +${c.bumps}  ${String(c.kb).padStart(6)} KB  ${c.k}`);
-console.log("\nUploads with nothing in that second list are uploads for nothing.");
+console.log("\nthree texture updates during the probe:");
+for (const [name, count] of textureUpdates) console.log(`  ${String(count).padStart(5)}  ${name}`);
+console.log("\nTexture streaming may explain uploads without changed scene attributes; inspect the texture trace.");
+} finally {
+  await browser.close();
+}
+

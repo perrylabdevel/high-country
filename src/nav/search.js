@@ -159,6 +159,23 @@ export function routeTo(x, z, approach, mode) {
     };
   }
 
+  // Cache check BEFORE nearestNode: a cache hit never uses the start node, so
+  // paying nearestNode's scan (it walks every graph node, sorts the candidates
+  // and leg-clears the nearest few) just to throw its result away was the
+  // frame's most expensive no-op — updateTargetLine calls routeTo every frame
+  // while a route is displayed. Same conditions as the check below; nothing
+  // here depends on `start`.
+  if (!routeTo.cache) {
+    routeTo.cache = new Map();
+  }
+  const cacheKey = `${approach.poi}:${approach.id}:${mode}`;
+  const hit = routeTo.cache.get(cacheKey);
+  if (hit && hit.blockedVersion === blockedVersion && hit.version === g.version
+    && clock() - hit.at < 4000
+    && distToChain(x, z, hit.route.waypoints) < 40) {
+    return hit.route;
+  }
+
   // The start snaps to a travel node, never to a POI front door: a poi node
   // hangs off the graph by one link, so blocking that lone edge would read as
   // "the whole map is unreachable" — the destination's front door is where you
@@ -187,17 +204,6 @@ export function routeTo(x, z, approach, mode) {
       searchMs: 0,
       component: -1
     };
-  }
-
-  if (!routeTo.cache) {
-    routeTo.cache = new Map();
-  }
-  const cacheKey = `${approach.poi}:${approach.id}:${mode}`;
-  const hit = routeTo.cache.get(cacheKey);
-  if (hit && hit.blockedVersion === blockedVersion && hit.version === g.version
-    && clock() - hit.at < 4000
-    && distToChain(x, z, hit.route.waypoints) < 40) {
-    return hit.route;
   }
 
   const t0 = clock();
