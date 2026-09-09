@@ -306,6 +306,37 @@ function actorFactory(template) {
     const forwardReach = config.sourceForward.z > 0 ? template.bounds.max.z * scale : -template.bounds.min.z * scale;
     let phaseClock = 0;
 
+    // Grounding is measured from the model's STANCE, not its bind pose. The
+    // static offset above (`-bounds.min.y * scale`) lifts the bind-pose feet to
+    // the group origin; a mixer clip then re-poses the skeleton and the stance
+    // feet sit lower than bind, so clip-driven models (Lucille/Lillian) sink
+    // through the deck. Gait-only models (cowboy/child) rest at bind, so the
+    // static offset is already correct. On the first settled update, measure
+    // the actual lowest skinned vertex in world space and shift the normalized
+    // group so the stance feet land exactly on the deck.
+    const _groundVec = new THREE.Vector3();
+    let groundAcc = 0;
+    let grounded = false;
+    const groundOnStance = () => {
+      object.updateWorldMatrix(true, false);
+      const sourceWorld = object.getWorldPosition(_groundVec);
+      const originY = sourceWorld.y;
+      let minY = Infinity;
+      source.traverse((m) => {
+        if (!m.isSkinnedMesh) return;
+        const posA = m.geometry.attributes.position;
+        const step = Math.max(1, Math.floor(posA.count / 300));
+        for (let i = 0; i < posA.count; i += step) {
+          _groundVec.fromBufferAttribute(posA, i);
+          m.applyBoneTransform(i, _groundVec);
+          _groundVec.applyMatrix4(m.matrixWorld);
+          if (_groundVec.y < minY) minY = _groundVec.y;
+        }
+      });
+      if (Number.isFinite(minY)) normalized.position.y += originY - minY;
+      grounded = true;
+    };
+
     return {
       object,
       parts,
@@ -328,6 +359,12 @@ function actorFactory(template) {
           mixer.update(dt);
         }
         gait?.(state);
+        // Ground once the pose has settled: clip-driven models need the mixer
+        // to have advanced into a stable stance before we trust the foot level.
+        if (!grounded) {
+          groundAcc += dt;
+          if (groundAcc >= (mixer ? 0.6 : 0.001)) groundOnStance();
+        }
       }
     };
   };
