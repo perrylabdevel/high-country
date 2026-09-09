@@ -1449,7 +1449,10 @@ async function boot() {
     // --- the north row: the town's second storefront street -------------------
     {
       name: "Hattie Reed", ...northSpot(-14, 4.2),
-      look: { shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64 },
+      look: {
+        shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64,
+        textureStyle: "hattie-workwear", outfit: "hattie-washday"
+      },
       face: northSpot(-14, -6),
       // Wash day on the north boardwalk: hands working a washboard, arms
       // rubbing against each other.

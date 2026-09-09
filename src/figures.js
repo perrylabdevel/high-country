@@ -31,6 +31,91 @@ function mat(color, roughness = CLOTH_ROUGHNESS) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness });
 }
 
+// The imported cowboy and cow carry authored texture maps. Hattie is the next
+// named settler to get a material pass, but she still uses the lightweight
+// figure rig. Keep her workwear detail in a tiny deterministic canvas map so
+// the procedural fallback has a real textile read without adding an external
+// asset or a new draw-call family.
+const TEXTILE_CACHE = new Map();
+
+function rgb(hex) {
+  return [hex >> 16 & 255, hex >> 8 & 255, hex & 255];
+}
+
+function textileMap(color, style, part) {
+  const key = `${color}|${style}|${part}`;
+  let texture = TEXTILE_CACHE.get(key);
+  if (texture) return texture;
+
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const [r, g, b] = rgb(color);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, size, size);
+
+  // Two woven directions are enough to break the broad, untextured blocks at
+  // close range while staying quiet at audit distance. The phase is derived
+  // from the part name instead of Math.random so captures stay repeatable.
+  const phase = [...part].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 7;
+  ctx.lineWidth = 1;
+  for (let y = phase; y < size; y += 5) {
+    ctx.strokeStyle = "rgba(255,255,255,0.075)";
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(size, y + 0.5);
+    ctx.stroke();
+  }
+  for (let x = (phase * 3) % 5; x < size; x += 5) {
+    ctx.strokeStyle = "rgba(18,20,24,0.07)";
+    ctx.beginPath();
+    ctx.moveTo(x + 0.5, 0);
+    ctx.lineTo(x + 0.5, size);
+    ctx.stroke();
+  }
+
+  if (style === "hattie-workwear") {
+    if (part === "skirt") {
+      // A restrained vertical stripe gives the dark skirt a cloth direction
+      // instead of another flat brown primitive.
+      for (let x = 10; x < size; x += 24) {
+        ctx.fillStyle = "rgba(205,215,225,0.10)";
+        ctx.fillRect(x, 0, 7, size);
+      }
+    } else if (part === "apron") {
+      ctx.strokeStyle = "rgba(236,240,240,0.19)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(7, 7, size - 14, size - 14);
+      for (let y = 18; y < size; y += 28) {
+        ctx.beginPath();
+        ctx.moveTo(8, y);
+        ctx.lineTo(size - 8, y);
+        ctx.stroke();
+      }
+    } else if (part === "shirt") {
+      ctx.fillStyle = "rgba(240,240,245,0.08)";
+      for (let y = 14; y < size; y += 28) ctx.fillRect(0, y, size, 3);
+    }
+  }
+
+  texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  TEXTILE_CACHE.set(key, texture);
+  return texture;
+}
+
+function figureMat(color, roughness, textureStyle, part) {
+  if (!textureStyle) return mat(color, roughness);
+  return new THREE.MeshStandardNodeMaterial({
+    map: textileMap(color, textureStyle, part),
+    color: 0xffffff,
+    roughness
+  });
+}
+
 export function createFigure({
   height = 1.8,
   skin = 0xe0c29a,
@@ -41,21 +126,23 @@ export function createFigure({
   hat = 0x3d2918,
   hatStyle = "hat", // "hat" | "hair" | "none"
   hair = 0x2e2118,
-  skirt = false
+  skirt = false,
+  textureStyle = null,
+  outfit = null
 } = {}) {
   const s = height / 1.8;
   const group = new THREE.Group();
   const bob = new THREE.Group();
   group.add(bob);
 
-  const skinMat = mat(skin, SKIN_ROUGHNESS);
-  const shirtMat = mat(shirt);
-  const pantsMat = mat(pants);
+  const skinMat = figureMat(skin, SKIN_ROUGHNESS, textureStyle, "skin");
+  const shirtMat = figureMat(shirt, CLOTH_ROUGHNESS, textureStyle, "shirt");
+  const pantsMat = figureMat(pants, CLOTH_ROUGHNESS, textureStyle, skirt ? "skirt" : "pants");
   // These are deliberately small, high-contrast details. At the camera
   // distances where a figure is only a few pixels tall, a face, collar and
   // vest edge communicate a person far better than another broad colour
   // block does.
-  const leatherMat = mat(boots, 0.78);
+  const leatherMat = figureMat(boots, 0.78, textureStyle, "leather");
   const eyeMat = mat(0x18120e, 0.68);
   const metalMat = mat(0xb29a6c, 0.48);
 
@@ -91,7 +178,7 @@ export function createFigure({
   chest.castShadow = true;
   torso.add(chest);
   if (vest) {
-    const vestMat = mat(vest);
+    const vestMat = figureMat(vest, CLOTH_ROUGHNESS, textureStyle, "vest");
     // A front panel keeps the shirt visible at the shoulders and sides; the
     // old solid cuboid read as a second, featureless torso.
     const vestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42 * s, 0.42 * s, 0.035 * s), vestMat);
@@ -121,6 +208,33 @@ export function createFigure({
     skirtMesh.castShadow = true;
     torso.add(skirtMesh);
     parts.skirt = skirtMesh;
+  }
+  if (outfit === "hattie-washday") {
+    const apronMat = figureMat(0x7d8995, CLOTH_ROUGHNESS, textureStyle, "apron");
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(0.39 * s, 0.72 * s, 0.035 * s), apronMat);
+    apron.position.set(0, 0.7 * s, 0.16 * s);
+    apron.castShadow = true;
+    torso.add(apron);
+    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.48 * s, 0.055 * s, 0.05 * s), apronMat);
+    tie.position.set(0, 0.96 * s, 0.17 * s);
+    tie.castShadow = true;
+    torso.add(tie);
+
+    // Small washboard prop: the working pose already keeps both hands in this
+    // space, so the prop gives Hattie's wash-day identity without a new rig.
+    const board = new THREE.Group();
+    board.position.set(0, 0.83 * s, 0.21 * s);
+    board.rotation.x = -0.14;
+    const boardFrame = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.3 * s, 0.035 * s), figureMat(0x744b2f, 0.82, textureStyle, "washboard"));
+    boardFrame.castShadow = true;
+    board.add(boardFrame);
+    const washMetal = new THREE.MeshStandardNodeMaterial({ color: 0xb7bcc0, roughness: 0.62 });
+    for (let i = -2; i <= 2; i += 1) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.11 * s, 0.018 * s, 0.012 * s), washMetal);
+      rib.position.set(0, i * 0.042 * s, 0.024 * s);
+      board.add(rib);
+    }
+    torso.add(board);
   }
   bob.add(torso);
   parts.torso = torso;
