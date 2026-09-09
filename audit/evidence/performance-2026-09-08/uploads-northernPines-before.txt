@@ -1,0 +1,9 @@
+northernPines @ http://127.0.0.1:8766 — 183 frames in 8.7s (21 fps, vsync off)
+writeBuffer: 1325 calls, 0.1 MB, 5 ms
+  per frame: 7.2 calls, 0.00 MB, 0.0 ms
+      5ms   1324 calls     0.1MB  PP.updateBinding < cF.updateBinding < rC._update < rC._updateBindings < rC.updateForRender
+      0ms      1 calls     0.0MB  new RN < aP._getPassUtils < aP._flipY < aP._copyBufferToTexture < aP.updateTexture
+
+attributes marked dirty over two frames: none
+
+Uploads with nothing in that second list are uploads for nothing.

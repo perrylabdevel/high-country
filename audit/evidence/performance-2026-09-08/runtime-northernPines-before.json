@@ -1,0 +1,121 @@
+{
+  "poi": "northernPines",
+  "frames": 224,
+  "seconds": 5.9561000000238415,
+  "drawCalls": 0,
+  "triangles": 0,
+  "textures": 0,
+  "textureBytes": 0,
+  "dpr": 1,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "capture": {
+    "backend": "webgpu",
+    "adapter": "webgpu-no-adapter-info",
+    "antialias": true,
+    "build": "production"
+  },
+  "fps": 37.6,
+  "profileMs": 17778,
+  "topSelf": [
+    {
+      "name": "iP @ index-CIn3IYfx.js:291",
+      "ms": 5501,
+      "pct": 30.9
+    },
+    {
+      "name": "(idle) @ native:0",
+      "ms": 3810.7,
+      "pct": 21.4
+    },
+    {
+      "name": "(program) @ native:0",
+      "ms": 1362.9,
+      "pct": 7.7
+    },
+    {
+      "name": "vl @ index-CIn3IYfx.js:3",
+      "ms": 1092.7,
+      "pct": 6.1
+    },
+    {
+      "name": "set @ index-CIn3IYfx.js:1",
+      "ms": 419.2,
+      "pct": 2.4
+    },
+    {
+      "name": "getInputType @ index-CIn3IYfx.js:3",
+      "ms": 396.9,
+      "pct": 2.2
+    },
+    {
+      "name": "setup @ index-CIn3IYfx.js:13",
+      "ms": 308.4,
+      "pct": 1.7
+    },
+    {
+      "name": "(anonymous) @ index-CIn3IYfx.js:17",
+      "ms": 304.9,
+      "pct": 1.7
+    },
+    {
+      "name": "convert @ index-CIn3IYfx.js:1",
+      "ms": 283,
+      "pct": 1.6
+    },
+    {
+      "name": "(garbage collector) @ native:0",
+      "ms": 278.9,
+      "pct": 1.6
+    },
+    {
+      "name": "computeBoundingSphere @ index-CIn3IYfx.js:1",
+      "ms": 260.4,
+      "pct": 1.5
+    },
+    {
+      "name": "analyze @ index-CIn3IYfx.js:3",
+      "ms": 206,
+      "pct": 1.2
+    },
+    {
+      "name": "getShared @ index-CIn3IYfx.js:3",
+      "ms": 191.6,
+      "pct": 1.1
+    },
+    {
+      "name": "(anonymous) @ index-CIn3IYfx.js:543",
+      "ms": 187.1,
+      "pct": 1.1
+    },
+    {
+      "name": "updateWorldMatrix @ index-CIn3IYfx.js:1",
+      "ms": 152.5,
+      "pct": 0.9
+    },
+    {
+      "name": "getUniforms @ index-CIn3IYfx.js:434",
+      "ms": 152.4,
+      "pct": 0.9
+    },
+    {
+      "name": "getMaterialCacheKey @ index-CIn3IYfx.js:23",
+      "ms": 148.3,
+      "pct": 0.8
+    },
+    {
+      "name": "e @ index-CIn3IYfx.js:3",
+      "ms": 147.1,
+      "pct": 0.8
+    },
+    {
+      "name": "setup @ index-CIn3IYfx.js:17",
+      "ms": 140.1,
+      "pct": 0.8
+    },
+    {
+      "name": "getNodeFromHash @ index-CIn3IYfx.js:24",
+      "ms": 139.5,
+      "pct": 0.8
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+northernPines @ http://127.0.0.1:8766 — 94 frames in 6.1s (15 fps, vsync off)
+writeBuffer: 1652 calls, 220.7 MB, 419 ms
+  per frame: 17.6 calls, 2.35 MB, 4.5 ms
+    416ms    327 calls   220.6MB  
+      3ms   1324 calls     0.1MB  PP.updateBinding < cF.updateBinding < rC._update < rC._updateBindings < rC.updateForRender
+      0ms      1 calls     0.0MB  new RN < aP._getPassUtils < aP._flipY < aP._copyBufferToTexture < aP.updateTexture
+
+attributes marked dirty over two frames: none
+
+three texture updates during the probe:
+      1  unnamed 7baeaf56-a818-45a0-ae5e-6f8bd449c187 v1 2048x1024
+      1  unnamed b72510cc-d9bb-4245-b1d4-0c2657a048ff v2 2048x2048
+      1  unnamed 43ac012e-1620-4a2a-8aaf-937e38cdb248 v2 2048x2048
+      1  unnamed 6f5ea24e-40ea-41a3-8158-940c22b80688 v2 3072x3072
+      1  unnamed 7d7684a8-ffdb-4b9b-a49e-8e349be1e698 v3 1024x1024
+      1  unnamed 7fa11f06-daf4-494f-84cc-9b09f791eb48 v2 2048x2048
+      1  unnamed 4c4f8fef-15da-407f-b733-e8e9a0fb8c67 v2 256x256
+      1  unnamed 88729dd3-4ef1-4bf1-92bb-dae129806f98 v2 2048x2048
+      1  unnamed d8f3f5d2-a195-45dd-b362-371f2c8cd3aa v2 2048x2048
+      1  DFG_LUT 92af3e73-e32a-4a2a-8b12-ef85eda842ed v1 16x16
+      1  unnamed 571fd49b-f16c-4bee-b644-9906c2c4d8d0 v2 3072x3072
+      1  unnamed e3c805c1-c0bd-4517-9f9d-5121aca41563 v1 2048x2560
+
+Uploads with nothing in that second list are uploads for nothing.

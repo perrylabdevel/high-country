@@ -1,0 +1,132 @@
+{
+  "poi": "northernPines",
+  "frames": 170,
+  "seconds": 5.021200000047684,
+  "drawCalls": 242,
+  "triangles": 5590423,
+  "textures": 42,
+  "textureBytes": 171167845,
+  "dpr": 1,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "capture": {
+    "backend": "webgpu",
+    "adapter": "webgpu-no-adapter-info",
+    "antialias": true,
+    "build": "development"
+  },
+  "fps": 33.9,
+  "profileMs": 6628.9,
+  "topSelf": [
+    {
+      "name": "writeBuffer @ native:0",
+      "ms": 2543.4,
+      "pct": 38.4
+    },
+    {
+      "name": "(program) @ native:0",
+      "ms": 1660.5,
+      "pct": 25
+    },
+    {
+      "name": "updateMatrixWorld @ three.webgpu-CrvId0ey.js?v=52962a7a:9879",
+      "ms": 565.3,
+      "pct": 8.5
+    },
+    {
+      "name": "_projectObject @ three.webgpu-CrvId0ey.js?v=52962a7a:84482",
+      "ms": 264.7,
+      "pct": 4
+    },
+    {
+      "name": "multiplyMatrices @ three.webgpu-CrvId0ey.js?v=52962a7a:8090",
+      "ms": 188.5,
+      "pct": 2.8
+    },
+    {
+      "name": "descend @ vegetation.js?t=1788907667914:3458",
+      "ms": 155.8,
+      "pct": 2.4
+    },
+    {
+      "name": "_update @ three.webgpu-CrvId0ey.js?v=52962a7a:63735",
+      "ms": 98.3,
+      "pct": 1.5
+    },
+    {
+      "name": "getMaterialCacheKey @ three.webgpu-CrvId0ey.js?v=52962a7a:62048",
+      "ms": 76.9,
+      "pct": 1.2
+    },
+    {
+      "name": "_renderObjectDirect @ three.webgpu-CrvId0ey.js?v=52962a7a:84771",
+      "ms": 74.7,
+      "pct": 1.1
+    },
+    {
+      "name": "applyMatrix4 @ three.webgpu-CrvId0ey.js?v=52962a7a:4316",
+      "ms": 70.2,
+      "pct": 1.1
+    },
+    {
+      "name": "updateNode @ three.webgpu-CrvId0ey.js?v=52962a7a:79128",
+      "ms": 67.4,
+      "pct": 1
+    },
+    {
+      "name": "_getNodeChildren @ three.webgpu-CrvId0ey.js?v=52962a7a:55345",
+      "ms": 60.9,
+      "pct": 0.9
+    },
+    {
+      "name": "renderObject @ three.webgpu-CrvId0ey.js?v=52962a7a:84689",
+      "ms": 51.2,
+      "pct": 0.8
+    },
+    {
+      "name": "cyrb53 @ three.webgpu-CrvId0ey.js?v=52962a7a:42027",
+      "ms": 49.5,
+      "pct": 0.7
+    },
+    {
+      "name": "update @ three.webgpu-CrvId0ey.js?v=52962a7a:85294",
+      "ms": 27.8,
+      "pct": 0.4
+    },
+    {
+      "name": "draw @ three.webgpu-CrvId0ey.js?v=52962a7a:99096",
+      "ms": 24,
+      "pct": 0.4
+    },
+    {
+      "name": "resolveCircleBox @ collision.js?t=1788901666353:246",
+      "ms": 22.1,
+      "pct": 0.3
+    },
+    {
+      "name": "drawImage @ native:0",
+      "ms": 21.5,
+      "pct": 0.3
+    },
+    {
+      "name": "copy @ three.webgpu-CrvId0ey.js?v=52962a7a:13356",
+      "ms": 21.4,
+      "pct": 0.3
+    },
+    {
+      "name": "copy @ three.webgpu-CrvId0ey.js?v=52962a7a:4136",
+      "ms": 19.8,
+      "pct": 0.3
+    }
+  ],
+  "hot": [
+    {
+      "id": 47,
+      "fn": "writeBuffer",
+      "url": "",
+      "line": 0,
+      "callers": [
+        "updateBinding"
+      ]
+    }
+  ]
+}

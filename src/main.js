@@ -20,6 +20,7 @@ import { createPines } from "./pines.js";
 import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
+import { freezeTransforms } from "./freeze.js";
 import { createWeather } from "./weather/weather.js";
 import { createRain } from "./weather/rain.js";
 import { createPlayer } from "./player.js";
@@ -236,6 +237,9 @@ async function boot() {
   // prompt. Reset to null each frame on the non-playing branch so a stale
   // target can never be read.
   let liveInteract = null;
+  // Frame counter for the NPC pose stagger (every 4th frame per mid-distance
+  // settler, offset by index so they never land on the same frame).
+  let frameTick = 0;
   input = createInput(renderer.domElement, {
     isBlocked: () => debugBlocksGame(debug.isOpen())
   });
@@ -772,6 +776,9 @@ async function boot() {
   }
   const terrainMesh = await createTerrain();
   scene.add(terrainMesh);
+  // 500 chunk meshes nothing ever moves: drop them from the per-frame
+  // matrix update (measured at ~9% of frame time across the whole graph).
+  freezeTransforms(terrainMesh);
   // CPU/browser acceptance hook: returns the actual triangle intersections for
   // a road cross-section, independent of material shading.
   window.__roadTerrainCrossSection = (name, segment = 0, t = 0.5, offsets = [-1.6, -0.9, 0, 0.9, 1.6]) => {
@@ -788,12 +795,13 @@ async function boot() {
   // doesn't match the single-sample texture three.js allocates for it, so
   // the lake reads no usable depth and renders flat black. "lake" reuses the
   // basin's authored aDepth falloff instead, sidestepping the buffer read.
-  createWater(scene, {
+  const water = createWater(scene, {
     lakeDepthSource: "lake",
     screenRefraction: !forceWebGL,
     fallback: forceWebGL
   });
-  await createRoads(scene);
+  freezeTransforms(water);
+  freezeTransforms(await createRoads(scene));
   // Building-surface maps (adobe / wood / roof) must be ready before the
   // statics are built; the builders fall back to flat colours without them.
   const buildingMaps = await loadBuildingMaps();
@@ -829,11 +837,39 @@ async function boot() {
   createHomestead(statics, buildingMaps);
   scene.add(statics);
   if (!window.__skipStaticMerge) {
-    scene.add(mergeStatic(statics, "statics-merged"));
+    // Object3D.add returns the PARENT (the scene), not the added child —
+    // freezing the call's return value froze the entire scene graph: sky dome,
+    // sun light + target, sun disc and the windmill fans all lost their world
+    // matrices (verified empirically: sky matrixWorld pinned at origin, fan
+    // rotation dead). Freeze only the merged mesh.
+    const mergedStatics = mergeStatic(statics, "statics-merged");
+    scene.add(mergedStatics);
+    freezeTransforms(mergedStatics);
   }
+  // The authored statics subtree still serves colliders/anchors/interiors and
+  // hides ~3k merged originals — invisible nodes pay updateMatrixWorld too,
+  // so freeze the whole structure except the windmill fans the frame spins.
+  const spinnerRoots = new Set(spinners);
+  freezeTransforms(statics, (o) => spinnerRoots.has(o));
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
   const smoke = createSmoke(scene);
+  // Bounding sphere of the plume, for the frame loop's frustum test: the
+  // smoke drift is time-pure, so off-screen frames skip all 54 sprite writes.
+  // Margin covers the wander amplitude and the puff radii beyond the authored
+  // sprite centres.
+  const smokeBounds = (() => {
+    if (!smoke.children.length) {
+      return null;
+    }
+    const box = new THREE.Box3().setFromObject(smoke);
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    sphere.radius += 16;
+    return sphere;
+  })();
+  const frustum = new THREE.Frustum();
+  const projScreenMatrix = new THREE.Matrix4();
   // Weather owns the multiplicative sky/fog/light/wind response and the mud
   // multiplier; rain is its GPU particle layer. Created after the sky rig and
   // vegetation exist (it captures bases off both) and before the frame loop —
@@ -976,6 +1012,9 @@ async function boot() {
       camera: { x: camera.position.x, z: camera.position.z }
     });
     window.__grassStats = (radius) => vegetation.grassStats(camera.position, radius);
+    // Cheap residency counts for the frame-jitter probe (grassStats walks
+    // every tuft; this reads three numbers).
+    window.__grassQueue = () => vegetation.grassQueueStats();
     window.__grassSpecies = () => vegetation.grassSpecies;
     // __soloGrass("bluestem") plants that species alone; __soloGrass(null)
     // restores the mix. The scatter is amortised, so give it a few seconds
@@ -1214,6 +1253,14 @@ async function boot() {
     x: POS.silverCreek.x + Math.cos(TOWN_YAW) * along - Math.sin(TOWN_YAW) * perp,
     z: POS.silverCreek.z - 22 + Math.sin(TOWN_YAW) * along + Math.cos(TOWN_YAW) * perp
   });
+
+  // Ambient-life distance gates. NPC_NEAR_M is roughly the distance at which
+  // a settler's stride is still readable; NPC_FAR_M is where a person is a
+  // few pixels and stopping them is indistinguishable from walking.
+  const NPC_NEAR_M = 120;
+  const NPC_FAR_M = 400;
+  const NPC_NEAR_SQ = NPC_NEAR_M * NPC_NEAR_M;
+  const NPC_FAR_SQ = NPC_FAR_M * NPC_FAR_M;
 
   const npcs = [
     {
@@ -1777,13 +1824,22 @@ async function boot() {
   const COMPASS_SPAN = 62; // degrees visible either side of the needle
   const compassCtx = compassEl.getContext("2d");
   let objectiveBearing = null;
+  // The tape is a pure function of (heading, objectiveBearing); standing
+  // still was still clearing and redrawing ~70 canvas ops per frame. Sub-
+  // degree changes are sub-pixel (COMPASS_PX_PER_DEG ≈ 1.4), so quantize.
+  let compassDrawn = { heading: null, bearing: null };
   function drawCompass(yaw) {
+    const heading = ((yaw * 180 / Math.PI) % 360 + 360) % 360;
+    const qHeading = Math.round(heading * 2) / 2;
+    if (compassDrawn.heading === qHeading && compassDrawn.bearing === objectiveBearing) {
+      return;
+    }
+    compassDrawn = { heading: qHeading, bearing: objectiveBearing };
     const w = compassEl.width;
     const h = compassEl.height;
     const cx = w / 2;
     const ctx = compassCtx;
     ctx.clearRect(0, 0, w, h);
-    const heading = ((yaw * 180 / Math.PI) % 360 + 360) % 360;
     ctx.textAlign = "center";
     for (let d = Math.ceil((heading - COMPASS_SPAN) / 5) * 5; d <= heading + COMPASS_SPAN; d += 5) {
       const x = cx + (d - heading) * COMPASS_PX_PER_DEG;
@@ -1952,6 +2008,10 @@ async function boot() {
     return null;
   }
 
+  // The prompt is written every frame; remember the last rendered state so an
+  // unchanged frame (the common one — the player is usually not near anything)
+  // stops dirtying the DOM. Same hidden/stale-text guarantees as below.
+  let promptState = { text: null, hot: false };
   function setPrompt(text) {
     // Clear the text when hiding: a hidden element with stale text read as a
     // live interaction affordance to scripted players (probe-travel), and a
@@ -1959,9 +2019,15 @@ async function boot() {
     // Labels lead with the key ("E — Talk to Ada"); the key becomes a keycap
     // badge and the crosshair answers gold while an interaction is live.
     if (!text) {
-      promptEl.replaceChildren();
-      promptEl.classList.add("hidden");
-      crosshairEl.classList.remove("hot");
+      if (promptState.text !== "" || promptState.hot) {
+        promptEl.replaceChildren();
+        promptEl.classList.add("hidden");
+        crosshairEl.classList.remove("hot");
+        promptState = { text: "", hot: false };
+      }
+      return;
+    }
+    if (promptState.text === text && promptState.hot) {
       return;
     }
     const dash = text.indexOf("—");
@@ -1976,6 +2042,7 @@ async function boot() {
     }
     promptEl.classList.remove("hidden");
     crosshairEl.classList.add("hot");
+    promptState = { text, hot: true };
   }
 
   /**
@@ -2234,40 +2301,102 @@ async function boot() {
     // That is the "puffs float detached in the sky" the burn audit kept
     // reporting: createSmoke had been rebuilt twice to fix it, and this
     // silently overrode it both times.
-    smoke.children.forEach((puff) => {
-      const home = puff.userData.home;
-      if (!home) {
-        return;
+    // The drift is a pure function of `elapsed`, so frames where the plume is
+    // off-screen cost nothing visually: the next on-screen frame recomputes
+    // exactly where continuous time would have put the puffs. Skip the 54
+    // sprite position/scale/opacity writes then — every sprite material write
+    // dirties a uniform buffer. The whole loop also ran when damp and positions
+    // had not changed; opacity/scale are now compared before writing.
+    let smokeVisible = true;
+    if (smokeBounds) {
+      camera.updateMatrixWorld();
+      projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      frustum.setFromProjectionMatrix(projScreenMatrix);
+      smokeVisible = frustum.intersectsSphere(smokeBounds);
+    }
+    // Bases must be captured on frame 1, not on the first VISIBLE frame: the
+    // constructor's opacity/size are the per-puff authored values and are not
+    // recoverable later. If the first sight ever happens during rain, the
+    // bases would be recorded dampened and the plume would stay thin forever.
+    if (!smoke.userData.basesCaptured) {
+      smoke.userData.basesCaptured = true;
+      for (const puff of smoke.children) {
+        if (puff.userData.home !== undefined) {
+          puff.userData.smokeBase = puff.material.opacity;
+          puff.userData.smokeSize = puff.scale.x;
+        }
       }
-      // Rain dampens the column: thinner (opacity) and smaller. Bases are
-      // recorded on first sight because the constructor's opacity/size are
-      // per-puff authored values, not recoverable later.
-      if (puff.userData.smokeBase === undefined) {
-        puff.userData.smokeBase = puff.material.opacity;
-        puff.userData.smokeSize = puff.scale.x;
-      }
+    }
+    if (smokeVisible) {
       const damp = weather.smokeMul();
-      puff.material.opacity = puff.userData.smokeBase * damp;
-      puff.scale.setScalar(puff.userData.smokeSize * (1 - 0.35 * (1 - damp)));
-      const phase = puff.userData.phase || 0;
-      const rise = puff.userData.rise || 0;
-      // Higher puffs have lost the column's momentum, so they wander more.
-      const wander = 0.35 + rise * 2.2;
-      puff.position.set(
-        home.x + Math.sin(elapsed * 0.33 + phase) * wander,
-        home.y + Math.sin(elapsed * 0.5 + phase * 0.7) * (0.25 + rise * 0.9),
-        home.z + Math.cos(elapsed * 0.27 + phase * 1.3) * wander
-      );
-    });
+      const shrink = 1 - 0.35 * (1 - damp);
+      for (const puff of smoke.children) {
+        const home = puff.userData.home;
+        if (!home) {
+          continue;
+        }
+        // Rain dampens the column: thinner (opacity) and smaller. Bases are
+        // recorded on first sight because the constructor's opacity/size are
+        // per-puff authored values, not recoverable later.
+        if (puff.userData.smokeBase === undefined) {
+          puff.userData.smokeBase = puff.material.opacity;
+          puff.userData.smokeSize = puff.scale.x;
+        }
+        const targetOpacity = puff.userData.smokeBase * damp;
+        if (puff.material.opacity !== targetOpacity) {
+          puff.material.opacity = targetOpacity;
+        }
+        const targetScale = puff.userData.smokeSize * shrink;
+        if (puff.scale.x !== targetScale) {
+          puff.scale.setScalar(targetScale);
+        }
+        const phase = puff.userData.phase || 0;
+        const rise = puff.userData.rise || 0;
+        // Higher puffs have lost the column's momentum, so they wander more.
+        const wander = 0.35 + rise * 2.2;
+        puff.position.set(
+          home.x + Math.sin(elapsed * 0.33 + phase) * wander,
+          home.y + Math.sin(elapsed * 0.5 + phase * 0.7) * (0.25 + rise * 0.9),
+          home.z + Math.cos(elapsed * 0.27 + phase * 1.3) * wander
+        );
+      }
+    }
 
     liveInteract = null;
     // R9: settlers breathe and shift weight even when nothing else moves.
     // Townsfolk wander their patch on the same ambient clock — wanderNpc
     // returns the walk speed so the stride follows the feet.
-    for (const npc of npcs) {
+    //
+    // The wander itself is a few metres of arithmetic — every settler keeps
+    // living wherever they stand, at every distance (probes and players
+    // alike steer to where an ambient walker has got to; freezing far ones
+    // changed where Wade stood when you rode home, and the acceptance probe
+    // caught it). What is expensive is the skeleton pose, so THAT is what is
+    // gated: past NPC_FAR_M the pose freezes entirely (a person 400 m out is
+    // a few pixels — legs mid-stride or not reads identically), between the
+    // gates it is staggered onto every 4th frame with the summed dt, which
+    // keeps stride phase and dwell timing exact while cutting three of four
+    // pose passes. A talking settler is within interact range by definition.
+    frameTick += 1;
+    for (let ni = 0; ni < npcs.length; ni += 1) {
+      const npc = npcs[ni];
+      const dSq = npc.object.position.distanceToSquared(camera.position);
       const speed = wanderNpc(npc, dt);
-      npc.figure.update(dt, speed);
-      npc.texturedVisual?.update(dt, speed);
+      let poseDt;
+      if (dSq <= NPC_NEAR_SQ) {
+        poseDt = dt;
+      } else if (dSq > NPC_FAR_SQ) {
+        continue;
+      } else {
+        npc._poseAcc = (npc._poseAcc || 0) + dt;
+        if ((frameTick + ni) % 4 !== 0) {
+          continue;
+        }
+        poseDt = npc._poseAcc;
+        npc._poseAcc = 0;
+      }
+      npc.figure.update(poseDt, speed);
+      npc.texturedVisual?.update(poseDt, speed);
     }
     // Stock grazes and wanders on the same clock — ambient life runs whether
     // or not the player has entered, exactly like the settlers above. The
@@ -2322,10 +2451,15 @@ async function boot() {
     // Place label plus the R5 first-arrival flourish. placeAt and
     // placeLabel read the same table, so the fanfare and the name never
     // disagree about which place the player is in.
+    // Written every frame historically; compare before writing so a static
+    // frame stops dirtying the HUD (same pattern as weatherEl below).
     const curPlace = placeAt(player.object.position.x, player.object.position.z);
-    placeEl.textContent = curPlace
+    const placeName = curPlace
       ? curPlace.name
       : placeLabel(player.object.position.x, player.object.position.z);
+    if (placeEl.textContent !== placeName) {
+      placeEl.textContent = placeName;
+    }
     // Weather label rides the place block, updated only when the state name
     // changes (no per-frame DOM writes).
     const weatherName = WEATHER_LABELS[weather.state()] || weather.state();
@@ -2354,13 +2488,18 @@ async function boot() {
         lookingAtStructure(STRUCTURES, camera.position, cameraDirection)
       );
     }
-    hintEl.textContent = player.state.mode === "fly"
+    // Controls hint changes only on mode/mount transitions; compare before
+    // writing so the frame loop stops dirtying this node ~60x/s.
+    const hintText = player.state.mode === "fly"
       ? "Fly · WASD · Space up · Ctrl/Q down · Shift fast · F land · [ ] speed · M map · wheel map zoom"
       : player.state.mounted
         ? "Horseback · WASD ride · Shift gallop · C camera · E dismount · M map · wheel map zoom"
         : player.state.mode === "first"
           ? "First person · WASD · Shift sprint · C third person · E interact · M map · F fly · wheel map zoom"
           : "Third person · WASD · Shift sprint · C first person · E interact · M map · F fly · wheel map zoom";
+    if (hintEl.textContent !== hintText) {
+      hintEl.textContent = hintText;
+    }
 
     // The probe above only runs on the playing branch. When the game is
     // paused, in dialogue, or the debug panel is open, the prompt is blank

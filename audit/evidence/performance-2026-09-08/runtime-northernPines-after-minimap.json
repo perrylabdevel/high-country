@@ -1,0 +1,92 @@
+{
+  "poi": "northernPines",
+  "frames": 245,
+  "seconds": 5.0081999999284745,
+  "drawCalls": 0,
+  "triangles": 0,
+  "textures": 0,
+  "textureBytes": 0,
+  "dpr": 1,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "capture": {
+    "backend": "webgpu",
+    "adapter": "webgpu-no-adapter-info",
+    "antialias": true,
+    "build": "production"
+  },
+  "fps": 48.9,
+  "profileMs": 6577.3,
+  "topSelf": [
+    {
+      "name": "(idle) @ native:0",
+      "ms": 5056.1,
+      "pct": 76.9
+    },
+    {
+      "name": "(program) @ native:0",
+      "ms": 1474.2,
+      "pct": 22.4
+    },
+    {
+      "name": "setFromEuler @ index-B53UbYCi.js:1",
+      "ms": 15.7,
+      "pct": 0.2
+    },
+    {
+      "name": "normalizeNormals @ index-B53UbYCi.js:1",
+      "ms": 8.9,
+      "pct": 0.1
+    },
+    {
+      "name": "P @ index-B53UbYCi.js:1",
+      "ms": 8.5,
+      "pct": 0.1
+    },
+    {
+      "name": "read @ native:0",
+      "ms": 3.8,
+      "pct": 0.1
+    },
+    {
+      "name": "enqueue @ native:0",
+      "ms": 3.1,
+      "pct": 0
+    },
+    {
+      "name": "set @ index-B53UbYCi.js:1",
+      "ms": 2.5,
+      "pct": 0
+    },
+    {
+      "name": "toArray @ index-B53UbYCi.js:1",
+      "ms": 2.4,
+      "pct": 0
+    },
+    {
+      "name": "close @ native:0",
+      "ms": 1.5,
+      "pct": 0
+    },
+    {
+      "name": "e @ index-B53UbYCi.js:1",
+      "ms": 0.5,
+      "pct": 0
+    },
+    {
+      "name": "setXYZ @ index-B53UbYCi.js:1",
+      "ms": 0.2,
+      "pct": 0
+    }
+  ],
+  "hot": [
+    {
+      "id": 3,
+      "fn": "(idle)",
+      "url": "",
+      "line": 0,
+      "callers": [
+        "(root)"
+      ]
+    }
+  ]
+}

@@ -1405,6 +1405,7 @@ export function createWater(scene, {
       * Math.hypot(Math.cos(angle) * LAKE_NOMINAL_RX, Math.sin(angle) * LAKE_NOMINAL_RZ);
   };
   const lake = new THREE.Mesh(lakeGeometry, lakeMat);
+  lake.name = "lake";
   lake.rotation.x = -Math.PI / 2;
   lake.scale.set(LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ, 1);
   lake.position.set(POS.lakeMercy.x, WATER, POS.lakeMercy.z);
@@ -1440,6 +1441,7 @@ export function createWater(scene, {
     const geo = buildCreekRibbon(creek, lakeDistance);
     const mat = creek.dry ? washMat : creek.name === "toxic" ? toxicMat : creekMat;
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = "creek";
     mesh.receiveShadow = true;
     group.add(mesh);
   }

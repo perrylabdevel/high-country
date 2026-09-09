@@ -281,6 +281,7 @@ function makeRibbonMesh(road, samples, map) {
   geo.setIndex(indices);
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, dirtMat(map));
+  mesh.name = "road";
   if (mesh.material.map) {
     mesh.material.map.wrapS = THREE.RepeatWrapping;
     mesh.material.map.wrapT = THREE.RepeatWrapping;
@@ -377,6 +378,7 @@ function addRail(group, road, map) {
 
   if (ties.length) {
     const tieMesh = new THREE.InstancedMesh(tieGeo, tieMat, ties.length);
+    tieMesh.name = "rail-ties";
     ties.forEach((m, i) => tieMesh.setMatrixAt(i, m));
     tieMesh.instanceMatrix.needsUpdate = true;
     tieMesh.count = ties.length;
@@ -385,6 +387,7 @@ function addRail(group, road, map) {
   }
   if (rails.length) {
     const railMesh = new THREE.InstancedMesh(railGeo, railMat, rails.length);
+    railMesh.name = "rail";
     rails.forEach((m, i) => railMesh.setMatrixAt(i, m));
     railMesh.instanceMatrix.needsUpdate = true;
     railMesh.count = rails.length;

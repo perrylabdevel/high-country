@@ -44,13 +44,22 @@ function findBones(object) {
   return bones;
 }
 
+// Scratch state for worldAxisPose. The pose pass ran per bone per actor per
+// frame (six joints on a walking cowboy, seven on a grazing cow) and each
+// call allocated three Quaternions; reused scratch turns that into zero.
+const _parentWorld = new THREE.Quaternion();
+const _delta = new THREE.Quaternion();
+const _axisQ = new THREE.Quaternion();
+const _rest = new THREE.Quaternion();
+
 function worldAxisPose(bone, rest, axis, angle) {
   bone.parent.updateWorldMatrix(true, false);
-  const parentWorld = bone.parent.getWorldQuaternion(new THREE.Quaternion());
-  const localDelta = parentWorld.clone().invert()
-    .multiply(new THREE.Quaternion().setFromAxisAngle(axis, angle))
-    .multiply(parentWorld);
-  bone.quaternion.copy(localDelta).multiply(rest);
+  bone.parent.getWorldQuaternion(_parentWorld);
+  // localDelta = parentWorld⁻¹ · rot(axis, angle) · parentWorld
+  _delta.copy(_parentWorld).invert()
+    .multiply(_axisQ.setFromAxisAngle(axis, angle))
+    .multiply(_parentWorld);
+  bone.quaternion.copy(_delta).multiply(rest);
 }
 
 // Body-relative world axes, resolved every frame from the actor's actual
@@ -112,9 +121,13 @@ function makeCowboyGait(bones, object) {
   // ~9 degrees off vertical, a natural stance rather than the old A-pose.
   const ARM_DROP = 1.42;
   // Compose a second world-axis rotation on top of whatever the joint already
-  // carries (worldAxisPose takes the current quaternion as its rest).
+  // carries (worldAxisPose takes the current quaternion as its rest). The
+  // current quaternion must be snapshotted before copy() overwrites it.
   const addWorld = (joint, axis, angle) => {
-    if (joint) worldAxisPose(joint.bone, joint.bone.quaternion.clone(), axis, angle);
+    if (joint) {
+      _rest.copy(joint.bone.quaternion);
+      worldAxisPose(joint.bone, _rest, axis, angle);
+    }
   };
 
   return ({ speed = 0, phase = 0 }) => {

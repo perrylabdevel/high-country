@@ -49,3 +49,6 @@ tmp-*.mjs
 # AI harness transient state
 .ai/runtime/
 .ai/metrics/*.jsonl
+
+# check:routes writes a timestamped evidence file per run; regenerable
+audit/evidence/nav-routes-*

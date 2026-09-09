@@ -150,6 +150,8 @@ export function createDebug(onWarp, options = {}) {
   document.getElementById("hud").appendChild(chip);
 
   const warpSel = root.querySelector("#debug-warp");
+  const statsEl = root.querySelector("#debug-stats");
+  const flyEl = root.querySelector("#debug-fly");
   const blank = document.createElement("option");
   blank.value = "";
   blank.textContent = "Warp…";
@@ -455,17 +457,23 @@ export function createDebug(onWarp, options = {}) {
       fpsAt = now;
     }
     const flying = player.state.mode === "fly";
-    const p = player.object.position;
-    const alt = flying ? player.state.flyAlt : p.y;
-    root.querySelector("#debug-stats").textContent =
-      `${fps} fps  ${fmt(tune.speed)}  look ${fmt(tune.look)}\n` +
-      `x ${p.x.toFixed(1)}  y ${alt.toFixed(1)}  z ${p.z.toFixed(1)}` +
-      (flying ? "  fly" : "");
-    root.querySelector("#debug-fly").classList.toggle("active", flying);
-    // The tester rows track reality, not clicks: the weather machine advances
-    // on its own, and the player can mount through gameplay while the panel
-    // is shut. paintTester no-ops while closed.
-    paintTester();
+    // While the panel is shut the stats/fly rows are invisible; skip the
+    // subtree querySelector scan and the text writes entirely. fps keeps
+    // counting; the next frame after open refreshes the rows (update runs
+    // every frame regardless of `open`).
+    if (open) {
+      const p = player.object.position;
+      const alt = flying ? player.state.flyAlt : p.y;
+      statsEl.textContent =
+        `${fps} fps  ${fmt(tune.speed)}  look ${fmt(tune.look)}\n` +
+        `x ${p.x.toFixed(1)}  y ${alt.toFixed(1)}  z ${p.z.toFixed(1)}` +
+        (flying ? "  fly" : "");
+      flyEl.classList.toggle("active", flying);
+      // The tester rows track reality, not clicks: the weather machine advances
+      // on its own, and the player can mount through gameplay while the panel
+      // is shut. paintTester no-ops while closed.
+      paintTester();
+    }
     if (flying) {
       chip.textContent = "Fly";
       chip.classList.add("hot");

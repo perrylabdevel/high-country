@@ -1,0 +1,1004 @@
+[
+ {
+  "key": "instanced@510",
+  "meshes": 4,
+  "instances": 2319,
+  "tris": 1182690
+ },
+ {
+  "key": "instanced@12",
+  "meshes": 110,
+  "instances": 81004,
+  "tris": 972048
+ },
+ {
+  "key": "mesh@50432",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 302592
+ },
+ {
+  "key": "mesh@64160",
+  "meshes": 4,
+  "instances": 4,
+  "tris": 256640
+ },
+ {
+  "key": "mesh@54176",
+  "meshes": 4,
+  "instances": 4,
+  "tris": 216704
+ },
+ {
+  "key": "mesh@52928",
+  "meshes": 4,
+  "instances": 4,
+  "tris": 211712
+ },
+ {
+  "key": "mesh@512",
+  "meshes": 395,
+  "instances": 395,
+  "tris": 202240
+ },
+ {
+  "key": "mesh@59168",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 177504
+ },
+ {
+  "key": "mesh@56672",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 170016
+ },
+ {
+  "key": "mesh@47936",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 143808
+ },
+ {
+  "key": "mesh@131552",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 131552
+ },
+ {
+  "key": "mesh@65408",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 130816
+ },
+ {
+  "key": "mesh@62912",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 125824
+ },
+ {
+  "key": "mesh@61664",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 123328
+ },
+ {
+  "key": "mesh@40448",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 121344
+ },
+ {
+  "key": "mesh@104096",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 104096
+ },
+ {
+  "key": "mesh@20480",
+  "meshes": 5,
+  "instances": 5,
+  "tris": 102400
+ },
+ {
+  "key": "mesh@101600",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 101600
+ },
+ {
+  "key": "mesh@49184",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 98368
+ },
+ {
+  "key": "mesh@95360",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 95360
+ },
+ {
+  "key": "mesh@44192",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 88384
+ },
+ {
+  "key": "mesh@42944",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 85888
+ },
+ {
+  "key": "mesh@82880",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 82880
+ },
+ {
+  "key": "mesh@80384",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 80384
+ },
+ {
+  "key": "mesh@37952",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 75904
+ },
+ {
+  "key": "mesh@75392",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 75392
+ },
+ {
+  "key": "mesh@74144",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 74144
+ },
+ {
+  "key": "mesh@35456",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 70912
+ },
+ {
+  "key": "mesh@67904",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 67904
+ },
+ {
+  "key": "mesh@66656",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 66656
+ },
+ {
+  "key": "mesh@30464",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 60928
+ },
+ {
+  "key": "mesh@57920",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 57920
+ },
+ {
+  "key": "mesh@9386@shadow",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 56316
+ },
+ {
+  "key": "mesh@27968",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 55936
+ },
+ {
+  "key": "mesh@17984",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 53952
+ },
+ {
+  "key": "mesh@26720",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 53440
+ },
+ {
+  "key": "instanced@920",
+  "meshes": 2,
+  "instances": 51,
+  "tris": 46920
+ },
+ {
+  "key": "mesh@46688",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 46688
+ },
+ {
+  "key": "mesh@45440",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 45440
+ },
+ {
+  "key": "mesh@10496",
+  "meshes": 4,
+  "instances": 4,
+  "tris": 41984
+ },
+ {
+  "key": "mesh@39200",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 39200
+ },
+ {
+  "key": "mesh@36704",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 36704
+ },
+ {
+  "key": "mesh@35310@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 35310
+ },
+ {
+  "key": "mesh@34208",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 34208
+ },
+ {
+  "key": "mesh@32960",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 32960
+ },
+ {
+  "key": "mesh@31712",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 31712
+ },
+ {
+  "key": "instanced@1040",
+  "meshes": 1,
+  "instances": 29,
+  "tris": 30160
+ },
+ {
+  "key": "mesh@29216",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 29216
+ },
+ {
+  "key": "instanced@860",
+  "meshes": 2,
+  "instances": 33,
+  "tris": 28380
+ },
+ {
+  "key": "mesh@12992",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 25984
+ },
+ {
+  "key": "mesh@25472",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 25472
+ },
+ {
+  "key": "mesh@24224",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 24224
+ },
+ {
+  "key": "mesh@3008",
+  "meshes": 8,
+  "instances": 8,
+  "tris": 24064
+ },
+ {
+  "key": "mesh@12@shadow",
+  "meshes": 1996,
+  "instances": 1996,
+  "tris": 23952
+ },
+ {
+  "key": "instanced@8",
+  "meshes": 2,
+  "instances": 2902,
+  "tris": 23216
+ },
+ {
+  "key": "mesh@22976",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 22976
+ },
+ {
+  "key": "instanced@80",
+  "meshes": 7,
+  "instances": 282,
+  "tris": 22560
+ },
+ {
+  "key": "mesh@21728",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 21728
+ },
+ {
+  "key": "instanced@40",
+  "meshes": 1,
+  "instances": 435,
+  "tris": 17400
+ },
+ {
+  "key": "mesh@16736",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 16736
+ },
+ {
+  "key": "mesh@14240",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 14240
+ },
+ {
+  "key": "mesh@14208",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 14208
+ },
+ {
+  "key": "instanced@276",
+  "meshes": 2,
+  "instances": 51,
+  "tris": 14076
+ },
+ {
+  "key": "mesh@11744",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 11744
+ },
+ {
+  "key": "mesh@11264",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 11264
+ },
+ {
+  "key": "instanced@48",
+  "meshes": 1,
+  "instances": 234,
+  "tris": 11232
+ },
+ {
+  "key": "mesh@5504",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 11008
+ },
+ {
+  "key": "mesh@10872",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 10872
+ },
+ {
+  "key": "mesh@9936",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 9936
+ },
+ {
+  "key": "instanced@312",
+  "meshes": 1,
+  "instances": 29,
+  "tris": 9048
+ },
+ {
+  "key": "instanced@260",
+  "meshes": 1,
+  "instances": 34,
+  "tris": 8840
+ },
+ {
+  "key": "instanced@258",
+  "meshes": 1,
+  "instances": 33,
+  "tris": 8514
+ },
+ {
+  "key": "mesh@6808",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 6808
+ },
+ {
+  "key": "mesh@12",
+  "meshes": 511,
+  "instances": 511,
+  "tris": 6132
+ },
+ {
+  "key": "mesh@5808",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 5808
+ },
+ {
+  "key": "mesh@1760",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 5280
+ },
+ {
+  "key": "instanced@1300",
+  "meshes": 1,
+  "instances": 4,
+  "tris": 5200
+ },
+ {
+  "key": "mesh@5040",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 5040
+ },
+ {
+  "key": "instanced@64",
+  "meshes": 1,
+  "instances": 77,
+  "tris": 4928
+ },
+ {
+  "key": "mesh@3428@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 3428
+ },
+ {
+  "key": "mesh@100@shadow",
+  "meshes": 33,
+  "instances": 33,
+  "tris": 3300
+ },
+ {
+  "key": "instanced@1620",
+  "meshes": 1,
+  "instances": 2,
+  "tris": 3240
+ },
+ {
+  "key": "instanced@12@shadow",
+  "meshes": 3,
+  "instances": 255,
+  "tris": 3060
+ },
+ {
+  "key": "mesh@36",
+  "meshes": 79,
+  "instances": 79,
+  "tris": 2844
+ },
+ {
+  "key": "mesh@2664@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 2664
+ },
+ {
+  "key": "mesh@40@shadow",
+  "meshes": 64,
+  "instances": 64,
+  "tris": 2560
+ },
+ {
+  "key": "mesh@80@shadow",
+  "meshes": 30,
+  "instances": 30,
+  "tris": 2400
+ },
+ {
+  "key": "mesh@2192@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 2192
+ },
+ {
+  "key": "instanced@36@shadow",
+  "meshes": 2,
+  "instances": 58,
+  "tris": 2088
+ },
+ {
+  "key": "mesh@1824@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 1824
+ },
+ {
+  "key": "instanced@390@shadow",
+  "meshes": 1,
+  "instances": 4,
+  "tris": 1560
+ },
+ {
+  "key": "mesh@32",
+  "meshes": 45,
+  "instances": 45,
+  "tris": 1440
+ },
+ {
+  "key": "mesh@1338",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 1338
+ },
+ {
+  "key": "mesh@32@shadow",
+  "meshes": 38,
+  "instances": 38,
+  "tris": 1216
+ },
+ {
+  "key": "mesh@1116@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 1116
+ },
+ {
+  "key": "mesh@84",
+  "meshes": 13,
+  "instances": 13,
+  "tris": 1092
+ },
+ {
+  "key": "mesh@536@shadow",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 1072
+ },
+ {
+  "key": "mesh@1056@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 1056
+ },
+ {
+  "key": "instanced@80@shadow",
+  "meshes": 6,
+  "instances": 13,
+  "tris": 1040
+ },
+ {
+  "key": "mesh@84@shadow",
+  "meshes": 12,
+  "instances": 12,
+  "tris": 1008
+ },
+ {
+  "key": "mesh@984@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 984
+ },
+ {
+  "key": "instanced@486@shadow",
+  "meshes": 1,
+  "instances": 2,
+  "tris": 972
+ },
+ {
+  "key": "mesh@960",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 960
+ },
+ {
+  "key": "mesh@40",
+  "meshes": 24,
+  "instances": 24,
+  "tris": 960
+ },
+ {
+  "key": "mesh@160@shadow",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 960
+ },
+ {
+  "key": "mesh@936@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 936
+ },
+ {
+  "key": "mesh@24@shadow",
+  "meshes": 38,
+  "instances": 38,
+  "tris": 912
+ },
+ {
+  "key": "mesh@864@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 864
+ },
+ {
+  "key": "mesh@852@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 852
+ },
+ {
+  "key": "mesh@840@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 840
+ },
+ {
+  "key": "mesh@792@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 792
+ },
+ {
+  "key": "mesh@768@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 768
+ },
+ {
+  "key": "instanced@152@shadow",
+  "meshes": 1,
+  "instances": 5,
+  "tris": 760
+ },
+ {
+  "key": "mesh@720@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 720
+ },
+ {
+  "key": "mesh@716@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 716
+ },
+ {
+  "key": "mesh@696@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 696
+ },
+ {
+  "key": "mesh@112",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 672
+ },
+ {
+  "key": "mesh@672",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 672
+ },
+ {
+  "key": "mesh@588@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 588
+ },
+ {
+  "key": "mesh@36@shadow",
+  "meshes": 16,
+  "instances": 16,
+  "tris": 576
+ },
+ {
+  "key": "mesh@576@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 576
+ },
+ {
+  "key": "mesh@552@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 552
+ },
+ {
+  "key": "mesh@524@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 524
+ },
+ {
+  "key": "mesh@480",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 480
+ },
+ {
+  "key": "mesh@480@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 480
+ },
+ {
+  "key": "mesh@472@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 472
+ },
+ {
+  "key": "mesh@456@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 456
+ },
+ {
+  "key": "mesh@424@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 424
+ },
+ {
+  "key": "mesh@408@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 408
+ },
+ {
+  "key": "mesh@384@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 384
+ },
+ {
+  "key": "mesh@192@shadow",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 384
+ },
+ {
+  "key": "instanced@192@shadow",
+  "meshes": 1,
+  "instances": 2,
+  "tris": 384
+ },
+ {
+  "key": "mesh@372@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 372
+ },
+ {
+  "key": "mesh@120@shadow",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 360
+ },
+ {
+  "key": "mesh@360@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 360
+ },
+ {
+  "key": "mesh@336@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 336
+ },
+ {
+  "key": "mesh@332@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 332
+ },
+ {
+  "key": "mesh@276@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 276
+ },
+ {
+  "key": "mesh@252@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 252
+ },
+ {
+  "key": "mesh@236@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 236
+ },
+ {
+  "key": "mesh@28",
+  "meshes": 8,
+  "instances": 8,
+  "tris": 224
+ },
+ {
+  "key": "mesh@72@shadow",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 216
+ },
+ {
+  "key": "mesh@14@shadow",
+  "meshes": 14,
+  "instances": 14,
+  "tris": 196
+ },
+ {
+  "key": "mesh@172@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 172
+ },
+ {
+  "key": "mesh@148@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 148
+ },
+ {
+  "key": "mesh@48@shadow",
+  "meshes": 3,
+  "instances": 3,
+  "tris": 144
+ },
+ {
+  "key": "mesh@144",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 144
+ },
+ {
+  "key": "mesh@6@shadow",
+  "meshes": 23,
+  "instances": 23,
+  "tris": 138
+ },
+ {
+  "key": "mesh@136@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 136
+ },
+ {
+  "key": "mesh@20@shadow",
+  "meshes": 6,
+  "instances": 6,
+  "tris": 120
+ },
+ {
+  "key": "mesh@10",
+  "meshes": 12,
+  "instances": 12,
+  "tris": 120
+ },
+ {
+  "key": "mesh@52@shadow",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 104
+ },
+ {
+  "key": "mesh@96@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 96
+ },
+ {
+  "key": "mesh@48",
+  "meshes": 2,
+  "instances": 2,
+  "tris": 96
+ },
+ {
+  "key": "mesh@78@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 78
+ },
+ {
+  "key": "mesh@8@shadow",
+  "meshes": 8,
+  "instances": 8,
+  "tris": 64
+ },
+ {
+  "key": "mesh@64@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 64
+ },
+ {
+  "key": "mesh@60@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 60
+ },
+ {
+  "key": "mesh@34@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 34
+ },
+ {
+  "key": "mesh@2",
+  "meshes": 15,
+  "instances": 15,
+  "tris": 30
+ },
+ {
+  "key": "mesh@26@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 26
+ },
+ {
+  "key": "mesh@16@shadow",
+  "meshes": 1,
+  "instances": 1,
+  "tris": 16
+ },
+ {
+  "key": "instanced@366@shadow",
+  "meshes": 1,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "instanced@1220",
+  "meshes": 1,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "instanced@258@shadow",
+  "meshes": 1,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "instanced@2",
+  "meshes": 1,
+  "instances": 0,
+  "tris": 0
+ },
+ {
+  "key": "TOTAL(scene, frustum-independent)",
+  "meshes": 3733,
+  "instances": 0,
+  "tris": 7047166
+ }
+]

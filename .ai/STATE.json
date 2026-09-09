@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "currentCampaign": "finish-uncommitted",
-  "currentObjective": "Finish the uncommitted in-flight work: wheel-track ruts and hitching rails",
+  "currentCampaign": "performance-campaign-2026-09-08",
+  "currentObjective": "Exhaustive performance campaign COMPLETE: measured GPU/CPU/HUD/NPC/nav improvements, hostile critic pass (3 code defects fixed incl. a campaign-introduced scene-wide freeze), evidenced interleaved A/B in docs/PERFORMANCE_PASS.md",
   "defaultRoutingMode": "balanced",
-  "lastRole": "senior",
-  "lastModel": "gpt-5.6-sol",
+  "lastRole": "worker",
+  "lastModel": "gpt-5.6-terra",
   "expertCallsThisCampaign": 0,
-  "lastCheckpoint": "2026-09-06T15:07:24.253Z",
-  "verificationStatus": "unknown"
+  "lastCheckpoint": "2026-09-09T03:00:00.000Z",
+  "verificationStatus": "Full npm run check 28/28 PASS (40.6s, includes minimap-cache + textured-model-pilot); interleaved display-paced A/B n=5/POI/side saved (fps-ab-interleaved-*.jsonl); probe-play logs saved both trees (2 arrival-step FAILs pre-existing, identical on pre); post-fix visual captures caps-post2"
 }

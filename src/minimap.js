@@ -671,6 +671,20 @@ const LABELS = [
  * water, regions, minor places — a label that would collide with one already
  * placed is skipped, exactly how a cartographer resolves a crowded sheet.
  */
+// Letter metrics for FIXED strings in fixed fonts can never change, yet the
+// label pass re-measured ~180 characters per repaint. One entry per
+// (font, text); measureText runs only on the first sighting.
+const textWidthCache = new Map();
+function trackedTextWidth(ctx, text, font, tracking) {
+  const key = `${font}|${text}`;
+  let w = textWidthCache.get(key);
+  if (w === undefined) {
+    ctx.font = font;
+    w = [...text].reduce((a, ch) => a + ctx.measureText(ch).width, 0) + tracking * ([...text].length - 1);
+    textWidthCache.set(key, w);
+  }
+  return w;
+}
 function paintLabels(ctx, playerX, playerZ) {
   const placed = [];
   const fits = (x, y, w, h) => {
@@ -694,7 +708,7 @@ function paintLabels(ctx, playerX, playerZ) {
     }
     ctx.save();
     ctx.font = L.style.font;
-    const textW = [...L.text].reduce((a, ch) => a + ctx.measureText(ch).width, 0) + L.style.tracking * (L.text.length - 1);
+    const textW = trackedTextWidth(ctx, L.text, L.style.font, L.style.tracking);
     const h = L.rise ? L.rise + 14 : 14;
     const anchor = displayPoint(poi.x, poi.z, playerX, playerZ);
     const x = anchor.x + (L.dx || 0);
@@ -1139,7 +1153,26 @@ export function createMinimap() {
   let target = null;
 
   function setObjective(next) {
-    target = next;
+    // `place.route` is rebuilt by routeTo whenever it replans, and the chart
+    // paints target.route — so a replan must swap the target even though the
+    // destination fields are unchanged, or the chart keeps drawing the stale
+    // polyline while the HUD distance updates. Cache hits return the SAME
+    // route object (routeTo's cache), so identity detects replans; a
+    // no-approach result is built fresh every call, so empty routes compare
+    // by emptiness instead — otherwise a standing player with no route would
+    // swap targets (and repaint) every frame.
+    const routeChanged = next?.route !== target?.route
+      && !(next?.route?.waypoints?.length === 0 && target?.route?.waypoints?.length === 0);
+    if (
+      target?.placeId !== next?.placeId ||
+      target?.name !== next?.name ||
+      target?.x !== next?.x ||
+      target?.z !== next?.z ||
+      routeChanged
+    ) {
+      target = next;
+      dirty = true;
+    }
   }
 
   function show() {
@@ -1150,10 +1183,23 @@ export function createMinimap() {
     root.classList.toggle("large");
   }
 
+  // The chart used to repaint its 400px canvas every animation frame while a
+  // player stood still. Its terrain crop, roads, labels and frame are static,
+  // so an identical player pose must not redraw it. Movement and turning keep
+  // their exact existing update cadence.
+  let dirty = true;
+  let drawnX = NaN, drawnZ = NaN, drawnYaw = NaN;
   function update(x, z, yaw) {
     last.x = x;
     last.z = z;
     last.yaw = yaw;
+    if (!dirty && x === drawnX && z === drawnZ && yaw === drawnYaw) {
+      return;
+    }
+    dirty = false;
+    drawnX = x;
+    drawnZ = z;
+    drawnYaw = yaw;
     const view = viewWindow(x, z);
     ctx.fillStyle = "#e2d0a4";
     ctx.fillRect(0, 0, DISPLAY, DISPLAY);
@@ -1202,6 +1248,7 @@ export function createMinimap() {
     e.preventDefault();
     // Wheel up = zoom in (tighter view), wheel down = zoom out (wider view).
     if (setChartZoom(zoomLevel * Math.pow(1.15, e.deltaY > 0 ? -1 : 1))) {
+      dirty = true;
       update(last.x, last.z, last.yaw);
     }
   }, { passive: false });
