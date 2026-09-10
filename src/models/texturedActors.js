@@ -103,6 +103,178 @@ function kindFor(url) {
   return "cowboy";
 }
 
+// Sleeve-only skinning for the settler woman. Full proximity weight transfer
+// was tried and rejected twice: it fixes the sleeves but drags the blouse's
+// chest panel off the body, because the garment is a separate outer layer over
+// a nude body and copying the body's weights for EVERY vertex collapses that
+// layer onto it. This bind is scoped instead: each garment vertex borrows the
+// weights of the nearest body vertex, but keeps only its arm-bone share; the
+// non-arm remainder stays on the bind-static root. Sleeve fabric therefore
+// follows the arm exactly as far as the body under it does, while the blouse
+// torso and skirt keep a single static root weight and cannot collapse.
+const SETTLER_ARM_CHAIN = {
+  L: ["mixamorigLeftShoulder", "mixamorigLeftArm", "mixamorigLeftForeArm", "mixamorigLeftHand"],
+  R: ["mixamorigRightShoulder", "mixamorigRightArm", "mixamorigRightForeArm", "mixamorigRightHand"]
+};
+// A garment vertex further than this from every body vertex (metres) is fully
+// static rather than borrowing a distant bone; the grid cell sets lookup cost.
+const SLEEVE_MATCH_M = 0.30;
+const SLEEVE_CELL_M = 0.05;
+
+function bindSettlerGarments(scene) {
+  scene.updateMatrixWorld(true);
+  const bodyMeshes = [];
+  scene.traverse((node) => { if (node.isSkinnedMesh) bodyMeshes.push(node); });
+  if (!bodyMeshes.length) return;
+  const body = bodyMeshes[0];
+  const skeleton = body.skeleton;
+  const indexByName = new Map(skeleton.bones.map((bone, i) => [bone.name, i]));
+  const findCore = (core) => skeleton.bones.find((bone) => coreBoneName(bone.name) === core) ?? null;
+  const armBones = new Set();
+  for (const side of ["L", "R"]) {
+    const chain = SETTLER_ARM_CHAIN[side].map(findCore);
+    // Unknown skeleton: leave the garment static rather than guess.
+    if (chain.some((bone) => !bone)) return;
+    for (const bone of chain) armBones.add(indexByName.get(bone.name));
+  }
+  const rootBone = findCore("rootJoint") ?? skeleton.bones[0];
+  const rootIndex = indexByName.get(rootBone.name);
+  const headBone = findCore("mixamorigHead");
+  const headIndex = headBone ? indexByName.get(headBone.name) : rootIndex;
+  // Converts any mesh's world matrix into the body's bind space at bind time.
+  const bodyBindSpace = body.bindMatrix.clone().multiply(body.matrixWorld.clone().invert());
+
+  // Every body vertex position and its four bone weights, in world space, in a
+  // uniform grid, so each garment vertex can find the surface it sits on.
+  const samples = [];
+  const sampleBone = [];
+  const sampleWeight = [];
+  const vertex = new THREE.Vector3();
+  const components = ["X", "Y", "Z", "W"];
+  for (const mesh of bodyMeshes) {
+    const position = mesh.geometry.attributes.position;
+    const skinIndex = mesh.geometry.attributes.skinIndex;
+    const skinWeight = mesh.geometry.attributes.skinWeight;
+    for (let i = 0; i < position.count; i += 1) {
+      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
+      samples.push(vertex.x, vertex.y, vertex.z);
+      for (const c of components) {
+        sampleBone.push(skinIndex[`get${c}`](i));
+        sampleWeight.push(skinWeight[`get${c}`](i));
+      }
+    }
+  }
+  const cellKey = (x, y, z) => `${Math.floor(x / SLEEVE_CELL_M)},${Math.floor(y / SLEEVE_CELL_M)},${Math.floor(z / SLEEVE_CELL_M)}`;
+  const grid = new Map();
+  for (let i = 0; i < samples.length / 3; i += 1) {
+    const key = cellKey(samples[i * 3], samples[i * 3 + 1], samples[i * 3 + 2]);
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push(i);
+  }
+  const maxRing = Math.ceil(SLEEVE_MATCH_M / SLEEVE_CELL_M) + 1;
+  const nearestSample = (x, y, z) => {
+    const bx = Math.floor(x / SLEEVE_CELL_M);
+    const by = Math.floor(y / SLEEVE_CELL_M);
+    const bz = Math.floor(z / SLEEVE_CELL_M);
+    let bestDistance = Infinity;
+    let bestIndex = -1;
+    for (let r = 0; r <= maxRing; r += 1) {
+      for (let dx = -r; dx <= r; dx += 1) for (let dy = -r; dy <= r; dy += 1) for (let dz = -r; dz <= r; dz += 1) {
+        if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
+        const bucket = grid.get(`${bx + dx},${by + dy},${bz + dz}`);
+        if (!bucket) continue;
+        for (const index of bucket) {
+          const ox = samples[index * 3] - x;
+          const oy = samples[index * 3 + 1] - y;
+          const oz = samples[index * 3 + 2] - z;
+          const distance = ox * ox + oy * oy + oz * oz;
+          if (distance < bestDistance) { bestDistance = distance; bestIndex = index; }
+        }
+      }
+      // A point in the next shell is at least r cells away, so once the best
+      // hit is closer than that shell's floor, no later shell can beat it.
+      if (bestIndex >= 0 && r * SLEEVE_CELL_M > Math.sqrt(bestDistance) + SLEEVE_CELL_M) break;
+    }
+    return { index: bestIndex, distance: bestIndex >= 0 ? Math.sqrt(bestDistance) : Infinity };
+  };
+
+  const loose = [];
+  scene.traverse((node) => { if (node.isMesh && !node.isSkinnedMesh) loose.push(node); });
+  for (const mesh of loose) {
+    const position = mesh.geometry.attributes.position;
+    const count = position.count;
+    const skinIndex = new Uint16Array(count * 4);
+    const skinWeight = new Float32Array(count * 4);
+    // Small static meshes over the head (scarf/bonnet) ride the head bone.
+    const isGarment = count > 1000;
+    for (let i = 0; i < count; i += 1) {
+      const o = i * 4;
+      if (!isGarment) {
+        skinIndex[o] = headIndex;
+        skinWeight[o] = 1;
+        continue;
+      }
+      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
+      const near = nearestSample(vertex.x, vertex.y, vertex.z);
+      if (near.index < 0 || near.distance > SLEEVE_MATCH_M) {
+        skinIndex[o] = rootIndex;
+        skinWeight[o] = 1;
+        continue;
+      }
+      let armSum = 0;
+      for (let c = 0; c < 4; c += 1) {
+        if (armBones.has(sampleBone[near.index * 4 + c])) armSum += sampleWeight[near.index * 4 + c];
+      }
+      if (armSum <= 0.001) {
+        skinIndex[o] = rootIndex;
+        skinWeight[o] = 1;
+        continue;
+      }
+      // Keep the body's arm weights; the non-arm remainder (the torso share at
+      // the shoulder) stays on the static root, so the seam blends, not tears.
+      const kept = [];
+      for (let c = 0; c < 4; c += 1) {
+        const bone = sampleBone[near.index * 4 + c];
+        const weight = sampleWeight[near.index * 4 + c];
+        if (armBones.has(bone) && weight > 0) kept.push([bone, weight]);
+      }
+      if (armSum < 1 - 1e-4) kept.push([rootIndex, 1 - armSum]);
+      kept.sort((a, b) => b[1] - a[1]);
+      let slot = 0;
+      for (const [bone, weight] of kept) {
+        if (slot >= 4) break;
+        skinIndex[o + slot] = bone;
+        skinWeight[o + slot] = weight;
+        slot += 1;
+      }
+      if (slot === 0) {
+        skinIndex[o] = rootIndex;
+        skinWeight[o] = 1;
+      }
+    }
+    mesh.geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndex, 4));
+    mesh.geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeight, 4));
+    const skinned = new THREE.SkinnedMesh(mesh.geometry, mesh.material);
+    skinned.name = mesh.name;
+    skinned.position.copy(mesh.position);
+    skinned.quaternion.copy(mesh.quaternion);
+    skinned.scale.copy(mesh.scale);
+    skinned.castShadow = mesh.castShadow;
+    skinned.receiveShadow = mesh.receiveShadow;
+    // The garment geometry shares the body's armature-local space, but a
+    // mesh like the bonnet sits under an empty that places it at the head, so
+    // neither the body's bind matrix nor the mesh's own world matrix is right
+    // on its own. Map the mesh into the body's bind space: B_body · M_body⁻¹ ·
+    // M_mesh reproduces the mesh's world position at bind for either case.
+    const bindMatrix = bodyBindSpace.clone().multiply(mesh.matrixWorld);
+    skinned.bind(skeleton, bindMatrix);
+    const parent = mesh.parent;
+    parent.add(skinned);
+    parent.remove(mesh);
+  }
+  scene.updateMatrixWorld(true);
+}
+
 function prepare(scene, kind) {
   scene.traverse((node) => {
     if (!node.isMesh) return;
@@ -112,22 +284,8 @@ function prepare(scene, kind) {
     // not lacquered metal. Do not alter the separate eye material.
     if (kind === "cow" && node.material?.name === "material") node.material.metalness = 0;
   });
+  if (kind === "settlerwoman") bindSettlerGarments(scene);
 }
-
-// NOTE — do not re-attempt proximity weight transfer on this model.
-// medieval_poor_woman.glb ships 5 meshes, only 3 skinned: the 11,370-vertex
-// CLOTHES_MUJER_..._FRONT (blouse, sleeves, skirt) and the headscarf are
-// STATIC, frozen in the T-pose bind, so the sleeves jut out sideways while the
-// arms hang inside them. Binding those meshes to the rig by nearest-body-vertex
-// weight transfer DOES fix the sleeves (garment half-span 0.618 -> 0.295 m) but
-// drags the blouse's chest panel off the body and leaves the figure exposed:
-// the garment is a separate outer layer over a nude body, and giving it the
-// body's own weights collapses it onto/through that body. A/B captures:
-// audit/npc-shirt-front-nell-calder.png (transferred, undressed) vs
-// audit/npc-noskin-front-nell-calder.png (static, clothed, T-pose sleeves).
-// Clothed-with-stiff-sleeves is the better of the two, so the garment stays
-// static. A real fix means skinning the garment in a DCC tool or sourcing a
-// model whose clothes are already bound.
 
 function sourceBounds(scene) {
   scene.updateMatrixWorld(true);

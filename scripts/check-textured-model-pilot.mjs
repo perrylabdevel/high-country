@@ -23,24 +23,62 @@ const [cow, cowboy, childboy] = await Promise.all([
   load("public/models/western-cowboy.glb"),
   load("public/models/child_boy_character_animated_blender.glb")
 ]);
-// Garments silently stayed in the bind pose without skin data; a later GUI
-// export also included Blender's default cube. Inspect the shipped GLB itself.
+// The GLB ships the blouse/sleeve/skirt mesh and the bonnet unskinned, so the
+// adapter binds them at load. Assert the BUILT actor, not the file: all five
+// meshes must be skinned with nonzero weights or the garment silently stays in
+// the T-pose bind, sleeves frozen while the arms hang inside them.
 const womanPath = path.join(root, "public/models/medieval_poor_woman.glb");
 if (fs.existsSync(womanPath)) {
   const woman = await load("public/models/medieval_poor_woman.glb");
+  const visual = createTexturedActorFactory(woman, "/models/medieval_poor_woman.glb")({ targetHeight: 1.66 });
+  const holder = new THREE.Group();
+  holder.add(visual.object);
+  holder.updateMatrixWorld(true);
   const meshes = [];
-  woman.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
-  assert.equal(meshes.length, 5, "settler woman must contain exactly five character meshes; exclude Blender defaults when exporting");
+  visual.object.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  assert.equal(meshes.length, 5, "settler woman must build exactly five character meshes");
   for (const mesh of meshes) {
-    assert.ok(mesh.isSkinnedMesh, `${mesh.name}: missing skin; bind garment to the armature in Blender before export`);
+    assert.ok(mesh.isSkinnedMesh, `${mesh.name}: not skinned after the adapter bind`);
     const weights = mesh.geometry.attributes.skinWeight;
     assert.ok(weights, `${mesh.name}: missing vertex weights`);
     for (let i = 0; i < weights.count; i++) {
       assert.ok(weights.getX(i) + weights.getY(i) + weights.getZ(i) + weights.getW(i) > 0,
-        `${mesh.name} vertex ${i}: unweighted; repair weights in Blender`);
+        `${mesh.name} vertex ${i}: unweighted`);
     }
   }
-  console.log("settler woman: five skinned meshes, all vertices weighted");
+
+  // Behavioral: the sleeve must follow the arm drop while the blouse and skirt
+  // stay pinned. Full proximity weight transfer failed exactly here before — it
+  // moved the sleeves but collapsed the blouse chest onto the body — so this is
+  // the assertion that distinguishes a sleeve fix from a garment collapse.
+  const garment = meshes.find((m) => m.name.startsWith("CLOTHES"));
+  const armBones = new Set();
+  garment.skeleton.bones.forEach((bone, i) => { if (/Arm|Shoulder|Hand/.test(bone.name)) armBones.add(i); });
+  const gPos = garment.geometry.attributes.position;
+  const gIndex = garment.geometry.attributes.skinIndex;
+  const gWeight = garment.geometry.attributes.skinWeight;
+  const before = [];
+  const at = new THREE.Vector3();
+  for (let i = 0; i < gPos.count; i++) {
+    garment.getVertexPosition(i, at.fromBufferAttribute(gPos, i));
+    before.push(at.clone().applyMatrix4(garment.matrixWorld));
+  }
+  for (let i = 0; i < 30; i++) visual.update(1 / 60, { speed: 0, phase: 0 });
+  holder.updateMatrixWorld(true);
+  let armMove = 0, armCount = 0, staticMove = 0, staticCount = 0;
+  for (let i = 0; i < gPos.count; i++) {
+    garment.getVertexPosition(i, at.fromBufferAttribute(gPos, i));
+    const moved = at.applyMatrix4(garment.matrixWorld).distanceTo(before[i]);
+    let armWeight = 0;
+    for (const c of ["X", "Y", "Z", "W"]) if (armBones.has(gIndex[`get${c}`](i))) armWeight += gWeight[`get${c}`](i);
+    if (armWeight > 0.5) { armMove += moved; armCount += 1; } else if (armWeight < 0.01) { staticMove += moved; staticCount += 1; }
+  }
+  const sleeves = armMove / armCount;
+  const body = staticMove / staticCount;
+  assert.ok(armCount > 500, `sleeve region has only ${armCount} arm-weighted vertices`);
+  assert.ok(sleeves > 0.1, `sleeves did not follow the arm drop (mean ${sleeves.toFixed(3)} m)`);
+  assert.ok(body < 0.02, `blouse/skirt collapsed with the arm (mean static move ${body.toFixed(3)} m)`);
+  console.log(`settler woman: five skinned meshes; sleeves moved ${sleeves.toFixed(3)} m, blouse/skirt kept ${body.toFixed(3)} m`);
 }
 function bounds(scene) { scene.updateMatrixWorld(true); return new THREE.Box3().setFromObject(scene); }
 

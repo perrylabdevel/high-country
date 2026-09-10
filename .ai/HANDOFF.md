@@ -14,6 +14,51 @@ Start: `hc-agent doctor` then `hc-agent run --yes --dry-run --campaign visual-qu
 
 ---
 
+# Nell's sleeves FIXED by sleeve-only bind — 2026-09-10
+
+The 2026-09-09 conclusion below ("garment stays unskinned, sleeves stay stiff")
+is SUPERSEDED. `bindSettlerGarments()` in `src/models/texturedActors.js`
+converts the two static `medieval_poor_woman.glb` meshes to SkinnedMeshes at
+load, in the template prepared once per URL.
+
+WHY IT WORKS WHERE THE TWO REJECTED ROUTES DID NOT. Both earlier routes copied
+the body's own weights to EVERY garment vertex, which drags the loose blouse
+chest panel onto the nude body. This one is scoped: a garment vertex borrows the
+weights of the NEAREST body vertex, but keeps only that vertex's arm-bone share;
+the non-arm remainder is reattached to a single bind-static root. So sleeve
+fabric follows the arm exactly as far as the body under it does (including the
+blouse's own arm/torso blend at the shoulder, which is why the seam blends
+rather than tears), while the blouse torso and skirt stay put and cannot
+collapse. The small static bonnet mesh rides the head bone.
+
+BIND-SPACE GOTCHA (cost a wrong first attempt): the body's bindMatrix is
+identity, not its node world matrix, because its geometry is authored in
+armature-local space. A loose mesh can instead live under an empty that places
+it elsewhere (the bonnet translates to the head), so neither the body's bind
+matrix nor the mesh's own world matrix is universally right. The correct bind is
+`body.bindMatrix · body.matrixWorld⁻¹ · mesh.matrixWorld`, which reduces to the
+body's identity for the garment and to the head placement for the bonnet.
+
+EVIDENCE (measured, not eyeballed):
+- `scripts/check-textured-model-pilot.mjs` now asserts the BUILT actor (all five
+  meshes skinned, nonzero weights) and the behaviour: after the gait arm-drop
+  the sleeve moves > 0.1 m while the blouse/skirt stays < 0.02 m. Reports
+  sleeves 0.238 m, body 0.000 m.
+- Live WebGPU: Nell footGap -0.0004..-0.015 m (grounded), armDeg 8.6.
+- A/B frames, same vantage before (unbound) and after:
+  `audit/nell-sleeves-before/` and `audit/nell-sleeves-after/` (front/side/back).
+  Before is the reported bug exactly (sleeves frozen horizontal, arms hanging);
+  after the sleeves follow the arms to the cuffs, with only a small exposed
+  shoulder patch where the moving sleeve meets the static blouse.
+
+A/B hook `globalThis.__NELL_UNBIND` used to shoot the "before" frames was
+removed after capture. Verification: `npm run build` green; the nine directly
+relevant checks pass via `npx tsx scripts/<check>.mjs` (the `npm run check`
+runner still fails 29/29 on Windows with the pre-existing extensionless-tsx
+ENOENT, identical on clean main).
+
+---
+
 # Garment skinning: BOTH weighting routes rejected — 2026-09-09
 
 CONCLUSION: medieval_poor_woman.glb ships with the garment UNSKINNED and stays
