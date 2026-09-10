@@ -9,7 +9,13 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 // against both the authored and the runtime form and against the differing
 // numeric suffixes of the cowboy vs child skeletons.
 function coreBoneName(name) {
-  return name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "");
+  // Order matters: drop the exporter's trailing _NN BEFORE collapsing the
+  // remaining separators, or `mixamorig_LeftArm_011` would core as
+  // `mixamorigLeftArm011`. Collapsing underscores is what lets one table serve
+  // skeletons that differ only in punctuation — the cowboy exports
+  // `mixamorigLeftArm_08` while the settler woman exports
+  // `mixamorig_LeftArm_011`, and both core to `mixamorigLeftArm`.
+  return name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "").replace(/_/g, "");
 }
 function boneByCore(bones, core) {
   for (const [name, bone] of bones) {
@@ -19,12 +25,23 @@ function boneByCore(bones, core) {
 }
 
 const CORES_DEF = {
-  armL: "DEF-upper_armL",
-  armR: "DEF-upper_armR",
+  armL: "DEF-upperarmL",
+  armR: "DEF-upperarmR",
   legL: "DEF-thighL",
   legR: "DEF-thighR",
   torso: "DEF-spine",
   head: "DEF-spine006"
+};
+// Gunnar is a Character Creator export: a third skeleton naming scheme
+// alongside Mixamo and the Blender DEF rig. `coreBoneName` drops the trailing
+// _NN, so `CC_Base_L_Upperarm_45` resolves as `CC_Base_L_Upperarm`.
+const CORES_CC = {
+  armL: "CCBaseLUpperarm",
+  armR: "CCBaseRUpperarm",
+  legL: "CCBaseLThigh",
+  legR: "CCBaseRThigh",
+  torso: "CCBaseSpine02",
+  head: "CCBaseHead"
 };
 const CORES_MIXA = {
   armL: "mixamorigLeftArm",
@@ -54,6 +71,19 @@ const MODEL = {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
     idle: "Idle_g", walk: null, coreHandles: CORES_DEF
   },
+  // The settler woman is a Mixamo skeleton (underscored export) with no clips,
+  // so she rides the same procedural gait as the cowboy — the collapsed cores
+  // above resolve both skeletons from one table.
+  settlerwoman: {
+    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
+    gait: true, coreHandles: CORES_MIXA
+  },
+  gunnar: {
+    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
+    // Ships real locomotion, so no procedural gait: hand-on-holster is the
+    // general-purpose idle ("04-leaning" only reads right against a post).
+    idle: "03-handonholster", walk: "02-walk-normal", coreHandles: CORES_CC
+  },
   childboy: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
     idle: null, walk: null, coreHandles: CORES_MIXA, gait: true
@@ -65,6 +95,8 @@ const legNames = ["lfl1_017", "lfr1_021", "lbl1_02", "lbr1_031"];
 
 function kindFor(url) {
   if (url.includes("farm-cow.glb")) return "cow";
+  if (url.includes("gunnar")) return "gunnar";
+  if (url.includes("medieval_poor_woman")) return "settlerwoman";
   if (url.includes("lucille")) return "lucille";
   if (url.includes("lillian")) return "lillian";
   if (url.includes("child")) return "childboy";
@@ -81,6 +113,21 @@ function prepare(scene, kind) {
     if (kind === "cow" && node.material?.name === "material") node.material.metalness = 0;
   });
 }
+
+// NOTE — do not re-attempt proximity weight transfer on this model.
+// medieval_poor_woman.glb ships 5 meshes, only 3 skinned: the 11,370-vertex
+// CLOTHES_MUJER_..._FRONT (blouse, sleeves, skirt) and the headscarf are
+// STATIC, frozen in the T-pose bind, so the sleeves jut out sideways while the
+// arms hang inside them. Binding those meshes to the rig by nearest-body-vertex
+// weight transfer DOES fix the sleeves (garment half-span 0.618 -> 0.295 m) but
+// drags the blouse's chest panel off the body and leaves the figure exposed:
+// the garment is a separate outer layer over a nude body, and giving it the
+// body's own weights collapses it onto/through that body. A/B captures:
+// audit/npc-shirt-front-nell-calder.png (transferred, undressed) vs
+// audit/npc-noskin-front-nell-calder.png (static, clothed, T-pose sleeves).
+// Clothed-with-stiff-sleeves is the better of the two, so the garment stays
+// static. A real fix means skinning the garment in a DCC tool or sourcing a
+// model whose clothes are already bound.
 
 function sourceBounds(scene) {
   scene.updateMatrixWorld(true);
@@ -306,36 +353,15 @@ function actorFactory(template) {
     const forwardReach = config.sourceForward.z > 0 ? template.bounds.max.z * scale : -template.bounds.min.z * scale;
     let phaseClock = 0;
 
-    // Grounding is measured from the model's STANCE, not its bind pose. The
-    // static offset above (`-bounds.min.y * scale`) lifts the bind-pose feet to
-    // the group origin; a mixer clip then re-poses the skeleton and the stance
-    // feet sit lower than bind, so clip-driven models (Lucille/Lillian) sink
-    // through the deck. Gait-only models (cowboy/child) rest at bind, so the
-    // static offset is already correct. On the first settled update, measure
-    // the actual lowest skinned vertex in world space and shift the normalized
-    // group so the stance feet land exactly on the deck.
-    const _groundVec = new THREE.Vector3();
-    let groundAcc = 0;
-    let grounded = false;
-    const groundOnStance = () => {
-      object.updateWorldMatrix(true, false);
-      const sourceWorld = object.getWorldPosition(_groundVec);
-      const originY = sourceWorld.y;
-      let minY = Infinity;
-      source.traverse((m) => {
-        if (!m.isSkinnedMesh) return;
-        const posA = m.geometry.attributes.position;
-        const step = Math.max(1, Math.floor(posA.count / 300));
-        for (let i = 0; i < posA.count; i += step) {
-          _groundVec.fromBufferAttribute(posA, i);
-          m.applyBoneTransform(i, _groundVec);
-          _groundVec.applyMatrix4(m.matrixWorld);
-          if (_groundVec.y < minY) minY = _groundVec.y;
-        }
-      });
-      if (Number.isFinite(minY)) normalized.position.y += originY - minY;
-      grounded = true;
-    };
+    // No runtime stance re-grounding. A previous pass measured the lowest
+    // skinned vertex at 0.6 s and shifted the group to match; it sampled only
+    // ~300 of the mesh's vertices, so it almost never found the true lowest
+    // sole vertex and shifted every actor DOWN by the sampling error — the
+    // cowboy's boots vanished into the boardwalk and the (now unwired) Blender
+    // DEF-rig women sank a whole body, leaving their eyes resting on the deck.
+    // It existed only for those women. Every wired model rests at its bind
+    // pose, which `-bounds.min.y * scale` above already grounds exactly;
+    // check:textured-model-pilot asserts the cowboy's feet land at y=0.
 
     return {
       object,
@@ -359,12 +385,6 @@ function actorFactory(template) {
           mixer.update(dt);
         }
         gait?.(state);
-        // Ground once the pose has settled: clip-driven models need the mixer
-        // to have advanced into a stable stance before we trust the foot level.
-        if (!grounded) {
-          groundAcc += dt;
-          if (groundAcc >= (mixer ? 0.6 : 0.001)) groundOnStance();
-        }
       }
     };
   };

@@ -8,7 +8,7 @@
  */
 import * as THREE from "three/webgpu";
 import { heightAt, woodTexture, shingleTexture, rockTexture } from "./world.js";
-import { addBoxCollider, addCylinderCollider } from "./collision.js";
+import { addBoxCollider, addCylinderCollider, addDeckPlatform } from "./collision.js";
 import { POS } from "./map.js";
 import {
   structure,
@@ -36,6 +36,40 @@ import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 function groundY(x, z) {
   return heightAt(x, z);
+}
+
+
+// A porch is built as geometry only: `porch()` lays a deck slab but nothing
+// told the collision model it is standable, so grounding fell through to
+// terrain height and anyone on a porch stood buried in the boards (the ranch
+// front porch put Harlan 0.096 m under its deck). Walk a placed structure and
+// register every porch's deck, in world space, from the footprint the part
+// published. Generic on purpose: any porch added later is grounded for free.
+function registerPorchDecks(root) {
+  root.updateMatrixWorld(true);
+  const center = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const euler = new THREE.Euler();
+  let registered = 0;
+  root.traverse((node) => {
+    const d = node.userData;
+    if (d?.role !== "porch" || d.width == null) return;
+    // The deck spans the porch's full width and runs from the wall (local z 0)
+    // out to `depth`, with its surface at `deckTop`.
+    center.set(0, d.deckTop, d.deckCenterZ).applyMatrix4(node.matrixWorld);
+    node.matrixWorld.decompose(new THREE.Vector3(), quat, scale);
+    euler.setFromQuaternion(quat, "YXZ");
+    // The collision frame is the inverse of three's rotation.y — same
+    // convention addDeckPlatform is given for the boardwalks.
+    addDeckPlatform(
+      center.x, center.z,
+      (d.width * scale.x) / 2, (d.depth * scale.z) / 2,
+      -euler.y, center.y
+    );
+    registered += 1;
+  });
+  return registered;
 }
 
 export function createRanch(maps = {}) {
@@ -655,6 +689,10 @@ export function createRanch(maps = {}) {
   // the pocket between rail and trough with nothing but a wall ahead.
   groundBox(ox + 13.5, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
   addBoxCollider(ox + 13.5, oz + 16, 1.4, 0.5);
+
+  // Every porch on this structure becomes standable footing. Runs last, once
+  // the porches have been mated and the group's world matrices are final.
+  registerPorchDecks(group);
 
   return group;
 }

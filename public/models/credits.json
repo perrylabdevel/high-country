@@ -48,5 +48,26 @@
     "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
     "sha256": "e134112ab7d9202b13db44906ba892cc7a6b6ceac3b858f02f41343af6dc2d26",
     "bytes": 9272652
+  },
+  {
+    "file": "medieval_poor_woman.glb",
+    "title": "Medieval poor woman",
+    "source": "https://sketchfab.com/3d-models/medieval-poor-woman-24db154842a84717bfecea3ace0f7cfa",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "1624c2bf78f9251e77f8d99745ac52ee1b98c2f3ba6012696a67fa5838f0b52f",
+    "bytes": 6661976,
+    "author": "carmenpaloma",
+    "processing": "KHR_materials_pbrSpecularGlossiness converted to metallic-roughness by scripts/convert-specgloss.mjs. The garment and headscarf ship UNSKINNED and stay that way on purpose: binding them to the rig (by proximity weights or by Blender automatic/bone-heat weights) fixes the stiff sleeves but collapses the loose blouse onto the body and exposes the chest. See .ai/HANDOFF.md."
+  },
+  {
+    "file": "gunnar_the_gunslinger_rigged_motions.glb",
+    "title": "Gunnar the Gunslinger (rigged, motions)",
+    "author": "tegnemaskin",
+    "source": "https://sketchfab.com/3d-models/gunnar-the-gunslinger-rigged-motions-1bb1864f3e414215850e3b37d3c65db2",
+    "license": "CC-BY-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "00120c922e83f5044070c6665f8b64906f851879221efe691a52f431e5aa0e00",
+    "bytes": 23289692
   }
 ]

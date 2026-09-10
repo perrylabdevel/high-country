@@ -18,7 +18,30 @@ async function load(file) {
   ));
 }
 
-const [cow, cowboy] = await Promise.all([load("public/models/farm-cow.glb"), load("public/models/western-cowboy.glb")]);
+const [cow, cowboy, childboy] = await Promise.all([
+  load("public/models/farm-cow.glb"),
+  load("public/models/western-cowboy.glb"),
+  load("public/models/child_boy_character_animated_blender.glb")
+]);
+// Garments silently stayed in the bind pose without skin data; a later GUI
+// export also included Blender's default cube. Inspect the shipped GLB itself.
+const womanPath = path.join(root, "public/models/medieval_poor_woman.glb");
+if (fs.existsSync(womanPath)) {
+  const woman = await load("public/models/medieval_poor_woman.glb");
+  const meshes = [];
+  woman.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
+  assert.equal(meshes.length, 5, "settler woman must contain exactly five character meshes; exclude Blender defaults when exporting");
+  for (const mesh of meshes) {
+    assert.ok(mesh.isSkinnedMesh, `${mesh.name}: missing skin; bind garment to the armature in Blender before export`);
+    const weights = mesh.geometry.attributes.skinWeight;
+    assert.ok(weights, `${mesh.name}: missing vertex weights`);
+    for (let i = 0; i < weights.count; i++) {
+      assert.ok(weights.getX(i) + weights.getY(i) + weights.getZ(i) + weights.getW(i) > 0,
+        `${mesh.name} vertex ${i}: unweighted; repair weights in Blender`);
+    }
+  }
+  console.log("settler woman: five skinned meshes, all vertices weighted");
+}
 function bounds(scene) { scene.updateMatrixWorld(true); return new THREE.Box3().setFromObject(scene); }
 
 const cowBounds = bounds(cow.scene);
@@ -100,6 +123,43 @@ for (const deg of headings) {
   assert.ok(y("mixamorigHead_05") > 1.45 && y("mixamorigHead_05") < 1.58, `cowboy head bone ${y("mixamorigHead_05").toFixed(3)} m — not human scale`);
   const feet = Math.min(y("mixamorigLeftToe_End_051"), y("mixamorigRightToe_End_056"));
   assert.ok(Math.abs(feet) < 0.06, `cowboy feet at ${feet.toFixed(3)} m — not grounded`);
+}
+
+// The sole test, measured the way the player sees it: every vertex of the
+// built rig, skinned into its settled stance, in world space. A toe-bone probe
+// is not enough — a 300-vertex sampled "stance re-grounding" once shifted every
+// actor down by the amount its sample missed the true lowest sole vertex, and
+// the toe bone stayed inside the old 6 cm tolerance while the cowboy's boots
+// disappeared into the boardwalk and eyeballs sat alone on the deck. Both wired
+// models rest at bind, which `-bounds.min.y * scale` grounds exactly.
+{
+  const _v = new THREE.Vector3();
+  for (const [label, gltf, file, height] of [
+    ["cowboy", cowboy, "/models/western-cowboy.glb", 1.78],
+    ["childboy", childboy, "/models/child_boy_character_animated_blender.glb", 1.38]
+  ]) {
+    const visual = createTexturedActorFactory(gltf, file)({ targetHeight: height });
+    const parent = new THREE.Group();
+    parent.add(visual.object);
+    parent.updateMatrixWorld(true);
+    for (let i = 0; i < 120; i += 1) visual.update(1 / 60, { speed: 0, phase: 0 });
+    parent.updateMatrixWorld(true);
+    let minY = Infinity;
+    let maxY = -Infinity;
+    visual.object.traverse((mesh) => {
+      if (!mesh.isMesh) return;
+      const pos = mesh.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += 1) {
+        _v.fromBufferAttribute(pos, i);
+        if (mesh.isSkinnedMesh) mesh.applyBoneTransform(i, _v);
+        _v.applyMatrix4(mesh.matrixWorld);
+        if (_v.y < minY) minY = _v.y;
+        if (_v.y > maxY) maxY = _v.y;
+      }
+    });
+    assert.ok(Math.abs(minY) < 0.012, `${label} lowest skinned vertex at ${minY.toFixed(4)} m — sunk into or floating over the deck`);
+    assert.ok(Math.abs(maxY - height) < 0.012, `${label} crown at ${maxY.toFixed(4)} m — not normalized to ${height} m`);
+  }
 }
 
 for (const [label, gltf, joint] of [["cow", cow, "lfl1_017"], ["cowboy", cowboy, "mixamorigHips_01"]]) {

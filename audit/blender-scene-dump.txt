@@ -1,0 +1,239 @@
+BLENDER SCENE DUMP
+blender : 5.2.1 LTS
+file    : <unsaved>
+scene   : Scene
+
+==============================================================================
+COLLECTION TREE
+==============================================================================
+[collection] Scene Collection  (direct objects: 0, child collections: 2)
+    [collection] Collection  (direct objects: 19, child collections: 0)
+          - Light                                        <LIGHT>
+          - Camera                                       <CAMERA>
+          - Sketchfab_model                              <EMPTY>
+          - 18aba5911a05478cb2b87ec0d5361aaf.fbx         <EMPTY>
+          - RootNode                                     <EMPTY>
+          - Object_3                                     <ARMATURE>
+          - Object_6                                     <MESH>
+          - Object_8                                     <MESH>
+          - Object_10                                    <MESH>
+          - Object_5                                     <EMPTY>
+          - Object_7                                     <EMPTY>
+          - Object_9                                     <EMPTY>
+          - CINEMA_4D_Editor                             <EMPTY>
+          - Object_79                                    <EMPTY>
+          - HAT                                          <EMPTY>
+          - 0003_AN_PC_Sire_F_HV0205_A00_Helmet          <EMPTY>
+          - 0003_AN_PC_Sire_F_HV0205_A00_Helmet_material0003_0 <MESH>
+          - CLOTHES_MUJER_03                             <EMPTY>
+          - CLOTHES_MUJER_03_FABRIC_2_FRONT_1732_0       <MESH>
+    [collection] glTF_not_exported  (direct objects: 1, child collections: 0)
+          - Icosphere                                    <MESH>
+
+==============================================================================
+OBJECTS
+==============================================================================
+
+Object_3   <ARMATURE>
+    data name      : Armature
+    collections    : Collection
+    parent         : RootNode (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+    bones          : 68
+    first bones    : _rootJoint, 1_01, mixamorig_Spine_02, mixamorig_Spine1_03, mixamorig_Spine2_04, mixamorig_Neck_05, mixamorig_Head_06, mixamorig_RightEye_07, mixamorig_LeftEye_08, mixamorig_HeadTop_End_09, mixamorig_LeftShoulder_010, mixamorig_LeftArm_011
+    root bones     : _rootJoint
+
+Camera   <CAMERA>
+    data name      : Camera
+    collections    : Collection
+    parent         : <none> (parent_type=OBJECT)
+    world scale    : 1.0000, 1.0000, 1.0000
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+0003_AN_PC_Sire_F_HV0205_A00_Helmet   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : HAT (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+18aba5911a05478cb2b87ec0d5361aaf.fbx   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Sketchfab_model (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+CINEMA_4D_Editor   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+CLOTHES_MUJER_03   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+HAT   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Object_5   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Object_7   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Object_79   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : CINEMA_4D_Editor (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Object_9   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+RootNode   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : 18aba5911a05478cb2b87ec0d5361aaf.fbx (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Sketchfab_model   <EMPTY>
+    data name      : <none>
+    collections    : Collection
+    parent         : <none> (parent_type=OBJECT)
+    world scale    : 1.0000, 1.0000, 1.0000
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+Light   <LIGHT>
+    data name      : Light
+    collections    : Collection
+    parent         : <none> (parent_type=OBJECT)
+    world scale    : 1.0000, 1.0000, 1.0000
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+
+0003_AN_PC_Sire_F_HV0205_A00_Helmet_material0003_0   <MESH>
+    data name      : 0003_AN_PC_Sire_F_HV0205_A00_Helmet_material0003_0
+    collections    : Collection
+    parent         : 0003_AN_PC_Sire_F_HV0205_A00_Helmet (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+    mesh           : 404 verts, 636 polys, 1 materials
+        - material0003                       textures: Image_3, Image_4
+    vertex groups  : 0 
+    >> NOT SKINNED - no armature modifier; no vertex groups
+
+CLOTHES_MUJER_03_FABRIC_2_FRONT_1732_0   <MESH>
+    data name      : CLOTHES_MUJER_03_FABRIC_2_FRONT_1732_0
+    collections    : Collection
+    parent         : CLOTHES_MUJER_03 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+    mesh           : 11370 verts, 20742 polys, 1 materials
+        - FABRIC_2_FRONT_1732                textures: Image_5
+    vertex groups  : 0 
+    >> NOT SKINNED - no armature modifier; no vertex groups
+
+Icosphere   <MESH>
+    data name      : Icosphere
+    collections    : glTF_not_exported
+    parent         : <none> (parent_type=OBJECT)
+    world scale    : 1.0000, 1.0000, 1.0000
+    visible        : hide_viewport=False hide_render=False
+    modifiers      : <none>
+    mesh           : 42 verts, 80 polys, 0 materials
+    vertex groups  : 0 
+    >> NOT SKINNED - no armature modifier; no vertex groups
+
+Object_10   <MESH>
+    data name      : Eyelashes_Bodymat.1_0
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      :
+        - Armature             <ARMATURE> -> armature object: Object_3
+    mesh           : 106 verts, 114 polys, 1 materials
+        - Bodymat.1                          textures: Image_0, Image_2, Image_1, Image_1.001
+    vertex groups  : 68 [_rootJoint, 1_01, mixamorig_Spine_02, mixamorig_Spine1_03, mixamorig_Spine2_04, mixamorig_Neck_05, mixamorig_Head_06, mixamorig_RightEye_07...]
+    >> SKINNED (follows the skeleton)
+
+Object_6   <MESH>
+    data name      : Body_Bodymat_0
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      :
+        - Armature             <ARMATURE> -> armature object: Object_3
+    mesh           : 15974 verts, 28928 polys, 1 materials
+        - Bodymat                            textures: Image_0, Image_2, Image_1, Image_1.001
+    vertex groups  : 68 [_rootJoint, 1_01, mixamorig_Spine_02, mixamorig_Spine1_03, mixamorig_Spine2_04, mixamorig_Neck_05, mixamorig_Head_06, mixamorig_RightEye_07...]
+    >> SKINNED (follows the skeleton)
+
+Object_8   <MESH>
+    data name      : default_eyes_0
+    collections    : Collection
+    parent         : Object_3 (parent_type=OBJECT)
+    world scale    : 0.0100, 0.0100, 0.0100
+    visible        : hide_viewport=False hide_render=False
+    modifiers      :
+        - Armature             <ARMATURE> -> armature object: Object_3
+    mesh           : 804 verts, 1520 polys, 1 materials
+        - eyes                               textures: Image_0, Image_2
+    vertex groups  : 68 [_rootJoint, 1_01, mixamorig_Spine_02, mixamorig_Spine1_03, mixamorig_Spine2_04, mixamorig_Neck_05, mixamorig_Head_06, mixamorig_RightEye_07...]
+    >> SKINNED (follows the skeleton)
+
+==============================================================================
+DIAGNOSIS
+==============================================================================
+skinned meshes   : 3 ['Object_10', 'Object_6', 'Object_8']
+unskinned meshes : 3
+    - 0003_AN_PC_Sire_F_HV0205_A00_Helmet_material0003_0 (no armature modifier; no vertex groups)
+    - CLOTHES_MUJER_03_FABRIC_2_FRONT_1732_0         (no armature modifier; no vertex groups)
+    - Icosphere                                      (no armature modifier; no vertex groups)
+
+Any mesh listed as NOT SKINNED stays frozen in the bind pose while the
+skeleton moves underneath it. For a garment that means sleeves stuck out
+sideways while the arms hang inside them.
+Fix: select the mesh, then Ctrl-click the armature LAST so it is active,
+then Ctrl+P > With Automatic Weights. Repeat per mesh.

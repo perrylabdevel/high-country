@@ -1272,7 +1272,7 @@ async function boot() {
       ]
     },
     {
-      name: "Nell Calder", model: "lillian", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
+      name: "Nell Calder", model: "settlerwoman", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
       look: { shirt: 0x7a3b1e, pants: 0x4a3a2c, hatStyle: "hair", hair: 0x3a2418, skirt: true },
       line: [
         "Juniper is ready. That smoke is not a trash burn.",
@@ -1287,7 +1287,7 @@ async function boot() {
 
     // --- Silver Creek: the people who work the street -------------------------
     {
-      name: "Dutch Malloy", model: "cowboy", ...townSpot(41, 4.6),
+      name: "Dutch Malloy", model: "gunnar", ...townSpot(41, 4.6),
       wander: { r: 6, v: 0.95 },
       look: { shirt: 0x4a3a30, vest: 0x2a2018, pants: 0x26201a, hat: 0x241a12, skin: 0xc9a074 },
       face: townSpot(41, 9),
@@ -1307,7 +1307,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ruth Halloran", model: "lucille", ...townSpot(5, 3.5),
+      name: "Ruth Halloran", model: "settlerwoman", ...townSpot(5, 3.5),
       wander: { r: 8, v: 1 },
       look: { shirt: 0x8a5a34, hatStyle: "hair", hair: 0x4a2e18, skirt: true, height: 1.66 },
       face: townSpot(5, -6),
@@ -1347,7 +1347,7 @@ async function boot() {
       ]
     },
     {
-      name: "Sheriff Tom Cassidy", model: "cowboy", ...townSpot(-53, 3.5),
+      name: "Sheriff Tom Cassidy", model: "gunnar", ...townSpot(-53, 3.5),
       wander: { r: 12, v: 1.05 },
       look: { shirt: 0x6a5a48, vest: 0x241c14, pants: 0x2a241c, hat: 0x1f1712 },
       face: townSpot(-53, -6),
@@ -1389,7 +1389,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ida Bell", model: "lucille", ...townSpot(-16, 3.6),
+      name: "Ida Bell", model: "settlerwoman", ...townSpot(-16, 3.6),
       wander: { r: 6, v: 0.9 },
       look: { shirt: 0x8a4a3a, hatStyle: "hair", hair: 0x2e2118, skirt: true, height: 1.68 },
       face: townSpot(-16, -6),
@@ -1448,7 +1448,7 @@ async function boot() {
 
     // --- the north row: the town's second storefront street -------------------
     {
-      name: "Hattie Reed", model: "lucille", ...northSpot(-14, 4.2),
+      name: "Hattie Reed", model: "settlerwoman", ...northSpot(-14, 4.2),
       look: {
         shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64,
         textureStyle: "hattie-workwear", outfit: "hattie-washday"
@@ -1471,7 +1471,7 @@ async function boot() {
       ]
     },
     {
-      name: "Cole Mercer", model: "cowboy", ...northSpot(16, 4.4),
+      name: "Cole Mercer", model: "gunnar", ...northSpot(16, 4.4),
       look: { shirt: 0x554434, vest: 0x2e241a, pants: 0x30281e, hat: 0x33281c },
       face: northSpot(16, -6),
       // Holding up the north end: hat low, hands tucked away, weight on one
@@ -1566,10 +1566,106 @@ async function boot() {
 
   npcs.forEach(makeNpc);
 
+  if (isDev) {
+    // Live settler state for grounding/framing probes. A capture aimed at an
+    // NPC's authored home spot finds an empty deck once they wander, and a
+    // "missing" NPC is indistinguishable from a sunk one without the numbers:
+    // this reports where each actually stands, the deck under them, and the
+    // world bounds of what is rendered for them.
+    // Ground truth for grounding work: what a plumb line actually lands on at
+    // (x, z). heightAt/deckHeightAt answer from the collision model, so they
+    // cannot reveal a raised surface that was built as geometry but never
+    // registered as a deck — measuring a suspected sink with them just repeats
+    // the assumption under test. This raycasts the rendered scene instead.
+    const _surfaceRay = new THREE.Raycaster();
+    const _surfaceDown = new THREE.Vector3(0, -1, 0);
+    window.__deckHeightAt = (x, z, fromY) => deckHeightAt(x, z, fromY);
+    window.THREE = THREE;
+    window.__surfaceAt = (x, z, { top = 400 } = {}) => {
+      _surfaceRay.set(new THREE.Vector3(x, top, z), _surfaceDown);
+      _surfaceRay.far = top + 50;
+      // Only plain static meshes are footing. Raycasting the whole graph also
+      // throws: a SkinnedMesh in the cast set dereferences a null bone.
+      const targets = [];
+      scene.traverse((o) => {
+        if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh) return;
+        if (!o.geometry) return;
+        // Object3D.visible is LOCAL. The procedural figure under every textured
+        // NPC is hidden by clearing the flag on the figure group's children, so
+        // its meshes still read visible:true and a naive test lands the ray on
+        // an invisible body about a metre up. Walk the ancestry.
+        for (let a = o; a; a = a.parent) if (!a.visible) return;
+        const tag = `${o.name} ${o.parent?.name ?? ""} ${o.userData?.kind ?? ""}`.toLowerCase();
+        // Foliage, water and weather are not standable.
+        if (/grass|leaf|leaves|foliage|water|cloud|sky|smoke|rain|bird/.test(tag)) return;
+        targets.push(o);
+      });
+      const hits = _surfaceRay.intersectObjects(targets, false);
+      return hits.slice(0, 4).map((hit) => ({
+        y: +hit.point.y.toFixed(3),
+        name: hit.object.name || hit.object.type,
+        parent: hit.object.parent?.name || ""
+      }));
+    };
+    window.__npcs = () => npcs.map((npc) => {
+      const g = npc.object;
+      const box = new THREE.Box3().setFromObject(g);
+      const groundY = heightAt(g.position.x, g.position.z);
+      const deckY = deckHeightAt(g.position.x, g.position.z, groundY + 1.2);
+      return {
+        name: npc.name,
+        model: npc.model ?? "procedural",
+        textured: Boolean(npc.texturedVisual),
+        x: g.position.x, y: g.position.y, z: g.position.z,
+        yaw: g.rotation.y,
+        ground: groundY,
+        deck: Number.isFinite(deckY) ? deckY : null,
+        standY: deckY > groundY ? deckY : groundY,
+        boxMinY: Number.isFinite(box.min.y) ? box.min.y : null,
+        boxMaxY: Number.isFinite(box.max.y) ? box.max.y : null,
+        // Positive = floating above what they stand on, negative = sunk in.
+        footGap: Number.isFinite(box.min.y) ? box.min.y - (deckY > groundY ? deckY : groundY) : null,
+        // Degrees the left upper arm sits off hanging-straight-down. The gait
+        // drops arms from the T-pose bind to ~9 deg; a reading near 90 means
+        // the arm was never posed and the actor is standing in its bind pose.
+        poseEuler: (() => {
+          const h = npc.texturedVisual?.parts?.armL;
+          if (!h) return null;
+          return [h.rotation.x, h.rotation.y, h.rotation.z].map((n) => +n.toFixed(3));
+        })(),
+        hasPose: Boolean(npc.pose),
+        armDeg: (() => {
+          const parts = npc.texturedVisual?.parts;
+          if (!parts?.armL) return null;
+          const bone = parts.armL.bone ?? null;
+          let arm = null;
+          let hand = null;
+          g.traverse((n) => {
+            if (!n.isBone) return;
+            const core = n.name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "").replace(/_/g, "");
+            if (core === "mixamorigLeftArm" || core === "CCBaseLUpperarm") arm = n;
+            if (core === "mixamorigLeftHand" || core === "CCBaseLHand") hand = n;
+          });
+          if (!arm || !hand) return null;
+          const a = arm.getWorldPosition(new THREE.Vector3());
+          const h = hand.getWorldPosition(new THREE.Vector3());
+          const d = h.sub(a).normalize();
+          void bone;
+          return +(Math.acos(Math.max(-1, Math.min(1, -d.y))) * 180 / Math.PI).toFixed(1);
+        })()
+      };
+    });
+  }
+
+  // Only period-plausible rigs are wired. lucille/lillian remain in
+  // public/models but stay UNWIRED: both render as silver-haired anime
+  // characters in modern sci-fi coats, wrong for an 1800s frontier town no
+  // matter how well they are grounded. The women now ride settlerwoman, and
+  // gunnar breaks up the eight-identical-men read on the main street.
   const NPC_MODELS = {
     cowboy: { url: "/models/western-cowboy.glb", height: 1.78 },
-    lucille: { url: "/models/lucille__vgdc.glb", height: 1.55 },
-    lillian: { url: "/models/lillian__vgdc.glb", height: 1.62 },
+    gunnar: { url: "/models/gunnar_the_gunslinger_rigged_motions.glb", height: 1.8 },
+    settlerwoman: { url: "/models/medieval_poor_woman.glb", height: 1.66 },
     childboy: { url: "/models/child_boy_character_animated_blender.glb", height: 1.38 }
   };
   // Subtle per-NPC tints: one shared texture means identity comes from

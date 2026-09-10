@@ -11,6 +11,7 @@ This directory is shared by Claude Code, Codex CLI, Cursor, and `airoute`.
 | `STATE.json` | Machine-readable campaign/budget/expert-call state. |
 | `metrics/routing.jsonl` | Routing telemetry. Local-only by default. |
 | `runtime/` | Transient files. Git-ignored. |
+| `hoh/` | Generation-1 HoH campaign overlay (`hc-agent`). Campaigns are git-ignored. |
 
 Do not store credentials here.
 

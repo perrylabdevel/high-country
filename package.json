@@ -10,7 +10,7 @@
     "pack-textures": "node scripts/pack-textures.mjs",
     "bake:foliage": "node scripts/bake-foliage.mjs",
     "check": "tsx scripts/check-all.mjs",
-    "check:sequential": "npm run check:grounding && npm run check:collision && npm run check:handedness && npm run check:debug && npm run check:settlements-dry && npm run check:needle && npm run check:missions && npm run check:save && npm run check:interiors && npm run check:minimap-cache && npm run check:map-layout && npm run check:roads && npm run check:road-geometry && npm run check:buildings && npm run check:anchors && npm run check:vegetation && npm run check:grass-budget && npm run check:grass-grounding && npm run check:prop-grounding && npm run check:assets && npm run check:instance-attrs && npm run check:nav-graph && npm run check:approaches && npm run check:routes && npm run check:apertures && npm run check:livestock-heads && npm run check:textured-model-pilot && npm run check:weather",
+    "check:sequential": "npm run check:grounding && npm run check:deck-grounding && npm run check:collision && npm run check:handedness && npm run check:debug && npm run check:settlements-dry && npm run check:needle && npm run check:missions && npm run check:save && npm run check:interiors && npm run check:minimap-cache && npm run check:map-layout && npm run check:roads && npm run check:road-geometry && npm run check:buildings && npm run check:anchors && npm run check:vegetation && npm run check:grass-budget && npm run check:grass-grounding && npm run check:prop-grounding && npm run check:assets && npm run check:instance-attrs && npm run check:nav-graph && npm run check:approaches && npm run check:routes && npm run check:apertures && npm run check:livestock-heads && npm run check:textured-model-pilot && npm run check:weather",
     "check:grounding": "tsx scripts/check-grounding.mjs",
     "check:collision": "tsx scripts/check-collision.mjs",
     "check:handedness": "tsx scripts/check-handedness.mjs",
@@ -47,7 +47,8 @@
     "check:apertures": "tsx scripts/check-apertures.mjs",
     "check:livestock-heads": "tsx scripts/check-livestock-heads.mjs",
     "check:textured-model-pilot": "tsx scripts/check-textured-model-pilot.mjs",
-    "check:weather": "tsx scripts/check-weather.mjs"
+    "check:weather": "tsx scripts/check-weather.mjs",
+    "check:deck-grounding": "tsx scripts/check-deck-grounding.mjs"
   },
   "dependencies": {
     "lil-gui": "0.21.0",

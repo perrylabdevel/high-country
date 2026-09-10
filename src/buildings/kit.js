@@ -1037,9 +1037,17 @@ export function glazing({ width, height, thickness, material }) {
  */
 export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMaterial, y = 0 }) {
   const group = new THREE.Group();
-  tag(group, "porch");
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(width, 0.2, depth), material);
-  deck.position.set(0, y + 0.1, depth / 2);
+  const DECK_T = 0.2;
+  // A porch is a raised deck people stand on, so it has to publish its walking
+  // surface and footprint in its own local frame — a caller that restates them
+  // drifts the moment the geometry changes (that is exactly how the boardwalk
+  // ended up seated 0.05 above its registered deck). registerPorchDecks() in
+  // buildings.js turns these into collision decks once the porch is in world
+  // space; without that, standing on a porch drops you to terrain height and
+  // you sink through the boards.
+  tag(group, "porch", { width, depth, deckTop: y + DECK_T, deckCenterZ: depth / 2 });
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(width, DECK_T, depth), material);
+  deck.position.set(0, y + DECK_T / 2, depth / 2);
   deck.castShadow = true;
   deck.receiveShadow = true;
   group.add(deck);
@@ -1096,10 +1104,14 @@ export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMat
  */
 export function boardwalk({ length, width, height = 0.45, material, y = 0 }) {
   const group = new THREE.Group();
-  tag(group, "boardwalk", { length, width, height });
   // A solid raised deck: thick enough to read as an elevated platform, not a
-  // thin slab that vanishes edge-on at distance.
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.5, width), material);
+  // thin slab that vanishes edge-on at distance. The slab is centred on
+  // `height`, so its walking surface is half a thickness higher again —
+  // published here because a caller that restated it as a literal got it wrong
+  // by exactly half the thickness change and sank everyone 0.05 into the deck.
+  const DECK_T = 0.5;
+  tag(group, "boardwalk", { length, width, height, surfaceOffset: height + DECK_T / 2 });
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, DECK_T, width), material);
   deck.position.set(0, y + height, 0);
   deck.castShadow = true;
   deck.receiveShadow = true;

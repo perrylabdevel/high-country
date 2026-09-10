@@ -1,3 +1,330 @@
+# HoH Generation 1 stack installed — 2026-09-10
+
+Installed `hc-agent` at `~/.hc-agent` (Generation 1 only). Official HoH-lite is
+not released; this is a local planner→developer→tester loop. Main High Country
+checkout is not the campaign worktree. Existing `scripts/loop.mjs` / `state/`
+were not replaced. Scion is not deployed.
+
+Headroom coding profile is a campaign-scoped proxy (isolated workspace,
+ChatGPT `openai_base_url` intercept, live `/stats`). Experiment A (Headroom
+off) recorded ~5.6M input tokens then died on ChatGPT Plus usage limit during
+iteration-3 planner. Do not start Experiment B until that window resets.
+
+Start: `hc-agent doctor` then `hc-agent run --yes --dry-run --campaign visual-quality`
+
+---
+
+# Garment skinning: BOTH weighting routes rejected — 2026-09-09
+
+CONCLUSION: medieval_poor_woman.glb ships with the garment UNSKINNED and stays
+that way. Sleeves stay stiff. That is the better of the two available states.
+
+Blender IS installed and drives headless, so this was tested properly, not
+guessed:
+    /Applications/Blender.app/Contents/MacOS/Blender --background \
+        --python scripts/blender-skin-garments.py -- <in.glb> <out.glb>
+
+WHAT WAS TRIED
+  1. Proximity weight transfer in texturedActors.js (removed earlier).
+  2. Blender automatic/bone-heat weights, headless, via the script above.
+Both produce the SAME failure: the sleeves correctly follow the arms, and the
+loose blouse collapses onto the body, leaving the chest bare. So this is not an
+artifact of my transfer code — it is what any distance-based weighting does to a
+loose garment layered over a nude body. A real fix needs hand-painted weights or
+a different model.
+
+EXPORT TRAPS FOUND ALONG THE WAY (the script now handles all three)
+  - A glTF skinned mesh IGNORES its node transform. The garments hang off empties
+    carrying the source file's 0.01 scale; exporting as-is drops that scale and
+    they arrive 100x oversized (exported POSITION -55.6..139.2 vs the body's
+    -0.72..1.56). Fix: bake each garment's full WORLD transform into its mesh
+    data and leave the object at identity. Baking into the BODY'S LOCAL space
+    instead fails identically — that space is the 0.01-scaled one.
+  - Do not import into an empty scene: the glTF importer reads bpy.context.object
+    and dies with "'Context' object has no attribute 'object'".
+  - Skip the "glTF_not_exported" collection (the importer's Icosphere widget),
+    and delete the startup Cube/Camera/Light or they land in the export.
+
+THIRD BAD METRIC IN THIS AREA — read this before measuring garments again.
+My chest-coverage test measured the mean distance from body chest vertices to the
+nearest garment vertex and PASSED (0.0225 -> 0.0133 m) on a build whose chest was
+visibly bare. Collapse REDUCES that distance. Proximity is not coverage. A valid
+test must ask whether garment geometry remains OUTSIDE the body surface along its
+normal, not merely near it. Earlier siblings of this mistake: "garment half-span
+0.618 -> 0.295" could not tell "sleeves follow arms" from "garment collapses",
+and the NPC footGap probe measured against deckHeightAt, the function under test.
+When a visual claim rests on one number, assume the number is measuring the wrong
+thing until a capture agrees with it.
+
+ALSO: public/models/medieval_poor_woman.glb had reverted to its PRE-conversion
+state at some point (materials map=false, flat untextured render). Re-running
+scripts/convert-specgloss.mjs restored it. If she ever renders flat tan, that is
+the cause.
+
+TWO THINGS NEEDING THE USER
+  - scripts/check-textured-model-pilot.mjs carries an assertion block (not mine)
+    requiring all five of the woman's meshes to be skinned. It now FAILS by
+    design, since we deliberately ship the unskinned garment. Either relax it to
+    match this decision or drop it — it currently blocks check:sequential.
+  - public/models/blender-5.2.1-macos-arm64.dmg is 330 MB. Chrome's download
+    directory is public/models, and vite copies public/ verbatim into dist, so
+    every build ships it. Delete it.
+
+---
+
+# Blender garment auto-weight attempt — 2026-09-09
+
+Used computer use in the existing Blender scene. Both garments already had
+armature modifiers and nonzero weights; the on-disk GLB also had an accidental
+Cube mesh (six meshes). Exported only the five character meshes. First WebGPU
+front/back captures show severe garment stretching, despite all vertices weighted.
+Re-ran ARMATURE_AUTO for CLOTHES and Helmet: both FINISHED. Export FINISHED but
+Blender warned both garment meshes were not valid and may export wrongly. Latest WebGPU captures audit/npc-auto-weights-{front,back}-nell-calder.png
+show horizontal sleeves and an absent head/body, so automatic weighting did NOT
+resolve the visual bug. This is NOT a visually accepted fix. Latest export is in public/models; credits hash
+and byte count refreshed. Pre-session file (also already skinned, with Cube) is
+/tmp/medieval_poor_woman-before-skinning.glb.
+
+Added five-mesh/skin/nonzero-weight checks to existing textured-model-pilot test;
+negative-tested the pre-session six-mesh export (fails correctly). First full
+suite PASS 29; after fresh auto-weight export build passed, 28/29 checks passed;
+nav-graph repeatedly measured just over 50 ms at load 13+ on 8 cores. No navigation
+code changed. Structural skinning success does not establish correct deformation.
+During UI retry, focus changed and text became viewport shortcuts; unintended
+scene deletion was undone and original scene restored before actual auto-weight
+commands ran successfully. Existing unrelated working changes preserved.
+
+# Sleeve fix REVERTED + the "pose bug" was a measurement artifact — 2026-09-09
+
+TWO CORRECTIONS TO THE ENTRY BELOW. Both were my own bad measurements.
+
+1. bindLooseMeshes (proximity weight transfer) is REMOVED. It fixed the frozen
+   sleeves but dragged the blouse's chest panel off the body and left the figure
+   exposed — the garment is a separate outer layer over a nude body, and giving
+   it the body's own weights collapses it onto/through that body. My acceptance
+   metric ("garment half-span 0.618 -> 0.295 m") could not tell "sleeves follow
+   the arms" from "garment collapses inward", which is why it read as a success.
+   A/B evidence: audit/npc-shirt-front-nell-calder.png (transferred, undressed)
+   vs audit/npc-noskin-front-nell-calder.png (static, clothed, stiff sleeves).
+   Clothed-with-stiff-sleeves wins. The reasoning is recorded as a DO-NOT-RETRY
+   note at the top of texturedActors.js. A real fix needs the garment skinned in
+   a DCC tool, or a model whose clothes are already bound.
+
+2. THERE IS NO SYSTEMIC POSE BUG. The earlier claim ("posed NPCs sit at 87-90
+   deg, a full T-pose") came from a probe whose CAMERA sat at the ranch spawn
+   while the NPCs it measured were in town ~700 m away. The update loop culls on
+   distance to the CAMERA (NPC_NEAR_M 120, NPC_FAR_M beyond it, main.js ~2508),
+   so those NPCs were never ticked and were read in their untouched bind pose —
+   which for a Mixamo rig IS a T-pose. Re-measured with the camera parked 3 m
+   from each NPC:
+     unposed          Harlan 6.0  Nell 8.6  Wade 6.0
+     posed, holding   Dutch 35.2  Ruth 65.5  Amos 75.4   (non-zero handle Eulers)
+     posed, walking   Floyd 13.5  Doc 11.5  Ida 14.0  Hattie 17.6  Cole 15.6
+   Poses apply as authored; walking NPCs decay to a natural hang. The visible
+   "T-pose" the user reported was the unskinned garment (1), not the poses.
+   Willie 71.6 with zero Eulers is the one unexplained reading — childboy, whose
+   model is off-period anyway.
+
+RULE FOR ANY FUTURE NPC MEASUREMENT: park the camera within NPC_NEAR_M of the
+subject before reading a pose, or you are measuring the bind pose. Both
+`window.__npcs()` (now also reports armDeg, hasPose, poseEuler) and
+scripts/tmp-probe-npcs.mjs read whatever the last tick left behind.
+
+---
+
+# Grounding fixed at every location + garment skinning — 2026-09-09
+
+USER REPORT: "the character is sunk in the front porch of the high ranch",
+then "her sleeves" (Nell's sleeves stuck out in a T while her arms hung down).
+
+MEASUREMENT TRAP THAT HID THIS: the earlier NPC probe reported footGap against
+deckHeightAt — the same function that was wrong — so every NPC read as grounded
+within 15 mm while actually standing inside the boards. A grounding claim
+measured against the collision model is circular. `window.__surfaceAt(x, z,
+{top})` (?dev) now raycasts the RENDERED scene for ground truth. Two gotchas it
+cost to learn: cast from about chest height, not from the sky, or the first hit
+is the porch roof; and Object3D.visible is LOCAL, so the hidden procedural
+figure under every textured NPC still tests visible and the ray lands on an
+invisible body a metre up (walk the ancestry instead).
+
+THREE GROUNDING BUGS, all silent:
+1. Town boardwalk — landmarks.js registered the deck at `placementY` (the lot
+   floor) while the planks render 0.05 higher. Every townsperson stood 5 cm
+   inside the boardwalk. NOTE the first fix was WRONG in an instructive way: it
+   moved the GEOMETRY down to meet the registration, which check:buildings
+   caught immediately (the deck must stay flush with the storefront door sills
+   0.05 above the lot floor). The geometry was right; the registration was
+   wrong. Now registers `bw.position.y + walk.userData.surfaceOffset`.
+2. Ranch porch — `porch()` in buildings/kit.js lays a deck slab but nothing ever
+   registered it, so grounding fell through to terrain and Harlan stood 0.096 m
+   under the boards. Added `registerPorchDecks(root)` in buildings.js: walks a
+   placed structure, finds every part tagged role "porch", and registers a deck
+   from the footprint the part publishes. Generic — any porch added later is
+   grounded for free.
+3. Hunting-cabin porch (homestead.js) — a raw boxAt slab, also unregistered. A
+   first fix recomputed its height as `heightAt(centre) + thickness` and floated
+   it 0.135 m, because boxOnGround seats on the LOWEST terrain under the
+   footprint (kit.js lowestSeat), not the centre sample. Now takes
+   `groundSeat.y + PORCH_T` — the height it was actually seated at.
+
+RULE THE THREE SHARE: a part publishes its own walking surface; callers never
+restate it. kit.js porch() tags { width, depth, deckTop, deckCenterZ } and
+boardwalk() tags surfaceOffset (= height + slab/2). The boardwalk bug existed
+because a comment said "height + 0.2" against a slab that had since grown to
+0.5 thick.
+
+NEW CHECK — scripts/check-deck-grounding.mjs (npm run check:deck-grounding,
+wired into check:sequential after check:grounding). Dry-builds the world offline
+and asserts every walkable surface is registered within 2 cm of where its
+geometry renders. 17 surfaces today. IMPORTANT: the first version of this check
+was CIRCULAR — it stamped the value passed to addDeckPlatform and compared it to
+what deckHeightAt answered, the same number on both sides, and passed with the
+boardwalk bug deliberately reintroduced. It now derives the surface from each
+part's own geometry. Negative-tested against both original bugs; both fail it.
+
+GARMENT SKINNING — medieval_poor_woman.glb ships 5 meshes but only 3 are
+skinned. `CLOTHES_MUJER_..._FRONT` (11,370 verts: blouse, sleeves, skirt) and
+the headscarf are STATIC, so they stayed frozen in the T-pose bind while the
+arm bones rotated down inside them — the arms were always correct (measured 8.6
+deg off vertical), it was the sleeves that never moved. `bindLooseMeshes()` in
+texturedActors.js binds unskinned meshes to the rig by proximity weight transfer
+(each loose vertex borrows the nearest skinned body vertex's weights, via a hash
+grid), rebuilds them as SkinnedMeshes in the donor's bind space, and runs from
+prepare() for kind "settlerwoman". Garment half-span drops 0.618 -> 0.295 m.
+Reach for it on any Sketchfab model whose clothes do not follow the body.
+
+LIVE STATE: all 13 NPCs sink exactly 0.000. Arm angles off vertical: unposed
+actors correct (Calders 6-8.6, Willie 14.4, gunnar trio 47.2 from its
+hand-on-holster idle); POSED town NPCs still wrong at 87-90 (full T-pose) —
+Ruth/Ida/Hattie/Amos/Floyd/Doc. That is the unfixed pose-transfer bug below.
+
+STILL BROKEN: authored `pose(p, t)` functions write absolute Eulers meant for
+the procedural figure's plain-group joints; makeJointHandle re-applies them as
+world-axis rotations composed onto a T-pose bind, which is not equivalent, and
+drives posed NPCs to a full T-pose. Affects every posed NPC on a rigged model.
+Unfixed: clipping into buildings (still no repro).
+
+---
+
+# NPC models wired — 2026-09-09 (period cast in; poses still wrong)
+
+Follows the grounding fix below. User downloaded two Sketchfab CC-BY models
+into public/models (Chrome saves there, NOT ~/Downloads — a probe that watches
+~/Downloads will wrongly report "no download").
+
+WIRED:
+- medieval_poor_woman.glb (carmenpaloma, CC-BY) -> kind `settlerwoman`,
+  Ruth/Ida/Hattie/Nell, targetHeight 1.66. Mixamo skeleton, NO clips, so it
+  rides the procedural cowboy gait.
+- gunnar_the_gunslinger_rigged_motions.glb (tegnemaskin, CC-BY) -> kind
+  `gunnar`, Dutch/Sheriff/Cole, targetHeight 1.80. Character Creator skeleton
+  (CC_Base_*), ships 4 clips; uses 03-handonholster idle + 02-walk-normal.
+  Verified in-game: hat, neckerchief, waistcoat, boots, holstered revolver.
+- lucille/lillian stay unwired. Willie still on the modern beanie/leggings kid.
+
+BONE RESOLVER: `coreBoneName` now also collapses underscores (after dropping
+the trailing _NN, order matters). That lets ONE table serve skeletons differing
+only in punctuation — cowboy `mixamorigLeftArm_08` and settler woman
+`mixamorig_LeftArm_011` both core to `mixamorigLeftArm`. CORES_DEF and the new
+CORES_CC are written in the collapsed form.
+
+NEW SCRIPT — scripts/convert-specgloss.mjs: the settler woman's 5 materials were
+all KHR_materials_pbrSpecularGlossiness with NO metallic-roughness fallback.
+three.js dropped that extension loader, so she rendered as a pure white ghost
+despite the GLB carrying 6 textures. The script rewrites the GLB's JSON chunk in
+place (diffuse -> baseColor, metallic 0, roughness = 1 - glossiness) and drops
+the extension. Run it on ANY Sketchfab model that loads white. credits.json
+records the conversion; sha256 refreshed after.
+
+STANCE GROUNDING, settled for good: Gunnar is clip-driven and measures min y
+-0.0067 m idle / -0.0083 m walking over a FULL vertex scan. Clips barely move
+the feet, so the removed groundOnStance was never needed even for clip models.
+Live: all 13 NPCs footGap between -0.015 and -0.005 m.
+
+STILL BROKEN — authored poses do not transfer to rigged actors. Measured on
+Hattie: gait alone hangs her arm 8.6 deg off vertical (correct); adding her
+authored washday pose swings it to 54.5 deg, and in-game she reads as a near
+T-pose. The `pose(p, t)` functions in main.js write absolute Eulers meant for
+the procedural figure's plain-group joints; makeJointHandle re-applies them as
+world-axis rotations composed onto a T-pose bind, which is not equivalent.
+Every posed NPC on a rigged model is affected. Options not yet taken: retune
+per-character poses against the rigs, scale pose magnitude for rigged actors,
+or skip authored poses when a clip-driven idle already exists.
+
+STILL NOT DONE: clipping into buildings (no repro yet — at rest every NPC
+clears 0.45 m and none is inside a structure).
+
+CLEAN UP: public/models/gunnar-the-gunslinger-rigged-motions.zip is 75 MB and
+was the original-format download. Everything in public/ is copied verbatim into
+dist/ by vite, so leaving it there ships 75 MB of dead weight in every build.
+Delete it (the 23 MB converted .glb is what is wired).
+
+Probes: scripts/tmp-probe-npcs.mjs (grounding/clearance table),
+scripts/tmp-probe-npc-shot.mjs (full-body shot framed on an NPC's LIVE position,
+picking a vantage that is not inside a building).
+
+---
+
+# NPC pass — 2026-09-09 (grounding root-caused and fixed; models blocked on assets)
+
+Reported symptoms: women vanish / "eyes only", men float above the deck, NPCs
+clip into buildings, poses/gait wrong.
+
+ROOT CAUSE (one bug, not four): `groundOnStance()` in src/models/texturedActors.js
+(added 7398bec) sampled only ~300 of a mesh's vertices to find the lowest sole,
+then shifted the actor down by `originY - minY`. The sample almost never hit the
+true lowest vertex, so EVERY actor was shifted DOWN by the sampling error — the
+cowboy by boot height (legs cut flat at the deck plane, blue backface showing,
+which read as "floating"), the Blender DEF-rig women by a whole body. It existed
+only for lucille/lillian. REMOVED. Every wired model rests at bind, which
+`-bounds.min.y * scale` already grounds exactly.
+
+Note: 7e4bf1c is titled "Refactor NPC grounding..." but contains NO src/ changes,
+only audit manifests. The refactor it claims was never committed.
+
+Evidence:
+- Offline, full vertex scan: cowboy minY 0.0000 / maxY 1.7800, child 0.0000 / 1.3800.
+- Live (rebuilt dist, ?dev): all 13 NPCs footGap between -0.007 and +0.001 m.
+- New check in scripts/check-textured-model-pilot.mjs scans EVERY vertex of the
+  built rig in its settled stance and asserts |minY| < 0.012. Negative-tested: a
+  3 cm sink fails it, and every pre-existing assertion missed that 3 cm.
+
+MEASUREMENT TRAP (cost a bad claim this session): port 8765 is `vite preview`
+serving a FROZEN dist/, not live source. Captures taken against it after a source
+edit show the OLD build. Run `npm run build` before any capture, and confirm the
+served bundle carries your change (`curl -s http://127.0.0.1:8765/ | grep index-`
+then grep the bundle) before trusting a frame.
+
+New tools: `window.__npcs()` (?dev) reports every settler's model, whether the
+textured visual installed, stand height, rendered world bounds, and footGap
+(negative = sunk, positive = floating). scripts/tmp-probe-npcs.mjs prints the table.
+
+MODELS — decision made, blocked on a download the user must do:
+- lucille/lillian render as silver-haired anime characters in modern sci-fi coats.
+  Unwired from Ruth/Ida/Hattie/Nell (they fall back to procedural figures). The
+  GLBs remain in public/models, unreferenced by NPC_MODELS.
+- The user wants them SKINNED, not procedural. Procedural is a stopgap only.
+- Vetted candidate: Sketchfab "Medieval poor woman" (uid 24db154842a84717bfecea3ace0f7cfa),
+  CC-BY, rigged, 51,940 tris, realistic style matching the Mixamo cowboy, long dark
+  skirt + apron + work blouse + headscarf. Barefoot (minor). A 55-candidate CC-BY
+  rigged sweep of the Sketchfab API turned up nothing better; everything else was
+  cartoon, pin-up, or wrong century.
+- Sketchfab's download endpoint is 401 without a login, so the user downloads it.
+- The wired child (child_boy_character_animated_blender.glb) is a modern kid in a
+  beanie and leggings — also off-period, less jarring. Flagged, not changed.
+
+NOT DONE:
+- Clipping into buildings: at rest NO NPC is inside a structure and all clear
+  0.45 m of collider (measured). So it is a wander-time and/or silhouette-vs-collider
+  issue (0.45 m cylinder is narrower than shoulders+hat). Needs a wander-time repro.
+- Poses/gait: not investigated this pass.
+
+Pre-existing, unrelated: check:nav-graph fails its 50 ms build budget (53 ms on a
+clean tree too) and aborts check:sequential; the checks after it pass when run
+directly.
+
+---
+
 # Performance campaign — 2026-09-08/09 (exhaustive pass, complete)
 
 Ledger with all evidence paths: `docs/PERFORMANCE_PASS.md` (read it before

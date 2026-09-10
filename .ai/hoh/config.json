@@ -1,0 +1,16 @@
+{
+  "project": "highcountry",
+  "repo": "/Users/brian/Projects/high-country",
+  "generation": 1,
+  "existingLoopPreserved": "scripts/loop.mjs and state/",
+  "commands": {
+    "test": "npm run check",
+    "build": "npm run build",
+    "dev": "npm run dev",
+    "preview": "npm run preview",
+    "capture": "npm run capture",
+    "playtest": "npm run playtest"
+  },
+  "visualFirst": true,
+  "auditPois": ["ranch", "silverCreek", "lakeMercy"]
+}

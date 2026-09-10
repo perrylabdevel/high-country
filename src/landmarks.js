@@ -385,9 +385,12 @@ function street(group, origin, yaw, lots, facadeWood, dark, stone, roof, maps = 
     const x = origin.x + c * along - s * perp;
     const z = origin.z + s * along + c * perp;
     const bw = new THREE.Group();
-    bw.add(boardwalk({ length: 14, width: DECK_W, height: BOARDWALK_LIFT, material: plank }));
-    // boardwalk() puts its walking surface at height + 0.2 above the group
-    // origin, so seat the group that far below the floor to land flush.
+    const walk = boardwalk({ length: 14, width: DECK_W, height: BOARDWALK_LIFT, material: plank });
+    bw.add(walk);
+    // Seating is load-bearing and stays as it is: this lands the plank surface
+    // flush with the storefront door sills, which sit 0.05 above the lot floor
+    // (check:buildings asserts that join). It is the DECK REGISTRATION below
+    // that has to follow the geometry, not the other way round.
     bw.position.set(x, st.userData.placementY - (BOARDWALK_LIFT + 0.2), z);
     // Same frame as the lots: rotation.y = t maps local +X to (cos t, -sin t),
     // and the deck's length runs along +X, so the street axis (cos yaw,
@@ -402,7 +405,14 @@ function street(group, origin, yaw, lots, facadeWood, dark, stone, roof, maps = 
     // seated so its walking surface lands at the lot floor. Collider yaw is the
     // inverse of three's rotation.y (see resolveCircleBox), and the group is
     // rotated by -yaw, so the collision frame is +yaw.
-    addDeckPlatform(x, z, 14 / 2, DECK_W / 2, yaw, st.userData.placementY);
+    // Register the surface people actually stand on, taken from the part
+    // rather than restated. Registering `placementY` — the lot floor — put the
+    // deck 0.05 below the planks that render on top of it, and every
+    // townsperson stood 5 cm inside the boardwalk.
+    addDeckPlatform(
+      x, z, 14 / 2, DECK_W / 2, yaw,
+      bw.position.y + walk.userData.surfaceOffset
+    );
   });
 }
 

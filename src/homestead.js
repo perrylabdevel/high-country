@@ -3,7 +3,7 @@
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
 import { heightAt } from "./world.js";
-import { addBoxCollider } from "./collision.js";
+import { addBoxCollider, addDeckPlatform } from "./collision.js";
 import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
@@ -69,7 +69,23 @@ function cemeteryFence(group, wood, stone) {
 function cabinPorch(group, wood, dark, stone) {
   const cabin = POS.huntingCabin;
   const porchZ = cabin.z + 3.85;
-  boxAt(group, cabin.x, porchZ, 5, 0.18, 2.2, wood, false);
+  const PORCH_W = 5;
+  const PORCH_T = 0.18;
+  const PORCH_D = 2.2;
+  const porchDeck = boxAt(group, cabin.x, porchZ, PORCH_W, PORCH_T, PORCH_D, wood, false);
+  // Standable footing, not just a slab: without a deck platform the cabin
+  // porch grounds to terrain height and you stand 0.18 m inside the boards,
+  // the same defect the ranch porch and the town boardwalk had. Take the
+  // surface from where the slab was actually seated — boxOnGround seats on the
+  // LOWEST terrain under the footprint, not the height at the centre, so
+  // recomputing it from heightAt() floated this deck 0.135 m.
+  addDeckPlatform(
+    cabin.x, porchZ, PORCH_W / 2, PORCH_D / 2, 0,
+    porchDeck.userData.groundSeat.y + PORCH_T
+  );
+  porchDeck.userData.walkSurface = {
+    x: cabin.x, z: porchZ, y: porchDeck.userData.groundSeat.y + PORCH_T
+  };
   // Trail-edge stones: the cabinTrail's gravel edge reads as a clean straight
   // line against the grass at eye level (audit U3, "cabin-side gravel pad").
   // Low stones straddle the edge on the two segments that pass the cabin so
