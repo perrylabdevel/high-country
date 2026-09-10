@@ -45,7 +45,9 @@ than `mesh.rotation.y =`. If an agent cannot reason about front and back in
 three.js, it will not do better in Blender.
 
 Anchors are the fix for that. Blender is a fix for *fidelity*. Do not conflate
-them, and do not let Blender adoption postpone phase 1 of the anchor work.
+them. The anchor system has shipped for the procedural kit
+(`src/buildings/anchors.js`, locked by `npm run check:anchors`); the
+`anchor.*`-empty loader below is the remaining piece.
 
 Other costs, honestly:
 
@@ -79,8 +81,10 @@ has to look right, Blender may own it.**
 
 ## 5. The glTF contract
 
-Non-negotiable conventions. Each of these has silently broken a project
-somewhere:
+The anchor system itself has shipped for the procedural kit
+(`src/buildings/anchors.js`, `npm run check:anchors`); what remains here is the
+loader that turns `anchor.*` empties into the same objects. Non-negotiable
+conventions. Each of these has silently broken a project somewhere:
 
 - **Units.** Blender scene unit = metres, scale 1.0. The game is 1 unit = 1 m
   (`EYE = 1.62`). glTF is metres. These already agree — do not introduce a

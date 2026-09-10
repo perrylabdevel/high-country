@@ -30,7 +30,7 @@ pick ONE item (docs/VISUAL_STATUS.md or the latest audit/reports/pass-NN.md)
   └─ re-test the claim  docs go stale; the item may already be done
   └─ measure-first      diagnose with numbers, not theories
   └─ make the change    smallest thing that could work
-  └─ verify-change      build + 13 checks
+  └─ verify-change      build + 29 checks
   └─ capture-poi        look at it, settled
   └─ measured-experiment capture → grade → compile → ship or revert
   └─ add-check          if the bug was silent
@@ -61,6 +61,8 @@ Hand these to a stronger model, or stop and ask:
 - Publishing a release bundle for the first time on a new machine.
 
 ## Routing skills (shared harness)
+
+Availability (2026-09-10): `airoute` is not installed in this environment, so these router skills are inert here — work in-session and do not invoke it. They document policy for environments that have the router.
 
 These were added by `airoute init` and do not replace the six measurement skills above:
 

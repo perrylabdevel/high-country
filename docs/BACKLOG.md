@@ -1,6 +1,6 @@
 # Campaign backlog (Episodes 2–12)
 
-Episode 1 established: family relationship notes, per-faction reputation, clue records with contradictions, ranch stakes, horseback travel routes, first-person investigation scenes, and a save schema that stores `decision` plus flags.
+Episode 1 ("Smoke on the North Wind") actually ships a mission state machine — stages complete on talk / arrive / examine, with flags `sawTheLine`, `sawArson`, `loopComplete` — plus a versioned save that stores that mission state (not a `decision` field), nav-route travel to the Ranch Overlook, and arrival/examine interactions whose result changes family dialogue and state. It does **not** yet have per-faction reputation, family relationship notes, clue records with contradictions, or a `decision` save field; those are Episode 2 prerequisites to build, not systems to reuse.
 
 Later episodes should reuse those systems rather than new prototypes.
 
@@ -18,4 +18,4 @@ Later episodes should reuse those systems rather than new prototypes.
 | 11 | Blood at the Table | Campaign-wide clue cross-references; ally betrayal flags from prior episodes |
 | 12 | Home Before Winter | Alliance checks against saved reputation; final confrontation using existing combat/dialogue hooks |
 
-Do not start Episode 2 until Episode 1 can be finished without developer intervention and save/load survives the climax → aftermath transition.
+Do not start Episode 2 until the implemented Episode 1 loop — find Harlan → ride the ridge to the Overlook → glass the smoke → ride back and tell Nell, reaching `loopComplete` — can be finished without developer intervention, and the versioned save survives that climax → aftermath transition.

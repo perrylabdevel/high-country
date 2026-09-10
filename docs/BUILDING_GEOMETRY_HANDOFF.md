@@ -2,6 +2,12 @@
 
 **Audience:** the agent fixing structure geometry across High Country.
 **Written against:** repo at `629c87d`.
+
+> **SUPERSEDED / HISTORICAL** — written against commit `629c87d` (no longer in
+> history); the migration and fixes it schedules have shipped; kept as a record.
+> The geometry defects inventoried below have been fixed in-tree and need no
+> per-line correction once this banner is noted.
+
 **Scope:** the shape and placement of every built structure — footprints, wall
 heights, roof form and orientation, door and window dimensions, foundations,
 and the rotation of buildings to face the things they should face.
@@ -322,8 +328,9 @@ coneAt), `interiors.js`, `industry.js`, `shore.js`.
 ## 6. Machine-checkable invariants
 
 "Roofs sit on walls" is exactly the kind of property that regresses silently
-three commits later. The repo already runs headless geometry checks — nine
-`scripts/check-*.mjs`, with `check-interiors.mjs` demonstrating how to stub
+three commits later. The repo already runs headless geometry checks — the
+`scripts/check-*.mjs` suite (nine at the time of writing; 29 now), with
+`check-interiors.mjs` demonstrating how to stub
 `document`/`canvas` so scene code loads under node. Add
 `scripts/check-buildings.mjs` in the same style, and write it before the fixes
 so it starts red.
@@ -355,7 +362,7 @@ Assert, for every structure:
 12. **Water-adjacent structures reference `WATER`, not `heightAt`.** Catches the
     dock.
 
-All nine existing checks must keep passing throughout — `check-collision.mjs`
+All existing checks must keep passing throughout — `check-collision.mjs`
 and `check-interiors.mjs` in particular, since §2.2 and §4.4 change exactly what
 they cover.
 
@@ -381,8 +388,8 @@ nobody looked down at it.
    El Paso, tribal camp.
 5. **Props and scatter.** Fence rails, wagon wheels, cattle/headstone/tipi yaw
    jitter, hay, troughs.
-6. **Green check.** All twelve invariants passing, all nine existing checks
-   passing.
+6. **Green check.** All twelve invariants passing, the full
+   `scripts/check-*.mjs` suite (29 checks) passing.
 
 ---
 

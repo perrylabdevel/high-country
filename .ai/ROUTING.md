@@ -1,5 +1,7 @@
 # Model Routing Policy
 
+> **Status (2026-09-10):** No router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are all absent. This policy is retained for environments where the router exists. Here, perform all work in-session and do not attempt to invoke `airoute`.
+
 Role, model, and provider are separate. Mappings live in `~/.ai-harness/config/models.json` and optional project overlays.
 
 Default OpenAI hierarchy through Codex CLI (ChatGPT auth, not API billing):

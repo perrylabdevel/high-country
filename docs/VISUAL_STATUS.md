@@ -29,8 +29,9 @@ sits flat, and the fade, though sooner, still leaves the ribbon legible almost
 to the waterline. A future pass should: give creek beds a sand/gravel bed
 splat instead of dirt, decide deliberately how much sparkle asymmetry a
 flowing creek should keep, and consider starting the fade yet earlier or
-biasing its easing stronger early. Evidence: `audit/creek-tone-close-*.png`,
-`audit/creek-tone-close-clear.png`.
+biasing its easing stronger early. Evidence: local captures
+`audit/creek-tone-close-*.png` / `audit/creek-tone-close-clear.png` (not
+committed; absent from the tree).
 
 ## Current road-rut geometry — 2026-09-07
 
@@ -246,7 +247,7 @@ appropriate texture set, and make the world pleasant to look at and explore.
 
 ## Verified evidence
 
-1. **All 12 contract checks pass** (`npm run check`), production build green.
+1. **All 29 contract checks pass** (`npm run check`), production build green.
 2. **Caveats fixed and verified** (each moved from failing to ≥4 in the
    double-checked passes): lake water (L1/L2/L3/L5), mission adobe + tower
    (M1/M2), hunting cabin (H1), northern pines (P1–P5), timber camp (T1/T2),
@@ -255,19 +256,20 @@ appropriate texture set, and make the world pleasant to look at and explore.
    (B1/B2), cemetery headstones (C1), El Paso settlement read (E1).
 3. **Texture pipeline implemented and shipped:** Poly Haven CC0 sets for
    adobe, wood, roof, and four 3072² terrain surfaces, packed to KTX2 and
-   uploaded as the release bundle (`textures-7fa3ce367371.tar.gz`); the
-   manifest URL is live and `npm run assets:fetch` verifies all 48 files.
-4. **Definitive fail count:** 48 sub-4 criteria of 280 scored (82.9% at ≥4),
-   after the blind double-check of pass-86 (36 confirmed, 29 overturned,
-   6 nulled, 9 worsened) — down from pass-81's 53 of 279 (81.0%). The count
-   has oscillated 44–60 across passes; the pass-86 G1 fix ships with a
-   camera-verified target improvement and no evidence of a real regression
+   uploaded as the release bundle (`textures-5bb672a92863.tar.gz`); the
+   manifest URL is live and `npm run assets:fetch` verifies all 30 files.
+4. **Definitive fail count (historical — pass-86, 2026-08; the latest graded
+   pass is pass-99, 72 sub-4 of 294 scored):** 48 sub-4 criteria of 280 scored
+   (82.9% at ≥4), after the blind double-check of pass-86 (36 confirmed, 29
+   overturned, 6 nulled, 9 worsened) — down from pass-81's 53 of 279 (81.0%).
+   The count has oscillated 44–60 across passes; the pass-86 G1 fix ships with
+   a camera-verified target improvement and no evidence of a real regression
    (see item 8 and the experiment log).
 
 5. **Needle foliage atlas shipped:** the pines now use the real baked needle
    atlas (denser sprig) while grass/sage/broad stay on the proven procedural
    fallback — the grass atlas was the regression source. Bundle is now
-   50 files, fetch-verified.
+   30 files, fetch-verified.
 6. **Fort pad + smoke column (2026-08-24):** flattened the terrain under
    Fort Grant (the walls sat on a 3 m slope — U4 wall gaps and detached
    shadows) and tightened the burn smoke puffs into a continuous anchored
@@ -296,12 +298,16 @@ appropriate texture set, and make the world pleasant to look at and explore.
 | Requirement | Verdict | Evidence |
 |---|---|---|
 | Finish the audit caveats | ✅ Done and verified | Lake water, mission M1/M2, cabin H1, pines P1–P5, camp T1/T2, ranch R1/R2/R4, fort F1, road G1 at main POIs, badlands D1/D2, burn B1/B2, cemetery C1, El Paso E1 all ≥4 in the double-checked passes |
-| Download appropriate textures and implement | ✅ Done and shipped | 7 CC0 Poly Haven surface sets (adobe, wood, roof, grass, dirt, rock, gravel at 3072² albedo) + 2 HDRIs, KTX2-packed, live release bundle (48 files, fetch-verified). Foliage atlases remain on the procedural fallback (baked versions measured regressive; documented) |
-| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | 48 verified fails of 280 scored (82.9% at ≥4) |
-| Pleasant to look at and explore | ✅ Substantially verified | 50–60 fps at every POI; all structural defects fixed; smooth loading (only the expected pointer-lock error) |
-| Contract checks | ✅ | 12/12 pass; production build green |
+| Download appropriate textures and implement | ✅ Done and shipped | 8 CC0 Poly Haven surface sets (adobe, wood, roof, grass, dirt, rock, gravel, siding at 3072² albedo) + 2 HDRIs, KTX2-packed, live release bundle (30 files, fetch-verified). Foliage atlases remain on the procedural fallback (baked versions measured regressive; documented) |
+| AAA visuals — strict rubric bar (all ≥4) | ❌ Not met | Latest graded pass-99 (2026-08-28): 72 fails of 294 scored (75.5% at ≥4); unmeasured since the 2026-09-08 renderer changes (the 48/280 = 82.9% figure is stale pass-86) |
+| Pleasant to look at and explore | ✅ Substantially verified | ≈30–60 fps at the measured POIs, not 50–60 everywhere: the interleaved A/B in docs/PERFORMANCE_PASS.md measures 30–35 fps at forest/lake POIs and ~59 fps (compositor cap) at elPaso/badlands; this file's town road diagnostic measures 17.7–30.0 ms mean (≈33–57 fps). All structural defects fixed; smooth loading (only the expected pointer-lock error) |
+| Contract checks | ✅ | 29/29 pass; production build green |
 
-### Why the strict bar is not met
+### Why the strict bar is not met (historical — pass-86, 48 fails)
+
+> **Historical.** The breakdown below is the pass-86 tail. The latest graded
+> pass, pass-99, measured 72 fails of 294 scored; this classification has not
+> been re-derived.
 
 The 48 remaining fails break down as:
 
@@ -319,7 +325,13 @@ Every structural, distributable, and measurable requirement is complete; the
 strict "all ≥4" rubric verdict remains CONTINUE because of the borderline
 criteria and fixed-camera reads above.
 
-## Remaining 53, classified
+## Remaining 53, classified (pass-81 — historical)
+
+> **Historical — pass-81 breakdown.** The counts and categories below are the
+> pass-81 classification of 53 fails. The latest graded pass is pass-99
+> (2026-08-28) at 72 fails of 294 scored, and its tail has not been
+> re-classified; this section is kept as the record of how the tail was
+> classified at pass-81.
 
 ### Borderline universal criteria (41) — same frames score 3↔4 across
 grader sessions; each has resisted targeted changes without collateral:
@@ -364,12 +376,14 @@ metres per pixel is `2·d·tan(31°)/720`. Against each material's texel density
 
 | | adobe | wood | roof | rock | dirt | gravel | grass |
 |---|---|---|---|---|---|---|---|
-| tiling (m/repeat) | 1.6 | 1.8 | 1.4 | 2.2 | 8 | 10 | 6 |
-| mip at 28 m | **5.90** | **5.73** | **6.10** | **6.03** | 4.17 | 3.84 | 4.58 |
-| mip at 46 m | 6.62 | 6.45 | 6.81 | 6.74 | 4.88 | 4.56 | 5.30 |
+| tiling (m/repeat) | 1.6 | 1.8 | 1.4 | 12 | 8 | 6 | 6 |
+| mip at 28 m | **5.90** | **5.73** | **6.10** | 3.58 | 4.17 | 4.58 | 4.58 |
+| mip at 46 m | 6.62 | 6.45 | 6.81 | 4.30 | 4.88 | 5.30 | 5.30 |
 
 Building materials sit ~2 mip levels deeper than terrain at the same distance,
-purely because they tile 4–6× tighter in world space. A 2048² map at mip 6 is
+purely because they tile 4–6× tighter in world space. (Tiling values above are
+the current `src/materials/textureManifest.ts` ones — rock 12 m, gravel 6 m;
+the mip rows are recomputed from the formula above.) A 2048² map at mip 6 is
 32×32, repeating every 1.8 m — at 28 m each repeat is ~38 px wide. A 10 m wall
 is 5½ copies of a 38-px blur. That is the *stamped* read, and it is a tiling
 choice, not a texture-quality problem.
@@ -672,9 +686,10 @@ surroundings, not because it is blown out or un-lit.
   repeating texture patches"). The plume fix itself held (B1/B2 = 0 fails;
   burn byPoi 1 is a U-criterion oscillator). Per the goal rule — procedural
   fallbacks stay until a bake beats them on the double-checked pass — the
-  grass/sage/broad entries were removed from FOLIAGE_SET (the loader falls
-  back to the runtime atlas), the six files dropped from the bundle (29
-  files, `textures-f9887acfed05.tar.gz`, uploaded and fetch-verified), and
+   grass/sage/broad entries were removed from FOLIAGE_SET (the loader falls
+   back to the runtime atlas), the six files dropped from the bundle (29
+   files then; the current bundle is 30 files,
+   `textures-5bb672a92863.tar.gz`, uploaded and fetch-verified), and
   the tree re-measured as pass-89: **53 fails / 288 scored (81.6%)** — inside
   the documented noise band either way (identical fallback trees measure
   48–53), so the revert decision rests on the consistent historical record
@@ -1068,7 +1083,8 @@ surroundings, not because it is blown out or un-lit.
   same `meshHeightAt` and `heightAt` surface used for drawing and grounding.
   World-space road segments and bounded fine-corner caches keep road-aware nav
   queries within the 50 ms startup budget. `check:road-geometry` reports paired
-  troughs at 6.08 cm minimum depth and 0.000002 m maximum query-to-mesh error;
+  troughs at 6.08 cm minimum depth and 0.000002 m maximum query-to-mesh error
+  (snapshot 2026-09-07; re-run the check for current values);
   `check:nav-graph` reports 46–47 ms with deterministic topology. Fresh
   production captures remain dry and matte with no tar sheen or broad painted
   stripe. This is geometric road relief with a 0.11 m rut profile, not a

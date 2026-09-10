@@ -38,8 +38,8 @@ distances, prompts. If a number cannot be defended at human scale, it is wrong.
 The deliverable is the game, not a map. Priority order for new work: make the
 smallest complete loop genuinely playable (travel → arrival → interaction →
 conflict/choice → consequence → return), then grow it into the coherent
-Episode 1 slice ("Ashes on the Divide"). Placeholder content is scaffolding,
-never the goal.
+Episode 1 slice ("Smoke on the North Wind"; "Ashes on the Divide" is the burn
+region name, not the episode). Placeholder content is scaffolding, never the goal.
 
 ## P5 — Meaning has structure
 

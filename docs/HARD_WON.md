@@ -79,7 +79,10 @@ ambiguity.
 
 ---
 
-### 1.5 Grass that looks like it floats, but does not
+### 1.5 (duplicate write-up — superseded by the 1.5 entry above; kept for history)
+
+> This is an earlier write-up of the same defect. The entry above is the current
+> one and records the fix as applied.
 
 **Symptom:** in close frames, blades appear to start in mid-air — most obvious
 in front of a barn wall, where light blade tips hang with nothing under them.
@@ -100,9 +103,9 @@ every blade falls below the background and disappears, and the lit upper half
 reads as a blade starting in mid-air. Against open ground the root still
 separates, which is why it only shows near dark objects.
 
-**Fix:** not yet applied — lifting the root end (say to ~0.28, a 1.4x ramp
-instead of 2x) keeps the clump's depth while keeping the base visible. It is
-an appearance change and belongs in a measured pass.
+**Fix:** applied — `paintBladePanel` lifts each blade's root stop to a ~1.4x
+ramp instead of 2x, keeping the clump's depth while keeping the base visible
+(see the comment at `src/vegetation.js:849`).
 
 **Found by:** projecting every grass instance into the exact capture camera.
 5032 tips landed in the region that looked wrong, at distances from 2 m to
@@ -143,8 +146,9 @@ clump low on a big card and looks perfect, which is why only some tufts showed
 it.
 
 **Fix:** real `THREE.InstancedBufferAttribute`s on the tuft geometry
-(`aTint`, `aSpecies`, `DynamicDrawUsage`), read with `attribute()` the way
-`aTangent` already was, and `needsUpdate` set on the attributes.
+(`aTint`, `aSpecies`), read with `attribute()` the way `aTangent` already was,
+and `needsUpdate` set on the attributes. (Never `DynamicDrawUsage` on these —
+see 1.9 and `check-instance-attrs`.)
 `scripts/check-instance-attrs.mjs` now fails the build if any TSL node is
 marked dirty again.
 
@@ -370,13 +374,19 @@ should sit near 0.5x.
    swallowing them*, so the response is to turn them up until they punch
    through, which is exactly when they clip.
 
-**Fix:** `rutDepth: 0.85`, `roadCompact: 0.15`. Rut floor 77 against a 164
+**Fix:** `rutDepth: 0.85` (since superseded — see note below), `roadCompact: 0.15`. Rut floor 77 against a 164
 shoulder (0.47x) with a bright loose crown at ~120 between the wheels — the
 grooves finally have something brighter to be darker than. `RUT_TONE` is now
 exported from `settings.ts` instead of inlined in the shader, and
 `check:roads` asserts `rutDepth * max(RUT_TONE) < 0.85` and
 `roadCompact < 0.35`. Both assertions were confirmed by reintroducing each
 value and watching the check fail.
+
+**Superseded (2026-09-10):** the shipped value is now `rutDepth: 0.35` with
+`rutReliefMeters: 0.05` and a 0.82 roughness floor in
+`src/materials/settings.ts`. Commit `b38c897` made the wheel trough geometric
+(real recessed trenches plus a fragment-normal relief), so the albedo-only 0.85
+recorded above is the pre-geometry value. See 1.12.
 
 **Found by:** a straight-down capture plus a luminance scanline. The first
 tell was numeric — a live sweep of `rutDepth` barely moved the *darkest*
@@ -403,7 +413,8 @@ road centre by 0.55, then full-strength ruts by another 0.6. The packed gravel
 ORM has mean roughness 0.869, so a full groove at zero variation became 0.287.
 Unclipping the colour fixed black pixels, not this flat polished surface.
 
-**Local correction:** a separate 0.12 m recessed height profile with shallow
+**Local correction:** a separate 0.05 m recessed height profile (originally
+0.12; now `rutReliefMeters: 0.05` in `src/materials/settings.ts`) with shallow
 positive dirt lips feeds screen-space surface gradients into the existing
 normal-map result. The gradients retain metre scale; no added texture sampler
 or road mesh. The gravel roughness has a 0.82 floor, and colour attenuation
@@ -446,7 +457,7 @@ colour when a non-`Color` is multiplied back in.
 place for it to fire.
 
 
-### 1.10 Edge noise added to a zero baseline — the road mask painted gravel across half the world
+### 1.14 Edge noise added to a zero baseline — the road mask painted gravel across half the world
 
 **Symptom:** from any high vantage the ground read as a pale cellular web —
 soft blobs 10-25 m across over an olive base — reported as ground textures
@@ -613,9 +624,9 @@ movers.
 
 **Cause:** `moveAndSlide` resolves one circle per mover. Livestock's circle
 uses the species' body radius (cow 0.62 m, sheep 0.40, deer 0.45), but each
-rig reaches far forward of its origin — the cow's muzzle tip sits ~1.5 m
-ahead of the origin, sheep ~0.85, deer ~1.16 (measured as the world bbox of
-the built rig at forward=+X, not read off the builder code). Head-on, the
+rig reaches far forward of its origin — the species' `headReach` in
+`src/livestock.js` is cow 1.72 m, sheep 0.9, deer 1.2 (measured as the world
+bbox of the built rig at forward=+X, not read off the builder code). Head-on, the
 resolver stopped the torso 0.62 m from a wall and left the muzzle most of a
 metre inside it. Nothing errored; the resolver did exactly what it was asked.
 
@@ -684,8 +695,13 @@ It fills in plausible middle scores. Before trusting any grading run, confirm
 the tool actually delivers pixels:
 
 ```sh
-claude -p --model haiku --allowedTools Read \
-  'Read audit/current/lakeMercy-midday.png and describe the water colour.'
+# Cursor worksheet flow — scripts/grade.mjs never calls Claude/Gemini/OpenAI:
+npm run grade                       # writes audit/reports/cursor-worksheet.md
+# @-attach audit/current/*.png in the Cursor chat, fill audit/reports/inbox.json, then:
+npm run grade -- --compile audit/reports/inbox.json
+
+# Single-read external wrapper (resolved by scripts/codex-vision.mjs):
+codex-vision --stdin-prompt audit/current/lakeMercy-midday.png
 ```
 
 A correct answer names it as black. A generic description that would fit any
@@ -697,6 +713,10 @@ Passes 01–03 were graded by `gemini-2.5-flash`, 04 onward by `haiku`. Those
 numbers are not comparable, and pass 05 was the first pass comparable to the one
 before it. Pin the grader; if you must change it, treat the next two passes as a
 fresh baseline and say so.
+
+*(Historical: `gemini-2.5-flash`/`haiku` predate the current branch. `grade.mjs`
+now refuses Claude/Gemini/OpenAI and grades through a Cursor subscription, with
+`codex-vision` as the pinned external reader. The comparability lesson stands.)*
 
 **The prompt is part of the grader.** The identical tree scored 52 fails under
 the 2026-08-26 full-pass prompt and 93 fails under a reworded prompt (arid-POI
@@ -721,6 +741,11 @@ assess" counting against.
 The second-tier review correctly found U1 was penalising arid POIs for having no
 grass — but kept the id `U1`. Every past report's U1 now means something else.
 **Rule:** never renumber or redefine a criterion id. Retire it, add a new one.
+
+**Footnote (2026-09-10):** practice currently violates this rule —
+`scripts/rubric.mjs` swaps `U1_GRASS` for `U1_ARID` under the same id `U1` at
+arid POIs (`badlands`, `burn`, `mission`, `elPaso`, `ironValley`). The rule
+stands; the U1 swap is the outstanding defect to fix.
 
 ### 3.7 Five commits to answer a yes/no question
 
@@ -755,6 +780,9 @@ raycast, or an ID-buffer read. It is not an adjective.
   positional argument to decide image-vs-prompt; a multi-KB prompt arg dies
   with `OSError: [Errno 63] File name too long` before any grading happens.
   Use `codex-vision --stdin-prompt <image>` with the prompt on stdin.
+  *(Historical/unverified: `codex-vision` is an external wrapper not in this
+  repo, so its argv-`stat()` behaviour could not be confirmed here. The
+  `--stdin-prompt` flag is still used by `scripts/close-cycleB.mjs`.)*
 - **Optional-chaining a late-assigned dev hook silently grades the wrong
   state (2026-09-06).** The capture script called
   `window.__weatherForce?.(s)` after fixed 9s+6s waits, but `__weatherForce`
@@ -783,9 +811,10 @@ State these as decisions in any rewrite, or a fresh agent will helpfully
 - **Terrain, roads, creeks, scatter are procedural** and queried at runtime
   (`roadFactor`, `creekFactor`, `heightAt`). They are not authored assets.
 - **Screenshots are gitignored and regenerable**; reports are committed.
-- **Textures must never enter git history.** 230 MB of `.git` against a 263 MB
-  working tree, most of it superseded uncompressed PNGs that are no longer even
-  loaded.
+- **Textures must never enter git history.** Most of what was once committed
+  was superseded uncompressed PNGs that are no longer even loaded. (The old
+  `.git`/working-tree sizes that appeared here were not re-measured and have
+  been dropped.)
 
 ---
 

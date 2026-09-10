@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "currentCampaign": "performance-campaign-2026-09-08",
-  "currentObjective": "Exhaustive performance campaign COMPLETE: measured GPU/CPU/HUD/NPC/nav improvements, hostile critic pass (3 code defects fixed incl. a campaign-introduced scene-wide freeze), evidenced interleaved A/B in docs/PERFORMANCE_PASS.md",
+  "currentCampaign": "sleeve-bind-doc-audit-2026-09-10",
+  "currentObjective": "Fixed Nell Calder's stiff sleeves with a sleeve-only garment bind in src/models/texturedActors.js (commit 31fff4f), then audited and corrected the outdated project docs and harness files. Previous performance campaign (2026-09-08/09) is closed; see docs/PERFORMANCE_PASS.md.",
   "defaultRoutingMode": "balanced",
   "lastRole": "worker",
   "lastModel": "gpt-5.6-terra",
   "expertCallsThisCampaign": 0,
-  "lastCheckpoint": "2026-09-09T03:00:00.000Z",
-  "verificationStatus": "Full npm run check 28/28 PASS (40.6s, includes minimap-cache + textured-model-pilot); interleaved display-paced A/B n=5/POI/side saved (fps-ab-interleaved-*.jsonl); probe-play logs saved both trees (2 arrival-step FAILs pre-existing, identical on pre); post-fix visual captures caps-post2"
+  "lastCheckpoint": "2026-09-10T00:00:00.000Z",
+  "verificationStatus": "npm run build green. Check suite is 29 check:* scripts run by scripts/check-all.mjs; on this Windows box the runner fails to spawn the extensionless node_modules/.bin/tsx (ENOENT), so checks are run directly via npx tsx scripts/<check>.mjs. check:textured-model-pilot passes (sleeves move 0.238 m on arm-drop, blouse/skirt 0.000 m); live WebGPU captures in audit/nell-sleeves-{before,after}/. No router installed in this environment (airoute/hc-agent/~/.ai-harness absent). Latest graded audit is pass-99 (2026-08-28)."
 }

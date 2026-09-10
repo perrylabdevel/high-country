@@ -1,5 +1,10 @@
 # High Country — Autonomous Evolution Handoff Prompt
 
+> **Historical (2026-09-10):** this prompt was the original brief for the
+> `state/`-driven autonomous loop. That loop ran and has been dormant since
+> 2026-09-03; the active harness is now `.ai/` (see `docs/EVOLUTION.md`). Keep
+> the brief as a record, not as current operating instructions.
+
 Copy everything below this line into the coding agent or agent harness that will take over the repository.
 
 ---
@@ -31,7 +36,7 @@ Before editing anything:
    - `docs/TAKEOVER.md`
    - `docs/HARD_WON.md`
    - `README.md`
-   - `High_Country_Game_Handoff/newest_handoff_prompt.md`
+   - `.ai/HANDOFF.md` (the old `High_Country_Game_Handoff/newest_handoff_prompt.md` path no longer exists)
    - `docs/TERRAIN_MATERIALS_HANDOFF.md`
    - `docs/VISION_AUDIT.md`
    - `audit/reports/latest.md`
@@ -74,6 +79,10 @@ Implement an autonomous, persistent production loop with three layers:
 3. **Bounded autonomous campaigns** that select and improve the highest-value player-facing gap, verify it independently, persist their state, and continue to the next campaign without asking routine questions.
 
 Do not stop after writing a plan or adding orchestration files. Demonstrate the loop on at least one real, bounded improvement to the runnable game.
+
+> **Outcome (2026-09-10):** satisfied — the loop was built and ran campaigns
+> through `state/` (for example `20260903-R10`, closed accepted), each with
+> independent verification. It has since been superseded by the `.ai/` harness.
 
 ## Locked creative pillars
 

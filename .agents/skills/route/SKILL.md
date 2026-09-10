@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # /route
 
+> **Not available in this environment:** `airoute` is not installed. Do not invoke it; classify and perform the work in-session.
+
 1. Read `.ai/HANDOFF.md` and `.ai/ROUTING.md` if this is substantive work.
 2. Run `airoute route "<task>"` to classify. Do not invoke Astra to choose a model.
 3. If the user asked only for a recommendation, stop after showing the role and reason.

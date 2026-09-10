@@ -10,6 +10,8 @@ The repo already had Claude Code skills for measurement-first visual work, but n
 Decision:
 Adopt `~/.ai-harness` / `airoute` as the common router. Claude Code remains the interactive orchestrator. OpenAI models are reached through Codex CLI with ChatGPT authentication. Default roles are Luna/Terra/Sol/Astra.
 
+> **2026-09-10 — superseded in this environment:** `airoute`, `hc-agent`, and `~/.ai-harness` are not installed here. The decision stands for environments that have the router; in this environment, work is done in-session without it.
+
 Reason:
 Conserve premium allowance, especially Astra, while keeping High Country's existing measurement skills intact.
 

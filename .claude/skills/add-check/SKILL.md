@@ -16,7 +16,7 @@ screenshots showing the previous location's ground cover.
 ## Where checks live
 
 `scripts/check-*.mjs`, wired into `npm run check` in `package.json`. There are
-13. Each prints a small JSON summary then `PASS`, and throws with a message
+29. Each prints a small JSON summary then `PASS`, and throws with a message
 that says what to do about it.
 
 ## Procedure
@@ -46,8 +46,8 @@ npx tsx scripts/check-vegetation.mjs   # must PASS again
    repo were verified exactly this way.
 4. **Wire it in.** Add `check:<name>` to `package.json` and append it to the
    `check` script.
-5. Run the `verify-change` skill. `npm run check` must now print PASS 14 times
-   (13 + yours).
+5. Run the `verify-change` skill. `npm run check` must now print PASS 30 times
+   (29 + yours).
 6. **Explain the cost in the file header.** Say what went wrong, how it was
    found, and why it is silent. `docs/HARD_WON.md` is the register of these —
    add an entry there too if the cause was subtle.

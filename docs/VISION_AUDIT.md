@@ -48,6 +48,12 @@ OpenAI are disabled. Close the loop like this:
 - **Do not run `npm run grade` expecting it to call an API.** On this branch
   that command writes the worksheet. It never hits `generativelanguage.googleapis.com`,
   OpenAI, or `claude -p`.
+- **Headless alternative to the Cursor chat.** `scripts/read-images.mjs` drives
+  the same pinned grader over the capture frames, one image per call, piping
+  the pinned prompt to `codex-vision` (resolved by `scripts/codex-vision.mjs`),
+  then merges via `npm run grade -- --compile`. This is the wrapper that
+  produced pass-96 and later; it is still the pinned Cursor-provider grader
+  (`gpt-5.6-luna`), not a Google/OpenAI/Claude path.
 
 **What is genuinely self-applying** — the parts encoded as runnable commands:
 `npm run capture`, `npm run build`, `npm run check`, `npm run check:buildings`,
@@ -150,8 +156,10 @@ grade` rejects a set without a complete manifest and filename inventory. Use
 diagnosis — WebGL2 captures are not valid normal audit inputs.
 
 The camera is scripted rather than warped — warping drops the player inside the
-POI and frames a wall. Each POI's distance, height and heading live in the POIS
-table at the top of the script; adjust them there if a frame doesn't read.
+POI and frames a wall. Each POI's distance, height and heading live in the
+`AUDIT_POIS` table at the top of `scripts/capture-poi.mjs` (`CLOSE_POIS` and
+`EYE_POIS` hold the close vantages; `CAPTURE_MODE` selects them into `POIS`);
+adjust them there if a frame doesn't read.
 
 **Known caveat — WebGL water is diagnostic-only.** Lake Mercy rendered as a
 solid black void in the historical WebGL2 capture. It is the only water surface
@@ -316,6 +324,9 @@ MODEL: this loop assumes you were pinned to a Cursor subscription model by
 hand (see §0 — you cannot set this yourself). Put that picker name in
 inbox.json's `model` field before compiling. If you do not know it, write
 "model unknown". Do not write haiku, gemini-2.5-flash, or an OpenAI id.
+Grading can also run headlessly through `scripts/read-images.mjs`, which pipes
+the pinned prompt to `codex-vision` (via `scripts/codex-vision.mjs`); that path
+records the same pinned Cursor-provider grader (`gpt-5.6-luna`).
 
 INPUTS:
   audit/current/*.png              32 screenshots, <poi>-<light>.png
@@ -371,7 +382,7 @@ HONESTY RULES:
 ## 7. Current backlog, worst first
 
 > **Stale — verified 2026-08-26, do not work from this list.** It records the
-> state at pass 05; the audit is past pass 91. Items 1, 2, 3, 4, 6 and 7 have
+> state at pass 05; the audit is past pass 99. Items 1, 2, 3, 4, 6 and 7 have
 > since been done, and item 4's specific accusation is *false* — see the
 > re-measurement under the list. For current work use
 > `docs/VISUAL_STATUS.md` (the baseline pass and its fail count) and the
@@ -395,7 +406,10 @@ Standing state at the time of writing, for the implementer's first pass:
    tautologies that assert values constructed in the same file. Verified: revert
    the ranch roof to float 1.9 m above its walls and it still prints PASS; set
    the interior doorway back to 4.4 m and it still prints PASS.
-5. **Stochastic/hex-grid sampling** (§2.5 item 3) was never implemented.
+5. **Stochastic/hex-grid sampling** (TERRAIN_MATERIALS_HANDOFF §4.5 item 3)
+   **is now implemented** — `hexSample`/`stochasticTriplanar` in
+   `src/materials/texturedMat.ts`, gated by `wallStochastic` in
+   `src/materials/settings.ts` (commit `18639fb`).
 6. **Tree LOD.** The broken `THREE.LOD` was removed rather than replaced; there
    is currently no distance LOD on trees. Real per-instance LOD needs a
    bucketing pass that rewrites the matrices of a near/far mesh pair.
@@ -412,7 +426,7 @@ anyway: until the check can fail, nothing else it covers is protected.
 Each claim above was re-tested by command rather than by reading the code.
 
 **Item 4 is false — `check-buildings.mjs` has real teeth.** It has grown to
-643 lines with its own self-tests since this was written. Both reproductions
+742 lines with its own self-tests since this was written. Both reproductions
 named above were run as fault injections, and both were caught:
 
 - Floating every roof 1.9 m above its walls (by shifting the `base` anchor
@@ -430,17 +444,19 @@ position from the anchor afterwards, overwriting it. A fault injection that
 does not actually inject the fault looks exactly like a check that cannot
 fail. Confirm the perturbation took effect before believing the result.
 
-**Also done since:** item 2 (25 of 28 runtime texture paths are `.ktx2`; the
-three exceptions are the foliage albedo PNGs, kept deliberately because block
-compression quantises alpha and chunks the grass tips), item 3 (`dirt_2k` and
+**Also done since:** item 2 (27 of 28 runtime texture paths are `.ktx2`; the
+one exception is the needle-foliage albedo PNG, kept deliberately because block
+compression quantises alpha and chunks the thin blade tips), item 3 (`dirt_2k` and
 `gravel_2k` replaced and shipped as KTX2), item 6 (trees have near/far/distant
 instance bucketing in `src/vegetation.js`), item 7 (lake black — root cause in
 `docs/HARD_WON.md` §1.1/§1.2), and item 1 in part (bark set and the baked
 needle atlas ship; grass/sage/broad stay procedural because the baked atlases
 measured worse — pass-88/89).
 
-**Item 5 (stochastic/hex-grid sampling) is the one still unverified** — no
-implementation found by grep, and no measurement either way.
+**Item 5 (stochastic/hex-grid sampling) is implemented** — `hexSample` /
+`stochasticTriplanar` in `src/materials/texturedMat.ts:113,197`, driven by
+`wallStochastic` in `src/materials/settings.ts:120` (commit `18639fb`); no A/B
+measurement of its visual effect is recorded.
 
 ---
 
@@ -449,6 +465,12 @@ implementation found by grep, and no measurement either way.
 This branch does not call Claude CLI, Google Gemini API, or OpenAI. Do not set
 `GEMINI_API_KEY` or `OPENAI_API_KEY` to grade; `scripts/grade.mjs` refuses
 `GRADE_PROVIDER=claude|gemini|openai`.
+
+Grading also has a headless path: `scripts/read-images.mjs` reads the capture
+frames one at a time, piping the pinned prompt to `codex-vision` (resolved by
+`scripts/codex-vision.mjs`), and its per-image JSON is merged with
+`npm run grade -- --compile`. The provider is still `cursor` and the grader
+still `gpt-5.6-luna`; this is not a Google/OpenAI/Claude API call.
 
 **Default (Cursor subscription model in chat):**
 
@@ -498,5 +520,6 @@ meaning.
 **Cost.** Stay on the Cursor subscription. There is no paid Google/OpenAI path
 on this branch.
 
-Capture discovery, score parsing, regression detection, the stop condition, and
-report rendering are covered by `npm run grade:selftest`.
+Capture discovery, score parsing, regression detection, and the stop condition
+are covered by `npm run grade:selftest`; report rendering (`renderReport`) is
+not exercised by the selftest.

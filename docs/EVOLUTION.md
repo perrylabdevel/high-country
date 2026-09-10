@@ -10,6 +10,12 @@ questions.
 compilation. Locked creative pillars live in `docs/CREATIVE_PILLARS.md`; nothing
 below may weaken them.
 
+> **Status (2026-09-10):** the `state/`-driven loop described here has been
+> dormant since 2026-09-03 (last campaign `20260903-R10`, closed accepted; see
+> `state/campaign.json` and `state/decisions.jsonl`). The current, active
+> harness lives in `.ai/` (`REQUIREMENTS.md`, `HANDOFF.md`, `ROUTING.md`); this
+> document is kept as the record of the loop design.
+
 ## The three layers
 
 1. **Locked pillars** — `docs/CREATIVE_PILLARS.md`. Agents may clarify, never
@@ -58,8 +64,10 @@ sole grader of its own work.
 
 ## Verification hierarchy (cheapest sufficient evidence)
 
-1. **Computation** — `npm run build`, `npm run check` (16 dry-build contracts),
-   plus any new deterministic check the campaign adds. An invariant is only
+1. **Computation** — `npm run build`, `npm run check` (29 `check:*` scripts as
+   of 2026-09-10, run by `scripts/check-all.mjs`: geometry checks
+   concurrently, timing checks serially; `check:sequential` is the skipped
+   legacy chain), plus any new deterministic check the campaign adds. An invariant is only
    trusted if it has been observed failing under its target defect (HARD_WON
    §3.1) — prove a new check before trusting it.
 2. **Browser play** — Playwright probes against the dev build drive real flows:

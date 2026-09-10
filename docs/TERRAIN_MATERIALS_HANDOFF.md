@@ -3,6 +3,12 @@
 **Audience:** the agent picking up material work on High Country.
 **Written against:** repo at `629c87d`, three.js r170 vendored, vanilla JS, no build step.
 
+> **SUPERSEDED / HISTORICAL** — written against commit `629c87d` (no longer in
+> history); the migration and fixes it schedules have shipped; kept as a record.
+> In particular the raw-GLSL `onBeforeCompile` road blend and `ShaderMaterial`
+> sky no longer exist in `src/`, water is a node material rather than flat
+> quads, and the check suite has grown well past the nine named below.
+
 ---
 
 ## 0. Read this first — the premise has changed
@@ -23,6 +29,13 @@ The world is not untextured. There is a working, blockout-grade material layer:
 | Sun, shadows (2048, fitted frustum, tuned bias), hemi + ambient, `FogExp2` | `src/environment.js:88-104` |
 | ACESFilmic tone mapping, exposure 1.12, sRGB output | `src/main.js:58-60` |
 | Water: lake, creeks, toxic creek, dry wash — flat quads at `WATER = 13` | `src/landmarks.js:250-300` |
+
+> *(Historical note, 2026-09-10: the migration has shipped. `onBeforeCompile` and
+> `ShaderMaterial` are gone from `src/`; the road blend is TSL in
+> `src/materials/terrainMaterial.ts` and the sky is a node-material gradient.
+> `WATER = 13` now lives at `src/map.js:23`, and water is a node material in
+> `src/materials/waterMaterial.ts` rather than flat quads. The file:line
+> references in the table are the `629c87d` ones.)*
 
 So the lighting/tone-mapping setup that §7 of this doc describes is **already
 done and correct**. Don't rebuild it; extend it (HDRI + PMREM is the missing
@@ -79,7 +92,8 @@ Do **not** stay on r170. It predates most of the TSL surface this doc uses.
    and that promise is being broken deliberately.
 3. Delete `vendor/three/three.module.js` and `scripts/register-three.mjs`. The
    loader hook exists only to map `"three"` to the vendored file; with npm,
-   node resolves it natively.
+   node resolves it natively. *(Done in the migration — neither file is in the
+   tree.)*
 4. Rename `src/*.js` → `src/*.ts` incrementally. `allowJs: true` in tsconfig
    lets you port file by file rather than in one commit.
 5. Swap `WebGLRenderer` → `WebGPURenderer` in `src/main.js:53`. Keep the
@@ -127,7 +141,8 @@ targets.
 
 ### 1.4 Milestone 0 acceptance criteria
 
-The repo has a regression suite. It is the contract:
+The repo has a regression suite. This was the contract at the time (the
+original nine checks; the suite is now 29 `check:*` scripts):
 
 ```
 scripts/check-grounding.mjs      scripts/check-collision.mjs
@@ -137,11 +152,12 @@ scripts/check-interiors.mjs      scripts/check-map-layout.mjs
 scripts/check-roads.mjs
 ```
 
-All nine must still pass after migration. They import from `src/`, so once
+All of the suite must still pass after migration (it has since grown to 29
+`check:*` scripts). They import from `src/`, so once
 `src/` is TypeScript they need `tsx` (or `vite-node`) instead of the
 `--import ./scripts/register-three.mjs` hook. Add npm scripts for them.
 
-Milestone 0 is done when: all nine checks pass, the world renders under
+Milestone 0 is done when: all checks pass, the world renders under
 `WebGPURenderer` looking approximately as it does today, and you can walk around
 it. Not when it compiles.
 
@@ -368,9 +384,12 @@ Use `positionView.z` or distance from `cameraPosition`; near/far on the panel.
 The terrain grass texture handles distant ground. This is the geometry pass on
 top. Extends `src/vegetation.js`, which currently places instanced pines and has
 a `skipGrass(x, z)` exclusion mask you should reuse rather than reinvent.
+*(Historical: `skipGrass()` no longer exists; the current scatter's combined
+ground sample is `grassSample`/`grassSampleStatic` in the same file.)*
 
 - **Instanced cards**, 3–7 blades per card, **alpha-tested** (not alpha-blended —
-  blending breaks depth sorting and tanks fill rate). `alphaTest` ≈ 0.4.
+  blending breaks depth sorting and tanks fill rate). `alphaTest` ≈ 0.32 (the
+  shipped value; 0.4 was the plan).
 - **Placement** driven by the terrain's grass blend weight: sample the same mask,
   reject instances where grass weight is low. The geometry then agrees with the
   ground texture automatically.
@@ -488,7 +507,9 @@ Mostly **already done** — see 0.1. What's missing:
 - **Sky:** the gradient dome breaks under WebGPU (raw GLSL). Either port to a
   node material or replace with the HDRI-backed background. Whichever you pick,
   the fog color must stay matched to the horizon — that pairing is already tuned
-  (`0x9bb4c8` fog against the dome's `0xd7c09a` mid band).
+  (`0x9bb4c8` fog against the dome's `0xd7c09a` mid band). *(Historical: the raw
+  `ShaderMaterial` sky and `0xd7c09a` are gone; the sky is a node material in
+  `src/environment.js`.)*
 - **Sun:** exists with a fitted frustum and `bias -0.00025`. Re-tune `bias` and
   `normalBias` after the terrain material lands — shadow acne on terrain looks
   exactly like a material bug and will send you hunting in the wrong file.
@@ -545,7 +566,8 @@ Each ends with a screenshot from MaterialLab **and** from the live world, at
 midday and golden hour.
 
 0. **Toolchain migration** — npm, Vite, TS, three 0.185, WebGPURenderer, node
-   materials, KTX2 loader wired, all nine `scripts/check-*.mjs` passing. (§1)
+   materials, KTX2 loader wired, the full `scripts/check-*.mjs` suite (now 29
+   checks) passing. (§1)
 1. **Foundations** — HDRI + PMREM environment, MaterialLab scene, lil-gui panel,
    `loadTexture()` with correct color spaces, texture manifest, packing script.
 2. **Terrain base** — four layers, slope + altitude + splat weights, height-based
@@ -575,7 +597,7 @@ Do not mark a milestone done because the code compiles.
 - Check the transition zones specifically — grass→rock on a slope, road→grass at
   the edge, water→bank at the shoreline. Transitions are where fake-looking
   scenes give themselves away.
-- Re-run all nine `scripts/check-*.mjs`. They cover grounding, collision,
+- Re-run the full `scripts/check-*.mjs` suite (29 checks). They cover grounding, collision,
   handedness, roads, interiors, and map layout — a material change shouldn't
   touch them, and if it does, you moved geometry you didn't mean to.
 - Confirm the stats overlay is still inside budget.

@@ -2,11 +2,11 @@
 
 ## Governing brief
 
-`High_Country_Game_Handoff/newest_handoff_prompt.md` — real-time explorable 3D Western, not 2D scenes.
+`.ai/REQUIREMENTS.md` — real-time explorable 3D Western, not 2D scenes.
 
 ## Stack
 
-Three.js 0.170 (vendored). ES modules. Any static HTTP server (`python3 serve.py`, `python3 -m http.server`, `npx serve`). Vite/TypeScript/glTF can be added later; the playable path does not wait on that.
+Three.js 0.185.1 with the WebGPU renderer and TSL node materials. ES modules, bundled by Vite; TypeScript (`allowJs`) lets `src/` migrate file by file. glTF assets load through `three/addons` loaders. `npm run dev` serves HMR, `npm run build` + `npm run preview` produce and serve the bundle.
 
 ## World axes
 
@@ -47,8 +47,6 @@ because the needle was never the problem. `scripts/check-handedness.mjs` locks i
 | `src/input.js` | Keyboard + pointer lock look |
 | `src/minimap.js` | Zoomed parchment overlay that follows the player |
 | `src/debug.js` | Dev panel for speed, look sensitivity, and landmark warp |
-
-Narrative data from the 2D slice remains in `legacy-2d/` until it is ported onto 3D world objects.
 
 ## Extension
 

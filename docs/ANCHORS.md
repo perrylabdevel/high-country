@@ -1,6 +1,7 @@
 # Anchors — named frames instead of typed coordinates
 
-**Status:** design, not implemented. Written to be judged before phase 1 starts.
+**Status:** implemented (core) — `src/buildings/anchors.js`, locked by
+`npm run check:anchors`. The design rationale below is preserved.
 **Motivation:** nearly every defect in this project has been spatial, and they
 share one shape — position was tracked and orientation was lost.
 
@@ -80,10 +81,11 @@ defineAnchor(obj, name, frame)    // for hand-authored or imported pieces
 face(obj, side, { along = 0 })    // "front"|"back"|"left"|"right" → Anchor,
                                   //   optionally slid along that face
 mate(child, childAnchorName, parentAnchor, opts)
-                                  // opts: { offset, yawJitter, offsetJitter }
+                                  // opts: { offset, yawJitter }
                                   // parents the child and sets its transform
 worldAnchor(obj, name)            // → { position, normal } in world space
-anchorGraph()                     // → { nodes, edges } — serialisable, diffable
+recordMate(child, childAnchorName, parent, parentAnchorName)
+                                  // logs the mate in parent.userData.mates
 
 unmatedRequired()                 // → [{ obj, anchor }] — required sockets with
                                   //   nothing attached
@@ -120,24 +122,15 @@ judgement into a lint.
 
 ## 5. Worked example
 
-Today, in `src/buildings.js`:
+`src/buildings.js` now ships the east porch anchored:
 
 ```js
-const eastPorch = porch({ width: 9.2, depth: 4.2, eave: 3.4, ... });
-eastPorch.rotation.y = -Math.PI / 2;
-eastPorch.position.set(MW / 2, 0, 2.575 - MCZ);
-main.add(eastPorch);
+mate(eastPorch, "wallSide", face(main, "right", { along: 2.575 - MCZ }));
 ```
 
-Three things must be right at once: the rotation sign, that `MW / 2` names the
-right face, and that `2.575 - MCZ` converts house coordinates into main-block
-local space.
-
-Anchored:
-
-```js
-mate(eastPorch, "wallSide", face(main, "right", { along: 2.5 }));
-```
+Before, three things had to be right at once: the rotation sign, that `MW / 2`
+named the right face, and that `2.575 - MCZ` converted house coordinates into
+main-block local space.
 
 No rotation to sign, no axis to choose, and the frame conversion disappears
 because `along` is already expressed in the face's own frame.
@@ -145,6 +138,10 @@ because `along` is already expressed in the face's own frame.
 ---
 
 ## 6. What becomes checkable
+
+The named assertions below are **not implemented** — they are the target shape.
+`scripts/check-anchors.mjs` builds the same invariants from `mate()`,
+`worldAnchor()` and `unmatedRequired()` directly:
 
 ```js
 assertMated(porch, "roofSocket");                    // posts carry a roof
@@ -158,10 +155,10 @@ Compare with how the porch regression is caught today: `ranch-midday R3: 4 → 1
 — a capture run, a vision model, and three passes, to discover the porch fell
 off.
 
-### The anchor graph is a reviewable artifact
+### Recorded mates are a reviewable artifact
 
-`anchorGraph()` dumps nodes, edges and resulting world transforms as JSON. Two
-consequences:
+`recordMate()` records each attachment in the parent's `userData.mates`
+(`{ socket, child, childAnchor }`). Two consequences:
 
 - **Relationships are readable.** `porch.wallSide → house.face.front` can be
   checked at a glance; `post.position.set(px, 1.9, 9.2)` cannot.
@@ -176,7 +173,7 @@ Anchors risk making a town look mechanical. Real settlements are ragged. Put the
 noise in the mate:
 
 ```js
-mate(shop, "face.front", lot.frontage, { yawJitter: 0.04, offsetJitter: 0.3 });
+mate(shop, "face.front", lot.frontage, { yawJitter: 0.04 });
 ```
 
 The relationship is preserved by construction while the look varies. Strictly
@@ -222,8 +219,9 @@ question that an ID-buffer raycast answers with a number.
 ## 10. Migration, and why it is safe
 
 1. **Derive anchors from existing `userData`.** Pure addition; nothing moves.
-2. **Add `mate()` and the graph assertions.** Rewrite `check-buildings.mjs`
-   against relationships. Still nothing moves.
+2. **Add `mate()` and the graph assertions** — done: `mate()` and
+   `unmatedRequired()` ship, and `scripts/check-anchors.mjs` locks the
+   relationships. Still nothing moves.
 3. **Convert call sites one structure at a time**, asserting every object's
    world matrix is *identical* before and after.
 
@@ -232,7 +230,7 @@ proof. Nobody is asked to preserve the layout carefully — it is asserted, and 
 fails loudly on drift.
 
 Rough size: ~120 lines for derived anchors across the eight piece types, ~40 for
-`mate()`, ~60 for the graph and lints. Mostly mechanical, all testable headlessly
+`mate()`, ~60 for the lints. Mostly mechanical, all testable headlessly
 with no renderer.
 
 ---

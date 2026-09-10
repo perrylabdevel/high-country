@@ -14,7 +14,9 @@ At the start of substantive work, inspect:
 - `.ai/HANDOFF.md`
 - `.ai/ROUTING.md`
 
-Use the installed `airoute` router when delegation to OpenAI models is useful.
+Use the `airoute` router when delegation to OpenAI models is useful.
+
+Availability (2026-09-10): no router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are absent. Work in-session and do not attempt to invoke the router.
 
 Do not invoke GPT-6 Astra for ordinary implementation, repository exploration, test execution, or repetitive visual iteration.
 
@@ -24,6 +26,6 @@ After an expert decision, downshift implementation to WORKER whenever practical.
 
 Keep `.ai/HANDOFF.md` current at meaningful checkpoints.
 
-Claude remains the interactive orchestrator. Launching `claude` uses Claude, not GPT. GPT is used only when this session runs `airoute`. When you delegate, show the `[TERRA / WORKER]`-style banner from `airoute` so the user can see which model ran.
+Claude remains the interactive orchestrator. Launching `claude` uses Claude, not GPT. GPT is used only when this session runs `airoute`. When you delegate, show the `[TERRA / WORKER]`-style banner from `airoute` so the user can see which model ran. In this environment `airoute` is not installed, so skip delegation and banners and do the work in-session.
 
 Do the work yourself when that is cheaper and sufficient. Do not launch a second model for a trivial question.

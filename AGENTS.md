@@ -10,6 +10,8 @@ Read `.ai/REQUIREMENTS.md`, `.ai/HANDOFF.md`, and `.ai/ROUTING.md` before substa
 
 Role mappings are configured through `airoute`, not hard-coded. Prefer the assigned role for this invocation. After an EXPERT decision, hand implementation back to WORKER.
 
+Availability (2026-09-10): no router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are absent. Do the work in-session and do not attempt to invoke `airoute`. The routing policy above applies only where the router exists.
+
 Do not store or request API keys when Codex ChatGPT authentication is available.
 
 # Verification

@@ -5,6 +5,8 @@ alwaysApply: true
 
 # AI harness
 
+> **Status (2026-09-10):** no router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are absent. Perform work in-session and do not attempt to invoke `airoute`. The routing policy below applies only where the router exists.
+
 Canonical AI project state lives in `.ai/`. Do not overwrite `.ai/ROUTING.md` or global `~/.ai-harness/config/` unless the user asked to change routing policy.
 
 Before major implementation, read `.ai/REQUIREMENTS.md` and `.ai/HANDOFF.md`. Keep HANDOFF current at meaningful checkpoints.

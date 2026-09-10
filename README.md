@@ -1,12 +1,10 @@
 # High Country
 
-An original family-centered Western. This build follows `High_Country_Game_Handoff/newest_handoff_prompt.md`: a **real-time explorable 3D world** in the browser (Three.js), not a 2D slideshow.
+An original family-centered Western. The product brief lives in `.ai/REQUIREMENTS.md`: a **real-time explorable 3D world** in the browser (Three.js/WebGPU), not a 2D slideshow. See `docs/ARCHITECTURE.md` for the stack.
 
 ## Stack
 
 Three.js 0.185.1 (WebGPURenderer + TSL node materials), Vite, TypeScript (`allowJs` so `src/` can migrate file by file). The previous "no compile step" path is gone: three's WebGPU/TSL subpaths are not in a single vendored file.
-
-The previous canvas 2D slice is archived under `legacy-2d/`.
 
 ## Setup
 
@@ -33,15 +31,13 @@ npm run build
 npm run preview
 ```
 
-`python3 serve.py` still works, but it serves `dist/` after a build — it is no longer a no-npm path.
-
 ## Checks
 
 ```sh
 npm run check
 ```
 
-Runs the nine `scripts/check-*.mjs` contracts (grounding, collision, handedness, debug, settlements, needle, interiors, map layout, roads).
+Runs the 29-check suite through `scripts/check-all.mjs` (geometry checks in parallel, then the timing-sensitive checks isolated; see `AGENTS.md`).
 
 ## Controls
 
@@ -77,6 +73,8 @@ npm run pack-textures
 
 ## Docs
 
-- `IMPLEMENTATION_STATUS.md`
+- `.ai/REQUIREMENTS.md`
+- `.ai/HANDOFF.md`
+- `docs/ARCHITECTURE.md`
+- `docs/VISUAL_STATUS.md`
 - `docs/TERRAIN_MATERIALS_HANDOFF.md`
-- `High_Country_Game_Handoff/newest_handoff_prompt.md`

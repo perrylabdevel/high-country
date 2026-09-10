@@ -420,7 +420,11 @@ Nothing committed or pushed.
 
 # Current Objective
 
-Address the user's report that wheel ruts still look like slick oil/tar rather than recessed dirt.
+None active. Last completed work: Nell Calder's sleeve-only garment bind
+(commit `31fff4f`), then a documentation audit and correction pass across the
+living docs and harness files (2026-09-10). The checkpoint entries below are
+records of CLOSED work — their "Nothing committed or pushed" notes are
+superseded by later merges; see `git log` and `docs/VISUAL_STATUS.md`.
 
 ## Latest checkpoint — 2026-09-08 (creek/lake junction: workable, must-improve logged)
 
@@ -582,47 +586,25 @@ Address the user's report that wheel ruts still look like slick oil/tar rather t
 
 # Previous State
 
-Harness initialized. No active campaign.
+Working tree on `main` at commit `31fff4f` (Nell's sleeve-only garment bind),
+plus the 2026-09-10 documentation correction pass. The
+"finish/wheel-ruts-and-hitching-rails" two-thread work below is CLOSED and
+merged; retained as history.
 
-Harness installed. Existing High Country measurement skills preserved.
-
-Git status:
+Git status (2026-09-10, after the doc-audit edits):
 ```
 ## main...origin/main
- M .gitignore
- M src/buildings.js
- M src/dev/panel.ts
- M src/landmarks.js
- M src/main.js
- M src/map.js
- M src/materials/settings.ts
- M src/materials/splatMap.ts
- M src/materials/terrainMaterial.ts
-?? .ai/
-?? .claude/skills/checkpoint/
-?? .claude/skills/expert/
-?? .claude/skills/route/
-?? .claude/skills/scout/
-?? .claude/skills/senior/
-?? .claude/skills/worker/
-?? .cursor/
-?? AGENTS.md
-?? CLAUDE.md
-?? audit/evidence/nav-routes-2026-09-06T00-51-51.json
-?? audit/evidence/nav-routes-2026-09-06T00-55-02.json
-?? audit/evidence/nav-routes-2026-09-06T01-01-07.json
-?? audit/evidence/nav-routes-2026-09-06T02-00-38.json
-?? audit/evidence/nav-routes-2026-09-06T02-01-37.json
-?? audit/evidence/nav-routes-2026-09-06T02-06-05.json
 ```
+Working tree holds only the documentation correction pass; the sleeve fix is
+already committed and pushed.
 
 Recent commits:
 ```
-b8cc7a5 Refactor creek rendering and lake interaction in landmarks.js
-58dd2dd A hitching rail stood across the gateway approach with one post in the middle of the corridor, and the gate itself was two bare sticks under a floating slat with the "doors" flat against the wall reading as patches
-6e61672 Creeks were straight hoses clipped by terrain triangles, and the lake rim was a smooth ellipse the ground kept sawtoothing through
-cf895f4 The water read as painted navy: a non-wrapping noise lattice seamed a grid into every surface, foam striped every shore and filled the creeks solid, and the colour mix never let the bottom or the sky through
-7aaa626 Road traffic rode the polylines blind: the figure kit's mounted seat hung the boots backward, and the box-horse's legs stopped 28 cm above the ground
+31fff4f Nell's sleeves were frozen in the T-pose bind while her arms hung inside them
+42027a4 Add campaign directories to .gitignore and update package.json scripts
+7e4bf1c Refactor NPC grounding to align stance feet with terrain
+7398bec Ground textured NPCs from stance pose, not bind pose
+697f9fa Wire rigged women and kid models onto the NPCs
 ```
 
 Campaign finish-uncommitted CLOSED. Two threads were in flight uncommitted with no campaign attached.
@@ -637,38 +619,14 @@ Committed on branch finish/wheel-ruts-and-hitching-rails (3 commits, not merged 
 
 OPEN: audit/evidence/nav-routes-*.json - check:routes writes a new timestamped evidence file on every invocation; 15 untracked copies have accumulated today. Either gitignore the pattern or have the check overwrite one file.
 
-Git status:
-```
-## finish/wheel-ruts-and-hitching-rails
-?? audit/evidence/nav-routes-2026-09-06T00-51-51.json
-?? audit/evidence/nav-routes-2026-09-06T00-55-02.json
-?? audit/evidence/nav-routes-2026-09-06T01-01-07.json
-?? audit/evidence/nav-routes-2026-09-06T02-00-38.json
-?? audit/evidence/nav-routes-2026-09-06T02-01-37.json
-?? audit/evidence/nav-routes-2026-09-06T02-06-05.json
-?? audit/evidence/nav-routes-2026-09-06T03-50-25.json
-?? audit/evidence/nav-routes-2026-09-06T03-51-00.json
-?? audit/evidence/nav-routes-2026-09-06T14-14-06.json
-?? audit/evidence/nav-routes-2026-09-06T14-15-33.json
-?? audit/evidence/nav-routes-2026-09-06T14-16-58.json
-?? audit/evidence/nav-routes-2026-09-06T14-47-59.json
-?? audit/evidence/nav-routes-2026-09-06T14-49-32.json
-?? audit/evidence/nav-routes-2026-09-06T14-59-15.json
-?? audit/evidence/nav-routes-2026-09-06T15-01-41.json
-```
-
-Recent commits:
-```
-d5cbd70 Install the airoute multi-model harness alongside the existing measurement skills
-13eb591 Hitching rails were a solid plank at the ranch and lone shin-high posts stranded in the middle of the town boardwalk, and the north row had rails but nobody on it
-1c1d404 Every road was a tar streak and the town's main street a blue-black canal: the wheel ruts shipped at 2.7x the depth that clips their albedo to zero
-b8cc7a5 Refactor creek rendering and lake interaction in landmarks.js
-58dd2dd A hitching rail stood across the gateway approach with one post in the middle of the corridor, and the gate itself was two bare sticks under a floating slat with the "doors" flat against the wall reading as patches
-```
+_Historical: this thread's `finish/wheel-ruts-and-hitching-rails` branch and its
+`nav-routes-*` evidence files are closed and merged. Several commit hashes
+recorded here (`d5cbd70`, `13eb591`, `1c1d404`, `b8cc7a5`) predate the history
+rewrite and no longer resolve._
 
 # Architecture
 
-Canonical AI state lives in `.ai/`. Claude Code is the interactive orchestrator. OpenAI models are reached through `airoute` / Codex CLI.
+Canonical AI state lives in `.ai/`. Claude Code is the interactive orchestrator. OpenAI models are reached through `airoute` / Codex CLI where installed — **no router is installed in this environment** (`airoute`, `hc-agent`, `~/.ai-harness` absent), so work is done in-session.
 
 # Relevant Files
 
@@ -685,7 +643,13 @@ Canonical AI state lives in `.ai/`. Claude Code is the interactive orchestrator.
 
 # Known Failures
 
-(none recorded)
+- `npm run check`'s runner fails on Windows: `scripts/check-all.mjs` spawns the
+  extensionless `node_modules/.bin/tsx`, which errors with ENOENT. The checks
+  themselves pass when run directly via `npx tsx scripts/<check>.mjs`.
+- `check:nav-graph` can exceed its 50 ms build budget under CPU load; it passes
+  isolated on an idle machine.
+- `airoute` / `hc-agent` are not installed in this environment (the routing
+  policy applies only where they exist).
 
 # Important Decisions
 
@@ -693,7 +657,12 @@ Canonical AI state lives in `.ai/`. Claude Code is the interactive orchestrator.
 
 # Verification Status
 
-unknown
+`npm run build` green (vite). The check suite is 29 `check:*` scripts run by
+`scripts/check-all.mjs`; on this Windows box the runner itself fails to spawn
+tsx, so checks are run directly. Nell's sleeve bind verified: `check:textured-model-pilot`
+passes (sleeves move 0.238 m on arm-drop, blouse/skirt 0.000 m); live WebGPU
+captures in `audit/nell-sleeves-{before,after}/`. Latest graded audit remains
+pass-99 (2026-08-28).
 
 # Current Hypotheses
 
@@ -701,7 +670,12 @@ unknown
 
 # Next Actions
 
-## Creek/lake tone seam at Lake Mercy — 2026-09-08
+None. The last session completed Nell's sleeve bind (`31fff4f`) and a
+documentation audit/correction pass (2026-09-10). The entries below are
+historical and CLOSED: the creek/lake seam was joined (PR #3 join-blend) and
+the road material follow-up shipped (`b38c897`, `6cd79a4`).
+
+## Historical — creek/lake tone seam at Lake Mercy — 2026-09-08
 
 Tester report: creek and lake meet as two different colours with no blend.
 
@@ -753,7 +727,7 @@ Known-unfixed, pre-existing, not from this change:
   the intended 0.015 m. No fix needed; do not "correct" this margin.
 
 
-## Road material follow-up — 2026-09-06
+## Historical — road material follow-up — 2026-09-06
 
 - Luna implementation updated `terrainMaterial.ts` and `settings.ts`: A-normalized
   lateral decode on roads, terrain normal green-channel correction for the rotated
@@ -770,6 +744,5 @@ Known-unfixed, pre-existing, not from this change:
   a broad painted stripe. Relief is a fragment normal profile, not geometric
   tessellation/displacement.
 
-- In this repo: `claude`
-- Delegate with `airoute run auto "<task>"` or `/scout` `/worker` `/senior` `/expert`
-- Continue the in-progress navigation/visual work without using Astra unless an architecture decision is actually blocked
+- In this repo the agent runs in-session; no `airoute` router is installed here.
+- Historical delegation instructions (`airoute run ...`, `/scout` `/worker` `/senior` `/expert`) apply only in environments where `airoute` is present.

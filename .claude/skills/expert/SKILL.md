@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # /expert
 
+> **Not available in this environment:** `airoute` is not installed. Do not invoke it; perform the work in-session.
+
 Astra is scarce. Do not use this for ordinary implementation, exploration, tests, or visual iteration.
 
 1. Read `.ai/HANDOFF.md`.

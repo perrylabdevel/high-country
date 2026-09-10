@@ -3,6 +3,14 @@
 Scope was narrowed to conserve the user's subscription budget. This is a partial
 optimization pass, not a claim that the game is fully optimized.
 
+> **Evidence-path note (2026-09-10):** several paths named below exist only on
+> the machine that produced the campaign and are not in the repository tree:
+> `audit/pine-dist-ab/`, `audit/evidence/performance-2026-09-08/caps-pre/`,
+> `caps-post/`, `caps-post2/`, and `probe-play-pre.log` / `probe-play-post.log`.
+> Treat those references as local-only. The surviving campaign evidence is the
+> JSON/JSONL files in `audit/evidence/performance-2026-09-08/` (for example
+> `fps-ab-interleaved-{pre,post}.jsonl`).
+
 - `src/minimap.js` skips Canvas2D repaint when position, heading and objective
   are unchanged. Exact movement/turn cadence is retained; wheel zoom and
   objective fields invalidate the cache.
@@ -21,11 +29,13 @@ optimization pass, not a claim that the game is fully optimized.
   reported 48.9 fps at 1280x720 DPR1 with 76.9% CPU idle, but later counters
   varied sharply. Do not claim an A/B FPS gain or universal GPU bottleneck from
   these runs. A counter sample recorded 242 draws and 5.59M triangles.
-- Final build passed (`built in 1.50s`). Full check: 27/28 passed; nav graph
+- Final build passed (`built in 1.50s`). Full check: 27/28 passed at the time
+  (the suite has since grown to 29 `check:*` scripts); nav graph
   measured 55ms against 50ms at machine load 7.41. Isolated nav rerun passed at
   48ms, same 915 nodes/844 edges. No thresholds or audit methods changed.
 - No graphical-quality settings changed. No new screenshot comparison or
-  multi-location FPS validation was completed. Nothing committed or pushed.
+  multi-location FPS validation was completed. Nothing committed or pushed at
+  the time; the campaign later landed as `0aead8c`, merged in `282b4a7`.
 - Follow-up only when budget allows: repeated matched warmed-up profiles at
   town, forest, lake; separate startup streaming from steady-state render cost;
   use measured evidence before batching/culling/transform changes.
@@ -83,10 +93,12 @@ Result (deterministic renderer counters):
   WindowServer/user apps; a first noisy run agreed at northernPines/lakeMercy:
   29.7→35.0, 27.9→37.5, worst frame 351→90 ms, but read timberCamp/badlands/
   elPaso as regressions under load; not usable as A/B evidence).
-- Visual A/B: 4 vantages captured before/after (audit/pine-dist-ab/), horizon
-  silhouettes preserved at (9,6). `npm run check` 28/28 PASS after the change.
+- Visual A/B: 4 vantages captured before/after (local-only capture dir, no
+  longer in the tree), horizon
+  silhouettes preserved at (9,6). `npm run check` 28/28 PASS after the change at
+  the time (suite now 29).
 
-## Campaign 2 — CPU frame work (in progress)
+## Campaign 2 — CPU frame work (completed)
 
 CPU profile (profiler-contaminated, directional only): updateMatrixWorld ~9%
 of frame across ~4,400+ static graph nodes; TSL node getters ~11%; ungated
@@ -185,9 +197,9 @@ work also reduced load sensitivity. Evidence: audit/evidence/performance-2026-09
 probe-play (scripted Episode-1 acceptance, real input paths): runs during the
 campaign window were not saved to evidence files — the "15 PASS / 2 FAIL,
 same two pre-existing arrival steps" claim below is UNVERIFIED by any file
-(the repo's only saved probe-play logs, R1/R4 from Aug 28-29, show 19 PASS /
-0 FAIL, which contradicts "pre-existing" as well; the critic pass flagged
-both problems). The NPC-gating lesson stands on the code: an earlier
+(the repo's only saved probe-play logs, R1/R4 from Aug 28-29, show R4 19 PASS
+and R1 17 PASS, both 0 FAIL, which contradicts "pre-existing" as well; the
+critic pass flagged both problems). The NPC-gating lesson stands on the code: an earlier
 iteration that froze far settlers entirely changed where Wade stands when you
 return — the cheap wander always runs at every distance; only the skeleton
 POSE is gated (frozen >400 m, staggered ×4 in 120-400 m). A fresh probe-play
