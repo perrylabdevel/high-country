@@ -1,8 +1,9 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { meshHeightAt } from "./heightfield.js";
+import { lakeWaterRimRadius, lakeWaterSignedDistance, LAKE_WATER_RIM_SEGMENTS } from "./lakeWaterline.js";
 import { addBoxCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
-import { POS, WATER, mapToWorld, CREEKS, lakeFactor, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
+import { POS, WATER, mapToWorld, CREEKS, lakeFactor, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import {
   makeWaterNormalTexture,
   createWaterFallbackMaterial,
@@ -1180,7 +1181,7 @@ function buildCreekRibbon(creek, lakeDistance) {
     // At -10 the ribbon was cut off while still ~48% opaque (measured: the
     // last station of highCountry held aJoin 0.483), leaving a half-opaque
     // stub edge — the widened fade needs the full band plus a margin.
-    if (lakeDistance(p.x, p.z) < -40) {
+    if (lakeDistance(p.x, p.z) < -13) {
       if (run.length > dry.length) {
         dry.length = 0;
         dry.push(...run);
@@ -1261,19 +1262,22 @@ function buildCreekRibbon(creek, lakeDistance) {
       }
       const vx = p.x + px * bankWidth * s;
       const vz = p.z + pz * bankWidth * s;
+      const rimDist = lakeDistance(vx, vz); // +ve outside the rim, -ve inside
       shores.push((1 - Math.abs(s)) * bankWidth);
-      // Crossfade the creek into the lake over a band wide enough to read as
-      // a blend. The old band ran (-lakeDistance - 3) / 5: 5 m wide and
-      // starting 3 m INSIDE the rim. Creek stations are spaced ~1.5 m, so
-      // that put 3-5 stations of a 1300-station ribbon in the fade (measured:
-      // highCountry 17 mid-fade vertices of 6680, and toxic/granite/twin had
-      // literally zero) — a hard edge with a token gesture at a blend. The
-      // band now starts 18 m OUTSIDE the rim and runs 45 m (tester: begin the
-      // fade sooner — at 6 m out the ribbon was still only ~10% faded at the
-      // waterline; starting at 18 m it arrives ~35% faded and lands fully
-      // faded 27 m inside the lake, spanning ~30 stations instead of 3).
-      const overlap = Math.max(0, Math.min(1, (-lakeDistance(vx, vz) + 18) / 45));
-      joins.push(1 - overlap * overlap * (3 - 2 * overlap));
+      // Guaranteed match: hand the junction to the lake. The creek stays
+      // opaque to the rim (covering the lake's own transparent shore feather),
+      // then reaches zero opacity ~1.5 m inside, exactly where the lake's
+      // shore ramp becomes opaque. Drawing the creek any deeper would lay its
+      // differently-refracted water (it samples the lake, the lake samples the
+      // bright bottom) over the lake as a darker, smoother tongue.
+      const insideDist = Math.max(0, -rimDist);
+      const joinT = Math.min(1, insideDist / 1.1);
+      joins.push(1 - joinT * joinT * (3 - 2 * joinT));
+      // Lake-equivalent shore distance and creek->lake foam blend, packed into
+      // the aFlow vec4 below. The blend is active only INSIDE the lake: the
+      // lake's foam band sits at its transparent rim, so applying it outside
+      // painted a false white band on the dry approach.
+      const lbT = Math.max(0, Math.min(1, insideDist / 3));
       // Refraction warp, per vertex. The creek needs a hard screen-sample
       // smear upstream (CREEK_WARP) or its bed shows through undistorted and
       // reads as tape laid on the ground; the lake uses 1. Because the offset
@@ -1286,10 +1290,30 @@ function buildCreekRibbon(creek, lakeDistance) {
       warps.push(CREEK_WARP * (1 - mouthBlend) + 1 * mouthBlend);
       positions.push(vx, creek.dry ? bed + 0.06 : surface, vz);
       // Depth per vertex against the real bed under it, so the channel shades
-      // deep mid-stream and shallows out where the banks rise into it.
-      depths.push(creek.dry ? 0 : Math.max(0, surface - heightAt(vx, vz)));
-      flows.push(tx, tz);
-      slopes.push(slope);
+      // deep mid-stream and shallows out where the banks rise into it. Inside
+      // the lake, converge to the lake's own authored depth so the creek's
+      // body colour, refraction distortion and apparent ripple match the water
+      // it is dissolving into (otherwise the shallow creek reads as a darker,
+      // smoother tongue laid over the lake).
+      const bedDepth = Math.max(0, surface - heightAt(vx, vz));
+      const ldx = (vx - POS.lakeMercy.x) / LAKE_NOMINAL_RX;
+      const ldz = (vz - POS.lakeMercy.z) / LAKE_NOMINAL_RZ;
+      const lakeT = Math.hypot(ldx, ldz) / lakeWaterRimRadius(Math.atan2(-ldz, ldx));
+      const lakeDepth = lakeT < 1 ? 7 * Math.pow(1 - lakeT, 0.8) : 0;
+      const depthBlend = Math.max(0, Math.min(1, insideDist / 1.2));
+      depths.push(creek.dry ? 0 : bedDepth * (1 - depthBlend) + lakeDepth * depthBlend);
+      // aFlow is a vec4 on creek ribbons: (flowX, flowY, lakeShore, lakeBlend).
+      // Packing the two join scalars here keeps the creek vertex-buffer count
+      // at eight -- the WebGPU device limit (position, normal, aDepth, aJoin,
+      // aWarp, aFlow, aSlope, aShore). Separate aLakeShore/aLakeBlend
+      // attributes pushed it to ten and the creek pipeline failed to create.
+      flows.push(
+        tx * (1 - mouthBlend) + 1 * mouthBlend,
+        tz * (1 - mouthBlend),
+        insideDist,
+        lbT * lbT * (3 - 2 * lbT)
+      );
+      slopes.push(slope * (1 - depthBlend));
     }
   }
   const geo = new THREE.BufferGeometry();
@@ -1297,7 +1321,7 @@ function buildCreekRibbon(creek, lakeDistance) {
   geo.setAttribute("aDepth", new THREE.Float32BufferAttribute(depths, 1));
   geo.setAttribute("aJoin", new THREE.Float32BufferAttribute(joins, 1));
   geo.setAttribute("aWarp", new THREE.Float32BufferAttribute(warps, 1));
-  geo.setAttribute("aFlow", new THREE.Float32BufferAttribute(flows, 2));
+  geo.setAttribute("aFlow", new THREE.Float32BufferAttribute(flows, 4));
   geo.setAttribute("aSlope", new THREE.Float32BufferAttribute(slopes, 1));
   geo.setAttribute("aShore", new THREE.Float32BufferAttribute(shores, 1));
   const indices = [];
@@ -1315,66 +1339,26 @@ function buildCreekRibbon(creek, lakeDistance) {
 
 /** Lake shoreline sampled against the rendered terrain, with dense edge rings
  * for a narrow shallow-water transition and a softly irregular outline. */
-const LAKE_RIM_SEGMENTS = 1024;
-
 function buildLakeGeometry() {
-  // Trace the actual terrain intersection, then retreat slightly into the
-  // shallows. This gives the water its own feathered boundary before the
-  // coarse terrain triangles can clip it into a hard sawtooth.
-  const radii = [];
-  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
-    const a = i / LAKE_RIM_SEGMENTS * Math.PI * 2;
-    const x = Math.cos(a) * LAKE_NOMINAL_RX;
-    const z = -Math.sin(a) * LAKE_NOMINAL_RZ;
-    let lo = 0;
-    let hi = lakeShoreRadius(-a) * 1.2;
-    for (let j = 0; j < 16; j += 1) {
-      const mid = (lo + hi) / 2;
-      if (meshHeightAt(POS.lakeMercy.x + x * mid, POS.lakeMercy.z + z * mid) < WATER) lo = mid;
-      else hi = mid;
-    }
-    radii.push(lo);
-  }
-  // Smooth an inward envelope, not min(raw, average): that min operation
-  // retained every convex terrain-grid corner. Eroding first keeps the
-  // filtered curve submerged without reintroducing the raw polygon edges.
-  const radiusAt = i => radii[(i + LAKE_RIM_SEGMENTS) % LAKE_RIM_SEGMENTS];
-  const inset = radii.map((_, i) => {
-    let r = Infinity;
-    for (let j = -16; j <= 16; j += 1) r = Math.min(r, radiusAt(i + j));
-    return r;
-  });
-  const smoothRadii = inset.map((_, i) => {
-    let sum = 0, weights = 0;
-    for (let j = -16; j <= 16; j += 1) {
-      const weight = 17 - Math.abs(j);
-      sum += inset[(i + j + LAKE_RIM_SEGMENTS) % LAKE_RIM_SEGMENTS] * weight;
-      weights += weight;
-    }
-    return sum / weights;
-  });
   const positions = [0, 0, 0];
   const depths = [7];
   const shores = [100];
   const indices = [];
   const rings = [0.3, 0.6, 0.85, 0.96, 0.992, 1];
   for (const t of rings) {
-    for (let i = 0; i <= LAKE_RIM_SEGMENTS; i += 1) {
-      const k = i % LAKE_RIM_SEGMENTS;
-      const a = k / LAKE_RIM_SEGMENTS * Math.PI * 2;
-
-      const retreat = 3.5 + 2 * Math.sin(a * 17 + 0.7)
-        + 0.9 * Math.sin(a * 41 - 1.2) + 0.5 * Math.sin(a * 83);
-      const rim = smoothRadii[k] - retreat / LAKE_NOMINAL_RX;
+    for (let i = 0; i <= LAKE_WATER_RIM_SEGMENTS; i += 1) {
+      const k = i % LAKE_WATER_RIM_SEGMENTS;
+      const a = k / LAKE_WATER_RIM_SEGMENTS * Math.PI * 2;
+      const rim = lakeWaterRimRadius(a);
       positions.push(Math.cos(a) * rim * t, Math.sin(a) * rim * t, 0);
       depths.push(7 * Math.pow(1 - t, 0.8));
       shores.push((1 - t) * rim * LAKE_NOMINAL_RX);
     }
   }
-  const stride = LAKE_RIM_SEGMENTS + 1;
-  for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) indices.push(0, 1 + i, 2 + i);
+  const stride = LAKE_WATER_RIM_SEGMENTS + 1;
+  for (let i = 0; i < LAKE_WATER_RIM_SEGMENTS; i += 1) indices.push(0, 1 + i, 2 + i);
   for (let r = 0; r < rings.length - 1; r += 1) {
-    for (let i = 0; i < LAKE_RIM_SEGMENTS; i += 1) {
+    for (let i = 0; i < LAKE_WATER_RIM_SEGMENTS; i += 1) {
       const a = 1 + r * stride + i;
       const b = a + stride;
       indices.push(a, b, a + 1, a + 1, b, b + 1);
@@ -1401,19 +1385,6 @@ export function createWater(scene, {
     ? createWaterFallbackMaterial()
     : createWaterMaterial(normalMap, { depthSource: lakeDepthSource, screenRefraction });
   const lakeGeometry = buildLakeGeometry();
-  const rimPositions = lakeGeometry.attributes.position;
-  const rimStart = rimPositions.count - (LAKE_RIM_SEGMENTS + 1);
-  const lakeDistance = (x, z) => {
-    const dx = (x - POS.lakeMercy.x) / LAKE_NOMINAL_RX;
-    const dy = -(z - POS.lakeMercy.z) / LAKE_NOMINAL_RZ;
-    const angle = (Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2);
-    const sample = angle / (Math.PI * 2) * LAKE_RIM_SEGMENTS;
-    const i = Math.floor(sample), t = sample - i;
-    const radius = k => Math.hypot(rimPositions.getX(rimStart + k), rimPositions.getY(rimStart + k));
-    const rim = radius(i) * (1 - t) + radius(i + 1) * t;
-    return (Math.hypot(dx, dy) - rim)
-      * Math.hypot(Math.cos(angle) * LAKE_NOMINAL_RX, Math.sin(angle) * LAKE_NOMINAL_RZ);
-  };
   const lake = new THREE.Mesh(lakeGeometry, lakeMat);
   lake.name = "lake";
   lake.rotation.x = -Math.PI / 2;
@@ -1448,7 +1419,7 @@ export function createWater(scene, {
   });
 
   for (const creek of CREEKS) {
-    const geo = buildCreekRibbon(creek, lakeDistance);
+    const geo = buildCreekRibbon(creek, lakeWaterSignedDistance);
     const mat = creek.dry ? washMat : creek.name === "toxic" ? toxicMat : creekMat;
     const mesh = new THREE.Mesh(geo, mat);
     mesh.name = "creek";

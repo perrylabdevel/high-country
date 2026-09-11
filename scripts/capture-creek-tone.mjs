@@ -5,9 +5,8 @@
  *   node scripts/capture-creek-tone.mjs before
  *   node scripts/capture-creek-tone.mjs after
  *
- * Two vantages:
- *   mouth    — high oblique over the highCountry creek mouth (the tester
- *              report's vantage: creek ribbon, mud banks, lake edge).
+ * Dedicated mouth vantages frame each actual shoreline crossing; the older
+ * `mouth` view remains for continuity with existing evidence.
  *   grazing  — low, looking down the creek length (the case refractBase
  *              exists for: at grazing angles the screen sample behind a
  *              creek pixel is the far bank, and a too-low floor renders
@@ -106,6 +105,25 @@ async function run(browser) {
       name: "mouth",
       // High oblique over the creek mouth, lake edge in frame.
       view: { px: 80, py: 150, pz: -300, tx: 80, ty: 13, tz: -580 }
+    },
+    {
+      name: "highCountry-mouth",
+      // Oblique across highCountry's actual Lake Mercy crossing at (0, -485):
+      // exposed creek, waterline contact, and lake in one frame.
+      resolvePy: { px: 70, pz: -420, eye: 32 },
+      view: { px: 70, py: 0, pz: -420, tx: 0, ty: 13, tz: -485 }
+    },
+    {
+      name: "highCountry-mouth-overhead",
+      // Near-nadir inspection of the actual highCountry crossing, matching the
+      // aerial player view that makes the subtle shoreline difference visible.
+      view: { px: 0, py: 115, pz: -485, tx: 0, ty: 0, tz: -485.5 }
+    },
+    {
+      name: "silver-mouth",
+      // Oblique across silver's actual Lake Mercy crossing at (240, -480).
+      resolvePy: { px: 330, pz: -430, eye: 32 },
+      view: { px: 330, py: 0, pz: -430, tx: 240, ty: 13, tz: -480 }
     },
     {
       name: "nadir",

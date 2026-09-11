@@ -4,8 +4,9 @@
  * R=grass G=dirt B=rock A=road/gravel. Sampled in worldToMap UV.
  */
 import * as THREE from "three/webgpu";
-import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, ROADS, nearestOnPolyline } from "../map.js";
+import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, smoothstep, ROADS, nearestOnPolyline } from "../map.js";
 import { polylineCache } from "../map.js";
+import { lakeWaterSignedDistance } from "../lakeWaterline.js";
 
 const SPLAT_W = 2048;
 const SPLAT_H = 2560;
@@ -86,6 +87,16 @@ function weightsAt(x: number, z: number) {
   }
   const creek = creekFactor(x, z);
   const lake = lakeFactor(x, z);
+  // Preserve every dry-land linear feature. Only strip creek/road substrate once
+  // it lies safely under the terrain-resolved lake surface, so shallow water
+  // refracts the lake bed instead of a dark creek or gravel lane. The creek
+  // alone also eases out across its final 8 m of dry approach, so its dark wet
+  // bed arrives at the lake as a natural bank transition rather than a stripe.
+  const waterDistance = lakeWaterSignedDistance(x, z);
+  const submerged = smoothstep(2, 10, -waterDistance);
+  const featureLand = 1 - submerged;
+  const mouthFade = smoothstep(0, 8, waterDistance);
+  const creekLand = creek * featureLand * mouthFade;
   // Road channel baked with a NARROW falloff (0.55x width vs roadFactor's
   // 1.15x). The material derives both the road extent and the wheel-track
   // center from this one channel: on the wide profile the center band covered
@@ -114,10 +125,11 @@ function weightsAt(x: number, z: number) {
       lat = near.lat;
     }
   }
-  const road = Math.min(1, Math.pow(narrow, 0.52));
-  grass = Math.max(0, grass * (1 - creek * 0.8) * (1 - lake * 0.5) * (1 - road));
-  dirt = Math.min(1, Math.max(dirt, creek * 0.75, lake * 0.55) * (1 - road * 0.85));
-  rock = Math.min(1, Math.max(rock, creek * 0.08) * (1 - road));
+  const roadRaw = Math.min(1, Math.pow(narrow, 0.52));
+  const road = roadRaw * featureLand;
+  grass = Math.max(0, grass * (1 - creekLand * 0.8) * (1 - lake * 0.5) * (1 - road));
+  dirt = Math.min(1, Math.max(dirt, creekLand * 0.75, lake * 0.55) * (1 - road * 0.85));
+  rock = Math.min(1, Math.max(rock, creekLand * 0.08) * (1 - road));
   return { grass, dirt, rock, road, lat };
 }
 

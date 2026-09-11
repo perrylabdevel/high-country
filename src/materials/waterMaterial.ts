@@ -242,7 +242,13 @@ export function createWaterMaterial(
   const dNorm = smoothstep(float(0), u.waterDepthFalloff as FloatUniform, depth).toVar();
   const baseCol = mix(shallow, deep, dNorm).toVar();
 
-  const flow = depthSource === "attribute" ? (attribute("aFlow", "vec2") as Node<"vec2">) : vec2(1, 0);
+  // aFlow is a vec4 on creek ribbons: (flowX, flowY, lakeShore, lakeBlend).
+  // Packing the two join scalars into the flow attribute keeps the creek
+  // vertex-buffer count at eight, the WebGPU device limit (position, normal,
+  // aDepth, aJoin, aWarp, aFlow, aSlope, aShore). Separate aLakeShore /
+  // aLakeBlend attributes pushed it to ten and the creek pipeline failed.
+  const flowAttr = depthSource === "attribute" ? (attribute("aFlow", "vec4") as Node<"vec4">) : null;
+  const flow = flowAttr ? flowAttr.xy : vec2(1, 0);
   const slope = depthSource === "attribute" ? (attribute("aSlope", "float") as Node<"float">) : float(0);
   const whitewater = smoothstep(
     u.whitewaterSlope as FloatUniform,
@@ -301,11 +307,24 @@ export function createWaterMaterial(
   // keeps shallow creeks out of the band entirely (see the option comment).
   const shoreDistance = attribute("aShore", "float") as Node<"float">;
   const foamScaleU = uniform(opts.foamScale ?? 1, "float");
-  const foamEdge = (u.foamThreshold as FloatUniform).mul(foamScaleU).mul(foamNoise01.mul(0.4).add(0.45));
-  // Authored basin depth changes over tens of metres; using it for foam
-  // painted a wide white wedge around the lake. Measure the actual bank band.
-  const shoreMetric = depthSource === "lake" ? shoreDistance : depth;
-  const shoreMask = smoothstep(foamEdge.mul(0.4), foamEdge, shoreMetric).oneMinus();
+  // Creek foam uses its own shallow depth metric and foamScale; the lake uses
+  // its shore-distance metric. Near a creek mouth the two bodies must show the
+  // same foam band, so crossfade the two MASKS (not the raw metrics -- the lake
+  // shore metric is 0 outside the rim and would drop a blended metric).
+  const creekFoamEdge = (u.foamThreshold as FloatUniform).mul(foamScaleU).mul(foamNoise01.mul(0.4).add(0.45));
+  const creekShoreMask = smoothstep(creekFoamEdge.mul(0.4), creekFoamEdge, depth).oneMinus();
+  const lakeFoamEdge = (u.foamThreshold as FloatUniform).mul(foamNoise01.mul(0.4).add(0.45));
+  const lakeFoamMetric = flowAttr ? flowAttr.z : shoreDistance;
+  const lakeShoreMask = smoothstep(lakeFoamEdge.mul(0.4), lakeFoamEdge, lakeFoamMetric).oneMinus();
+  const lakeBlend = flowAttr ? flowAttr.w : float(0);
+  // Only creek ribbons (depthSource "attribute") crossfade toward the lake's
+  // foam near the mouth. The lake keeps its shore-distance foam exactly as
+  // before; the legacy "buffer" path keeps its depth-based foam.
+  const shoreMask = depthSource === "attribute"
+    ? mix(creekShoreMask, lakeShoreMask, lakeBlend)
+    : depthSource === "lake"
+      ? lakeShoreMask
+      : creekShoreMask;
   const foam = shoreMask.mul(foamNoise01.mul(0.8).add(0.2)).mul(u.foamStrength as FloatUniform);
   const totalFoam = clamp(foam.add(whitewater.mul(0.6)), float(0), float(1)).toVar();
 
