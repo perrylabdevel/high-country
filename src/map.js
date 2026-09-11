@@ -764,9 +764,17 @@ export function creekFactor(x, z) {
   return w;
 }
 
-export function biomeAt(x, z) {
+/**
+ * biomeAt, but taking a lake weight the caller has already computed.
+ *
+ * The splat bake calls biomeAt AND lakeFactor for the same pixel, and biomeAt
+ * computes lakeFactor internally — so lakeFactor ran twice per pixel over
+ * 5.24 M pixels (measured 230 ns/call, ~1.2 s of the bake's 18.4 s). Both are
+ * pure, so the second call is pure waste. Hot callers pass the value they
+ * already hold; biomeAt keeps its original one-argument contract.
+ */
+export function biomeAtWithLake(x, z, lake) {
   const { u, v } = worldToMap(x, z);
-  const lake = lakeFactor(x, z);
   if (lake > 0.55) {
     return "lake";
   }
@@ -801,6 +809,15 @@ export function biomeAt(x, z) {
     return "range";
   }
   return "valley";
+}
+
+/**
+ * The biome at a world point. Unchanged contract: every existing caller keeps
+ * working. Hot loops that already hold a lakeFactor should call
+ * biomeAtWithLake instead and skip the duplicate computation.
+ */
+export function biomeAt(x, z) {
+  return biomeAtWithLake(x, z, lakeFactor(x, z));
 }
 
 /**

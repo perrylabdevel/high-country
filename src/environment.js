@@ -16,6 +16,7 @@ import { WORLD, heightAt, meshHeightAt, roadRefinedCell, ROAD_SUBDIVISIONS, bake
 import { biomeAt, roadFactor, lakeFactor, creekFactor } from "./map.js";
 import { loadTerrainMaps } from "./materials/loadSet.ts";
 import { bakeSplatMap } from "./materials/splatMap.ts";
+import { loadSplatMap } from "./materials/splatAsset.ts";
 import { getProfile } from "./perfProfile.js";
 import { createTerrainMaterial } from "./materials/terrainMaterial.ts";
 
@@ -165,7 +166,10 @@ export async function createTerrain() {
   try {
     terrainMaps = await loadTerrainMaps();
     if (terrainMaps) {
-      mat = createTerrainMaterial(terrainMaps, bakeSplatMap());
+      // loadSplatMap, not bakeSplatMap: prebaked file -> IndexedDB cache ->
+      // bake. The bake walks 5.24 M pixels (~17.8 s measured) computing a pure
+      // function of the authored world, and it ran on every boot.
+      mat = createTerrainMaterial(terrainMaps, await loadSplatMap());
     }
   } catch (err) {
     console.warn("Terrain PBR material failed, using canvas grass", err);

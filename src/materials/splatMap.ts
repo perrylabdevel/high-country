@@ -4,12 +4,12 @@
  * R=grass G=dirt B=rock A=road/gravel. Sampled in worldToMap UV.
  */
 import * as THREE from "three/webgpu";
-import { WORLD, biomeAt, roadFactor, creekFactor, lakeFactor, smoothstep, ROADS, nearestOnPolyline } from "../map.js";
+import { WORLD, biomeAtWithLake, roadFactor, creekFactor, lakeFactor, smoothstep, ROADS, nearestOnPolyline } from "../map.js";
 import { polylineCache } from "../map.js";
 import { lakeWaterSignedDistance } from "../lakeWaterline.js";
 
-const SPLAT_W = 2048;
-const SPLAT_H = 2560;
+export const SPLAT_W = 2048;
+export const SPLAT_H = 2560;
 
 // Wheel-track lateral offset rides in the B channel alongside rock, packed as
 // B = rock + clamp(lat, -2, 2)/4 * road ... latNorm = lat/4 + 0.5 (±2 m of
@@ -49,7 +49,11 @@ function valueNoise(x: number, z: number) {
 }
 
 function weightsAt(x: number, z: number) {
-  const biome = biomeAt(x, z);
+  // One lakeFactor per pixel, not two. biomeAt computes it internally and this
+  // function needed it again below; over 5.24 M pixels that duplicate cost
+  // ~1.2 s of the bake (measured 230 ns/call).
+  const lake = lakeFactor(x, z);
+  const biome = biomeAtWithLake(x, z, lake);
   let grass = GRASSY.has(biome) ? 1 : 0.12;
   let dirt = DIRTY.has(biome) ? 0.9 : 0.18;
   // Badlands rock is no longer painted on uniformly: flats carry a mix of
@@ -86,7 +90,6 @@ function weightsAt(x: number, z: number) {
     dirt = 0.4;
   }
   const creek = creekFactor(x, z);
-  const lake = lakeFactor(x, z);
   // Preserve every dry-land linear feature. Only strip creek/road substrate once
   // it lies safely under the terrain-resolved lake surface, so shallow water
   // refracts the lake bed instead of a dark creek or gravel lane. The creek
