@@ -27,7 +27,24 @@ import { dirname, join } from "node:path";
 import { cpus, loadavg } from "node:os";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const TSX = join(ROOT, "node_modules", ".bin", "tsx");
+// Drive tsx through its own CLI entrypoint rather than npm's .bin shim.
+//
+// The shim directory holds an extensionless POSIX shell script plus tsx.cmd
+// and tsx.ps1. On Windows neither of the first two can be spawned directly:
+// CreateProcess cannot execute the extensionless script (ENOENT), and since
+// the CVE-2024-27980 mitigation Node refuses to spawn a .cmd/.bat without
+// `shell: true` (EINVAL). Measured here on node v24.19.0/win32: no-shell
+// .cmd -> EINVAL, shell:true -> works but trips Node's own DEP0190 warning
+// that args are concatenated unescaped, execPath -> clean.
+//
+// Because the spawn error surfaced on the child's "error" event, each of the
+// 29 checks reported an individual failure and the suite read as 29 broken
+// contracts rather than one runner that could not start anything.
+//
+// tsx's package.json declares "bin": "./dist/cli.mjs", so running that file
+// on the current node is what the shim ultimately does — minus the shell, the
+// quoting hazard and the platform branch.
+const TSX_CLI = join(ROOT, "node_modules", "tsx", "dist", "cli.mjs");
 
 /**
  * Checks that measure elapsed time and therefore cannot share the CPU.
@@ -57,7 +74,7 @@ function checkScripts() {
 function run({ name, file }) {
   const started = Date.now();
   return new Promise((resolve) => {
-    const child = spawn(TSX, [file], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, [TSX_CLI, file], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     let err = "";
     child.stdout.on("data", (d) => { out += d; });
