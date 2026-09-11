@@ -6,11 +6,17 @@ Preserve the existing measurement skills in `.claude/skills/`. Do not replace `s
 
 Canonical AI project state lives in `.ai/`.
 
-Read `.ai/REQUIREMENTS.md`, `.ai/HANDOFF.md`, and `.ai/ROUTING.md` before substantive work. Read them in one command (`cat .ai/REQUIREMENTS.md .ai/HANDOFF.md .ai/ROUTING.md`) rather than one file per tool call — each separate call is a full model inference over the whole conversation.
+Before substantive work, read the compact bootstrap in one command:
+
+`cat .ai/STATE.json .ai/REQUIREMENTS.md .ai/ROUTING.md`
+
+`.ai/HANDOFF.md` is an on-demand checkpoint, not startup context. Read it only when the compact state points to it or the current task needs its topic. Search `.ai/history/` for older knowledge only when relevant; never dump the archive into active context.
+
+If a harness prompt embeds those three bootstrap files, treat the requirement as satisfied and do not read them again.
 
 Role mappings are configured through `airoute`, not hard-coded. Prefer the assigned role for this invocation. After an EXPERT decision, hand implementation back to WORKER.
 
-Availability (2026-09-10): no router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are absent. Do the work in-session and do not attempt to invoke `airoute`. The routing policy above applies only where the router exists.
+Availability (2026-09-10): the local Generation-1 `hc-agent` and shared `~/.ai-harness` are installed. `airoute` is not on PATH. Use `~/.hc-agent/bin/hc-agent` for HoH campaigns; otherwise work in-session.
 
 Do not store or request API keys when Codex ChatGPT authentication is available.
 

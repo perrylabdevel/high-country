@@ -10,13 +10,17 @@ Canonical AI project state lives in `.ai/`.
 
 At the start of substantive work, inspect:
 
+- `.ai/STATE.json`
 - `.ai/REQUIREMENTS.md`
-- `.ai/HANDOFF.md`
 - `.ai/ROUTING.md`
+
+Read `.ai/HANDOFF.md` only when the compact state points to it or the task needs its topic. Historical checkpoints live under `.ai/history/` and are retrieval-only.
+
+If a harness prompt embeds the compact bootstrap, do not read those files again.
 
 Use the `airoute` router when delegation to OpenAI models is useful.
 
-Availability (2026-09-10): no router is installed in this environment — `airoute`, `hc-agent`, and `~/.ai-harness` are absent. Work in-session and do not attempt to invoke the router.
+Availability (2026-09-10): the local Generation-1 `hc-agent` and shared `~/.ai-harness` are installed. `airoute` is not on PATH. Use `~/.hc-agent/bin/hc-agent` for HoH campaigns.
 
 Do not invoke GPT-6 Astra for ordinary implementation, repository exploration, test execution, or repetitive visual iteration.
 
@@ -24,8 +28,8 @@ Before invoking the EXPERT role, construct the escalation packet required by `.a
 
 After an expert decision, downshift implementation to WORKER whenever practical.
 
-Keep `.ai/HANDOFF.md` current at meaningful checkpoints.
+Keep `.ai/STATE.json` current at meaningful checkpoints. Keep `.ai/HANDOFF.md` compact and archive superseded detail instead of appending a journal.
 
-Claude remains the interactive orchestrator. Launching `claude` uses Claude, not GPT. GPT is used only when this session runs `airoute`. When you delegate, show the `[TERRA / WORKER]`-style banner from `airoute` so the user can see which model ran. In this environment `airoute` is not installed, so skip delegation and banners and do the work in-session.
+Claude remains the interactive orchestrator. Launching `claude` uses Claude, not GPT. GPT is used only through an installed OpenAI harness. When a router provides a role banner, show it so the user can see which model ran.
 
 Do the work yourself when that is cheaper and sufficient. Do not launch a second model for a trivial question.

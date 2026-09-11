@@ -10,4 +10,4 @@ disable-model-invocation: true
 
 Run `airoute checkpoint`.
 
-Keep HANDOFF compact. Preserve the objective, architecture, decisions, relevant files, unresolved errors, hypotheses, verification, and next actions. Discard obsolete logs and repetitive conversation. Never use Astra just to summarize.
+Update `STATE.json` first. Keep HANDOFF compact and optional. Preserve only active details that do not fit STATE; move obsolete, superseded, or repetitive material into a dated file under `.ai/history/`. Never use Astra just to summarize.

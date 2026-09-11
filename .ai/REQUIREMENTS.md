@@ -5,10 +5,10 @@ High Country is an existing Three.js/WebGPU browser game. This harness installat
 # Technical Requirements
 
 - Canonical project state lives in `.ai/`.
-- Model-role mappings live in configuration, not source.
-  - _2026-09-10: not met in this environment — no router (`airoute` / `hc-agent` / `~/.ai-harness`) is installed. The requirement text is unchanged; this is a status note._
+- Model-role mappings live in harness configuration, not game source.
 - OpenAI access prefers Codex ChatGPT authentication.
 - Separately billed OpenAI API usage is disabled unless explicitly enabled.
+- Durable history remains available but is retrieved only when relevant.
 
 # Visual Requirements
 
@@ -21,8 +21,10 @@ High Country is an existing Three.js/WebGPU browser game. This harness installat
 
 # Acceptance Criteria
 
-- Agents read `.ai/REQUIREMENTS.md`, `.ai/HANDOFF.md`, and `.ai/ROUTING.md` before substantive work.
+- Mandatory bootstrap is `AGENTS.md` or `CLAUDE.md`, then `.ai/STATE.json`, `.ai/REQUIREMENTS.md`, and `.ai/ROUTING.md`.
+- `.ai/HANDOFF.md` and `.ai/history/` are not automatically loaded.
 - Astra is not used for ordinary implementation, exploration, tests, or visual iteration.
+- Astra receives a fresh compact escalation packet, never a planner/developer/tester transcript.
 
 # Constraints
 

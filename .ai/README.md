@@ -1,18 +1,19 @@
 # Canonical AI project state
 
-This directory is shared by Claude Code, Codex CLI, Cursor, and `airoute`. Availability (2026-09-10): `airoute` is not installed in this environment — work in-session and do not invoke it.
+This directory is shared by Claude Code, Codex CLI, Cursor, and local harnesses. Load only the compact bootstrap by default.
 
 | File | Purpose |
 |---|---|
-| `HANDOFF.md` | Living checkpoint. Keep it short. |
+| `STATE.json` | Mandatory compact resume state. |
 | `REQUIREMENTS.md` | Durable requirements. Do not silently change them. |
 | `DECISIONS.md` | Meaningful decisions only. |
 | `ROUTING.md` | Model-routing policy. |
-| `STATE.json` | Machine-readable campaign/budget/expert-call state. |
+| `HANDOFF.md` | Optional current checkpoint; never mandatory startup context. |
+| `history/` | Retrieval-only historical checkpoints and superseded detail. |
 | `metrics/routing.jsonl` | Routing telemetry, local-only. Generated on the first routed run; absent until then. |
 | `runtime/` | Transient files. Git-ignored. |
-| `hoh/` | Generation-1 HoH campaign overlay (driven by `hc-agent`, which is not installed in this environment). Campaigns are git-ignored. |
+| `hoh/` | Generation-1 HoH campaign overlay driven by `~/.hc-agent/bin/hc-agent`. Campaigns are git-ignored. |
 
 Do not store credentials here.
 
-Initialize another repository with `airoute init` (not available in this environment).
+Do not load all of `.ai/` or all campaign evidence at startup. Follow paths from STATE and campaign indexes as needed.

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "currentCampaign": "sleeve-bind-doc-audit-2026-09-10",
-  "currentObjective": "Fixed Nell Calder's stiff sleeves with a sleeve-only garment bind in src/models/texturedActors.js (commit 31fff4f), then audited and corrected the outdated project docs and harness files. Previous performance campaign (2026-09-08/09) is closed; see docs/PERFORMANCE_PASS.md.",
+  "currentCampaign": "astra-context-flow-2026-09-10",
+  "currentObjective": "Measured and redesigned High Country's agent context flow. Mandatory startup is STATE.json + REQUIREMENTS.md + ROUTING.md; HANDOFF/history are retrieval-only. Local hc-agent uses Luna evidence/planning, Terra implementation, Luna verification, Sol escalation, and packet-only Astra decisions.",
   "defaultRoutingMode": "balanced",
-  "lastRole": "worker",
-  "lastModel": "gpt-5.6-terra",
-  "expertCallsThisCampaign": 0,
-  "lastCheckpoint": "2026-09-10T00:00:00.000Z",
-  "verificationStatus": "npm run build green. Check suite is 29 check:* scripts run by scripts/check-all.mjs; on this Windows box the runner fails to spawn the extensionless node_modules/.bin/tsx (ENOENT), so checks are run directly via npx tsx scripts/<check>.mjs. check:textured-model-pilot passes (sleeves move 0.238 m on arm-drop, blouse/skirt 0.000 m); live WebGPU captures in audit/nell-sleeves-{before,after}/. No router installed in this environment (airoute/hc-agent/~/.ai-harness absent). Latest graded audit is pass-99 (2026-08-28)."
+  "lastRole": "scout",
+  "lastModel": "gpt-5.6-luna",
+  "expertCallsThisCampaign": 1,
+  "lastCheckpoint": "2026-09-11T04:13:45Z",
+  "verificationStatus": "Context audit uses recorded Experiment A telemetry (5,594,308 aggregate input through iteration-2 planner). Historical HANDOFF hash matches HEAD after archival. hc-agent: 28 tests pass; airoute: 31 tests pass. Live post-change probes: planner-1 18,259 input/1 request, planner-2 20,243/1, Terra first inference 16,594/1, Luna tester first inference 17,204/1, Astra 12,011/1. A one-request Luna guard probe stopped a tool continuation and recovered 13,113 aggregate input from the rollout. Request/tool guards are 1/0 Planner, 11/10 Developer, 7/6 Tester, 1/0 Visual, and 1/0 Expert; Developer/Tester auto-compact at 32K. Astra escalation requires an explicit substantive same-subsystem failure after Sol. Existing game-source changes remain untouched."
 }

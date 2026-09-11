@@ -12,5 +12,34 @@
     "playtest": "npm run playtest"
   },
   "visualFirst": true,
-  "auditPois": ["ranch", "silverCreek", "lakeMercy"]
+  "auditPois": ["ranch", "silverCreek", "lakeMercy"],
+  "roles": {
+    "planner": { "harness": "codex", "model": "gpt-5.6-luna", "effort": "medium", "sandbox": "read-only" },
+    "developer": { "harness": "codex", "model": "gpt-5.6-terra", "effort": "medium", "sandbox": "workspace-write" },
+    "tester": { "harness": "codex", "model": "gpt-5.6-luna", "effort": "medium", "sandbox": "workspace-write" },
+    "visual": { "harness": "codex", "model": "gpt-5.6-luna", "effort": "medium", "sandbox": "read-only" },
+    "senior": { "harness": "codex", "model": "gpt-5.6-sol", "effort": "high", "sandbox": "read-only" },
+    "expert": { "harness": "codex", "model": "gpt-6-astra", "effort": "high", "sandbox": "read-only" }
+  },
+  "limits": {
+    "maxExpertCallsPerCampaign": 1,
+    "maxExpertPacketTokens": 10000,
+    "roleModelRequestBudgets": { "planner": 1, "developer": 11, "tester": 7, "visual": 1, "expert": 1 },
+    "roleToolBudgets": { "planner": 0, "developer": 10, "tester": 6, "visual": 0, "expert": 0 }
+  },
+  "context": {
+    "bootstrap": ["AGENTS.md", ".ai/STATE.json", ".ai/REQUIREMENTS.md", ".ai/ROUTING.md"],
+    "retrievalOnly": [".ai/HANDOFF.md", ".ai/history/", "evidence/**/harness/*-events.jsonl"],
+    "projectDocMaxBytes": 0,
+    "toolOutputTokenLimit": 4000,
+    "roleAutoCompactTokenLimits": {
+      "planner": 24000,
+      "developer": 32000,
+      "tester": 32000,
+      "visual": 24000,
+      "senior": 32000,
+      "expert": 16000
+    },
+    "expert": "fresh-packet-only"
+  }
 }
