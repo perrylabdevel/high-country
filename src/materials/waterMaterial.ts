@@ -205,6 +205,13 @@ export function createWaterMaterial(
     // surface are the far bank, not its bed), so it needs a much higher
     // floor or it renders as washed-out milk.
     refractBase?: number;
+    // Width, in metres of aShore, over which this body's edge fades from
+    // transparent to opaque. The lake's default 0.65 m is a trivial fraction
+    // of its own rim scale (its aShore reaches ~306 m mid-basin), but a creek
+    // ribbon's half-width is only ~5.4 m, so 0.65 m is 12% of it — a 5 px
+    // fade on a 91 px band at the overhead vantage, which reads as a drawn
+    // line rather than water grading into its bank. Creeks pass 2.0.
+    shoreFade?: number;
     // Multiplier on waterRefraction for the screen-sample offset. The offset
     // is depth-scaled, and a creek is 0.45 m against the lake's 1-3 m, so at
     // warp 1 a creek's bed shows through UNDISTORTED — a crisp static image
@@ -364,7 +371,12 @@ export function createWaterMaterial(
     envMapIntensity: 1.0
   });
   const bankNoise = mx_noise_float(pos.mul(0.7)).mul(0.12).add(0.18);
-  const shoreOpacity = smoothstep(bankNoise, bankNoise.add(0.65), shoreDistance);
+  // Per-body edge fade (see shoreFade in opts). Defaults to the lake's
+  // historical 0.65 m so only bodies that opt in are affected: measured, a
+  // shared 2.0 m moved the lake's outermost rim ring one sample toward sand
+  // (rgb(59,59,50) -> rgb(77,68,51) at the shoreline), which is not wanted.
+  const shoreFade = float(opts.shoreFade ?? 0.65);
+  const shoreOpacity = smoothstep(bankNoise, bankNoise.add(shoreFade), shoreDistance);
   mat.opacityNode = depthSource === "attribute"
     ? shoreOpacity.mul(smoothstep(float(0), float(0.12), depth)).mul(attribute("aJoin", "float") as Node<"float">)
     : shoreOpacity;

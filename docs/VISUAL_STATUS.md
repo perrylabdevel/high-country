@@ -33,6 +33,74 @@ biasing its easing stronger early. Evidence: local captures
 `audit/creek-tone-close-*.png` / `audit/creek-tone-close-clear.png` (not
 committed; absent from the tree).
 
+**Full-length +1 m depth experiment — reverted 2026-09-11.** Lowering the
+creek carve and Lake Mercy mouth beds by 1 m while increasing `CREEK_DEPTH`
+0.45 → 1.45 kept the upstream surface grade fixed and changed the High Country
+mouth's measured water depth 0.20 → 1.20 m (Silver's rendered triangle gained
+0.82 m). It did not hide the constant-width mouth, and the High Country
+overhead creek/lake cyan-cast gap worsened from about 0.5 to 6.5 RGB levels.
+The source change was reverted. Diagnostic WebGPU frames remain locally as
+`audit/creek-tone-deepened-*.png`.
+
+**Correction to the above:** "did not hide the constant-width mouth" describes
+a mouth that is not constant-width. Measured off the built ribbon geometry, the
+`bankWidth` binary search against `meshHeightAt` already flares highCountry
+6.69 m (36 m out) → 11.82 m (12 m out) → 10.42 m at the rim, and silver
+8.48 → 10.75 → 9.60. The mouths widen into the lake for the right reason
+(terrain intersection with the water plane), and a constant `creek.width * 0.38`
+is never the rendered width. No authored taper is needed; do not add one.
+
+## Creek bank edge softened — 2026-09-11 (shipped)
+
+**The defect, in the user's words: the edge where creek meets sand is too
+sharp.** Not the lake junction — that measures clean (values drift gently
+across the waterline with no step).
+
+Cause, measured: a creek ribbon's half-width at the Lake Mercy mouth is 5.44 m
+(91 px at the overhead vantage, 0.120 m/px), but `shoreOpacity` faded its edge
+over 0.65 m — **12% of the half-width, ~5 px**. Worse, `across` had only five
+points (`-1, -0.8, 0, 0.8, 1`), putting the outermost interior vertex ~1 m in,
+so the fade had a single interval to interpolate over.
+
+Fixed as one change: `across` → nine points clustered at the banks
+(`aShore` now samples 0.33 / 0.98 / 2.74 m in from each bank instead of just
+1.0), and a new per-body `shoreFade` option on `createWaterMaterial`, which
+creeks pass as `CREEK_SHORE_FADE = 2.0`.
+
+Measured across the left bank at the overhead mouth vantage, 2 px steps:
+
+| | profile | worst step |
+|---|---|---|
+| before | 96,95,95,96,94,**82,65**,60,56,52,49 | 17 levels in 2 px |
+| after | 96,95,95,95,95,92,88,82,73,63,54,49,45 | 10 levels |
+
+Wider *and* smoother — the transition is ~16 px with evenly spaced steps.
+Whole-frame vs baseline: highCountry mean **0.0956**/255 (0.77% of pixels,
+bbox x 721-816 — confined to the creek band), silver **0.1691** (full-frame:
+that oblique vantage sees other ribbons, which also got the wider fade). The
+re-capture noise floor is 0.034, so both are real.
+
+**The lake is deliberately excluded.** A shared 2.0 m moved the lake's
+outermost rim ring one sample toward sand (shoreline rgb(59,59,50) →
+rgb(77,68,51)); `shoreFade` defaults to the historical 0.65 m and the
+decoupled build measures rgb(59,59,50) again, exactly baseline. Cost: creek
+ribbons double their triangles (10,720 → 21,440 for highCountry).
+
+Frames: `audit/creek-tone-decoupled-*.png` (after),
+`audit/creek-tone-current-*.png` (before). `npm run check` 28/29 — the one
+failure is the pre-existing `check:nav-graph` timing budget.
+
+**This change is a candidate for revert** if the softer edge reads as blurry
+in play; it is one self-contained commit.
+
+**aJoin fade widening — reverted 2026-09-11.** Before finding the bank-edge
+cause, the mouth opacity crossfade was widened 1.1 m → 4.5 m on the theory that
+it was sub-sampled to a hard step (true: measured off the geometry, highCountry
+carried ZERO partial-opacity stations, silver one). Widening produced 2-3
+partial stations per ribbon as designed — and was **invisible**: whole-frame
+mean 0.0096/255, below the 0.034 re-capture noise floor, 0.15% of pixels in a
+79×44 box. The join was never what read as a seam. Reverted.
+
 ## Current road-rut geometry — 2026-09-07
 
 The current production build uses 25x25 fine terrain triangles in road cells,

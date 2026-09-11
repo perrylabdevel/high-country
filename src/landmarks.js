@@ -1142,6 +1142,19 @@ const CREEK_DEPTH = 0.45;
 // Upstream refraction-warp multiplier for creek ribbons; eased to the lake's
 // 1 at the mouth. See the warps.push() comment in buildCreekRibbon.
 const CREEK_WARP = 4;
+/**
+ * Width in metres over which a creek ribbon's edge fades out sideways, passed
+ * to createWaterMaterial as shoreFade. The lake keeps the 0.65 m default.
+ *
+ * At 0.65 m the fade was 12% of a creek's ~5.44 m half-width — about 5 px of
+ * an otherwise 91 px band at the overhead mouth vantage — so the bank edge
+ * rendered as a drawn line. Measured across the left bank before and after:
+ * 96,95,95,96,94,82,65,60,56,52,49 (a 17-level step in 2 px) became
+ * 96,95,95,95,95,92,88,82,73,63,54,49,45 (largest step 10). Pairs with the
+ * nine-point `across` array in buildCreekRibbon, which supplies the vertices
+ * the wider fade interpolates over.
+ */
+const CREEK_SHORE_FADE = 2.0;
 
 function buildCreekRibbon(creek, lakeDistance) {
   const samples = [];
@@ -1205,7 +1218,16 @@ function buildCreekRibbon(creek, lakeDistance) {
   const shores = [];
   const joins = [];
   const warps = [];
-  const across = [-1, -0.8, 0, 0.8, 1];
+  // Nine points across, clustered toward the banks. The old five (-1, -0.8, 0,
+  // 0.8, 1) put the outermost interior vertex ~1 m in from the bank on a 5.4 m
+  // half-width, so the shoreOpacity fade had a single interval to interpolate
+  // across and the ribbon's edge rendered as a ~5 px line on a 91 px band —
+  // read as a cut-out shape laid on the sand rather than water in a channel.
+  // aShore is (1 - |s|) * bankWidth, so these land at roughly 0.33, 0.98 and
+  // 1.96 m in from each bank: three samples through the fade zone instead of
+  // one. The index loop below is written against across.length and needs no
+  // change.
+  const across = [-1, -0.94, -0.82, -0.5, 0, 0.5, 0.82, 0.94, 1];
   let distance = 0;
   for (let i = 0; i < kept.length; i += 1) {
     const p = { ...kept[i] };
@@ -1409,10 +1431,10 @@ export function createWater(scene, {
   // changes the grazing surface by ≤ 3/255).
   const creekMat = fallback
     ? createWaterFallbackMaterial()
-    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.15 });
+    : createWaterMaterial(normalMap, { depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.15, shoreFade: CREEK_SHORE_FADE });
   const toxicMat = fallback
     ? createWaterFallbackMaterial(true)
-    : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55 });
+    : createWaterMaterial(normalMap, { toxic: true, depthSource: "attribute", screenRefraction, foamScale: 0.12, refractBase: 0.55, shoreFade: CREEK_SHORE_FADE });
   const washMat = new THREE.MeshStandardNodeMaterial({
     color: 0xc2a070,
     roughness: 0.95
