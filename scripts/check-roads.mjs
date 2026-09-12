@@ -8,6 +8,7 @@ import {
   CREEKS,
   BRIDGES,
   ROAD_LIFT,
+  mapToWorld,
   nearestRoadDistance,
   measureRoadNetwork
 } from "../src/map.js";
@@ -58,6 +59,44 @@ const normalNodes = [...dependencies(terrainMat.normalNode)];
 assert(normalNodes.some((n) => n.method === "oneMinus"), "Terrain normal map green channel is not flipped for the rotated plane UV basis");
 assert(materialSettings.roadRoughnessMin >= 0.75, "Dry road roughness must stay >= 0.75; polished wheel tracks read as oil");
 assert([...dependencies(terrainMat.roughnessNode)].some((n) => n.isUniformNode && n.name === "roadRoughnessMin"), "The terrain roughness bypasses the dry-road floor; connect roadRoughness to roughnessNode");
+
+// The four seamless terrain textures all sample one world-space grid. Their
+// 6/8/12/6 m scales line up exactly every 24 m, so without a varying sample
+// offset their contents repeat as a checkerboard even though no tile edge is
+// discontinuous. Keep a material, not asset, invariant: enough smooth phase
+// displacement to decorrelate adjacent tiles, wired into every PBR output so
+// albedo, blend height, roughness and normals cannot slide apart silently.
+const terrainTilings = [
+  materialSettings.grassTiling,
+  materialSettings.dirtTiling,
+  materialSettings.rockTiling,
+  materialSettings.gravelTiling
+];
+const minTerrainTiling = Math.min(...terrainTilings);
+const maxTerrainTiling = Math.max(...terrainTilings);
+const warpPhase = materialSettings.terrainWarpAmp / minTerrainTiling;
+const warpGradient = materialSettings.terrainWarpAmp / materialSettings.terrainWarpPeriod;
+assert(
+  warpPhase >= 0.5,
+  `terrainWarpAmp ${materialSettings.terrainWarpAmp} shifts only ${warpPhase.toFixed(2)} of the smallest tile; ` +
+    `keep it >= ${(minTerrainTiling * 0.5).toFixed(1)} m or the 24 m checkerboard returns`
+);
+assert(
+  materialSettings.terrainWarpPeriod >= maxTerrainTiling * 2 && warpGradient >= 0.12 && warpGradient <= 0.2,
+  `terrain warp must be gradual but vary between adjacent tiles (period=${materialSettings.terrainWarpPeriod}, ` +
+    `amp/period=${warpGradient.toFixed(3)}; require period >= ${(maxTerrainTiling * 2).toFixed(1)} and gradient 0.12..0.20)`
+);
+for (const [label, root] of [
+  ["color", terrainMat.colorNode],
+  ["roughness", terrainMat.roughnessNode],
+  ["normal", terrainMat.normalNode]
+]) {
+  const names = new Set([...dependencies(root)].filter((n) => n.isUniformNode).map((n) => n.name));
+  assert(
+    names.has("terrainWarpAmp") && names.has("terrainWarpPeriod"),
+    `Terrain ${label} graph bypasses the shared sample warp; reconnect it or PBR channels will repeat/misregister`
+  );
+}
 let minRoadRoughness = 1;
 for (const source of [0, 0.25, 0.5, 0.85, 1]) {
   for (const center of [0, 0.5, 1]) {
@@ -136,6 +175,55 @@ const wash = CREEKS.find((c) => c.name === "deadman");
 assert(wash.dry === true, "Deadman's Wash should be a dry bed");
 assert(BRIDGES.length >= 2, "creek crossings need blockout bridges");
 
+function nearestRoadSegment(x, z) {
+  let best = null;
+  for (const road of ROADS) {
+    for (let i = 0; i < road.pts.length - 1; i += 1) {
+      const a = mapToWorld(road.pts[i][0], road.pts[i][1]);
+      const b = mapToWorld(road.pts[i + 1][0], road.pts[i + 1][1]);
+      const dx = b.x - a.x;
+      const dz = b.z - a.z;
+      const lengthSq = dx * dx + dz * dz;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lengthSq));
+      const px = a.x + dx * t;
+      const pz = a.z + dz * t;
+      const distance = Math.hypot(x - px, z - pz);
+      if (!best || distance < best.distance) {
+        const length = Math.sqrt(lengthSq);
+        best = { road: road.name, distance, tx: dx / length, tz: dz / length };
+      }
+    }
+  }
+  return best;
+}
+
+// A bridge's long local Z axis must continue the road through the crossing.
+// The ranch bridge's north/south alignment hid a sign/angle mistake because
+// its span is symmetric; tribalCreek was visibly rotated across its approach.
+const bridgeAlignment = [];
+for (const bridge of BRIDGES.filter((entry) => !entry.rail)) {
+  const p = mapToWorld(bridge.u, bridge.v);
+  const nearest = nearestRoadSegment(p.x, p.z);
+  const bx = Math.sin(bridge.yaw);
+  const bz = -Math.cos(bridge.yaw);
+  const dot = Math.min(1, Math.abs(bx * nearest.tx + bz * nearest.tz));
+  const angleDeg = Math.acos(dot) * 180 / Math.PI;
+  bridgeAlignment.push({
+    bridge: bridge.name,
+    road: nearest.road,
+    centerError: Number(nearest.distance.toFixed(3)),
+    angleErrorDeg: Number(angleDeg.toFixed(3))
+  });
+  assert(
+    nearest.distance <= 1,
+    `${bridge.name} bridge center is ${nearest.distance.toFixed(2)} m off ${nearest.road}; place it on the road/creek crossing`
+  );
+  assert(
+    angleDeg <= 3,
+    `${bridge.name} bridge span is ${angleDeg.toFixed(1)}° off ${nearest.road}; align its yaw to the local road tangent`
+  );
+}
+
 bakeHeightfield();
 const stats = measureRoadNetwork(heightAt, 7);
 assert(stats.length2d > 8000, `road network 2D length too short: ${stats.length2d}`);
@@ -159,7 +247,14 @@ console.log(JSON.stringify({
   kinds: [...kinds],
   roads: ROADS.length,
   creeks: CREEKS.map((c) => c.name),
+  bridgeAlignment,
   lift: ROAD_LIFT,
+  terrainWarp: {
+    amplitude: materialSettings.terrainWarpAmp,
+    period: materialSettings.terrainWarpPeriod,
+    phase: Number(warpPhase.toFixed(3)),
+    gradient: Number(warpGradient.toFixed(3))
+  },
   rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact, grooveFloor, grooveLip, minRoadRoughness },
   stats,
   near: {

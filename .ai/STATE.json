@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "astra-context-flow-2026-09-10",
-  "currentObjective": "Measured and redesigned High Country's agent context flow. Mandatory startup is STATE.json + REQUIREMENTS.md + ROUTING.md; HANDOFF/history are retrieval-only. Local hc-agent uses Luna evidence/planning, Terra implementation, Luna verification, Sol escalation, and packet-only Astra decisions.",
+  "currentObjective": "Remove visible ground-texture checkerboarding and correct the pre-existing tribal creek bridge placement without regressing either fix.",
   "defaultRoutingMode": "balanced",
   "lastRole": "scout",
   "lastModel": "gpt-5.6-luna",
   "expertCallsThisCampaign": 1,
-  "lastCheckpoint": "2026-09-11T04:13:45Z",
-  "verificationStatus": "Context audit uses recorded Experiment A telemetry (5,594,308 aggregate input through iteration-2 planner). Historical HANDOFF hash matches HEAD after archival. hc-agent: 28 tests pass; airoute: 31 tests pass. Live post-change probes: planner-1 18,259 input/1 request, planner-2 20,243/1, Terra first inference 16,594/1, Luna tester first inference 17,204/1, Astra 12,011/1. A one-request Luna guard probe stopped a tool continuation and recovered 13,113 aggregate input from the rollout. Request/tool guards are 1/0 Planner, 11/10 Developer, 7/6 Tester, 1/0 Visual, and 1/0 Expert; Developer/Tester auto-compact at 32K. Astra escalation requires an explicit substantive same-subsystem failure after Sol. Existing game-source changes remain untouched."
+  "lastCheckpoint": "2026-09-12T02:07:30Z",
+  "verificationStatus": "Terrain checkerboard fix: production build passes (4.82s); check:roads passes with warp amplitude 3.6 m, period 24 m, phase 0.6, gradient 0.15. Negative injection terrainWarpAmp=0 fails with the intended '24 m checkerboard returns' message, then passes after restore. Exact orthographic WebGPU A/B reduced 6 m tile-lag autocorrelation from ~0.995 to 0.07-0.09 and 24 m re-sync from ~0.995 to 0.01-0.02; final Western Range midday/golden WebGPU captures are clean. The pre-existing tribalCreek definition was 9.12 m off the road/creek crossing and 19.04 degrees off its trail; it now uses the exact intersection and tangent, and check:roads reports 0 m/0 degrees. Corrected WebGPU plan capture is audit/bridge-warp-ab/tribalCreek-warp-3.6.png. Full npm run check: 28/29; only pre-existing timing-sensitive check:nav-graph failed at 52 ms vs 50 ms under load 50.60, and isolated retry failed at 175 ms under load 29.74 on 8 cores. package-lock.json and .claude/worktrees/creek-capture-headed were pre-existing and untouched."
 }

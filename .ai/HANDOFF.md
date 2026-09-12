@@ -4,10 +4,28 @@
 
 ## Active work
 
-- Context-flow audit and conservative harness redesign completed locally on 2026-09-10.
-- The pre-redesign troubleshooting journal is preserved verbatim at `history/HANDOFF-2026-09-10-pre-context-redesign.md`.
-- Full findings and before/after budget: `CONTEXT_AUDIT.md`.
-- Astra approved the architecture conditionally; the harness now hard-stops an over-budget tool start and compacts Developer/Tester active context at 32K. Provider-internal retries remain observable, not pre-dispatch-controllable.
+- Ground-texture checkerboard fix is implemented in `terrainMaterial.ts` and
+  tuned to a 3.6 m sample-position warp over a 24 m noise period. All terrain
+  PBR channels share the warp; true-world splat weights and road geometry do not.
+- `check:roads` pins the useful warp range and graph wiring. Its negative test
+  failed correctly at zero amplitude, then passed after restore.
+- Exact WebGPU plan-view measurement reduced 6 m/24 m recurrence from ~0.995
+  to 0.07-0.09/0.01-0.02. Final audit-vantage frames are under
+  `audit/ground-repeat-final-range/`.
+- The tribal-lands bridge issue was pre-existing, not caused by terrain warp:
+  same-page warp 0/3.6 captures left its transform unchanged. `tribalCreek`
+  was 9.12 m off the first foothillsTribal/Silver Creek intersection and
+  19.04 degrees off its trail; it now uses the exact crossing and tangent.
+  `check:roads` reports 0 m/0 degrees, after the old definition was observed
+  failing the new invariant. Corrected WebGPU plan frame:
+  `audit/bridge-warp-ab/tribalCreek-warp-3.6.png`.
+- `npm run build` passes. `npm run check` passed 28/29; only the known
+  timing-sensitive nav-graph budget failed under sustained host contention
+  (52 ms vs 50 ms at load 50.60 on 8 cores); the isolated retry was 175 ms at
+  load 29.74. Do not change navigation for these unrelated fixes; rerun on an
+  idle host.
+- `package-lock.json` and `.claude/worktrees/creek-capture-headed` predate this
+  work and were not modified by the terrain fix.
 
 ## Retrieval rule
 

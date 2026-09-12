@@ -503,6 +503,24 @@ decorates is not an edge decoration — it is a second signal. Any
 material debug views (weights/road) that already existed made this a
 two-capture diagnosis, and the splat bake being sampleable in node made it
 falsifiable in minutes.
+### 1.15 Seamless terrain tiles still repeat as a checkerboard
+
+All four terrain sets were individually seamless: edge-to-edge RGB differences
+were within ordinary adjacent-pixel variation. The repetition lived in the
+sampling arithmetic instead. Grass/dirt/rock/gravel used 6/8/12/6 m world UVs
+from the same origin, so every channel re-synchronised on an exact 24 m square
+grid. Macro tint and a weak second albedo scale changed colour inside the cells
+but did not remove the stamped phase.
+
+An orthographic 96 m WebGPU A/B made the invisible arithmetic visible. With
+vegetation hidden, luminance autocorrelation was ~0.995 at both the 6 m tile lag
+and 24 m full re-sync. A shared smooth sample-position warp (3.6 m amplitude,
+24 m period) reduced those to 0.07-0.09 and 0.01-0.02. Shorter periods scored
+lower still but visibly curled the ground grain into swirls, so they were not
+shipped. The same warped coordinate must feed albedo, blend height, roughness
+and normals; warping colour alone would trade a checkerboard for misregistered
+PBR detail. `check:roads` pins both the useful warp range and that graph wiring.
+
 ## 2. Spatial and geometry
 
 ### 2.1 `THREE.LOD` cannot do per-instance LOD
@@ -658,6 +676,29 @@ defective"; the camera must visit every herd home. (2) The check's
 "animal never moved" guard tripped on a 2-minute window because a sheep can
 legitimately graze through its whole active slice — the guard needs a window
 long enough that walking is expected, not lucky.
+
+---
+
+### 2.11 Approximate bridge coordinates can hide both translation and yaw errors
+
+**Symptom (2026-09-11):** the tribal-lands creek bridge visibly failed to
+continue its approach trail. It had been noticed after an unrelated terrain
+material change, but exact same-page captures with that material's warp at 0
+and 3.6 m produced identical bridge pixels and transforms.
+
+**Cause:** `tribalCreek` was authored with rounded map coordinates `(0.59,
+0.31)` and an eyeballed yaw `1.15`. The centre missed the first
+`foothillsTribal`/Silver Creek intersection by 9.12 m, and the long deck axis
+was 19.04 degrees off the local trail tangent. Nothing connected a bridge
+definition to the road geometry it is meant to continue.
+
+**Fix:** solve the polyline intersection and use the local road tangent:
+`(0.5914285714, 0.3085714286)`, yaw `0.8176450458`. The bridge is symmetric,
+so the heading is compared modulo 180 degrees. `check:roads` now finds the
+nearest road segment for every non-rail bridge and requires centre error <= 1 m
+and undirected heading error <= 3 degrees. The old definition was
+negative-tested: it fails first with `tribalCreek bridge center is 9.12 m off
+foothillsTribal`.
 
 ---
 

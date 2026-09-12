@@ -61,6 +61,8 @@ export function createMaterialPanel(options: {
   folders.terrain.add(materialSettings, "altEnd", 10, 160, 0.5).onChange(onTerrain);
   folders.terrain.add(materialSettings, "macroPeriod", 40, 400, 1).onChange(onTerrain);
   folders.terrain.add(materialSettings, "macroStrength", 0, 0.5, 0.01).onChange(onTerrain);
+  folders.terrain.add(materialSettings, "terrainWarpAmp", 0, 6, 0.1).name("tile warp").onChange(onTerrain);
+  folders.terrain.add(materialSettings, "terrainWarpPeriod", 12, 120, 1).name("warp period").onChange(onTerrain);
   folders.terrain.add(materialSettings, "vertexColorMix", 0, 1, 0.01).onChange(onTerrain);
   folders.terrain.add(materialSettings, "twoScaleMix", 0, 1, 0.01).onChange(onTerrain);
   folders.terrain.add(materialSettings, "albedoGain", 0.5, 2, 0.01).onChange(onTerrain);

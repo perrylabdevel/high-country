@@ -50,6 +50,8 @@ const NUMERIC_KEYS = [
   "altEnd",
   "macroPeriod",
   "macroStrength",
+  "terrainWarpAmp",
+  "terrainWarpPeriod",
   "vertexColorMix",
   "twoScaleMix",
   "detailDistanceQ",
@@ -111,8 +113,8 @@ function dummyLinear(r: number, g: number, b: number): THREE.DataTexture {
 const FLAT_NORMAL = dummyLinear(128, 128, 255);
 const FLAT_ORM = dummyLinear(255, 217, 128);
 
-function worldUv(tiling: FloatUniform) {
-  return positionWorld.xz.div(tiling);
+function worldUv(tiling: FloatUniform, samplePosition: Node<"vec2"> = positionWorld.xz) {
+  return samplePosition.div(tiling);
 }
 
 function sampleOrmNormal(set: LoadedSet, uvNode: ReturnType<typeof worldUv>) {
@@ -140,15 +142,21 @@ export function decodeRoadLateral(road: Node<"float">, packed: Node<"float">) {
   return mix(legacy, normalized, smoothstep(float(0.2), float(0.7), road));
 }
 
-function twoScaleAlbedo(set: LoadedSet, tiling: FloatUniform, near: Node<"float">, useTwoScale: boolean) {
+function twoScaleAlbedo(
+  set: LoadedSet,
+  tiling: FloatUniform,
+  samplePosition: Node<"vec2">,
+  near: Node<"float">,
+  useTwoScale: boolean
+) {
   if (!useTwoScale) {
-    return texture(set.albedo, worldUv(tiling)).rgb;
+    return texture(set.albedo, worldUv(tiling, samplePosition)).rgb;
   }
-  const uvA = worldUv(tiling);
+  const uvA = worldUv(tiling, samplePosition);
   // 0.32 puts the second scale around 2.6 m per repeat (8 m base tiling):
   // fine enough to read as human-scale ground detail at the audit distances,
   // coarse enough that it does not turn into dense speckle up close.
-  const uvB = worldUv(tiling.mul(0.32));
+  const uvB = worldUv(tiling.mul(0.32), samplePosition);
   const a = texture(set.albedo, uvA).rgb;
   const b = texture(set.albedo, uvB).rgb;
   return mix(a, blendOverlay(a, b), u.twoScaleMix.mul(near));
@@ -279,13 +287,33 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const rockW = max(rockFromSplat, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
   const gravelW = roadMask.toVar();
 
-  const grassUv = worldUv(u.grassTiling);
-  const dirtUv = worldUv(u.dirtTiling);
-  const rockUv = worldUv(u.rockTiling);
-  const gravelUv = worldUv(u.gravelTiling);
+  // Every terrain set is authored as a seamless tile, but seamless does not
+  // mean non-repeating. The 6/8/12/6 m layer scales share the world origin and
+  // re-synchronise exactly every 24 m, making the repeated contents read as a
+  // checkerboard across open country. Distort the shared sample position with
+  // smooth, decorrelated noise so adjacent nominal tiles no longer show the
+  // same features in the same places. The same position drives albedo, height,
+  // roughness and normals, preserving their registration; splat weights and
+  // road geometry remain in true world space.
+  const warpDomain = positionWorld.xz.div(u.terrainWarpPeriod);
+  const warpOffset = vec2(
+    mx_noise_float(warpDomain),
+    mx_noise_float(warpDomain.add(vec2(19.19, -7.37)))
+  ).mul(u.terrainWarpAmp);
+  const terrainSamplePosition = positionWorld.xz.add(warpOffset).toVar();
+  const terrainSamplePosition3 = vec3(
+    terrainSamplePosition.x,
+    positionWorld.y,
+    terrainSamplePosition.y
+  );
 
-  const grassAlb = twoScaleAlbedo(maps.grass, u.grassTiling, near, useTwoScale);
-  const dirtAlb = twoScaleAlbedo(maps.dirt, u.dirtTiling, near, useTwoScale);
+  const grassUv = worldUv(u.grassTiling, terrainSamplePosition);
+  const dirtUv = worldUv(u.dirtTiling, terrainSamplePosition);
+  const rockUv = worldUv(u.rockTiling, terrainSamplePosition);
+  const gravelUv = worldUv(u.gravelTiling, terrainSamplePosition);
+
+  const grassAlb = twoScaleAlbedo(maps.grass, u.grassTiling, terrainSamplePosition, near, useTwoScale);
+  const dirtAlb = twoScaleAlbedo(maps.dirt, u.dirtTiling, terrainSamplePosition, near, useTwoScale);
   const rockTexNode = texture(maps.rock.albedo);
   const rockUvAlb = texture(maps.rock.albedo, rockUv).rgb;
   const rockAlb = useTriplanar
@@ -296,13 +324,13 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
           rockTexNode,
           rockTexNode,
           float(1).div(u.rockTiling),
-          positionWorld,
+          terrainSamplePosition3,
           normalWorld
         ).rgb,
         rockSlope.mul(near)
       )
     : rockUvAlb;
-  const gravelBase = twoScaleAlbedo(maps.gravel, u.gravelTiling, near, useTwoScale);
+  const gravelBase = twoScaleAlbedo(maps.gravel, u.gravelTiling, terrainSamplePosition, near, useTwoScale);
 
   /**
    * Wheel tracks. The splat's road channel is one scalar — it cannot say

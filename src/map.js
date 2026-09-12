@@ -417,7 +417,16 @@ export const CREEKS = [
 
 export const BRIDGES = [
   { name: "ranchCreek", u: 0.4, v: 0.37, yaw: 0, width: 7.2, length: 18 },
-  { name: "tribalCreek", u: 0.59, v: 0.31, yaw: 1.15, width: 5.2, length: 16 },
+  // Exact first foothillsTribal/silver-creek intersection. The span is
+  // symmetric, so yaw + pi is equivalent; use the local road tangent here.
+  {
+    name: "tribalCreek",
+    u: 0.5914285714285714,
+    v: 0.3085714285714286,
+    yaw: 0.8176450458327027,
+    width: 5.2,
+    length: 16,
+  },
   // Rail trestles. The three ironRail creek crossings: each sits on the
   // solved crossing point, yawed to the rail's heading there (yaw is the
   // map heading: spin = pi - yaw aligns the span with the track). addBridges

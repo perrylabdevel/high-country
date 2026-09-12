@@ -1,5 +1,32 @@
 # Visual status — completion audit
 
+## Ground texture checkerboard removed — 2026-09-11 (shipped correctness fix)
+
+The grass/dirt/rock/gravel texture sources were seam-safe, but their 6/8/12/6 m
+world-space sampling grids all shared one origin and re-synchronised every
+24 m. In a 96 m orthographic WebGPU plan view with vegetation hidden, the
+unwarped terrain measured ~0.995 luminance autocorrelation at both the 6 m tile
+lag and the 24 m full re-sync lag. A shared 3.6 m sample-position warp over a
+24 m noise period reduced those correlations to 0.07-0.09 and 0.01-0.02 while
+keeping albedo, blend height, roughness, and normals registered. Shorter-period
+variants scored lower but visibly curled the grain into swirls and were
+rejected. Fresh Western Range audit-vantage WebGPU frames are in
+`audit/ground-repeat-final-range/`.
+
+This changes the terrain renderer. The next full audit pass is a new baseline;
+do not compare its total directly with pass-98/99.
+
+## Tribal creek bridge aligned — 2026-09-11 (shipped correctness fix)
+
+The `tribalCreek` bridge defect pre-dated the terrain-warp work. Same-page
+WebGPU captures with terrain warp at 0 and 3.6 m left the bridge transform
+unchanged. Its rounded authored centre was 9.12 m off the first
+`foothillsTribal`/Silver Creek intersection, and its deck heading was 19.04
+degrees off the trail. The definition now uses the exact polyline crossing and
+local trail tangent; `check:roads` reports 0 m centre error and 0 degrees
+heading error. The corrected plan view is
+`audit/bridge-warp-ab/tribalCreek-warp-3.6.png`.
+
 ## MUST IMPROVE — creek/lake junction — 2026-09-08 (accepted as workable, not done)
 
 The user's close nadir of the Lake Mercy mouth still reads as two substances:
