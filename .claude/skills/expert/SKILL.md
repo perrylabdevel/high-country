@@ -1,21 +1,17 @@
 ---
 name: expert
-description: Escalate a compact architecture or unresolved-strategy decision to the Expert role (GPT-6 Astra) via airoute. Never use for ordinary coding.
+description: Ask GPT-6 Astra for one high-impact architecture or unresolved strategy decision. Do not use for implementation or routine debugging.
 disable-model-invocation: true
 ---
 
-# /expert
+# Expert
 
-> `airoute` is not on PATH in this environment. Use an available native expert router when present.
+Use existing evidence to create a fresh, compact decision packet. Gather more evidence first only when the decision is blocked; do not force a Scout → Worker → Senior chain as ceremony.
 
-Astra is scarce. Do not use this for ordinary implementation, exploration, tests, or visual iteration.
+Give Astra this brief:
 
-1. Read `.ai/STATE.json` and relevant task evidence. Read HANDOFF/history only for a named missing detail.
-2. Collect missing evidence with Scout/Worker/Senior first.
-3. Start a fresh expert invocation; never resume or forward the working transcript.
-4. Write a packet with exactly the headings in `.ai/ROUTING.md`, preferably below 10K tokens. Summarize logs and prior model prose; reference source files/symbols and screenshot paths instead of dumping them.
-5. Show the routing reason and estimated packet size.
-6. Run the available EXPERT route with the packet.
-7. Save the decision in `.ai/DECISIONS.md` and downshift to Worker.
+> Determine the underlying issue and best course of action from the supplied evidence. Explore alternative explanations when warranted; prior hypotheses are not binding. Do not implement. Return the decision, concise rationale, material risks, and recommended next action.
 
-If the campaign expert limit is reached, stop unless the user explicitly overrides.
+Include only task-relevant facts. The optional packet fields in `.ai/ROUTING.md` are a content guide, not required headings. Keep the packet below 10K tokens and usually much smaller. Never resume or forward the working transcript.
+
+The invocation is packet-only, outside the project tree, with no repository or tool access. Respect the campaign expert-call limit. Record a meaningful decision in `.ai/DECISIONS.md`, then hand implementation to Worker.
