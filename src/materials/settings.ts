@@ -74,14 +74,11 @@ export const materialSettings = {
   altEnd: 78,
   macroPeriod: 180,
   macroStrength: 0.15,
-  // Smooth world-space domain warp for every terrain PBR channel. The four
-  // layer scales otherwise line up again every 24 m and repeat as square
-  // patches. In a 96 m orthographic WebGPU A/B, 3.6 m / 24 m reduced the
-  // 6 m tile-lag correlation from 0.995 to 0.07-0.09 and the full 24 m
-  // re-sync from 0.995 to 0.01-0.02. Shorter periods broke the grid further
-  // but curled the grain into visible swirls.
-  terrainWarpAmp: 3.6,
-  terrainWarpPeriod: 24,
+  // Stochastic triangular sampling gives each terrain patch an independent
+  // texture phase and blends at the patch edges. Unlike a domain warp, it
+  // removes the recurring source-image patches instead of bending them into a
+  // wavy checkerboard. Zero is an exact plain-texture A/B mode.
+  terrainStochastic: 1,
   vertexColorMix: 0.34,
   twoScaleMix: 0.12,
   albedoGain: 1.0,

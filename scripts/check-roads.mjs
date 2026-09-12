@@ -60,31 +60,13 @@ assert(normalNodes.some((n) => n.method === "oneMinus"), "Terrain normal map gre
 assert(materialSettings.roadRoughnessMin >= 0.75, "Dry road roughness must stay >= 0.75; polished wheel tracks read as oil");
 assert([...dependencies(terrainMat.roughnessNode)].some((n) => n.isUniformNode && n.name === "roadRoughnessMin"), "The terrain roughness bypasses the dry-road floor; connect roadRoughness to roughnessNode");
 
-// The four seamless terrain textures all sample one world-space grid. Their
-// 6/8/12/6 m scales line up exactly every 24 m, so without a varying sample
-// offset their contents repeat as a checkerboard even though no tile edge is
-// discontinuous. Keep a material, not asset, invariant: enough smooth phase
-// displacement to decorrelate adjacent tiles, wired into every PBR output so
-// albedo, blend height, roughness and normals cannot slide apart silently.
-const terrainTilings = [
-  materialSettings.grassTiling,
-  materialSettings.dirtTiling,
-  materialSettings.rockTiling,
-  materialSettings.gravelTiling
-];
-const minTerrainTiling = Math.min(...terrainTilings);
-const maxTerrainTiling = Math.max(...terrainTilings);
-const warpPhase = materialSettings.terrainWarpAmp / minTerrainTiling;
-const warpGradient = materialSettings.terrainWarpAmp / materialSettings.terrainWarpPeriod;
+// Smooth UV warping only bends the same source image into wavy squares. The
+// terrain must instead take several hash-offset samples and blend them, which
+// gives each patch a different source phase while keeping every PBR channel in
+// registration. Zero collapses the samples into the old plainly repeating map.
 assert(
-  warpPhase >= 0.5,
-  `terrainWarpAmp ${materialSettings.terrainWarpAmp} shifts only ${warpPhase.toFixed(2)} of the smallest tile; ` +
-    `keep it >= ${(minTerrainTiling * 0.5).toFixed(1)} m or the 24 m checkerboard returns`
-);
-assert(
-  materialSettings.terrainWarpPeriod >= maxTerrainTiling * 2 && warpGradient >= 0.12 && warpGradient <= 0.2,
-  `terrain warp must be gradual but vary between adjacent tiles (period=${materialSettings.terrainWarpPeriod}, ` +
-    `amp/period=${warpGradient.toFixed(3)}; require period >= ${(maxTerrainTiling * 2).toFixed(1)} and gradient 0.12..0.20)`
+  materialSettings.terrainStochastic >= 0.8,
+  `terrainStochastic ${materialSettings.terrainStochastic} leaves the source tiles recognisable; keep it >= 0.8`
 );
 for (const [label, root] of [
   ["color", terrainMat.colorNode],
@@ -93,8 +75,8 @@ for (const [label, root] of [
 ]) {
   const names = new Set([...dependencies(root)].filter((n) => n.isUniformNode).map((n) => n.name));
   assert(
-    names.has("terrainWarpAmp") && names.has("terrainWarpPeriod"),
-    `Terrain ${label} graph bypasses the shared sample warp; reconnect it or PBR channels will repeat/misregister`
+    names.has("terrainStochastic"),
+    `Terrain ${label} graph bypasses stochastic sampling; reconnect it or source tiles will repeat/misregister`
   );
 }
 let minRoadRoughness = 1;
@@ -249,12 +231,7 @@ console.log(JSON.stringify({
   creeks: CREEKS.map((c) => c.name),
   bridgeAlignment,
   lift: ROAD_LIFT,
-  terrainWarp: {
-    amplitude: materialSettings.terrainWarpAmp,
-    period: materialSettings.terrainWarpPeriod,
-    phase: Number(warpPhase.toFixed(3)),
-    gradient: Number(warpGradient.toFixed(3))
-  },
+  terrainStochastic: materialSettings.terrainStochastic,
   rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact, grooveFloor, grooveLip, minRoadRoughness },
   stats,
   near: {
