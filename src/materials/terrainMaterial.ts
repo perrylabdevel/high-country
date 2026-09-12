@@ -28,7 +28,9 @@ import {
   normalMap,
   blendOverlay,
   select,
-  equal
+  equal,
+  dFdx,
+  dFdy
 } from "three/tsl";
 import { WORLD } from "../map.js";
 import { materialSettings, RUT_TONE } from "./settings.ts";
@@ -50,8 +52,7 @@ const NUMERIC_KEYS = [
   "altEnd",
   "macroPeriod",
   "macroStrength",
-  "terrainWarpAmp",
-  "terrainWarpPeriod",
+  "terrainStochastic",
   "vertexColorMix",
   "twoScaleMix",
   "detailDistanceQ",
@@ -117,9 +118,53 @@ function worldUv(tiling: FloatUniform, samplePosition: Node<"vec2"> = positionWo
   return samplePosition.div(tiling);
 }
 
+/**
+ * Blend three independently phased copies of a seamless terrain map over a
+ * triangular lattice.  A domain warp only bends a repeating tile, which is
+ * why the previous fix turned the checkerboard into wavy squares.  Here each
+ * lattice vertex gets a hash-derived phase and the barycentric blend joins
+ * those samples without an edge, so the source image cannot line up again on
+ * the old 6/8/12/24 m grid.  Explicit derivatives keep the discontinuous
+ * phase offsets from selecting blurry mip levels at lattice boundaries.
+ */
+function terrainSample(tex: THREE.Texture, uv: Node<"vec2">) {
+  const ddx = dFdx(uv);
+  const ddy = dFdy(uv);
+  const skewed = vec2(uv.x.sub(uv.y.mul(0.57735026)), uv.y.mul(1.15470054));
+  const base = skewed.floor();
+  const f = skewed.sub(base);
+  const lower = f.x.add(f.y).lessThan(1.0);
+  const w1 = select(lower, float(1).sub(f.x).sub(f.y), f.x.add(f.y).sub(1.0));
+  const w2 = select(lower, f.x, float(1).sub(f.y));
+  const w3 = select(lower, f.y, float(1).sub(f.x));
+  const v1 = select(lower, base, base.add(vec2(1.0, 1.0)));
+  const v2 = base.add(vec2(1.0, 0.0));
+  const v3 = base.add(vec2(0.0, 1.0));
+  const offset = (v: Node<"vec2">) => {
+    // `three/tsl`'s hash casts its float input to uint. WebGPU clamps a
+    // negative float-to-uint conversion to zero, which made every lattice
+    // vertex on the negative side of this world share the same phase. This
+    // signed float hash is deterministic on either side of world origin.
+    const seed = v.x.mul(127.1).add(v.y.mul(311.7));
+    const random = (n: Node<"float">) => fract(n.sin().mul(43758.5453123));
+    return vec2(random(seed), random(seed.add(74.7)));
+  };
+  const strength = u.terrainStochastic;
+  const s1 = texture(tex, uv.add(offset(v1).mul(strength))).grad(ddx, ddy);
+  const s2 = texture(tex, uv.add(offset(v2).mul(strength))).grad(ddx, ddy);
+  const s3 = texture(tex, uv.add(offset(v3).mul(strength))).grad(ddx, ddy);
+  const mean = texture(tex, uv).level(float(16));
+  const blended = s1.sub(mean).mul(w1).add(s2.sub(mean).mul(w2)).add(s3.sub(mean).mul(w3));
+  const norm = mix(float(1), w1.mul(w1).add(w2.mul(w2)).add(w3.mul(w3)).sqrt().max(1e-4), strength);
+  // Variance restoration can overshoot a normalized texture near a sharp
+  // contrast boundary. PBR source maps are physical [0,1] quantities, so do
+  // not feed an overshoot into albedo, normals, AO, roughness, or height.
+  return blended.div(norm).add(mean).clamp(0, 1);
+}
+
 function sampleOrmNormal(set: LoadedSet, uvNode: ReturnType<typeof worldUv>) {
-  const nrm = texture(set.normal ?? FLAT_NORMAL, uvNode);
-  const orm = texture(set.orm ?? FLAT_ORM, uvNode);
+  const nrm = terrainSample(set.normal ?? FLAT_NORMAL, uvNode);
+  const orm = terrainSample(set.orm ?? FLAT_ORM, uvNode);
   return {
     // PlaneGeometry is rotated -PI/2, so its UV bitangent points toward -Z
     // while worldUv's V axis points toward +Z. Flip the OpenGL normal green
@@ -150,15 +195,15 @@ function twoScaleAlbedo(
   useTwoScale: boolean
 ) {
   if (!useTwoScale) {
-    return texture(set.albedo, worldUv(tiling, samplePosition)).rgb;
+    return terrainSample(set.albedo, worldUv(tiling, samplePosition)).rgb;
   }
   const uvA = worldUv(tiling, samplePosition);
   // 0.32 puts the second scale around 2.6 m per repeat (8 m base tiling):
   // fine enough to read as human-scale ground detail at the audit distances,
   // coarse enough that it does not turn into dense speckle up close.
   const uvB = worldUv(tiling.mul(0.32), samplePosition);
-  const a = texture(set.albedo, uvA).rgb;
-  const b = texture(set.albedo, uvB).rgb;
+  const a = terrainSample(set.albedo, uvA).rgb;
+  const b = terrainSample(set.albedo, uvB).rgb;
   return mix(a, blendOverlay(a, b), u.twoScaleMix.mul(near));
 }
 
@@ -287,25 +332,11 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const rockW = max(rockFromSplat, rockSlope).add(altRock.mul(0.5)).mul(roadMask.oneMinus()).toVar();
   const gravelW = roadMask.toVar();
 
-  // Every terrain set is authored as a seamless tile, but seamless does not
-  // mean non-repeating. The 6/8/12/6 m layer scales share the world origin and
-  // re-synchronise exactly every 24 m, making the repeated contents read as a
-  // checkerboard across open country. Distort the shared sample position with
-  // smooth, decorrelated noise so adjacent nominal tiles no longer show the
-  // same features in the same places. The same position drives albedo, height,
-  // roughness and normals, preserving their registration; splat weights and
-  // road geometry remain in true world space.
-  const warpDomain = positionWorld.xz.div(u.terrainWarpPeriod);
-  const warpOffset = vec2(
-    mx_noise_float(warpDomain),
-    mx_noise_float(warpDomain.add(vec2(19.19, -7.37)))
-  ).mul(u.terrainWarpAmp);
-  const terrainSamplePosition = positionWorld.xz.add(warpOffset).toVar();
-  const terrainSamplePosition3 = vec3(
-    terrainSamplePosition.x,
-    positionWorld.y,
-    terrainSamplePosition.y
-  );
+  // Keep positions in true world space. The anti-repeat sampling happens at
+  // each texture fetch, so it removes recurring source patches without
+  // warping their visible grain into the wavy-board pattern the old approach
+  // produced.
+  const terrainSamplePosition = positionWorld.xz;
 
   const grassUv = worldUv(u.grassTiling, terrainSamplePosition);
   const dirtUv = worldUv(u.dirtTiling, terrainSamplePosition);
@@ -315,7 +346,7 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
   const grassAlb = twoScaleAlbedo(maps.grass, u.grassTiling, terrainSamplePosition, near, useTwoScale);
   const dirtAlb = twoScaleAlbedo(maps.dirt, u.dirtTiling, terrainSamplePosition, near, useTwoScale);
   const rockTexNode = texture(maps.rock.albedo);
-  const rockUvAlb = texture(maps.rock.albedo, rockUv).rgb;
+  const rockUvAlb = terrainSample(maps.rock.albedo, rockUv).rgb;
   const rockAlb = useTriplanar
     ? mix(
         rockUvAlb,
@@ -324,7 +355,7 @@ export function createTerrainMaterial(maps: TerrainMaps, splatMap: THREE.Texture
           rockTexNode,
           rockTexNode,
           float(1).div(u.rockTiling),
-          terrainSamplePosition3,
+          positionWorld,
           normalWorld
         ).rgb,
         rockSlope.mul(near)

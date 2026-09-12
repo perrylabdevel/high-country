@@ -4,14 +4,23 @@
 
 ## Active work
 
-- Ground-texture checkerboard fix is implemented in `terrainMaterial.ts` and
-  tuned to a 3.6 m sample-position warp over a 24 m noise period. All terrain
-  PBR channels share the warp; true-world splat weights and road geometry do not.
-- `check:roads` pins the useful warp range and graph wiring. Its negative test
-  failed correctly at zero amplitude, then passed after restore.
-- Exact WebGPU plan-view measurement reduced 6 m/24 m recurrence from ~0.995
-  to 0.07-0.09/0.01-0.02. Final audit-vantage frames are under
-  `audit/ground-repeat-final-range/`.
+- The 3.6 m domain warp only bent the repeating source tiles into a wavy
+  checkerboard. It has been replaced locally by hash-offset triangular
+  sampling in `terrainMaterial.ts`: three independently phased samples are
+  variance-blended and clamped for every terrain albedo, normal, and ORM map.
+  Splat weights and road geometry remain in true world space.
+- The shader uses a signed float hash, not TSL's float-to-uint hash, because
+  negative world/lattice coordinates would otherwise collapse to the same
+  uint seed in WebGPU. `check:roads` verifies the stochastic setting and its
+  PBR graph wiring; it passes, as does `npm run build`.
+- Render verification remains required. A Playwright Chromium download
+  completed, but this execution sandbox rejects Chromium's ProcessSingleton
+  socket with `Operation not permitted`, so no current WebGPU frame or GPU
+  timing result was produced here. Capture and inspect a matched before/after
+  Western Range frame on a browser-capable host before claiming this visual
+  fix is verified. The stochastic path uses four fetches per original terrain
+  map sample (three phase samples plus the mip-level mean), so measure it on
+  the target GPU.
 - The tribal-lands bridge issue was pre-existing, not caused by terrain warp:
   same-page warp 0/3.6 captures left its transform unchanged. `tribalCreek`
   was 9.12 m off the first foothillsTribal/Silver Creek intersection and
