@@ -1,16 +1,12 @@
 ---
-description: Canonical AI harness state and model-role routing
+description: Outcome-first High Country guidance and task-specific AI routing
 alwaysApply: true
 ---
 
-# AI harness
+# High Country AI guidance
 
-> **Status (2026-09-10):** local `hc-agent` and `~/.ai-harness` are installed; `airoute` is not on PATH.
+Canonical state lives in `.ai/`. Read `.ai/STATE.json` when campaign continuity matters, `.ai/REQUIREMENTS.md` for requirement or harness changes, and `.ai/ROUTING.md` only for model routing or escalation. HANDOFF and history are retrieval-only. Do not load all three merely because a task is large.
 
-Canonical AI project state lives in `.ai/`. Do not overwrite `.ai/ROUTING.md` or global `~/.ai-harness/config/` unless the user asked to change routing policy.
+Work from the requested outcome and hard constraints. Choose proportionate investigation and verification; do not automatically chain every measurement, capture, grading, critic, or second-pass workflow. Broaden only when scope, risk, or evidence warrants it.
 
-Before major implementation, read `.ai/STATE.json`, `.ai/REQUIREMENTS.md`, and `.ai/ROUTING.md`. HANDOFF and `.ai/history/` are retrieval-only and must not be loaded automatically.
-
-Use the same roles as the router: Scout (Luna), Worker (Terra), Senior (Sol), Expert (Astra). Do not treat Astra as the default coding model.
-
-When OpenAI delegation is useful, prefer `airoute` rather than inventing a parallel routing scheme.
+Use Scout (Luna), Worker (Terra), Senior (Sol), and Expert (Astra) through the installed router when delegation adds value. Astra is a fresh, compact decision-only escalation, not the default coding model.

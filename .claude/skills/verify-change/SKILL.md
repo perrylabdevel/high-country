@@ -1,57 +1,28 @@
 ---
 name: verify-change
-description: The gate every change passes before it is committed or reported as done. Run it after any edit to src/, scripts/, or assets/. Use whenever you are about to say a change works.
+description: Select proportionate evidence before reporting a change as done. Use at completion, not after every edit.
 ---
 
-# verify-change
+# Verify a change
 
-The one rule this project runs on: **a change is not done because it looks
-done. It is done when a command says so.**
+A change is done when the evidence supports the claim being made. Choose the smallest meaningful verification for the affected behavior, then broaden only when scope, risk, or a failure warrants it.
 
-## Run these, in order
+## Proportionate verification
 
-```bash
-npm run build      # must print "built in"; any error means stop
-npm run check      # must print PASS 29 times
-```
+- Documentation or agent-instruction changes: inspect the diff and validate the changed format or references. Do not run the game build solely because Markdown changed.
+- Localized code: run the nearest focused check or reproduction. Add a build when compilation or bundling is affected.
+- Cross-cutting systems, shared rendering infrastructure, release candidates, or explicitly full verification: run `npm run build` and `npm run check`.
+- Visual behavior: inspect a representative rendered result from the affected viewpoint and actual backend. Use the full capture/grade set only for a formal visual campaign or genuinely broad visual change.
+- Performance timing: run the affected timing check in isolation on an idle machine.
 
-`npm run check` is 29 contract checks. Read the output. `28/29` is a failure,
-not a rounding error.
+A failure, uncertain scope, or conflicting evidence is a reason to broaden. Success on a focused, representative check is not a reason to add unrelated passes.
 
-Count them: `npm run check 2>&1 | grep -c '^PASS'`. A check that fails throws,
-so the count is the whole story.
+## Always
 
-## Then answer these in your report
+- Inspect `git status --short` and the relevant diff.
+- Do not weaken, skip, or delete an existing check to get green.
+- Do not hand-edit generated texture or asset output; use the asset workflow.
+- State exactly what ran, what it showed, and what remains unverified.
+- Never claim that an unrun test passed.
 
-1. Which command proved it? Paste the line.
-2. What did you NOT verify? Say so explicitly.
-3. Did anything else change? `git status --short` — an unexpected modified
-   file is a bug you have not found yet.
-
-## Never do these
-
-- **Never claim a visual change works without a screenshot.** The build
-  passing proves the code compiles, nothing more. Use `capture-poi`.
-- **Never skip, delete, weaken, or `.skip` a check to get green.** If a check
-  fails, the check is right until you prove otherwise with a command.
-- **Never edit `public/textures/**` or `assets-dist/**` by hand.** They are
-  generated. See `asset-bundle`.
-- **Never commit a file you did not intend to change.** Check `git status`.
-- **Never write "should now work", "this fixes", or "verified" for something
-  you did not run.** Write what you ran and what it printed.
-
-## One change at a time
-
-If you changed three things and the check fails, you have three suspects and
-no information. Change one thing, verify, commit. Then the next.
-
-## Reporting
-
-State the outcome plainly:
-
-- Worked: name the command and its output.
-- Failed: paste the actual error. Do not summarise it away.
-- Partly: say which part is unverified.
-
-An honest "I could not verify this" is worth more than a confident wrong
-claim. Wrong claims in this repo have cost days.
+No mechanical second run is required unless the check is nondeterministic, timing-sensitive, the first result is suspect, or the acceptance criteria demand it.

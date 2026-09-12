@@ -1,29 +1,40 @@
 # High Country
 
-Preserve the existing measurement skills in `.claude/skills/`. Do not replace `scripts/grade.mjs` or the audit method without an explicit request.
+High Country is an existing Three.js/WebGPU browser game. Preserve the established measurement tools in `.claude/skills/`; do not replace `scripts/grade.mjs` or weaken an existing check unless the user explicitly asks to change that system.
 
-# AI harness
+## Working style
 
-Canonical AI project state lives in `.ai/`.
+Define the outcome and hard constraints, then choose the shortest sound path to it. Requirements and safety invariants are binding; documented procedures, examples, and skills are techniques to use when they fit.
 
-Before substantive work, read the compact bootstrap in one command:
+Do not automatically chain measurement, capture, grading, critic, regression-check, or second-pass workflows. Use the smallest investigation and verification that can support the requested claim. Broaden only when the affected surface, risk, evidence, or a failure warrants it.
 
-`cat .ai/STATE.json .ai/REQUIREMENTS.md .ai/ROUTING.md`
+A localized task may need one focused inspection and one targeted check. Cross-cutting changes, releases, shared rendering systems, or formal visual campaigns may justify the full suite and broader evidence.
 
-`.ai/HANDOFF.md` is an on-demand checkpoint, not startup context. Read it only when the compact state points to it or the current task needs its topic. Search `.ai/history/` for older knowledge only when relevant; never dump the archive into active context.
+For visual claims, inspect a representative rendered result from the affected viewpoint and shipping backend. A full multi-POI capture/grade cycle is reserved for formal visual experiments, baseline changes, or changes whose impact is genuinely world-wide.
 
-If a harness prompt embeds those three bootstrap files, treat the requirement as satisfied and do not read them again.
+Continue until the requested outcome is working while safe, relevant steps remain. Do not add mechanical self-critique, repeated passes, or unrelated cleanup merely because a playbook lists them.
 
-Role mappings are configured through `airoute`, not hard-coded. Prefer the assigned role for this invocation. After an EXPERT decision, hand implementation back to WORKER.
+## Context
 
-Availability (2026-09-10): the local Generation-1 `hc-agent` and shared `~/.ai-harness` are installed. `airoute` is not on PATH. Use `~/.hc-agent/bin/hc-agent` for HoH campaigns; otherwise work in-session.
+Canonical AI project state lives in `.ai/`. Read only what the task needs:
+
+- `.ai/STATE.json` for campaign continuity or current work.
+- `.ai/REQUIREMENTS.md` when changing behavior, acceptance criteria, or the harness.
+- `.ai/ROUTING.md` only when routing, delegating, or escalating models.
+- `.ai/HANDOFF.md` or `.ai/history/` only for a named missing detail.
+
+If a harness prompt already embeds a file, do not read it again. Never dump history into active context.
+
+Role mappings are configured through `airoute`, not hard-coded. Prefer the assigned role for the invocation. After an EXPERT decision, hand implementation back to WORKER.
+
+Availability (2026-09-10): Generation-1 `hc-agent` and shared `~/.ai-harness` are installed; `airoute` is not on PATH. Use `~/.hc-agent/bin/hc-agent` for HoH campaigns; otherwise work in-session.
 
 Do not store or request API keys when Codex ChatGPT authentication is available.
 
-# Verification
+## Verification notes
 
-`npm run check` runs the whole suite through `scripts/check-all.mjs`: the geometry checks run concurrently, then `check:collision`, `check:grass-budget` and `check:nav-graph` run one at a time with nothing else on the CPU, because they assert on elapsed time. A concurrent WebGPU capture pushed `check:grass-budget` to 7.13 ms/chunk; the isolated rerun measured 1.96 ms against the same 6 ms budget. The runner remeasures a failed timing check once after the machine settles and says so, so a contention failure is not mistaken for a regression — if it still fails and the reported load is high, re-run on an idle machine before changing any code. `npm run check:sequential` is the old one-at-a-time chain if you need it.
+`npm run check` runs the complete suite through `scripts/check-all.mjs`. Use it when the change is cross-cutting or the acceptance criteria require the whole suite; otherwise run the relevant check(s).
 
-Do not run captures, builds, or a second agent alongside the timing checks.
+Timing checks must run without captures, builds, or another agent competing for the CPU. The runner remeasures a failed timing check once after contention settles. If it still fails under high load, rerun on an idle machine before changing code. `npm run check:sequential` remains available when isolation is needed.
 
-Road-rut diagnostics: `node scripts/capture-ruts.mjs <preview-url> <diagnostic-output-dir>`. It requires the current production build and WebGPU, waits for the actual camera and vegetation to settle, and captures eye-level/detail views in both lights. `CAPTURE_ROAD=stage|townMain|cabinTrail` selects a road; `CAPTURE_RUT_RELIEF=0` isolates the normal-relief contribution without changing roughness or colour. These are diagnostics, not graded audit frames.
+Road-rut diagnostics are available through `node scripts/capture-ruts.mjs <preview-url> <diagnostic-output-dir>`. Use them only for road-rut work; they are not graded audit frames.
