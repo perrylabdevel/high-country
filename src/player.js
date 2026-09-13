@@ -5,6 +5,7 @@ import { POS, clampWorld, headingVector, headingRotationY } from "./map.js";
 import { tune } from "./debug.js";
 import { interiorCeilingAt } from "./buildings/kit.js";
 import { createFigure } from "./figures.js";
+import { installTexturedPilot } from "./models/texturedActors.js";
 
 const PLAYER_RADIUS = 0.42;
 const EYE = 1.62;
@@ -61,6 +62,19 @@ export function createPlayer(camera) {
   });
   const body = figure.group;
   object.add(body);
+
+  // The shipped avatar is a textured, skinned GLB. Mirror the NPC pilot: leave
+  // the procedural figure parented and ticking (hidden) so the figure-pose
+  // probe and its part handles are unchanged, and hang the textured visual
+  // beside it. If the model fails to load, the procedural figure stays visible.
+  let texturedVisual = null;
+  void installTexturedPilot("/models/player.glb", (factory) => {
+    // The authored rancher's exported bounds, hat crown included (scale 1).
+    const visual = factory({ targetHeight: 1.855 });
+    for (const child of body.children) child.visible = false;
+    body.add(visual.object);
+    texturedVisual = visual;
+  });
 
   const state = {
     // Spawn looking at the ranch porch, which sits toward -Z from the spawn point.
@@ -318,6 +332,9 @@ export function createPlayer(camera) {
     } else {
       figure.update(dt, state.speed);
     }
+    // The authored rig has no seated clip, so a mounted rider holds the idle
+    // rather than cycling the walk while sitting on the horse.
+    texturedVisual?.update(dt, state.mounted ? 0 : state.speed);
 
     const feetY = object.position.y;
     const eyeY = feetY + (state.mounted ? RIDE_EYE : EYE);
@@ -387,5 +404,10 @@ export function createPlayer(camera) {
     }
   }
 
-  return { object, body, figure, state, update, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly };
+  return {
+    object, body, figure, state, update, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly,
+    // The pilot installs asynchronously, so expose it through a getter rather
+    // than snapshotting null at construction time.
+    get texturedVisual() { return texturedVisual; }
+  };
 }

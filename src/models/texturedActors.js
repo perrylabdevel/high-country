@@ -4,17 +4,12 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
 // GLTFLoader's PropertyBinding.sanitizeNodeName strips colons, dots and
 // slashes from node names and three's exporter renumbers with a trailing _NN,
-// so an authored `DEF-upper_arm.L_0122` arrives as `DEF-upper_armL_0122`.
-// Matching on a "core" (sanitized form with trailing _NN dropped) is robust
-// against both the authored and the runtime form and against the differing
-// numeric suffixes of the cowboy vs child skeletons.
+// so an authored `upper_arm.L` arrives as `upper_armL`. Matching on a "core"
+// (sanitized, trailing _NN dropped, underscores collapsed) is robust against
+// both the authored and the runtime form.
 function coreBoneName(name) {
   // Order matters: drop the exporter's trailing _NN BEFORE collapsing the
-  // remaining separators, or `mixamorig_LeftArm_011` would core as
-  // `mixamorigLeftArm011`. Collapsing underscores is what lets one table serve
-  // skeletons that differ only in punctuation — the cowboy exports
-  // `mixamorigLeftArm_08` while the settler woman exports
-  // `mixamorig_LeftArm_011`, and both core to `mixamorigLeftArm`.
+  // remaining separators.
   return name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "").replace(/_/g, "");
 }
 function boneByCore(bones, core) {
@@ -24,69 +19,40 @@ function boneByCore(bones, core) {
   return null;
 }
 
-const CORES_DEF = {
-  armL: "DEF-upperarmL",
-  armR: "DEF-upperarmR",
-  legL: "DEF-thighL",
-  legR: "DEF-thighR",
-  torso: "DEF-spine",
-  head: "DEF-spine006"
+// The sheriff is an authored Blender rig (scripts/blender-sheriff). GLTFLoader
+// strips the dots, so `upper_arm.L` arrives as `upper_armL` and cores to
+// `upperarmL`.
+const CORES_SHERIFF = {
+  armL: "upperarmL",
+  armR: "upperarmR",
+  legL: "thighL",
+  legR: "thighR",
+  torso: "chest",
+  head: "head"
 };
-// Gunnar is a Character Creator export: a third skeleton naming scheme
-// alongside Mixamo and the Blender DEF rig. `coreBoneName` drops the trailing
-// _NN, so `CC_Base_L_Upperarm_45` resolves as `CC_Base_L_Upperarm`.
-const CORES_CC = {
-  armL: "CCBaseLUpperarm",
-  armR: "CCBaseRUpperarm",
-  legL: "CCBaseLThigh",
-  legR: "CCBaseRThigh",
-  torso: "CCBaseSpine02",
-  head: "CCBaseHead"
-};
-const CORES_MIXA = {
-  armL: "mixamorigLeftArm",
-  armR: "mixamorigRightArm",
-  legL: "mixamorigLeftUpLeg",
-  legR: "mixamorigRightUpLeg",
-  torso: "mixamorigSpine1",
-  head: "mixamorigHead"
-};
-
 // The source models do not share a coordinate convention. The cow was measured
 // from its GLB rig: its muzzle is +Z of _rootJoint, while High Country actors
 // face local +X. Keep those facts here instead of making call sites guess.
 const MODEL = {
   cow: { sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: Math.PI / 2, idle: "Armature|idle1", gait: true },
-  cowboy: {
+  // Authored Idle/Walk clips key every bone, so composing the NPC pose
+  // handles onto the mixer's output each frame cannot accumulate.
+  sheriff: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    // The only exported cowboy action is a zero-duration Mixamo pose with a
-    // hips position track. It is not an idle/walk clip; never play it.
-    gait: true, coreHandles: CORES_MIXA
+    idle: "Idle", walk: "Walk", coreHandles: CORES_SHERIFF
   },
-  lucille: {
+  // The rest of the cast (public/models/chars) comes out of the same Blender
+  // pipeline as the sheriff: same skeleton names, same clip names.
+  authored: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: "Idle_g", walk: "Walk_g", coreHandles: CORES_DEF
+    idle: "Idle", walk: "Walk", coreHandles: CORES_SHERIFF
   },
-  lillian: {
+  // The player avatar is an authored Blender rig carrying its own Idle/Walk
+  // clips, so it rides the clip mixer rather than a procedural gait. No
+  // coreHandles: nothing composes an authored pose over the player's animation.
+  player: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: "Idle_g", walk: null, coreHandles: CORES_DEF
-  },
-  // The settler woman is a Mixamo skeleton (underscored export) with no clips,
-  // so she rides the same procedural gait as the cowboy — the collapsed cores
-  // above resolve both skeletons from one table.
-  settlerwoman: {
-    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    gait: true, coreHandles: CORES_MIXA
-  },
-  gunnar: {
-    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    // Ships real locomotion, so no procedural gait: hand-on-holster is the
-    // general-purpose idle ("04-leaning" only reads right against a post).
-    idle: "03-handonholster", walk: "02-walk-normal", coreHandles: CORES_CC
-  },
-  childboy: {
-    sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: null, walk: null, coreHandles: CORES_MIXA, gait: true
+    idle: "Idle", walk: "Walk"
   }
 };
 
@@ -95,184 +61,10 @@ const legNames = ["lfl1_017", "lfr1_021", "lbl1_02", "lbr1_031"];
 
 function kindFor(url) {
   if (url.includes("farm-cow.glb")) return "cow";
-  if (url.includes("gunnar")) return "gunnar";
-  if (url.includes("medieval_poor_woman")) return "settlerwoman";
-  if (url.includes("lucille")) return "lucille";
-  if (url.includes("lillian")) return "lillian";
-  if (url.includes("child")) return "childboy";
-  return "cowboy";
-}
-
-// Sleeve-only skinning for the settler woman. Full proximity weight transfer
-// was tried and rejected twice: it fixes the sleeves but drags the blouse's
-// chest panel off the body, because the garment is a separate outer layer over
-// a nude body and copying the body's weights for EVERY vertex collapses that
-// layer onto it. This bind is scoped instead: each garment vertex borrows the
-// weights of the nearest body vertex, but keeps only its arm-bone share; the
-// non-arm remainder stays on the bind-static root. Sleeve fabric therefore
-// follows the arm exactly as far as the body under it does, while the blouse
-// torso and skirt keep a single static root weight and cannot collapse.
-const SETTLER_ARM_CHAIN = {
-  L: ["mixamorigLeftShoulder", "mixamorigLeftArm", "mixamorigLeftForeArm", "mixamorigLeftHand"],
-  R: ["mixamorigRightShoulder", "mixamorigRightArm", "mixamorigRightForeArm", "mixamorigRightHand"]
-};
-// A garment vertex further than this from every body vertex (metres) is fully
-// static rather than borrowing a distant bone; the grid cell sets lookup cost.
-const SLEEVE_MATCH_M = 0.30;
-const SLEEVE_CELL_M = 0.05;
-
-function bindSettlerGarments(scene) {
-  scene.updateMatrixWorld(true);
-  const bodyMeshes = [];
-  scene.traverse((node) => { if (node.isSkinnedMesh) bodyMeshes.push(node); });
-  if (!bodyMeshes.length) return;
-  const body = bodyMeshes[0];
-  const skeleton = body.skeleton;
-  const indexByName = new Map(skeleton.bones.map((bone, i) => [bone.name, i]));
-  const findCore = (core) => skeleton.bones.find((bone) => coreBoneName(bone.name) === core) ?? null;
-  const armBones = new Set();
-  for (const side of ["L", "R"]) {
-    const chain = SETTLER_ARM_CHAIN[side].map(findCore);
-    // Unknown skeleton: leave the garment static rather than guess.
-    if (chain.some((bone) => !bone)) return;
-    for (const bone of chain) armBones.add(indexByName.get(bone.name));
-  }
-  const rootBone = findCore("rootJoint") ?? skeleton.bones[0];
-  const rootIndex = indexByName.get(rootBone.name);
-  const headBone = findCore("mixamorigHead");
-  const headIndex = headBone ? indexByName.get(headBone.name) : rootIndex;
-  // Converts any mesh's world matrix into the body's bind space at bind time.
-  const bodyBindSpace = body.bindMatrix.clone().multiply(body.matrixWorld.clone().invert());
-
-  // Every body vertex position and its four bone weights, in world space, in a
-  // uniform grid, so each garment vertex can find the surface it sits on.
-  const samples = [];
-  const sampleBone = [];
-  const sampleWeight = [];
-  const vertex = new THREE.Vector3();
-  const components = ["X", "Y", "Z", "W"];
-  for (const mesh of bodyMeshes) {
-    const position = mesh.geometry.attributes.position;
-    const skinIndex = mesh.geometry.attributes.skinIndex;
-    const skinWeight = mesh.geometry.attributes.skinWeight;
-    for (let i = 0; i < position.count; i += 1) {
-      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
-      samples.push(vertex.x, vertex.y, vertex.z);
-      for (const c of components) {
-        sampleBone.push(skinIndex[`get${c}`](i));
-        sampleWeight.push(skinWeight[`get${c}`](i));
-      }
-    }
-  }
-  const cellKey = (x, y, z) => `${Math.floor(x / SLEEVE_CELL_M)},${Math.floor(y / SLEEVE_CELL_M)},${Math.floor(z / SLEEVE_CELL_M)}`;
-  const grid = new Map();
-  for (let i = 0; i < samples.length / 3; i += 1) {
-    const key = cellKey(samples[i * 3], samples[i * 3 + 1], samples[i * 3 + 2]);
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key).push(i);
-  }
-  const maxRing = Math.ceil(SLEEVE_MATCH_M / SLEEVE_CELL_M) + 1;
-  const nearestSample = (x, y, z) => {
-    const bx = Math.floor(x / SLEEVE_CELL_M);
-    const by = Math.floor(y / SLEEVE_CELL_M);
-    const bz = Math.floor(z / SLEEVE_CELL_M);
-    let bestDistance = Infinity;
-    let bestIndex = -1;
-    for (let r = 0; r <= maxRing; r += 1) {
-      for (let dx = -r; dx <= r; dx += 1) for (let dy = -r; dy <= r; dy += 1) for (let dz = -r; dz <= r; dz += 1) {
-        if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
-        const bucket = grid.get(`${bx + dx},${by + dy},${bz + dz}`);
-        if (!bucket) continue;
-        for (const index of bucket) {
-          const ox = samples[index * 3] - x;
-          const oy = samples[index * 3 + 1] - y;
-          const oz = samples[index * 3 + 2] - z;
-          const distance = ox * ox + oy * oy + oz * oz;
-          if (distance < bestDistance) { bestDistance = distance; bestIndex = index; }
-        }
-      }
-      // A point in the next shell is at least r cells away, so once the best
-      // hit is closer than that shell's floor, no later shell can beat it.
-      if (bestIndex >= 0 && r * SLEEVE_CELL_M > Math.sqrt(bestDistance) + SLEEVE_CELL_M) break;
-    }
-    return { index: bestIndex, distance: bestIndex >= 0 ? Math.sqrt(bestDistance) : Infinity };
-  };
-
-  const loose = [];
-  scene.traverse((node) => { if (node.isMesh && !node.isSkinnedMesh) loose.push(node); });
-  for (const mesh of loose) {
-    const position = mesh.geometry.attributes.position;
-    const count = position.count;
-    const skinIndex = new Uint16Array(count * 4);
-    const skinWeight = new Float32Array(count * 4);
-    // Small static meshes over the head (scarf/bonnet) ride the head bone.
-    const isGarment = count > 1000;
-    for (let i = 0; i < count; i += 1) {
-      const o = i * 4;
-      if (!isGarment) {
-        skinIndex[o] = headIndex;
-        skinWeight[o] = 1;
-        continue;
-      }
-      vertex.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
-      const near = nearestSample(vertex.x, vertex.y, vertex.z);
-      if (near.index < 0 || near.distance > SLEEVE_MATCH_M) {
-        skinIndex[o] = rootIndex;
-        skinWeight[o] = 1;
-        continue;
-      }
-      let armSum = 0;
-      for (let c = 0; c < 4; c += 1) {
-        if (armBones.has(sampleBone[near.index * 4 + c])) armSum += sampleWeight[near.index * 4 + c];
-      }
-      if (armSum <= 0.001) {
-        skinIndex[o] = rootIndex;
-        skinWeight[o] = 1;
-        continue;
-      }
-      // Keep the body's arm weights; the non-arm remainder (the torso share at
-      // the shoulder) stays on the static root, so the seam blends, not tears.
-      const kept = [];
-      for (let c = 0; c < 4; c += 1) {
-        const bone = sampleBone[near.index * 4 + c];
-        const weight = sampleWeight[near.index * 4 + c];
-        if (armBones.has(bone) && weight > 0) kept.push([bone, weight]);
-      }
-      if (armSum < 1 - 1e-4) kept.push([rootIndex, 1 - armSum]);
-      kept.sort((a, b) => b[1] - a[1]);
-      let slot = 0;
-      for (const [bone, weight] of kept) {
-        if (slot >= 4) break;
-        skinIndex[o + slot] = bone;
-        skinWeight[o + slot] = weight;
-        slot += 1;
-      }
-      if (slot === 0) {
-        skinIndex[o] = rootIndex;
-        skinWeight[o] = 1;
-      }
-    }
-    mesh.geometry.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndex, 4));
-    mesh.geometry.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeight, 4));
-    const skinned = new THREE.SkinnedMesh(mesh.geometry, mesh.material);
-    skinned.name = mesh.name;
-    skinned.position.copy(mesh.position);
-    skinned.quaternion.copy(mesh.quaternion);
-    skinned.scale.copy(mesh.scale);
-    skinned.castShadow = mesh.castShadow;
-    skinned.receiveShadow = mesh.receiveShadow;
-    // The garment geometry shares the body's armature-local space, but a
-    // mesh like the bonnet sits under an empty that places it at the head, so
-    // neither the body's bind matrix nor the mesh's own world matrix is right
-    // on its own. Map the mesh into the body's bind space: B_body · M_body⁻¹ ·
-    // M_mesh reproduces the mesh's world position at bind for either case.
-    const bindMatrix = bodyBindSpace.clone().multiply(mesh.matrixWorld);
-    skinned.bind(skeleton, bindMatrix);
-    const parent = mesh.parent;
-    parent.add(skinned);
-    parent.remove(mesh);
-  }
-  scene.updateMatrixWorld(true);
+  if (url.includes("sheriff")) return "sheriff";
+  if (url.includes("/models/chars/")) return "authored";
+  if (url.includes("player")) return "player";
+  throw new Error(`No actor adapter for ${url}`);
 }
 
 function prepare(scene, kind) {
@@ -284,7 +76,6 @@ function prepare(scene, kind) {
     // not lacquered metal. Do not alter the separate eye material.
     if (kind === "cow" && node.material?.name === "material") node.material.metalness = 0;
   });
-  if (kind === "settlerwoman") bindSettlerGarments(scene);
 }
 
 function sourceBounds(scene) {
@@ -293,13 +84,11 @@ function sourceBounds(scene) {
   scene.traverse((node) => {
     if (!node.isMesh) return;
     if (node.isSkinnedMesh) {
-      // A Blender DEF-rig exported through Sketchfab binds the mesh in a
-      // different scale domain than the skinned result (Lucille: geometry
-      // bind height ~185 units, skinned height ~703). Raw geometry bbox
-      // therefore reports a tiny height and the factory scales the character
-      // metres tall. computeBoundingBox() gives the SKINNED local bounds;
-      // applying matrixWorld yields true world extent. For Mixamo models
-      // (bind ≈ skinned) this is a no-op.
+      // Some exports bind the mesh in a different scale domain than the
+      // skinned result, so the raw geometry bbox can report a tiny height.
+      // computeBoundingBox() gives the SKINNED local bounds; applying
+      // matrixWorld yields true world extent. Where bind ≈ skinned (every
+      // authored model) this is a no-op.
       node.computeBoundingBox();
       boxes.push(node.boundingBox.clone().applyMatrix4(node.matrixWorld));
       return;
@@ -325,7 +114,7 @@ function findBones(object) {
 }
 
 // Scratch state for worldAxisPose. The pose pass ran per bone per actor per
-// frame (six joints on a walking cowboy, seven on a grazing cow) and each
+// frame (six handles on a posing townsperson, seven on a grazing cow) and each
 // call allocated three Quaternions; reused scratch turns that into zero.
 const _parentWorld = new THREE.Quaternion();
 const _delta = new THREE.Quaternion();
@@ -343,7 +132,7 @@ function worldAxisPose(bone, rest, axis, angle) {
 }
 
 // A pose authored for the procedural figure writes absolute Euler angles on
-// plain groups. A mixamorig bone's rest is a non-trivial bind pose, so an
+// plain groups. A skinned bone's rest is a non-trivial bind pose, so an
 // absolute local Euler would snap the limb somewhere unmeant. A joint handle
 // keeps the pose's Euler semantics but applies each component as a world-axis
 // rotation composed onto the bone's CURRENT quaternion — the same mechanism
@@ -358,16 +147,31 @@ const _UP = new THREE.Vector3(0, 1, 0);
 
 function makeJointHandle(bone, axes) {
   const rotation = new THREE.Euler();
+  // The bone's rotation before this frame's pose was composed onto it.
+  // AnimationMixer's PropertyMixer only writes a bone when the sampled clip
+  // value CHANGES, so wherever a clip holds a joint still for a few frames it
+  // leaves last frame's posed rotation in place and the pose composes on top
+  // of itself — the authored sheriff's arms crept out ~20 degrees in four
+  // frames. restore() puts the un-posed value back before the mixer runs, so
+  // a skipped write still leaves the clip's value underneath.
+  const base = new THREE.Quaternion();
+  let posed = false;
+  const restore = () => {
+    if (posed) bone.quaternion.copy(base);
+    posed = false;
+  };
   const apply = () => {
     // Zero rotation leaves the bone untouched: while the NPC walks, the pose
     // Eulers decay toward 0 and the gait owns the limbs.
     if (!rotation.x && !rotation.y && !rotation.z) return;
+    base.copy(bone.quaternion);
+    posed = true;
     const { forward, lateral } = axes();
     if (rotation.x) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, lateral, rotation.x); }
     if (rotation.y) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, _UP, rotation.y); }
     if (rotation.z) { _rest.copy(bone.quaternion); worldAxisPose(bone, _rest, forward, rotation.z); }
   };
-  return { rotation, apply };
+  return { rotation, apply, restore, bone };
 }
 
 // Body-relative world axes, resolved every frame from the actor's actual
@@ -411,51 +215,6 @@ function makeCowGait(bones, object) {
         worldAxisPose(neck.bone, neck.rest, axis, dip * [0.32, 0.42, 0.26][i]);
       }
     }
-  };
-}
-
-function makeCowboyGait(bones, object, axes = bodyAxes(object)) {
-  const joint = (core) => {
-    const bone = boneByCore(bones, core);
-    return bone ? { bone, rest: bone.quaternion.clone() } : null;
-  };
-  const leftArm = joint("mixamorigLeftArm");
-  const rightArm = joint("mixamorigRightArm");
-  const leftLeg = joint("mixamorigLeftUpLeg");
-  const rightLeg = joint("mixamorigRightUpLeg");
-  const spine = joint("mixamorigSpine1");
-  const head = joint("mixamorigHead");
-  // Lower from the T-pose bind into a relaxed hang. 1.42 rad leaves the arm
-  // ~9 degrees off vertical, a natural stance rather than the old A-pose.
-  const ARM_DROP = 1.42;
-  // Compose a second world-axis rotation on top of whatever the joint already
-  // carries (worldAxisPose takes the current quaternion as its rest). The
-  // current quaternion must be snapshotted before copy() overwrites it.
-  const addWorld = (joint, axis, angle) => {
-    if (joint) {
-      _rest.copy(joint.bone.quaternion);
-      worldAxisPose(joint.bone, _rest, axis, angle);
-    }
-  };
-
-  return ({ speed = 0, phase = 0 }) => {
-    const moving = speed > 0.05;
-    const stride = moving ? Math.sin(phase) * Math.min(0.48, 0.2 + speed * 0.2) : 0;
-    const { forward, lateral } = axes();
-    if (leftArm) {
-      worldAxisPose(leftArm.bone, leftArm.rest, forward, -ARM_DROP);
-      if (moving) addWorld(leftArm, lateral, -stride * 0.6);
-    }
-    if (rightArm) {
-      worldAxisPose(rightArm.bone, rightArm.rest, forward, ARM_DROP);
-      if (moving) addWorld(rightArm, lateral, stride * 0.6);
-    }
-    if (leftLeg) worldAxisPose(leftLeg.bone, leftLeg.rest, lateral, stride);
-    if (rightLeg) worldAxisPose(rightLeg.bone, rightLeg.rest, lateral, -stride);
-    if (spine) worldAxisPose(spine.bone, spine.rest, lateral, moving ? 0.06 : Math.sin(phase * 0.23) * 0.012);
-    // Prime the head from its bind every frame so the pose handle can compose
-    // onto a known baseline (the gait itself never rotates the head).
-    if (head) head.bone.quaternion.copy(head.rest);
   };
 }
 
@@ -507,19 +266,18 @@ function actorFactory(template) {
     const idleAction = idleClip ? mixer.clipAction(idleClip).play() : null;
     const walkAction = walkClip ? mixer.clipAction(walkClip).play() : null;
     if (walkAction) walkAction.setEffectiveWeight(0);
-    const gait = config.gait ? (template.kind === "cow" ? makeCowGait(bones, object) : makeCowboyGait(bones, object, axes)) : null;
+    const gait = config.gait ? makeCowGait(bones, object) : null;
     const forwardReach = config.sourceForward.z > 0 ? template.bounds.max.z * scale : -template.bounds.min.z * scale;
     let phaseClock = 0;
 
     // No runtime stance re-grounding. A previous pass measured the lowest
     // skinned vertex at 0.6 s and shifted the group to match; it sampled only
     // ~300 of the mesh's vertices, so it almost never found the true lowest
-    // sole vertex and shifted every actor DOWN by the sampling error — the
-    // cowboy's boots vanished into the boardwalk and the (now unwired) Blender
-    // DEF-rig women sank a whole body, leaving their eyes resting on the deck.
-    // It existed only for those women. Every wired model rests at its bind
-    // pose, which `-bounds.min.y * scale` above already grounds exactly;
-    // check:textured-model-pilot asserts the cowboy's feet land at y=0.
+    // sole vertex and shifted every actor DOWN by the sampling error, sinking
+    // boots into the boardwalk. Every wired model rests at its bind pose, which
+    // `-bounds.min.y * scale` above already grounds exactly, and the authored
+    // clips plant their feet; check:textured-model-pilot asserts the soles
+    // stay at y=0 through idle and walk.
 
     return {
       object,
@@ -534,6 +292,7 @@ function actorFactory(template) {
       },
       update(dt, state = {}) {
         if (typeof state === "number") state = { speed: state };
+        if (parts) for (const h of Object.values(parts)) h.restore();
         phaseClock += dt * (state.speed > 0.05 ? 6.2 : 1.4);
         if (state.phase == null) state.phase = phaseClock;
         if (mixer) {

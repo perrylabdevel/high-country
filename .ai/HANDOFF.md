@@ -39,3 +39,10 @@
 ## Retrieval rule
 
 Search the archive for a named subsystem, symptom, file, or decision. Never load the complete historical HANDOFF or campaign event logs into a model context.
+
+## 2026-09-12 — authored cast (Blender MCP)
+- All 13 characters (sheriff + 12 NPCs in `public/models/chars/`, plus `public/models/player.glb`) are first-party GLBs from `scripts/blender-sheriff/` (`chars.py` specs → `sh_character.run_batch`). Build cache: `/tmp/hc_chars/<id>/<id>.blend` (volatile; rebuild ≈9 min/character).
+- Runtime fix: `makeJointHandle.restore()` in `src/models/texturedActors.js` — PropertyMixer skips unchanged bone writes, so NPC poses composed onto themselves where a clip held a joint still.
+- `check:textured-model-pilot` asserts every authored model: grounded soles through idle+walk, crown height, pose drift, stride, hanging arms.
+- Removed the unwired Sketchfab character GLBs (cowboy, gunnar, lucille, lillian, child boy, settler woman) and their credits; only farm-cow.glb remains third-party.
+- Known pre-existing: Dutch Malloy's wander spot inside the forge sits ~0.6 m below the rendered floor (floor not registered as a deck).

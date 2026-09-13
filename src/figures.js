@@ -31,11 +31,10 @@ function mat(color, roughness = CLOTH_ROUGHNESS) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness });
 }
 
-// The imported cowboy and cow carry authored texture maps. Hattie is the next
-// named settler to get a material pass, but she still uses the lightweight
-// figure rig. Keep her workwear detail in a tiny deterministic canvas map so
-// the procedural fallback has a real textile read without adding an external
-// asset or a new draw-call family.
+// The textured models carry authored texture maps; this procedural figure is
+// the fallback when a model fails to load. Hattie's workwear detail lives in a
+// tiny deterministic canvas map so the fallback has a real textile read
+// without adding an external asset or a new draw-call family.
 const TEXTILE_CACHE = new Map();
 
 function rgb(hex) {
