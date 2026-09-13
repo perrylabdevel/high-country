@@ -318,6 +318,47 @@ button {
   font: 12px/1.35 ui-monospace, "Cascadia Code", monospace;
   text-shadow: none;
 }
+/* ?dev biome toggles: always on screen, bottom centre between the minimap
+   and the dev chip. Gold border when anything is switched off. */
+#biome-bar {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+  max-width: min(760px, calc(100vw - 2 * min(220px, 30vw) - 120px));
+  padding: 4px;
+  background: rgba(12, 16, 20, 0.72);
+  border: 1px solid rgba(196, 163, 106, 0.35);
+  font: 11px/1 ui-monospace, "Cascadia Code", monospace;
+  z-index: 5;
+}
+#biome-bar.filtered {
+  border-color: #e8c36a;
+}
+#biome-bar button {
+  font: inherit;
+  color: #f4ead2;
+  background: rgba(196, 163, 106, 0.22);
+  border: 1px solid transparent;
+  padding: 4px 7px;
+  cursor: pointer;
+}
+#biome-bar button.active {
+  background: rgba(196, 163, 106, 0.45);
+}
+#biome-bar button.off {
+  color: rgba(244, 234, 210, 0.38);
+  background: transparent;
+  text-decoration: line-through;
+}
+#biome-bar button.here {
+  border-bottom-color: #e8c36a;
+}
 #debug-chip {
   padding: 6px 10px;
   cursor: pointer;

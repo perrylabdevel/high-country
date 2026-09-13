@@ -53,6 +53,25 @@ lived: 2.6 MB and 44 ms per frame of uploads that nothing had changed.
 | `__groundLines(on, span, step)` | The terrain surface itself: a grid on `meshHeightAt` plus 12 cm pins at each intersection, depth-tested. Reads the ground line the cover hides. |
 | `__heightAt(x, z)` | The bilinear height model. Note this is *not* where the ground is drawn — `meshHeightAt` is. |
 
+## Biome isolation
+
+A `?dev` build shows a biome bar along the bottom of the HUD
+(`src/dev/biomeBar.js`, state in `src/biomeFilter.js`). Click a biome to switch
+its content off or on, shift-click to solo it, and click **All** to restore. The
+chip for the biome you are standing in is underlined. The bar gets a gold border
+while anything is off, and the selection persists in `localStorage`
+(`hc-biomes-off`), so a reload boots straight back into it.
+
+"Off" hides trees, ground cover, shrubs, rocks and the merged structures in that
+region. Grass and shrubs honour the filter at plant time, so switched-off
+country costs no scatter work. Terrain, water, NPCs, colliders, nav and missions
+are untouched, so hidden buildings still block you.
+
+To make structures hideable, the dev build splits the static merge by biome as
+well as material: roughly 110 draws instead of about 30. Do not compare dev draw
+counts or frame times against shipping, and never use a filtered frame as
+visual evidence.
+
 ## Navigation
 
 Two-stage navigation: the graph routes across the map, an arrival approach is

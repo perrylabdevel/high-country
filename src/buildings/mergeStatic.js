@@ -49,7 +49,13 @@ function isMoving(mesh, moving, root) {
   return false;
 }
 
-export function mergeStatic(root, name = "static-merge") {
+/**
+ * `partition(mesh)` optionally splits the buckets further, by any string key
+ * (the dev build passes a biome). Each partition's merged meshes are listed on
+ * merged.userData.partitions so a caller can hide one region's structures.
+ * Without it the merge is exactly one mesh per material, as shipped.
+ */
+export function mergeStatic(root, name = "static-merge", { partition = null } = {}) {
   if (!root) {
     return null;
   }
@@ -74,10 +80,11 @@ export function mergeStatic(root, name = "static-merge") {
     // Merge also needs an identical attribute set, and a few kit shapes carry
     // no uv, so the bucket key is material plus attribute signature.
     const sig = Object.keys(geo.attributes).sort().join(",");
-    const key = `${o.material.uuid}|${sig}`;
+    const part = partition ? partition(o) : "";
+    const key = `${o.material.uuid}|${sig}|${part}`;
     let bucket = groups.get(key);
     if (!bucket) {
-      bucket = { material: o.material, geos: [], cast: false, receive: false, failed: false };
+      bucket = { material: o.material, part, geos: [], cast: false, receive: false, failed: false };
       groups.set(key, bucket);
     }
     bucket.geos.push(geo);
@@ -88,6 +95,7 @@ export function mergeStatic(root, name = "static-merge") {
 
   const merged = new THREE.Group();
   merged.name = name;
+  const partitions = new Map();
   let drawn = 0;
   for (const bucket of groups.values()) {
     const geo = bucket.geos.length === 1 ? bucket.geos[0] : mergeGeometries(bucket.geos);
@@ -104,6 +112,12 @@ export function mergeStatic(root, name = "static-merge") {
     mesh.castShadow = bucket.cast;
     mesh.receiveShadow = bucket.receive;
     merged.add(mesh);
+    if (partition) {
+      if (!partitions.has(bucket.part)) {
+        partitions.set(bucket.part, []);
+      }
+      partitions.get(bucket.part).push(mesh);
+    }
     drawn += 1;
   }
 
@@ -117,5 +131,6 @@ export function mergeStatic(root, name = "static-merge") {
 
   merged.userData.mergedFrom = originals.length;
   merged.userData.drawCalls = drawn;
+  merged.userData.partitions = partitions;
   return merged;
 }
