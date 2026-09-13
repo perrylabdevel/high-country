@@ -21,6 +21,8 @@ import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
 import { freezeTransforms } from "./freeze.js";
+import { biomeOn, loadBiomeFilter, onBiomeFilterChange } from "./biomeFilter.js";
+import { createBiomeBar } from "./dev/biomeBar.js";
 import { createWeather } from "./weather/weather.js";
 import { createRain } from "./weather/rain.js";
 import { createPlayer } from "./player.js";
@@ -31,7 +33,7 @@ import { installTexturedPilot } from "./models/texturedActors.js";
 import { createTraffic } from "./traffic.js";
 import { addCylinderCollider, resolvePosition, clearanceAt, deckHeightAt, moveAndSlide } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
-import { POS, ROADS, mapToWorld, placeAt, placeLabel, headingVector } from "./map.js";
+import { POS, ROADS, biomeAt, mapToWorld, placeAt, placeLabel, headingVector } from "./map.js";
 import { createMissions } from "./missions.js";
 import { resetNavGraph, navGraph, linkApproaches } from "./nav/graph.js";
 import { approachLinkRows, APPROACHES, primaryApproach } from "./nav/arrivals.js";
@@ -72,6 +74,10 @@ const enterBtn = document.getElementById("btn-enter");
 const params = new URLSearchParams(window.location.search);
 const isLab = params.has("lab");
 const isDev = params.has("dev") || isLab;
+// Before anything is built: vegetation honours the biome filter at plant time.
+if (isDev) {
+  loadBiomeFilter();
+}
 const WEATHER_LABELS = {
   clear: "clear",
   buildup: "clouding",
@@ -814,6 +820,7 @@ async function boot() {
   // anchors, interiors and the look-at overlay all read them.
   const statics = new THREE.Group();
   statics.name = "statics";
+  let staticPartitions = null;
   const ranch = createRanch(buildingMaps);
   statics.add(ranch);
   // The spinning windmill fans, collected once.
@@ -842,9 +849,50 @@ async function boot() {
     // sun light + target, sun disc and the windmill fans all lost their world
     // matrices (verified empirically: sky matrixWorld pinned at origin, fan
     // rotation dead). Freeze only the merged mesh.
-    const mergedStatics = mergeStatic(statics, "statics-merged");
+    // ?dev splits the merge by biome as well, so the biome bar can hide one
+    // region's structures. Each builder is one group spanning the whole map,
+    // so descend to the largest node that is compact (one building, one
+    // yard) and key all of its meshes on that node's centre — a building is
+    // never cut in two at a biome border. Shipping stays one mesh per material.
+    let partition = null;
+    if (isDev) {
+      const biomeOfMesh = new Map();
+      const box = new THREE.Box3();
+      const size = new THREE.Vector3();
+      const centre = new THREE.Vector3();
+      const assign = (node) => {
+        box.setFromObject(node);
+        if (box.isEmpty()) {
+          return;
+        }
+        box.getSize(size);
+        if (Math.max(size.x, size.z) > 120 && node.children.length) {
+          node.children.forEach(assign);
+          if (!node.isMesh) {
+            return;
+          }
+          // A mesh with children: place it by its own geometry alone.
+          if (!node.geometry.boundingBox) {
+            node.geometry.computeBoundingBox();
+          }
+          box.copy(node.geometry.boundingBox).applyMatrix4(node.matrixWorld);
+        }
+        box.getCenter(centre);
+        const biome = biomeAt(centre.x, centre.z);
+        node.traverse((o) => {
+          if (o.isMesh && !biomeOfMesh.has(o)) {
+            biomeOfMesh.set(o, biome);
+          }
+        });
+      };
+      statics.updateWorldMatrix(true, true);
+      statics.children.forEach(assign);
+      partition = (mesh) => biomeOfMesh.get(mesh) || "";
+    }
+    const mergedStatics = mergeStatic(statics, "statics-merged", { partition });
     scene.add(mergedStatics);
     freezeTransforms(mergedStatics);
+    staticPartitions = mergedStatics.userData.partitions;
   }
   // The authored statics subtree still serves colliders/anchors/interiors and
   // hides ~3k merged originals — invisible nodes pay updateMatrixWorld too,
@@ -853,6 +901,24 @@ async function boot() {
   freezeTransforms(statics, (o) => spinnerRoots.has(o));
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
+  if (isDev) {
+    const applyStaticBiomes = () => {
+      for (const [biome, meshes] of staticPartitions || []) {
+        const on = biomeOn(biome);
+        meshes.forEach((m) => {
+          m.visible = on;
+        });
+      }
+    };
+    applyStaticBiomes();
+    onBiomeFilterChange(() => {
+      applyStaticBiomes();
+      vegetation.applyBiomeFilter(camera.position);
+    });
+    createBiomeBar({
+      currentBiome: () => (player ? biomeAt(player.object.position.x, player.object.position.z) : null)
+    });
+  }
   const smoke = createSmoke(scene);
   // Bounding sphere of the plume, for the frame loop's frustum test: the
   // smoke drift is time-pure, so off-screen frames skip all 54 sprite writes.

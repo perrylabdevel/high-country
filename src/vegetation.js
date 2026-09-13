@@ -43,6 +43,7 @@ import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, s
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
 import { getProfile } from "./perfProfile.js";
+import { biomeOn, biomeFilterActive } from "./biomeFilter.js";
 import { BARK_SET, FOLIAGE_SET } from "./materials/textureManifest.ts";
 
 /**
@@ -2963,7 +2964,7 @@ export function createVegetation(scene, maps = {}) {
     // replants mostly the same cells, so the noise work is paid once per cell,
     // not once per rebuild. The footprint test stays live after it.
     const [weight, biome] = grassSampleCached(r, ix, jz, x, z);
-    if (weight <= 0) {
+    if (weight <= 0 || !biomeOn(biome)) {
       return false;
     }
     if (insideStructure(x, z, GRASS_CLEARANCE)) {
@@ -3106,7 +3107,7 @@ export function createVegetation(scene, maps = {}) {
     const x = (ix + 0.5 + (hash2(ix, jz, 11) - 0.5) * 0.9) * cell;
     const z = (jz + 0.5 + (hash2(ix, jz, 12) - 0.5) * 0.9) * cell;
     const biome = biomeAt(x, z);
-    if (hash2(ix, jz, 13) > shrubChance(biome)) {
+    if (!biomeOn(biome) || hash2(ix, jz, 13) > shrubChance(biome)) {
       return false;
     }
     const creek = creekFactor(x, z);
@@ -3807,12 +3808,13 @@ export function createVegetation(scene, maps = {}) {
       continue;
     }
     const rockRadius = 0.8 + seeded(i) * 1.8;
-    rockPlacements.push({ i, x, z, rockRadius, red: biome === "badlands" });
+    rockPlacements.push({ i, x, z, rockRadius, red: biome === "badlands", biome });
     addCylinderCollider(x, z, rockRadius * 0.55);
   }
   // Radius 1: the per-rock radius rides in the instance scale instead, which
   // is what lets them share a geometry. Detail 0 matches the originals.
   const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+  const rockMeshes = [];
   for (const [isRed, material] of [[false, rockMat], [true, redRock]]) {
     const group = rockPlacements.filter((r) => r.red === isRed);
     if (!group.length) {
@@ -3822,18 +3824,32 @@ export function createVegetation(scene, maps = {}) {
     mesh.name = isRed ? "rocks-red" : "rocks";
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    for (let n = 0; n < group.length; n += 1) {
-      const r = group[n];
-      dummy.position.set(r.x, heightAt(r.x, r.z) + 0.2, r.z);
-      dummy.rotation.set(seeded(r.i), seeded(r.i + 1), seeded(r.i + 2));
-      dummy.scale.setScalar(r.rockRadius);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(n, dummy.matrix);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
+    rockMeshes.push({ mesh, group });
     rocks.add(mesh);
   }
+  /** Pack the rocks of every enabled biome into the front of each draw. */
+  function writeRocks() {
+    for (const { mesh, group } of rockMeshes) {
+      let n = 0;
+      for (const r of group) {
+        if (!biomeOn(r.biome)) {
+          continue;
+        }
+        dummy.position.set(r.x, heightAt(r.x, r.z) + 0.2, r.z);
+        dummy.rotation.set(seeded(r.i), seeded(r.i + 1), seeded(r.i + 2));
+        dummy.scale.setScalar(r.rockRadius);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(n, dummy.matrix);
+        n += 1;
+      }
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      if (!mesh.boundingSphere) {
+        mesh.computeBoundingSphere();
+      }
+    }
+  }
+  writeRocks();
 
   for (const p of pines) {
     scene.add(p.trunkNear, p.crownNear, p.limbNear, p.trunkFar, p.crownFar, p.crownDist);
@@ -3925,11 +3941,40 @@ export function createVegetation(scene, maps = {}) {
     return Math.sqrt(dx * dx + dz * dz);
   }
 
+  /**
+   * Biome per placed tree, resolved on the first bucket that has a filter to
+   * honour. Trees are placed by half a dozen passes (main scatter, windbreak,
+   * ranch heroes, forest core), so this reads their final positions once
+   * rather than threading a biome through every one of them.
+   */
+  let treeBiome = null;
+  let cottonBiome = null;
+  function treeBiomes() {
+    if (!treeBiome) {
+      treeBiome = new Array(placed);
+      for (let i = 0; i < placed; i += 1) {
+        treeBiome[i] = biomeAt(treePos[i * 3], treePos[i * 3 + 2]);
+      }
+      cottonBiome = new Array(cottons);
+      for (let i = 0; i < cottons; i += 1) {
+        cottonBiome[i] = biomeAt(cottonPos[i * 3], cottonPos[i * 3 + 2]);
+      }
+    }
+  }
+
   function bucketTrees(cameraPos) {
+    const filtered = biomeFilterActive();
+    if (filtered) {
+      treeBiomes();
+    }
+    burnt.visible = biomeOn("burn");
     const nearCounts = new Array(pines.length).fill(0);
     const farCounts = new Array(pines.length).fill(0);
     const distCounts = new Array(pines.length).fill(0);
     for (let i = 0; i < placed; i += 1) {
+      if (filtered && !biomeOn(treeBiome[i])) {
+        continue;
+      }
       const t = treeType[i];
       const dx = treePos[i * 3] - cameraPos.x;
       const dz = treePos[i * 3 + 2] - cameraPos.z;
@@ -3997,6 +4042,9 @@ export function createVegetation(scene, maps = {}) {
     const broadFar = new Array(broads.length).fill(0);
     const broadDist = new Array(broads.length).fill(0);
     for (let i = 0; i < cottons; i += 1) {
+      if (filtered && !biomeOn(cottonBiome[i])) {
+        continue;
+      }
       const t = cottonType[i];
       const dx = cottonPos[i * 3] - cameraPos.x;
       const dz = cottonPos[i * 3 + 2] - cameraPos.z;
@@ -4111,6 +4159,22 @@ export function createVegetation(scene, maps = {}) {
     debugSpeciesColour(mode) {
       dbgSpecies.value = Math.max(0, Math.min(2, Number(mode) || 0));
       return dbgSpecies.value;
+    },
+    /**
+     * Re-apply the biome filter (biomeFilter.js) to everything already
+     * planted. Grass and shrubs honour it at plant time, like soloGrass, so
+     * their resident sets are replanted; trees re-bucket and rocks re-pack.
+     */
+    applyBiomeFilter(cameraPos) {
+      writeRocks();
+      dropAllTiles();
+      plantAllTiles(cameraPos);
+      for (const rec of sageRings) {
+        startRingJob(rec);
+        runSageChunk(rec, Infinity);
+      }
+      lastLodCenter.copy(cameraPos);
+      bucketTrees(cameraPos);
     },
     soloGrass(name, cameraPos) {
       if (name && !GRASS_SPECIES.some((sp) => sp.name === name)) {
