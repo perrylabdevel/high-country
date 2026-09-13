@@ -1264,7 +1264,7 @@ async function boot() {
 
   const npcs = [
     {
-      name: "Harlan Calder", model: "cowboy", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
+      name: "Harlan Calder", model: "harlan", x: POS.ranch.x + 4.2, z: POS.ranch.z + 1.2,
       look: { shirt: 0x5b3a24, vest: 0x3a2415, pants: 0x2a2018, hat: 0x3d2918 },
       line: [
         "Smoke on the north wind. Too early, and too steady.",
@@ -1272,7 +1272,7 @@ async function boot() {
       ]
     },
     {
-      name: "Nell Calder", model: "settlerwoman", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
+      name: "Nell Calder", model: "nell", x: POS.ranch.x + 12.4, z: POS.ranch.z + 16.8,
       look: { shirt: 0x7a3b1e, pants: 0x4a3a2c, hatStyle: "hair", hair: 0x3a2418, skirt: true },
       line: [
         "Juniper is ready. That smoke is not a trash burn.",
@@ -1280,14 +1280,14 @@ async function boot() {
       ]
     },
     {
-      name: "Wade Calder", model: "cowboy", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
+      name: "Wade Calder", model: "wade", x: POS.ranch.x - 28, z: POS.ranch.z + 27.5,
       look: { shirt: 0x6a4e32, vest: 0x4a2e18, pants: 0x33261a, hat: 0x2e2118 },
       line: "The Kovacs cousins worked our hay last year. If town starts pointing at charcoal burners, I want a Calder standing in the way of that pointing."
     },
 
     // --- Silver Creek: the people who work the street -------------------------
     {
-      name: "Dutch Malloy", model: "gunnar", ...townSpot(41, 4.6),
+      name: "Dutch Malloy", model: "dutch", ...townSpot(41, 4.6),
       wander: { r: 6, v: 0.95 },
       look: { shirt: 0x4a3a30, vest: 0x2a2018, pants: 0x26201a, hat: 0x241a12, skin: 0xc9a074 },
       face: townSpot(41, 9),
@@ -1307,7 +1307,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ruth Halloran", model: "settlerwoman", ...townSpot(5, 3.5),
+      name: "Ruth Halloran", model: "ruth", ...townSpot(5, 3.5),
       wander: { r: 8, v: 1 },
       look: { shirt: 0x8a5a34, hatStyle: "hair", hair: 0x4a2e18, skirt: true, height: 1.66 },
       face: townSpot(5, -6),
@@ -1328,7 +1328,7 @@ async function boot() {
       ]
     },
     {
-      name: "Amos Pike", model: "cowboy", ...townSpot(53, 3.5),
+      name: "Amos Pike", model: "amos", ...townSpot(53, 3.5),
       wander: { r: 9, v: 1 },
       look: { shirt: 0x5f4a2e, vest: 0x3a2c1a, pants: 0x2e2418, hat: 0x3a2a1a },
       face: townSpot(56, 7),
@@ -1347,7 +1347,7 @@ async function boot() {
       ]
     },
     {
-      name: "Sheriff Tom Cassidy", model: "gunnar", ...townSpot(-53, 3.5),
+      name: "Sheriff Tom Cassidy", model: "sheriff", ...townSpot(-53, 3.5),
       wander: { r: 12, v: 1.05 },
       look: { shirt: 0x6a5a48, vest: 0x241c14, pants: 0x2a241c, hat: 0x1f1712 },
       face: townSpot(-53, -6),
@@ -1357,8 +1357,8 @@ async function boot() {
         const scan = Math.sin(t * 0.35);
         p.torso.rotation.y = scan * 0.3;
         p.head.rotation.y = scan * 0.45;
-        p.armL.rotation.z = 0.35;
-        p.armR.rotation.z = -0.35;
+        p.armL.rotation.z = 0.1;
+        p.armR.rotation.z = -0.1;
       },
       line: [
         "Town's been quiet. Quiet is how I like it and how it never stays.",
@@ -1368,7 +1368,7 @@ async function boot() {
 
     // --- and the ones who lounge ----------------------------------------------
     {
-      name: "Floyd Wicks", model: "cowboy", ...townSpot(30, 4.9),
+      name: "Floyd Wicks", model: "floyd", ...townSpot(30, 4.9),
       // Lazy: a small patch, a slow amble, and long spells leaning.
       wander: { r: 5, v: 0.8, dwell: [6, 14] },
       look: { shirt: 0x7a6a50, vest: 0x4a3a28, pants: 0x3a3026, hat: 0x443626 },
@@ -1389,7 +1389,7 @@ async function boot() {
       ]
     },
     {
-      name: "Ida Bell", model: "settlerwoman", ...townSpot(-16, 3.6),
+      name: "Ida Bell", model: "ida", ...townSpot(-16, 3.6),
       wander: { r: 6, v: 0.9 },
       look: { shirt: 0x8a4a3a, hatStyle: "hair", hair: 0x2e2118, skirt: true, height: 1.68 },
       face: townSpot(-16, -6),
@@ -1408,7 +1408,7 @@ async function boot() {
       ]
     },
     {
-      name: "Doc Alvin Frey", model: "cowboy", ...townSpot(-30, 3.6),
+      name: "Doc Alvin Frey", model: "doc", ...townSpot(-30, 3.6),
       wander: { r: 6, v: 0.85 },
       look: { shirt: 0x9a8a72, vest: 0x3a342c, pants: 0x2a2620, hatStyle: "hair", hair: 0x8a8478 },
       face: townSpot(-30, -6),
@@ -1427,7 +1427,7 @@ async function boot() {
       ]
     },
     {
-      name: "Willie Grady", model: "childboy", ...townSpot(-44.5, 2.5),
+      name: "Willie Grady", model: "willie", ...townSpot(-44.5, 2.5),
       // The kid ranges widest and never stands still for long.
       wander: { r: 14, v: 1.5, dwell: [1, 4] },
       look: { shirt: 0x6a7a8a, pants: 0x3a342c, hatStyle: "hair", hair: 0x5a3a1e, height: 1.38 },
@@ -1448,7 +1448,7 @@ async function boot() {
 
     // --- the north row: the town's second storefront street -------------------
     {
-      name: "Hattie Reed", model: "settlerwoman", ...northSpot(-14, 4.2),
+      name: "Hattie Reed", model: "hattie", ...northSpot(-14, 4.2),
       look: {
         shirt: 0x6a6a7a, hatStyle: "hair", hair: 0x1f1712, skirt: true, height: 1.64,
         textureStyle: "hattie-workwear", outfit: "hattie-washday"
@@ -1471,7 +1471,7 @@ async function boot() {
       ]
     },
     {
-      name: "Cole Mercer", model: "gunnar", ...northSpot(16, 4.4),
+      name: "Cole Mercer", model: "cole", ...northSpot(16, 4.4),
       look: { shirt: 0x554434, vest: 0x2e241a, pants: 0x30281e, hat: 0x33281c },
       face: northSpot(16, -6),
       // Holding up the north end: hat low, hands tucked away, weight on one
@@ -1625,9 +1625,9 @@ async function boot() {
         boxMaxY: Number.isFinite(box.max.y) ? box.max.y : null,
         // Positive = floating above what they stand on, negative = sunk in.
         footGap: Number.isFinite(box.min.y) ? box.min.y - (deckY > groundY ? deckY : groundY) : null,
-        // Degrees the left upper arm sits off hanging-straight-down. The gait
-        // drops arms from the T-pose bind to ~9 deg; a reading near 90 means
-        // the arm was never posed and the actor is standing in its bind pose.
+        // Degrees the left upper arm sits off hanging-straight-down. The Idle
+        // clip lowers the arms from the 30-degree A-pose bind to ~10 deg; a
+        // reading near 30 means the clip never ran and the actor stands in bind.
         poseEuler: (() => {
           const h = npc.texturedVisual?.parts?.armL;
           if (!h) return null;
@@ -1643,8 +1643,8 @@ async function boot() {
           g.traverse((n) => {
             if (!n.isBone) return;
             const core = n.name.replace(/[.:/]/g, "").replace(/_(\d+)$/, "").replace(/_/g, "");
-            if (core === "mixamorigLeftArm" || core === "CCBaseLUpperarm") arm = n;
-            if (core === "mixamorigLeftHand" || core === "CCBaseLHand") hand = n;
+            if (core === "upperarmL") arm = n;
+            if (core === "handL") hand = n;
           });
           if (!arm || !hand) return null;
           const a = arm.getWorldPosition(new THREE.Vector3());
@@ -1657,34 +1657,31 @@ async function boot() {
     });
   }
 
-  // Only period-plausible rigs are wired. lucille/lillian remain in
-  // public/models but stay UNWIRED: both render as silver-haired anime
-  // characters in modern sci-fi coats, wrong for an 1800s frontier town no
-  // matter how well they are grounded. The women now ride settlerwoman, and
-  // gunnar breaks up the eight-identical-men read on the main street.
+  // Every townsperson rides a first-party model built for this town (see
+  // public/models/README.md).
   const NPC_MODELS = {
-    cowboy: { url: "/models/western-cowboy.glb", height: 1.78 },
-    gunnar: { url: "/models/gunnar_the_gunslinger_rigged_motions.glb", height: 1.8 },
-    settlerwoman: { url: "/models/medieval_poor_woman.glb", height: 1.66 },
-    childboy: { url: "/models/child_boy_character_animated_blender.glb", height: 1.38 }
+    // Bounds include the hat crown, ~6 cm above the head.
+    sheriff: { url: "/models/sheriff.glb", height: 1.86 },
+    // The rest of the cast, authored by the same Blender pipeline
+    // (scripts/blender-sheriff/chars.py). Heights are each model's own
+    // exported bounds, so the factory scale stays 1.
+    amos: { url: "/models/chars/amos.glb", height: 1.814 },
+    cole: { url: "/models/chars/cole.glb", height: 1.859 },
+    doc: { url: "/models/chars/doc.glb", height: 1.745 },
+    dutch: { url: "/models/chars/dutch.glb", height: 1.829 },
+    floyd: { url: "/models/chars/floyd.glb", height: 1.907 },
+    harlan: { url: "/models/chars/harlan.glb", height: 1.855 },
+    hattie: { url: "/models/chars/hattie.glb", height: 1.595 },
+    ida: { url: "/models/chars/ida.glb", height: 1.634 },
+    nell: { url: "/models/chars/nell.glb", height: 1.625 },
+    ruth: { url: "/models/chars/ruth.glb", height: 1.615 },
+    wade: { url: "/models/chars/wade.glb", height: 1.879 },
+    willie: { url: "/models/chars/willie.glb", height: 1.35 }
   };
-  // Subtle per-NPC tints: one shared texture means identity comes from
-  // palette drift, not different faces. Near-white multiplies only.
-  const NPC_TINTS = {
-    "Harlan Calder": 0xf2e4d4,
-    "Wade Calder": 0xe8d9c8,
-    "Dutch Malloy": 0xf5e8d8,
-    "Amos Pike": 0xe4d2be,
-    "Sheriff Tom Cassidy": 0xd8d2d8,
-    "Floyd Wicks": 0xf0e0cc,
-    "Doc Alvin Frey": 0xfaf0e0,
-    "Cole Mercer": null, // pilot baseline, untinted
-    "Nell Calder": 0xf2d8c0,
-    "Ruth Halloran": 0xf5e0d0,
-    "Ida Bell": 0xf0d0c0,
-    "Hattie Reed": 0xece8e8,
-    "Willie Grady": null
-  };
+  // Every townsperson now has their own authored textures; palette drift is
+  // baked into each model rather than multiplied on at runtime.
+  const NPC_TINTS = {};
+
   for (const [model, cfg] of Object.entries(NPC_MODELS)) {
     void installTexturedPilot(cfg.url, (factory) => {
       for (const npc of npcs) {
