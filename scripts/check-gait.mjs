@@ -189,6 +189,53 @@ for (const [label, rel, height, speeds] of [
   }
 }
 
+// --- the player: legs from ground actually covered, body facing the travel ---------------
+// The player's input asks for a speed; collisions and releases decide what
+// the body really covers. Drive the real update with scripted keys.
+{
+  const { createPlayer } = await import("../src/player.js");
+  const { addBoxCollider } = await import("../src/collision.js");
+  const camera = new THREE.PerspectiveCamera();
+  const keys = new Set();
+  const input = { held: (k) => keys.has(k), consume: () => false, readLook: () => ({ x: 0, y: 0 }), pressed: () => false };
+  const player = createPlayer(camera);
+  const run = (frames) => { for (let i = 0; i < frames; i += 1) player.update(DT, input, null, 1); };
+  run(10);
+  const cases = [
+    ["forward", ["forward"], 0],
+    ["back", ["back"], Math.PI],
+    ["right", ["right"], -Math.PI / 2],
+    ["left", ["left"], Math.PI / 2]
+  ];
+  for (const [label, held, facing] of cases) {
+    keys.clear();
+    held.forEach((k) => keys.add(k));
+    run(90);
+    const turn = Math.atan2(Math.sin(player.facing.rotation.y - facing), Math.cos(player.facing.rotation.y - facing));
+    report[`player:${label}:facing`] = +player.facing.rotation.y.toFixed(2);
+    if (Math.abs(turn) > 0.2) {
+      failures.push(`player moving ${label}: body faces ${player.facing.rotation.y.toFixed(2)} rad, expected ${facing.toFixed(2)} (legs run one way while the body slides another)`);
+    }
+    if (Math.abs(player.groundSpeed - player.state.speed) > 0.3) {
+      failures.push(`player moving ${label}: legs at ${player.groundSpeed.toFixed(2)} m/s on open ground moving at ${player.state.speed.toFixed(2)}`);
+    }
+  }
+  // Blocked: a wall right ahead. The input still asks for a sprint; the legs must stop.
+  keys.clear();
+  run(60);
+  const p = player.object.position;
+  const f = { x: Math.sin(player.state.yaw), z: -Math.cos(player.state.yaw) };
+  addBoxCollider(p.x + f.x * 1.2, p.z + f.z * 1.2, Math.abs(f.z) * 3 + 0.3, Math.abs(f.x) * 3 + 0.3);
+  keys.add("forward");
+  keys.add("sprint");
+  run(120);
+  report["player:blocked:legs"] = +player.groundSpeed.toFixed(2);
+  if (player.groundSpeed > 0.4) {
+    failures.push(`player sprinting into a wall: legs run at ${player.groundSpeed.toFixed(2)} m/s while the body is stopped (input speed ${player.state.speed.toFixed(2)})`);
+  }
+  keys.clear();
+}
+
 console.log(JSON.stringify(report, null, 1));
 if (failures.length) {
   throw new Error(`${failures.length} gait failure(s):\n  ${failures.join("\n  ")}`);

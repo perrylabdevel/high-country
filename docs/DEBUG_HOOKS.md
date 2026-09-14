@@ -120,3 +120,9 @@ or a designer can verify the guidance against the terrain it will be walked on.
 
 Anything but `CAPTURE_MODE=audit` on `CAPTURE_BACKEND=webgpu` is diagnostic and
 the script refuses to write it into `audit/current`.
+
+## Locomotion
+
+| Hook | What it does |
+| --- | --- |
+| `__playerGait()` | The player's position, input speed, `groundSpeed` (what the legs are animated at, from ground actually covered), body `facing` within the player, and the authored visual's measured clip speeds, live clip weights / rates and foot-bone world positions. Record it per frame while holding keys to measure planted-foot slip in the real frame loop; `npm run check:gait` is the headless equivalent. |

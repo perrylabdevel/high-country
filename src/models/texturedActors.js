@@ -316,6 +316,17 @@ function actorFactory(template) {
       forwardReach,
       /** Ground speed (m/s, this actor's scale) the walk and run clips cover at rate 1. */
       gaitSpeed: { walk: walkSpeed, run: runSpeed },
+      /** Live clip weights and playback rates, and the foot bones (dev probes). */
+      debugGait() {
+        const read = (a) => (a ? { weight: +a.getEffectiveWeight().toFixed(3), rate: +a.getEffectiveTimeScale().toFixed(3), time: +a.time.toFixed(3) } : null);
+        const feet = [];
+        source.traverse((n) => { if (n.isBone && /^foot[LR]$/.test(n.name)) feet.push(n); });
+        return {
+          gaitSpeed: { walk: walkSpeed, run: runSpeed },
+          idle: read(idleAction), walk: read(walkAction), run: read(runAction),
+          feet: feet.map((b) => b.getWorldPosition(new THREE.Vector3()).toArray().map((v) => +v.toFixed(3)))
+        };
+      },
       // The pose author writes Eulers onto the handles; this applies them to
       // the bones. Called after visual.update in the frame loop, so the gait
       // has already primed every handle bone from its own rest.
