@@ -64,6 +64,7 @@ const {
 const { moveAndSlide, clearanceAt } = await import("../src/collision.js");
 const { surfaceFactor, MODE_RADIUS } = await import("../src/nav/costs.js");
 const { routeTo } = await import("../src/nav/search.js");
+const { planWesternProps } = await import("../src/props.js");
 
 const failures = [];
 const checks = [];
@@ -84,6 +85,8 @@ createLandmarks(sceneStub);
 createInteriors(sceneStub);
 createShore(sceneStub);
 createIndustry(sceneStub);
+// Filler props register colliders (hitch rail posts, troughs, wagons).
+planWesternProps();
 resetNavGraph();
 
 const links = linkApproaches(approachLinkRows());

@@ -42,6 +42,7 @@ const { clearStructures } = await import("../src/buildings/kit.js");
 const { clearColliders } = await import("../src/collision.js");
 const { createRanch } = await import("../src/buildings.js");
 const { createLandmarks } = await import("../src/landmarks.js");
+const { planWesternProps } = await import("../src/props.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
@@ -66,6 +67,8 @@ createLandmarks(sceneStub);
 createInteriors(sceneStub);
 createShore(sceneStub);
 createIndustry(sceneStub);
+// Filler props register colliders (hitch rail posts, troughs, wagons).
+planWesternProps();
 resetNavGraph();
 linkApproaches(approachLinkRows());
 navGraph();

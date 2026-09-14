@@ -1,6 +1,4 @@
 {
-  "version": 1,
-  "comment": "Living-requirements store. Mutated only through scripts/loop.mjs, which validates against scripts/loop/lib/validate.mjs and appends every material mutation to state/decisions.jsonl. Statuses: proposed, accepted, active, verified, rejected, deferred, retired. Priorities are 1 (highest) to 5. Costs are S/M/L. See docs/EVOLUTION.md for the mutation rules.",
   "requirements": [
     {
       "id": "R1",
@@ -457,6 +455,43 @@
           "note": "20260903-R10: accepted"
         }
       ]
+    },
+    {
+      "id": "R11",
+      "title": "POI the route matrix cannot reach",
+      "status": "proposed",
+      "locked": false,
+      "priority": 2,
+      "confidence": 0.9,
+      "cost": "M",
+      "risk": "M",
+      "source": "scripts/check-routes.mjs route matrix",
+      "observation": "Route matrix found 5 unreachable origin/destination row(s) in the five-origin table.",
+      "playerExperience": "A place the chart names cannot be reached by following the guidance the game provides.",
+      "acceptance": [
+        "Every POI's primary arrival approach is routable from the route matrix's five regional origins.",
+        "No routed leg spends the majority of its length underwater or shorter than half its straight line."
+      ],
+      "verification": [
+        "node scripts/check-routes.mjs exits 0 with zero unreachable rows in the written evidence table"
+      ],
+      "history": [
+        {
+          "date": "2026-09-13",
+          "action": "created",
+          "note": "check-routes found 5 unreachable row(s): ranch->barrett (no-approach); silverCreek->barrett (no-approach); fortGrant->barrett (no-approach); mines->barrett (no-approach); tribal->barrett (no-approach)"
+        }
+      ],
+      "evidenceRefs": [
+        "audit/evidence/nav-routes-2026-09-13T22-58-50.json"
+      ],
+      "files": [
+        "src/nav/graph.js",
+        "src/nav/search.js",
+        "src/map.js"
+      ],
+      "deps": [],
+      "attempts": []
     }
   ]
 }

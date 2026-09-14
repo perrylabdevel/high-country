@@ -677,6 +677,18 @@ defective"; the camera must visit every herd home. (2) The check's
 legitimately graze through its whole active slice — the guard needs a window
 long enough that walking is expected, not lucky.
 
+**Addendum (2026-09-13) — the muzzle probe tunnels thin walls, and turning
+in place was unguarded.** Moving the stamp mill structure from landmarks.js
+to industry.js reordered collider registration, which nudged one ranch cow's
+deterministic path onto the bunkhouse's 0.42 m north wall: head 4 cm inside
+for 1052 ticks. Two holes: the probe only ran while the animal travelled (a
+grazing turn swings the head with zero travel), and a single circle at the
+1.72 m muzzle sits *past* a thin wall, resolves out the far side, and pushes
+the animal into the wall. `settleHead` now walks the probe out along the
+neck from the body every tick and backs the animal off from the first
+sample that is pushed. A clean pass on one collider layout is not proof;
+any change to collider order can surface this class again.
+
 ---
 
 ### 2.11 Approximate bridge coordinates can hide both translation and yaw errors
@@ -701,6 +713,28 @@ negative-tested: it fails first with `tribalCreek bridge center is 9.12 m off
 foothillsTribal`.
 
 ---
+
+### 2.12 Road-edge wedges were the coarse road carve, copied at fine resolution
+
+A storm flyover showed hard, dark triangles down both sides of every road.
+The material was not the cause: they survived with the ground textures
+disabled, and they vanished when road refinement was turned off. The road bed
+is carved 0.85 m deep with a ~7 m Gaussian, but the heightfield is baked every
+12.5 m, so the carve exists only at whichever coarse vertices land near the
+road. Refined cells placed their 0.5 m vertices on the coarse cell's two
+triangles, so they reproduced that aliased carve exactly: planar facets up to
+0.81 m off the real ground. Because every fine vertex sat on one plane, its
+normal was that plane's normal. The coarse mesh hides the same error behind
+smoothed vertex normals, so the refinement meant to add detail made the
+facets visible. Wet storm light exposed them most.
+
+Refined cells now take a bilinear base, remove the coarse carve, and
+evaluate `roadCarveAt` at each vertex. `roadCarveAt` mirrors
+`sourceHeightAt`'s pad and lake blends. The correction fades to zero toward
+unrefined neighbours so the T-junction edge stays on the coarse line. Making
+the rut shallower does nothing here; rut depth 0 still showed the wedges.
+`check:roads` pins drawn-versus-true height at the reporter's pose, the carve
+mirror, and seam watertightness.
 
 ## 3. Verification — the expensive lessons
 

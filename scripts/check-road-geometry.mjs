@@ -31,15 +31,12 @@ function rayHeight(mesh, x, z) {
   return hit.point.y;
 }
 
-function coarseBase(x, z) {
-  const sx = WORLD.width / WORLD.segmentsX, sz = WORLD.depth / WORLD.segmentsZ;
-  const fx = (x + WORLD.width / 2) / sx, fz = (z + WORLD.depth / 2) / sz;
-  const ix = Math.max(0, Math.min(WORLD.segmentsX - 1, Math.floor(fx)));
-  const iz = Math.max(0, Math.min(WORLD.segmentsZ - 1, Math.floor(fz)));
-  const tx = fx - ix, tz = fz - iz;
-  const at = (x0, z0) => sourceHeightAt(-WORLD.width / 2 + x0 * sx, -WORLD.depth / 2 + z0 * sz);
-  const h00 = at(ix, iz), h10 = at(ix + 1, iz), h01 = at(ix, iz + 1), h11 = at(ix + 1, iz + 1);
-  return tx + tz <= 1 ? h00 + tx * (h10 - h00) + tz * (h01 - h00) : h11 + (1 - tx) * (h01 - h11) + (1 - tz) * (h10 - h11);
+// The ground without ruts. Refined road cells now evaluate the road carve per
+// vertex (HARD_WON 2.12), so the rut-free surface is the real source height,
+// not the coarse triangles: measured against those, the carve's own curvature
+// across 0.9 m (~0.06 m on a 3 m trail) was mistaken for a missing trough.
+function groundBase(x, z) {
+  return sourceHeightAt(x, z);
 }
 
 bakeHeightfield();
@@ -60,9 +57,9 @@ for (const road of roads) {
       const centerY = rayHeight(mesh, center.x, center.z);
       const leftY = rayHeight(mesh, left.x, left.z);
       const rightY = rayHeight(mesh, right.x, right.z);
-      const centerBase = coarseBase(center.x, center.z);
-      const leftBase = coarseBase(left.x, left.z);
-      const rightBase = coarseBase(right.x, right.z);
+      const centerBase = groundBase(center.x, center.z);
+      const leftBase = groundBase(left.x, left.z);
+      const rightBase = groundBase(right.x, right.z);
       const expectedLeft = meshHeightAt(left.x, left.z);
       const expectedRight = meshHeightAt(right.x, right.z);
       maxQueryError = Math.max(maxQueryError, Math.abs(leftY - expectedLeft), Math.abs(rightY - expectedRight));

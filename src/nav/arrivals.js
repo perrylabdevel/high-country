@@ -73,7 +73,11 @@ export const APPROACHES = [
   // sit hard against one wall or another — a gate arrival is the honest one.
   { id: "fortGrant.gate", poi: "fortGrant", type: "gate", dx: 0, dz: -12, r: 2.1, face: Math.PI, primary: true },
   { id: "mines.trailhead", poi: "mines", type: "trailhead", dx: -6, dz: 10, r: 6, primary: true },
-  { id: "stampMill.door", poi: "stampMill", type: "door", dx: -2, dz: -14, r: 2.2, face: 0, primary: true },
+  // The mill is open-sided and stands west of the rail (industry.js
+  // MILL_SITE, footprint x -20..-4, z -30..-18 from the POI centre); arrive
+  // at its west face, looking east into the stamp battery. The old door
+  // point stood on the railroad beside a shed that had been built across it.
+  { id: "stampMill.door", poi: "stampMill", type: "door", dx: -22.5, dz: -24, r: 2.2, face: Math.PI / 2, primary: true },
   { id: "stampMill.trailhead", poi: "stampMill", type: "trailhead", dx: 0, dz: -40, r: 6 },
   { id: "company.trailhead", poi: "company", type: "trailhead", dx: 18, dz: 18, r: 6, primary: true },
   // Open ground at the camp's heart, north of the tent line; the old (−5,22)
@@ -83,11 +87,14 @@ export const APPROACHES = [
   { id: "foothills.trailhead", poi: "foothills", type: "trailhead", dx: 0, dz: 0, r: 6, primary: true },
   { id: "tribal.trailhead", poi: "tribal", type: "trailhead", dx: 0, dz: 0, r: 6, primary: true },
   { id: "badlands.trailhead", poi: "badlands", type: "trailhead", dx: 0, dz: 0, r: 6, primary: true },
-  { id: "mission.trailhead", poi: "mission", type: "trailhead", dx: 0, dz: -12, r: 6, face: 0, primary: true },
-  // The rim cuts end 100+ m off the POI centres on purpose: the rim shelf is
-  // where the passable ground is, not the canyon throat.
-  { id: "vipers.trailhead", poi: "vipers", type: "trailhead", dx: 20, dz: -110, r: 6, primary: true },
-  { id: "hideout.trailhead", poi: "hideout", type: "trailhead", dx: 40, dz: -100, r: 6, primary: true },
+  // At the end of ranchSouth before the forecourt gate, looking south at the
+  // chapel facade (mission.js).
+  { id: "mission.trailhead", poi: "mission", type: "trailhead", dx: -4, dz: -20, r: 6, face: Math.PI, primary: true },
+  // The rim cuts end on the rim shelf, where the passable ground is; the
+  // hideout places were moved onto those shelves (map.js), so the arrival is
+  // the place centre and the outlaw camp stands around it (props.js).
+  { id: "vipers.trailhead", poi: "vipers", type: "trailhead", dx: 0, dz: 0, r: 6, primary: true },
+  { id: "hideout.trailhead", poi: "hideout", type: "trailhead", dx: 0, dz: 0, r: 6, primary: true },
   // El Paso Verde's centre is hemmed by its own houses; the open pocket
   // north-east of the casa is the ground a rider actually pulls up on.
   { id: "elPaso.trailhead", poi: "elPaso", type: "trailhead", dx: 0, dz: -18, r: 6, primary: true },

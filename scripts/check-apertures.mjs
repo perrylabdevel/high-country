@@ -39,6 +39,7 @@ const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
 const { createHomestead } = await import("../src/homestead.js");
+const { createFort } = await import("../src/fort.js");
 const {
   enumerateApertures,
   resetApertureEnumeration,
@@ -64,6 +65,7 @@ createLandmarks(scene);
 createInteriors(scene);
 createShore(scene);
 createIndustry(scene);
+createFort(scene);
 createHomestead(scene);
 const apertures = enumerateApertures();
 

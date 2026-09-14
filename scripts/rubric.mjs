@@ -16,7 +16,7 @@
  * the bug. For arid POIs U1 is replaced by an arid-ground check so the grader
  * stops dinging correct bare ground as a failure.
  */
-export const ARID_POIS = new Set(["badlands", "burn", "mission", "elPaso", "ironValley"]);
+export const ARID_POIS = new Set(["badlands", "burn", "mission", "elPaso", "ironValley", "mines"]);
 
 const U1_GRASS = {
   id: "U1",
@@ -113,8 +113,13 @@ export const PER_POI = {
     ["W2", "Cattle", "Cattle vary in orientation; not all facing the same way."],
     ["W3", "Fences", "Fence lines follow the terrain without floating or sinking."]
   ],
+  // The mine works moved from Iron Valley to Silver Strike Mines (2026-09-13):
+  // I1/I2 grade the mines frame now, and Iron Valley is graded as the camp.
   ironValley: [
-    ["I1", "Industrial silhouette", "Headframes, stamp mill and tailings are identifiable."],
+    ["I3", "Miners' camp", "Wall tents, a cook fly and camp stores read as a lived-in camp, clear of the creek and ruins."]
+  ],
+  mines: [
+    ["I1", "Industrial silhouette", "Headframe, hoist house with its stack, and the ore bin and waste dump are identifiable."],
     ["I2", "Materials", "Rust and iron read distinctly from timber."]
   ],
   tribal: [

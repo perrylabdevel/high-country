@@ -1197,3 +1197,31 @@ surroundings, not because it is blown out or un-lit.
   normalized decode is an approximation where rock/A is nonzero. This remains
   normal-profile relief rather than geometric road recess; town rut separation
   is still restrained. `npm run check` passes serially.
+- **Mining district re-layout (2026-09-13, NOT YET GRADED):** the headframe,
+  stamp mill and tailings no longer stand at the Iron Valley region centre
+  (they were placed there only so the audit camera framed them, 160 m from
+  any road or rail). The works now stand at Silver Strike Mines (headframe,
+  hoist house, ore bin, tramway to a rail loading dock, waste dump) and the
+  stamp mill beside the rail at its own POI; Iron Valley is the miners' camp.
+  Audit consequences: a new `mines` POI in `AUDIT_POIS`/`CLOSE_POIS` and
+  `grade.mjs`, rubric I1/I2 moved from `ironValley` to `mines`, and
+  `ironValley` is graded on the new I3 (miners' camp) with its camera
+  retargeted onto the tent street. Prior ironValley I1/I2 scores are not
+  comparable; re-baseline both frames at the next graded capture.
+- **Fort Grant re-site (2026-09-13, NOT YET GRADED):** the fort stood on the
+  stage road's bend (the road ran in through the north wall and out the
+  south-west corner). `POS.fortGrant` moved from (0.1, 0.38) to
+  (0.07625, 0.353): 64 m south of the road on flatter ground (0.49 m of relief
+  under the walls, was 1.92 m), gate toward the road on the new `fortSpur`
+  trail, terrain pad retargeted to 94.8 m. The interior was rebuilt with kit
+  buildings (barracks, stone storehouse, commissary) and props. The audit
+  camera is POS-relative so it follows; F1/F2 frames need re-baselining.
+- **Mission and camps pass (2026-09-13, NOT YET GRADED):** `POS.mission` moved
+  from (0.5, 0.12), the Deadman arroyo's bend with ranchSouth ending inside the
+  church, to (0.51375, 0.113) on the bench east of the wash; the sealed block
+  became a walled compound (`src/mission.js`: enterable chapel with campanario,
+  atrio and camposanto, convento, walled garden, hornos). M1/M2 frames need
+  re-baselining. The tribal lodge ring moved 30 m off the foothills trail
+  (`TRIBAL_CAMP`), which changes the N1/N2 frame composition. The timber camp's
+  box piles/stumps/logs became props (T1 frame changes). `vipers`/`hideout`
+  places moved onto their rim-shelf arrivals (not graded POIs).

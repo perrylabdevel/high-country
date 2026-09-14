@@ -12,7 +12,17 @@ import {
   nearestRoadDistance,
   measureRoadNetwork
 } from "../src/map.js";
-import { heightAt, bakeHeightfield } from "../src/heightfield.js";
+import {
+  heightAt,
+  bakeHeightfield,
+  sourceHeightAt,
+  meshHeightAt,
+  baseMeshHeightAt,
+  roadRutHeight,
+  roadCarveAt,
+  roadRefinedCell,
+  WORLD
+} from "../src/heightfield.js";
 import { materialSettings, RUT_TONE } from "../src/materials/settings.ts";
 import * as THREE from "three/webgpu";
 import { float } from "three/tsl";
@@ -214,6 +224,57 @@ assert(stats.length3d > 8000, `road network 3D length too short: ${stats.length3
 assert(stats.maxGap < 2.2, `ribbon midpoints float off the heightfield: gap ${stats.maxGap}`);
 assert(stats.samples > 400, `not enough ribbon samples: ${stats.samples}`);
 
+// Road-edge wedges (HARD_WON 2.12). The 0.85 m road carve is a ~7 m Gaussian
+// the 12.5 m bake cannot sample, and the road-refined mesh used to lay its
+// 0.5 m vertices on the coarse triangles — flat-lit facets up to 0.81 m off
+// the real ground down both sides of every road, worst in wet storm light.
+// The reporter's pose looks down this stretch.
+let roadEdgeWorst = 0;
+for (let x = 560; x < 760; x += 0.5) {
+  for (let z = -330; z < -200; z += 0.5) {
+    if (nearestRoadDistance(x, z) > 25) continue;
+    roadEdgeWorst = Math.max(roadEdgeWorst, Math.abs(meshHeightAt(x, z) - roadRutHeight(x, z) - sourceHeightAt(x, z)));
+  }
+}
+assert(
+  roadEdgeWorst < 0.3,
+  `road corridor mesh is ${roadEdgeWorst.toFixed(2)} m off the real ground beside the road at the storm pose; ` +
+    "refined cells are following the coarse, aliased road carve again (angular wedges)"
+);
+// roadCarveAt must mirror sourceHeightAt's carve through the pad/lake blends,
+// or the refined mesh subtracts a carve the bake never applied.
+let carveMirror = 0;
+for (const p of [POS.ranch, POS.silverCreek, POS.fortGrant, POS.lakeMercy, POS.mission]) {
+  for (let i = 0; i < 400; i += 1) {
+    const x = p.x + Math.cos(i * 2.39996) * (i * 0.6);
+    const z = p.z + Math.sin(i * 2.39996) * (i * 0.6);
+    carveMirror = Math.max(carveMirror, Math.abs(sourceHeightAt(x, z, false) - sourceHeightAt(x, z) - roadCarveAt(x, z)));
+  }
+}
+assert(carveMirror < 1e-3, `roadCarveAt disagrees with sourceHeightAt's road carve by ${carveMirror.toFixed(3)} m`);
+// Where a refined cell meets an unrefined one, its edge vertices must lie on
+// the straight coarse edge the neighbour draws, or the terrain cracks.
+let seamGap = 0;
+const cellX = WORLD.width / WORLD.segmentsX;
+const cellZ = WORLD.depth / WORLD.segmentsZ;
+for (let iz = 1; iz < WORLD.segmentsZ - 1; iz += 1) {
+  for (let ix = 1; ix < WORLD.segmentsX - 1; ix += 1) {
+    if (!roadRefinedCell(ix, iz)) continue;
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      if (roadRefinedCell(ix + dx, iz + dz)) continue;
+      for (let k = 0; k <= 25; k += 1) {
+        const ex = dx !== 0 ? (dx > 0 ? ix + 1 : ix) : ix + k / 25;
+        const ez = dz !== 0 ? (dz > 0 ? iz + 1 : iz) : iz + k / 25;
+        // Nudge inside the refined cell so meshHeightAt takes the refined path.
+        const x = -WORLD.width / 2 + ex * cellX - dx * 1e-4;
+        const z = -WORLD.depth / 2 + ez * cellZ - dz * 1e-4;
+        seamGap = Math.max(seamGap, Math.abs(meshHeightAt(x, z) - roadRutHeight(x, z) - baseMeshHeightAt(x, z)));
+      }
+    }
+  }
+}
+assert(seamGap < 5e-3, `refined road corridor cracks against the coarse terrain by ${seamGap.toFixed(3)} m`);
+
 const NEAR = 90;
 assert(nearestRoadDistance(POS.ranch.x, POS.ranch.z) < NEAR, "ranch should sit on a road");
 assert(nearestRoadDistance(POS.silverCreek.x, POS.silverCreek.z) < NEAR, "Silver Creek should sit on a road");
@@ -231,6 +292,7 @@ console.log(JSON.stringify({
   creeks: CREEKS.map((c) => c.name),
   bridgeAlignment,
   lift: ROAD_LIFT,
+  roadEdge: { worst: Number(roadEdgeWorst.toFixed(3)), carveMirror, seamGap },
   terrainStochastic: materialSettings.terrainStochastic,
   rut: { depth: materialSettings.rutDepth, peakAttenuation: Number(rutPeak.toFixed(3)), roadCompact: materialSettings.roadCompact, grooveFloor, grooveLip, minRoadRoughness },
   stats,

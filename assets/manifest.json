@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-09630a02a4eb.tar.gz",
-  "bundle": "textures-09630a02a4eb.tar.gz",
-  "contentHash": "09630a02a4eb640271c50b16619b3770743d8e2548503e685299b6c8990963c2",
-  "bundleSha256": "404990747bd4dceb262ae9ae49698926c9642f455ebac028acfe7f9aee071635",
-  "bundleBytes": 185158783,
+  "url": "https://github.com/perrylabdevel/high-country/releases/download/textures/textures-7e73c5da086b.tar.gz",
+  "bundle": "textures-7e73c5da086b.tar.gz",
+  "contentHash": "7e73c5da086b405409ee81c25001c81275147e12f60cc091c575531b761b97ba",
+  "bundleSha256": "0f16d233a4ae3ef2a7f8763646aa7ad1c227eb64e535871ce9cd0c78ef702557",
+  "bundleBytes": 185231494,
   "target": "public/textures",
   "files": [
     {
@@ -178,9 +178,9 @@
       "sha256": "bc493171626f9eea169aaba16fc31fd32324509dc1f217a914ea45de8a03dfad"
     },
     {
-      "path": "splat_v1.bin.gz",
-      "bytes": 1526411,
-      "sha256": "92807384f38f279753e9a32732c70a0dbcde1478ebcf2662abb5e992832b9994"
+      "path": "splat_v2.bin.gz",
+      "bytes": 1509165,
+      "sha256": "3c9dfb377de98d87a898ef388e26c5070a7a8d8dd1989502a7f76ff923bca057"
     },
     {
       "path": "wood_2k_albedo.ktx2",

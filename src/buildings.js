@@ -26,13 +26,12 @@ import {
   block,
   grounded,
   post,
-  boxOnGround,
-  boxLookAt,
-  wheelOn
+  lowestSeat
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
+import { addFenceSpots, addPropSpot, clearPropSpots } from "./propSpots.js";
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -75,6 +74,7 @@ function registerPorchDecks(root) {
 export function createRanch(maps = {}) {
   const ox = POS.ranch.x;
   const oz = POS.ranch.z;
+  clearPropSpots("ranch");
   const hasMaps = Boolean(maps?.wood && maps?.siding && maps?.roof && maps?.rock);
   const wood = hasMaps
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
@@ -566,7 +566,9 @@ export function createRanch(maps = {}) {
   addCylinderCollider(millX, millZ, 0.9);
 
   // ---------------- Fences (3 rails) ----------------
-  const fence = new THREE.Group();
+  // The corral: a closed loop of the authored post-and-rail model (props.js
+  // draws it; each bay's post stands at its start, so the loop needs no end
+  // posts). One collider per side, as before.
   function fenceRun(x0, z0, x1, z1, count) {
     x0 += ox;
     z0 += oz;
@@ -575,27 +577,12 @@ export function createRanch(maps = {}) {
     const dx = x1 - x0;
     const dz = z1 - z0;
     addBoxCollider((x0 + x1) / 2, (z0 + z1) / 2, Math.abs(dx) < 0.5 ? 0.22 : Math.abs(dx) / 2, Math.abs(dz) < 0.5 ? 0.22 : Math.abs(dz) / 2);
-    for (let i = 0; i <= count; i += 1) {
-      const t = i / count;
-      const x = x0 + dx * t;
-      const z = z0 + dz * t;
-      boxOnGround(fence, x, z, 0.18, 1.3, 0.18, darkWood, false);
-      if (i < count) {
-        const nx = x0 + dx * ((i + 1) / count);
-        const nz = z0 + dz * ((i + 1) / count);
-        const len = Math.hypot(nx - x, nz - z);
-        for (const railH of [0.4, 0.8, 1.2]) {
-          const midY = (groundY(x, z) + groundY(nx, nz)) / 2 + railH;
-          boxLookAt(fence, (x + nx) / 2, midY, (z + nz) / 2, 0.08, 0.08, len, nx, midY, nz, darkWood);
-        }
-      }
-    }
+    addFenceSpots("ranch", x0, z0, x1, z1, count);
   }
   fenceRun(12, 28, 42, 28, 10);
   fenceRun(42, 28, 42, 48, 8);
   fenceRun(42, 48, 12, 48, 10);
   fenceRun(12, 48, 12, 28, 8);
-  group.add(fence);
 
   // ---------------- Ranch gate (crossbeam on posts) ----------------
   const gateX = POS.ranchGate.x;
@@ -625,69 +612,39 @@ export function createRanch(maps = {}) {
   // read as a fence section sunk in the grass (audit: side-on at the rail).
   // Same footprint and collider, so the dismount arrival and the trough gap
   // measured against the old rail still hold.
-  groundBox(ox + 8, oz + 14 - 1.55, 0.16, 1.15, 0.16, darkWood);
-  groundBox(ox + 8, oz + 14 + 1.55, 0.16, 1.15, 0.16, darkWood);
-  groundBox(ox + 8, oz + 14, 0.12, 0.12, 3.6, darkWood, 1.02 - 0.06);
+  //
+  // The yard furniture below is drawn by props.js from authored models; this
+  // builder keeps each piece's collider and records where the model stands.
+  // yaw PI/2 lays the rail's long axis along world Z.
+  addPropSpot("ranch", { kind: "hitch_rail_short", x: ox + 8, z: oz + 14, yaw: Math.PI / 2 });
   addBoxCollider(ox + 8, oz + 14, 0.35, 1.8);
 
-  // ---------------- Wagon (front wheels smaller) ----------------
-  const wagon = grounded({ x: ox - 18, z: oz + 8 });
-  mate(block({ w: 3.8, h: 0.38, d: 1.7, material: darkWood }), "base", anchorsOf(wagon).get("footing"), {
-    offset: { y: 0.95 - 0.19 }
-  });
-  mate(block({ w: 3.6, h: 0.5, d: 0.12, material: wood }), "base", anchorsOf(wagon).get("footing"), {
-    offset: { y: 1.28 - 0.25, z: 0.82 }
-  });
-  mate(block({ w: 3.6, h: 0.5, d: 0.12, material: wood }), "base", anchorsOf(wagon).get("footing"), {
-    offset: { y: 1.28 - 0.25, z: -0.82 }
-  });
-  mate(block({ w: 0.7, h: 0.65, d: 1.5, material: wood }), "base", anchorsOf(wagon).get("footing"), {
-    offset: { x: 1.35, y: 1.45 - 0.325 }
-  });
-  for (const [wx, wz, r] of [[-1.3, 0.95, 0.65], [-1.3, -0.95, 0.65], [1.3, 0.95, 0.5], [1.3, -0.95, 0.5]]) {
-    wheelOn(wagon, { x: wx, y: r, z: wz, r, thick: 0.22, material: darkWood, axis: "x", radialSegments: 10 });
-  }
-  group.add(wagon);
+  // ---------------- Wagon (front wheels smaller, toward +X) ----------------
+  addPropSpot("ranch", { kind: "wagon_farm", x: ox - 18, z: oz + 8, yaw: 0 });
   addBoxCollider(ox - 18, oz + 8, 2.0, 1.0);
 
   // ---------------- Hay ----------------
-  const hayMat = new THREE.MeshStandardNodeMaterial({ color: 0xc4a050, roughness: 0.92 });
-  const hay = grounded({ x: ox + 16, z: oz + 32 });
-  mate(block({ w: 1.5, h: 0.85, d: 0.9, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
-    offset: { y: 0.45 - 0.425 }
-  });
-  mate(block({ w: 1.35, h: 0.75, d: 0.85, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
-    offset: { x: 1.55, y: 0.4 - 0.375, z: 0.35 }
-  });
-  mate(block({ w: 1.2, h: 0.7, d: 0.8, material: hayMat }), "base", anchorsOf(hay).get("footing"), {
-    offset: { x: 0.35, y: 0.38 - 0.35, z: 1.15 }
-  });
-  group.add(hay);
+  // A stack of square bales: three by two on the ground, two on top, all
+  // seated on the lowest ground under the whole stack.
+  const hayX = ox + 16.5;
+  const hayZ = oz + 32.25;
+  const hayY = lowestSeat(hayX, hayZ, 1.6);
+  for (const [dx, dz, lift] of [[-0.92, -0.24, 0], [0, -0.24, 0], [0.92, -0.24, 0], [-0.92, 0.24, 0], [0, 0.24, 0], [0.92, 0.24, 0], [-0.46, 0.02, 0.38], [0.46, -0.02, 0.38]]) {
+    addPropSpot("ranch", { kind: "hay_bale", x: hayX + dx, z: hayZ + dz, y: hayY + lift, yaw: lift ? 0.04 : (dx + dz) * 0.02, stacked: lift > 0 });
+  }
   addBoxCollider(ox + 16.6, oz + 32.4, 1.6, 1.2);
 
   // ---------------- Woodpile ----------------
-  const woodpile = grounded({ x: ox - 16, z: oz - 4 });
-  const logs = [
-    [0, 0.12, 0, 1.15, 0.22, 0.22],
-    [0.08, 0.12, 0.26, 1.05, 0.2, 0.2],
-    [-0.05, 0.12, -0.24, 1.1, 0.2, 0.22],
-    [0.04, 0.32, 0.08, 1.0, 0.2, 0.2],
-    [-0.1, 0.32, -0.12, 0.95, 0.18, 0.2],
-    [0, 0.52, 0, 0.9, 0.18, 0.18]
-  ];
-  for (const [lx, ly, lz, lw, lh, ld] of logs) {
-    mate(block({ w: lw, h: lh, d: ld, material: darkWood }), "base", anchorsOf(woodpile).get("footing"), {
-      offset: { x: lx, y: ly - lh / 2, z: lz }
-    });
-  }
-  group.add(woodpile);
-  addBoxCollider(ox - 16, oz - 4, 0.7, 0.45);
+  // z -7.5, not -4: the stage road runs in along ranch z = 0 (half width
+  // 4.5), and the old box woodpile at -4 stood on its shoulder.
+  addPropSpot("ranch", { kind: "woodpile", x: ox - 16, z: oz - 7.5, yaw: 0 });
+  addBoxCollider(ox - 16, oz - 7.5, 1.05, 0.36);
 
   // ---------------- Trough ----------------
   // 13.5, not 11: a trough 1.25 m from the hitching rail leaves a gap a horse
   // (0.78 m radius) cannot pass, and a rider mounting at the rail rides into
   // the pocket between rail and trough with nothing but a wall ahead.
-  groundBox(ox + 13.5, oz + 16, 2.6, 0.5, 0.8, wood, 0.32 - 0.25);
+  addPropSpot("ranch", { kind: "trough", x: ox + 13.5, z: oz + 16, yaw: 0 });
   addBoxCollider(ox + 13.5, oz + 16, 1.4, 0.5);
 
   // Every porch on this structure becomes standable footing. Runs last, once

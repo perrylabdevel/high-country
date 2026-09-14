@@ -39,6 +39,7 @@ import { heightAt, meshHeightAt, normalAt } from "./heightfield.js";
 import { barkTexture, makeTexture } from "./world.js";
 import { addCylinderCollider } from "./collision.js";
 import { insideStructure } from "./buildings/kit.js";
+import { groundCleared } from "./groundClear.js";
 import { WORLD, POS, biomeAt, inClearing, creekFactor, roadFactor, lakeFactor, smoothstep as ramp } from "./map.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { tryLoadTexture } from "./materials/loadTexture.ts";
@@ -627,7 +628,7 @@ function grassSample(x, z) {
   }
   // Buildings last: it is the only test that touches the structure index, and
   // by here most rejected candidates are already gone.
-  if (insideStructure(x, z, GRASS_CLEARANCE)) {
+  if (insideStructure(x, z, GRASS_CLEARANCE) || groundCleared(x, z)) {
     return 0;
   }
   return weight;
@@ -2967,7 +2968,7 @@ export function createVegetation(scene, maps = {}) {
     if (weight <= 0 || !biomeOn(biome)) {
       return false;
     }
-    if (insideStructure(x, z, GRASS_CLEARANCE)) {
+    if (insideStructure(x, z, GRASS_CLEARANCE) || groundCleared(x, z)) {
       return false;
     }
 
@@ -3121,7 +3122,7 @@ export function createVegetation(scene, maps = {}) {
     if (Math.hypot(x - (POS.ranch.x - 28), z - (POS.ranch.z + 18)) < 10) {
       return false;
     }
-    if (insideStructure(x, z, SHRUB_CLEARANCE)) {
+    if (insideStructure(x, z, SHRUB_CLEARANCE) || groundCleared(x, z)) {
       return false;
     }
     if (normalAt(x, z).y < 0.58) {

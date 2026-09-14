@@ -83,7 +83,12 @@ const PLACE_DEFS = {
   fireWatch: { u: 0.36, v: 0.92, name: "Fire-watch tower", radius: 50 },
   westernRange: { u: 0.14, v: 0.5, name: "Western Range", radius: 160 },
   barrett: { u: 0.18, v: 0.48, name: "Barrett Ranch", radius: 70 },
-  fortGrant: { u: 0.1, v: 0.38, name: "Abandoned Fort Grant", radius: 70 },
+  // Fort Grant used to stand at (0.1, 0.38), exactly on the stage road's bend:
+  // the road ran in through the north wall and out the south-west corner.
+  // Moved to the flattest ground near that stretch (0.49 m of relief under
+  // the walls, against 1.92 m before), 64 m south of the road with its north
+  // gate toward it; the fortSpur trail joins them.
+  fortGrant: { u: 0.07625, v: 0.353, name: "Abandoned Fort Grant", radius: 70 },
   sheepCamp: { u: 0.12, v: 0.58, name: "Sheep camp", radius: 50 },
   ironValley: { u: 0.84, v: 0.58, name: "Iron Valley", radius: 160 },
   mines: { u: 0.86, v: 0.64, name: "Silver Strike Mines", radius: 70 },
@@ -97,9 +102,16 @@ const PLACE_DEFS = {
   foothills: { u: 0.66, v: 0.36, name: "Foothills", radius: 140 },
   tribal: { u: 0.64, v: 0.22, name: "Tribal Lands", radius: 110 },
   badlands: { u: 0.42, v: 0.1, name: "Southern Badlands", radius: 180 },
-  mission: { u: 0.5, v: 0.12, name: "La Esperanza Mission", radius: 55 },
-  vipers: { u: 0.22, v: 0.08, name: "Viper's Roost", radius: 55 },
-  hideout: { u: 0.34, v: 0.06, name: "Hidden Canyon", radius: 50 },
+  // The mission used to stand at (0.5, 0.12): on the bend of the dry Deadman
+  // arroyo, with the south road ending inside the church. Moved 65 m east
+  // onto the bench above the wash (1.9 m higher, 0.88 m of relief under the
+  // compound); ranchSouth now climbs out of the wash to its forecourt gate.
+  mission: { u: 0.51375, v: 0.113, name: "La Esperanza Mission", radius: 55 },
+  // The two hideouts are placed on the rim shelves their NAV_CUTS end on,
+  // not in the canyon throats 100+ m away where their place labels used to
+  // sit over a single box nobody could ride to.
+  vipers: { u: 0.225, v: 0.102, name: "Viper's Roost", radius: 55 },
+  hideout: { u: 0.35, v: 0.08, name: "Hidden Canyon", radius: 50 },
   elPaso: { u: 0.84, v: 0.06, name: "El Paso Verde", radius: 70 },
   cemetery: { u: 0.43, v: 0.41, name: "Family cemetery", radius: 40 },
   huntingCabin: { u: 0.38, v: 0.58, name: "Hunting cabin", radius: 40 },
@@ -158,7 +170,9 @@ export const ROADS = [
       [0.4, 0.44],
       [0.4, 0.32],
       [0.44, 0.22],
-      [0.5, 0.12]
+      [0.5, 0.12],
+      // Out of the arroyo and up to the mission's forecourt gate (mission.js).
+      [0.51275, 0.1174]
     ]
   },
   {
@@ -315,6 +329,19 @@ export const ROADS = [
       // the building, where the trail's last edge is unwalkable by definition.
       [0.38, 0.5788],
       [0.46, 0.58]
+    ]
+  },
+  {
+    // Fort Grant's spur: leaves the stage road 54 m west of the fort gate and
+    // ends 8 m short of it, so its last edge never runs through the gateway
+    // (the gate itself is a NAV_GATES crossing, not a road).
+    name: "fortSpur",
+    kind: "trail",
+    width: 3.2,
+    pts: [
+      [0.07375, 0.36688],
+      [0.07575, 0.36],
+      [0.07625, 0.357]
     ]
   },
   {
@@ -913,3 +940,12 @@ export function inClearing(x, z) {
   }
   return false;
 }
+
+/**
+ * The lodge camp on the tribal lands stands beside the foothills trail, not
+ * on it: the ring used to be centred on the trail, with two lodges and the
+ * hearth in the tread. Offset 30 m to the trail's south-east (flatter than
+ * the north-west side: 0.88 m of relief across the ring against 1.33 m).
+ * The trailhead arrival stays on the trail at POS.tribal.
+ */
+export const TRIBAL_CAMP = { dx: 25.3, dz: -16.1 };

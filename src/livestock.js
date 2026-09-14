@@ -460,6 +460,33 @@ function pickSpot(home, ringMin, ringMax, sp, tries = 24) {
  * playerPos) ticks the whole population: culls by camera distance, runs the
  * wander/graze/flee state machines, moves and seats the animals.
  */
+/**
+ * Keep an animal's head out of colliders. The body circle leaves the rig's
+ * forward extent (up to headReach) unguarded, so walk a small circle out
+ * along the neck from the body; at the first sample something pushes, back
+ * the whole animal off by the rest of the reach and re-seat the body.
+ *
+ * A single probe at the muzzle was not enough: a thin wall (the 0.42 m
+ * bunkhouse wall) sits between body and muzzle, the probe resolves out the
+ * far side, and the "push" drags the animal into the wall instead.
+ */
+function settleHead(a, x, z, fx, fz) {
+  const reach = a.headReach ?? a.species.headReach;
+  const r = a.species.headRadius;
+  for (let s = 0.25; s <= reach + 1e-6; s += 0.2) {
+    const d = Math.min(s, reach);
+    const hx = x + fx * d;
+    const hz = z + fz * d;
+    const clear = resolvePosition(hx, hz, r, a.collider);
+    if (clear.x !== hx || clear.z !== hz) {
+      const back = reach - d + 0.2;
+      const body = resolvePosition(x - fx * back, z - fz * back, a.species.radius, a.collider);
+      return { x: body.x, z: body.z };
+    }
+  }
+  return { x, z };
+}
+
 export function createLivestock() {
   const group = new THREE.Group();
   group.name = "livestock";
@@ -657,17 +684,9 @@ export function createLivestock() {
         // push direction is the collider's shortest-exit vector, so sliding
         // along a wall still works; the body re-resolve covers the rare case
         // where backing off seats the torso into something behind it.
-        const headReach = a.headReach ?? a.species.headReach;
-        const hx = held.x + fx * headReach;
-        const hz = held.z + fz * headReach;
-        const clear = resolvePosition(hx, hz, a.species.headRadius, a.collider);
-        const pushX = clear.x - hx;
-        const pushZ = clear.z - hz;
-        if (pushX !== 0 || pushZ !== 0) {
-          const body = resolvePosition(held.x + pushX, held.z + pushZ, a.species.radius, a.collider);
-          held.x = body.x;
-          held.z = body.z;
-        }
+        const settled = settleHead(a, held.x, held.z, fx, fz);
+        held.x = settled.x;
+        held.z = settled.z;
       }
       const c = clampWorld(held.x, held.z);
       const slope = normalAt(c.x, c.z);
@@ -677,6 +696,21 @@ export function createLivestock() {
       }
       a.collider.x = g.position.x;
       a.collider.z = g.position.z;
+    } else {
+      // Standing still does not keep the muzzle clear: an animal turning in
+      // place beside a wall swings its head into it with no travel to guard
+      // (a ranch cow grazing along the bunkhouse wall, 4 cm deep for 1052
+      // ticks). Settle the head once for the new heading.
+      const body = settleHead(a, g.position.x, g.position.z, fx, fz);
+      if (body.x !== g.position.x || body.z !== g.position.z) {
+        const c = clampWorld(body.x, body.z);
+        if (normalAt(c.x, c.z).y >= 0.5) {
+          g.position.x = c.x;
+          g.position.z = c.z;
+          a.collider.x = c.x;
+          a.collider.z = c.z;
+        }
+      }
     }
     const surface = heightAt(g.position.x, g.position.z);
     g.position.y += (surface - g.position.y) * Math.min(1, 10 * dt);

@@ -2,8 +2,8 @@ import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
 import { meshHeightAt } from "./heightfield.js";
 import { lakeWaterRimRadius, lakeWaterSignedDistance, LAKE_WATER_RIM_SEGMENTS } from "./lakeWaterline.js";
-import { addBoxCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
-import { POS, WATER, mapToWorld, CREEKS, lakeFactor, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
+import { addBoxCollider, addDeckPlatform } from "./collision.js";
+import { POS, WATER, mapToWorld, CREEKS, lakeFactor, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ, TRIBAL_CAMP } from "./map.js";
 import {
   makeWaterNormalTexture,
   createWaterFallbackMaterial,
@@ -30,15 +30,14 @@ import {
   boxOnGround,
   boxOnPlane,
   cylOnGround,
-  cylOnPlane,
   coneOnGround,
-  coneOnPlane,
-  post,
   lowestSeat
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
+import { addPropSpot, clearPropSpots } from "./propSpots.js";
+import { createMission } from "./mission.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -70,7 +69,7 @@ const T = 0.22;
  * Heights, footprints and yaws stay with the caller so the plaza does not
  * read as three copies of the same box (audit E1).
  */
-function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark }) {
+export function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat, dark }) {
   const st = structure({
     name,
     x,
@@ -419,6 +418,7 @@ function street(group, origin, yaw, lots, facadeWood, dark, stone, roof, maps = 
 
 export function createLandmarks(scene, maps = {}) {
   ENTERABLE_LOTS.length = 0;
+  clearPropSpots("landmarks");
   STREETS.length = 0;
   streetSeq = 0;
   const group = new THREE.Group();
@@ -503,55 +503,29 @@ export function createLandmarks(scene, maps = {}) {
   // pointed at a stump, not a rail). A rail lives at the deck edge: posts in
   // the street just off the planks (perp 1.25), horses tied in the street
   // outside them, the bar running parallel to the deck line.
+  //
+  // The rails themselves are the authored hitch_rail model (props.js draws
+  // and collides them); this records where they stand. yaw is three's
+  // rotation.y: -townYaw maps the model's long +X axis onto the street axis.
   const hitchC = Math.cos(townYaw);
   const hitchS = Math.sin(townYaw);
-  const hitchSpot = (along, perp) => ({
+  const railAt = (originDz, along, perp) => addPropSpot("landmarks", {
+    kind: "hitch_rail",
     x: town.x + hitchC * along - hitchS * perp,
-    z: town.z + hitchS * along + hitchC * perp
+    z: town.z + originDz + hitchS * along + hitchC * perp,
+    yaw: -townYaw,
+    collide: true
   });
   for (const along of [-28, -8, 12, 32]) {
-    for (const off of [-2.2, 2.2]) {
-      const p = hitchSpot(along + off, 1.25);
-      boxAt(group, p.x, p.z, 0.16, 1.15, 0.16, dark);
-    }
-    const mid = hitchSpot(along, 1.25);
-    // rotation.y = -yaw maps local +X to (cos yaw, sin yaw) — the street
-    // axis (same frame the boardwalk groups use) — so the bar runs parallel
-    // to the deck edge instead of skewing 0.37 m across its length.
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.9, 0.12, 0.12), dark);
-    bar.position.set(mid.x, heightAt(mid.x, mid.z) + 1.02, mid.z);
-    bar.rotation.y = -townYaw;
-    bar.castShadow = true;
-    group.add(bar);
+    railAt(0, along, 1.25);
   }
   // The north row is a second false-front street with its own boardwalk —
   // Silver Creek has two decks. Its storefronts face north onto their own
   // street (facade line perp 6.5, deck 2.5..6.5 in that street's frame), so
   // its rails stand at that deck's street edge by the same pattern.
-  const northRailSpot = (along, perp) => ({
-    x: town.x + hitchC * along - hitchS * perp,
-    z: town.z - 22 + hitchS * along + hitchC * perp
-  });
   for (const along of [-21, 7, 35]) {
-    for (const off of [-2.2, 2.2]) {
-      const p = northRailSpot(along + off, 1.25);
-      boxAt(group, p.x, p.z, 0.16, 1.15, 0.16, dark);
-    }
-    const mid = northRailSpot(along, 1.25);
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.9, 0.12, 0.12), dark);
-    bar.position.set(mid.x, heightAt(mid.x, mid.z) + 1.02, mid.z);
-    bar.rotation.y = -townYaw;
-    bar.castShadow = true;
-    group.add(bar);
+    railAt(-22, along, 1.25);
   }
-  const wagonX = town.x + 42;
-  const wagonZ = town.z + 16;
-  boxAt(group, wagonX, wagonZ, 3.6, 1.05, 1.7, dark, false);
-  boxAt(group, wagonX, wagonZ, 3.8, 0.28, 1.9, facadeWood, false, 1.05);
-  boxAt(group, wagonX - 1.3, wagonZ + 0.95, 0.45, 0.7, 0.45, dark, false);
-  boxAt(group, wagonX + 1.3, wagonZ + 0.95, 0.45, 0.7, 0.45, dark, false);
-  boxAt(group, wagonX - 1.3, wagonZ - 0.95, 0.45, 0.7, 0.45, dark, false);
-  boxAt(group, wagonX + 1.3, wagonZ - 0.95, 0.45, 0.7, 0.45, dark, false);
 
   const dock = POS.lakeMercy;
   // Dock references WATER, not terrain height.
@@ -610,50 +584,13 @@ export function createLandmarks(scene, maps = {}) {
       { x: -3.5, z: 0, halfX: T / 2, halfZ: 2.5 }
     ]);
     group.add(cabin);
-    boxAt(group, cx + 6, cz, 3.2, 1.2, 1.2, facadeWood, true);
-  }
-  for (const [dx, dz] of [[-22, -10], [20, 12], [8, -18]]) {
-    boxAt(group, POS.timberCamp.x + dx, POS.timberCamp.z + dz, 4.8, 0.85, 1.5, facadeWood, true, 0.45 - 0.425);
   }
 
-  // Worked-site dressing (T1): cut stumps with a lighter sawn face, and
-  // felled logs lying on their side. The camp previously read as cabins plus
-  // bench-like boxes; a stump only reads when its top is a cut face, and a
-  // log only when it is horizontal.
-  const tc = POS.timberCamp;
-  for (let i = 0; i < 10; i += 1) {
-    const a = seeded(i * 2.3 + 1) * Math.PI * 2;
-    const r = 6 + seeded(i * 4.1 + 2) * 17;
-    const sx = tc.x + Math.cos(a) * r;
-    const sz = tc.z + Math.sin(a) * r;
-    const h = 0.4 + seeded(i * 1.7 + 3) * 0.45;
-    const rad = 0.26 + seeded(i * 2.9 + 4) * 0.12;
-    const groundY = heightAt(sx, sz);
-    const stump = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.9, rad, h, 10), facadeWood);
-    stump.position.set(sx, groundY + h / 2, sz);
-    stump.rotation.y = seeded(i * 5.3 + 5) * Math.PI;
-    stump.castShadow = true;
-    group.add(stump);
-    const cutFace = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.82, rad * 0.82, 0.04, 10), mat(0xd8c29a));
-    cutFace.position.set(sx, groundY + h + 0.02, sz);
-    cutFace.castShadow = true;
-    group.add(cutFace);
-  }
-  for (let i = 0; i < 7; i += 1) {
-    const a = seeded(i * 3.7 + 7) * Math.PI * 2;
-    const r = 5 + seeded(i * 2.2 + 8) * 18;
-    const lx = tc.x + Math.cos(a) * r;
-    const lz = tc.z + Math.sin(a) * r;
-    const len = 2.6 + seeded(i * 1.3 + 9) * 2.4;
-    const rad = 0.22 + seeded(i * 4.7 + 10) * 0.12;
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad * 1.08, len, 10), facadeWood);
-    log.rotation.z = Math.PI / 2;
-    log.rotation.y = seeded(i * 6.1 + 11) * Math.PI;
-    log.position.set(lx, heightAt(lx, lz) + rad * 1.05, lz);
-    log.castShadow = true;
-    log.receiveShadow = true;
-    group.add(log);
-  }
+  // Worked-site dressing (T1) — stumps, log decks, the sawbuck, woodpiles
+  // and the crew's tents — is props (props.js TIMBER_CAMP). The box lumber
+  // piles, stumps and logs that stood here were placed without the three
+  // roads that meet at the camp: five of them sat on logA, logB or
+  // silverNorth.
 
   for (let i = 0; i < 6; i += 1) {
     const a = i * 1.1;
@@ -662,8 +599,7 @@ export function createLandmarks(scene, maps = {}) {
 
   boxAt(group, POS.barrett.x, POS.barrett.z, 10, 5.5, 8, facadeWood);
   boxAt(group, POS.barrett.x + 12, POS.barrett.z + 4, 8, 4, 6, dark);
-  boxAt(group, POS.sheepCamp.x, POS.sheepCamp.z, 6, 2.6, 4, canvas);
-  coneOnGround(group, POS.sheepCamp.x + 8, POS.sheepCamp.z + 3, 2.4, 3.4, canvas, true);
+  // The sheep camp (wagon, pen, fire) is props (props.js).
 
   // Fort Grant — four equal walls with a centered gate on the east.
   const fort = POS.fortGrant;
@@ -776,113 +712,19 @@ export function createLandmarks(scene, maps = {}) {
     w: 6.4, h: fortWallH, nx: 0, nz: -1, state: "traversable",
     note: "north gateway between the segment colliders; arrival approach 'gate'"
   });
-  boxAt(group, fort.x + 6, fort.z - 4, 6, 4.5, 6, stone);
 
-  // Iron Valley — a coherent industrial complex at the region center (the
-  // capture target), so the headframe / stamp mill / tailings actually read in
-  // frame. The named mines/stampMill map POIs are 300-600 m apart and out of
-  // the ironValley capture, so the complex is built here instead.
-  const ivX = POS.ironValley.x;
-  const ivZ = POS.ironValley.z;
-  const ivY = heightAt(ivX, ivZ);
-
-  // Headframe: a tall A-frame tower with cross-bracing and a sheave wheel over
-  // the shaft. Big enough to read as an industrial silhouette at 62 m.
-  // The legs lean by rotating the piece GROUP — its origin is the base anchor,
-  // so the base stays on its collider at ivX +/- 5 and the top converges.
-  // (Rotating the mesh inside the block pivots at the mesh centre, which
-  // swung each base 1.74 m outward past its collider and left the lower
-  // bracing floating short of the legs.)
-  const hfH = 16;
-  const hfLean = 0.22;
-  const legInset = (y) => 5 - Math.sin(hfLean) * y;
-  // The tower straddles a slope: terrain under the west leg runs 1.1 m below
-  // and the east leg 0.75 m above the valley-centre sample, so seating every
-  // member on ivY floated the west leg's base clear of the ground. Seat the
-  // whole frame at the lowest ground any of it stands on instead — the uphill
-  // leg buries, like any structure on a slope.
-  const hfY = Math.min(
-    lowestSeat(ivX - 5, ivZ - 6, 0.64),
-    lowestSeat(ivX + 5, ivZ - 6, 0.64),
-    heightAt(ivX, ivZ - 6)
-  );
-  for (const sgn of [-1, 1]) {
-    const leg = boxOnPlane(group, ivX + sgn * 5, hfY, ivZ - 6, 0.9, hfH, 0.9, iron, true);
-    leg.rotation.z = sgn * hfLean;
-  }
-  for (const y of [4, 8, 12]) {
-    // Rusted cross-bracing: the headframe was all iron, so rust never read
-    // distinctly (audit I2). Corroded members at the lower tower give the
-    // orange-vs-iron-vs-timber separation. Each brace spans the leg
-    // centre-lines at its own height plus 0.25 m of embed into the 0.9 m
-    // legs — a fixed-width bar poked out past the leaning legs or, lower
-    // down, missed them entirely.
-    const half = legInset(y) + 0.25;
-    boxOnPlane(group, ivX, hfY + y - 0.2, ivZ - 6, half * 2, 0.4, 0.4, rust, false);
-  }
-  boxOnPlane(group, ivX, hfY + hfH - 0.35, ivZ - 6, legInset(hfH) * 2 + 2.2, 0.7, 0.7, iron, false);
-  const sheave = cylOnPlane(group, ivX, hfY, ivZ - 6, 1.8, 1.8, 0.6, iron, false, undefined, hfH - 0.3, 12);
-  sheave.children[0].rotation.x = Math.PI / 2;
-  // Shaft collar: 3 m tall so the lowest brace (bottom at hfY + 3.6) passes
-  // over it instead of through it — at 4 m the brace buried itself in the
-  // block once the frame was seated at the slope's low side.
-  boxOnGround(group, ivX, ivZ - 6, 3.5, 3, 3.5, dark, false);
-  // Half-extents match the 3.5 x 3.5 base; the previous 2 x 2 drew an
-  // invisible 0.25 m collar of solid air around the visual block.
-  addBoxCollider(ivX, ivZ - 6, 1.75, 1.75);
-
-  // Stamp mill: an open-sided shed with a visible battery of stamp rods and a
-  // camshaft, plus a conical tailings pile beside it.
-  const smX = ivX + 18;
-  const smZ = ivZ + 4;
-  const smY = heightAt(smX, smZ);
-  const smShed = structure({ name: "stampMill", x: smX, z: smZ, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, openSided: true, material: stone });
-  const smRoof = gableRoof({ w: 16, d: 12, pitch: 0.55, overhang: 0.5, eave: 6, material: roof });
-  mate(smRoof, "base", anchorsOf(smShed).get("wallTop"));
-  const millFloor = anchorsOf(smShed).get("footing");
-  for (let i = 0; i < 6; i += 1) {
-    mate(post({ rTop: 0.28, rBot: 0.28, h: 5.5, material: iron, radialSegments: 6 }), "base", millFloor, {
-      offset: { x: -6 + i * 2.4 }
-    });
-  }
-  const camshaft = post({ rTop: 0.4, rBot: 0.4, h: 14, material: iron });
-  // The mill seats at its lowest footing corner on an eastward-rising slope,
-  // so a shaft at floor + 1.4 dove underground at the shed's east end. Ride
-  // the shaft just clear of the highest terrain it crosses instead — real
-  // camshafts run high, driving the stamp heads from above.
-  let camBase = smShed.userData.placementY;
-  for (let i = 0; i <= 8; i += 1) {
-    camBase = Math.max(camBase, heightAt(smX - 7 + (i * 14) / 8, smZ));
-  }
-  const camY = camBase + 0.5;
-  mate(camshaft, "base", millFloor, { offset: { y: camY - smShed.userData.placementY - 7 } });
-  camshaft.children[0].rotation.z = Math.PI / 2;
-  // Solid only over its own height, so it blocks anyone walking the shaft
-  // line without becoming a wall for anything passing above or below it. The
-  // span mirrors the visual cylinder (centre camY, radius 0.4) exactly.
-  addOrientedBoxCollider(smX, smZ, 7, 0.4, 0, { minY: camY - 0.4, maxY: camY + 0.4 });
-  // No perimeter wall colliders: this shed is open-sided on all four faces (a
-  // centre row of posts and the camshaft are the only visual obstructions), so
-  // sealing the footprint made the player stop dead on four invisible walls —
-  // the same visual/physics mismatch the town lots had. The camshaft collider
-  // above is the interior obstacle.
-  group.add(smShed);
-
-  // Tailings: a broad conical waste pile, rust-colored, beside the mill. Both
-  // piles collide — the second one used to be purely visual, so a 10 m wide,
-  // 3.5 m tall pile read as solid while the player walked straight through it.
-  coneOnPlane(group, smX + 14, smY, smZ + 8, 7, 5, rust, true, 0, 5.6, 10);
-  coneOnPlane(group, smX + 20, smY, smZ + 2, 5, 3.5, rust, true, 0, 4, 8);
-
-  boxAt(group, POS.company.x, POS.company.z, 12, 6, 9, facadeWood);
+  // Iron Valley is the miners' camp. The headframe, stamp mill and tailings
+  // that stood here (placed at the region centre only so the audit camera
+  // framed them, 160 m from any road or rail) now stand where the ore is:
+  // at Silver Strike Mines and beside the rail at the stamp mill
+  // (src/industry.js). The camp's tents and stores are props (props.js).
   // Collapsed cabin ruins scattered across the valley floor. These were three
   // featureless 8 x 3.2 x 5 dark boxes — at player scale they read as giant
   // crates, not buildings. A ruin needs a broken profile: standing walls of
   // differing heights, one wall broken short, the front open with a beam
   // down. Walls collide; the open front means you can walk inside.
-  // The middle one used to sit at (+16, +8) — entirely inside the stamp
-  // mill's 16 x 12 footprint, wedged under the shed roof beside the post
-  // row. Moved west of the headframe, clear of the mill, cones and ruins.
+  // The middle one used to sit at (+16, +8), inside the old valley stamp
+  // mill's footprint; the mill has since moved to its rail site.
   const ruinShell = (x, z, w, d, hBack, hLeft, hRight) => {
     const y0 = lowestSeat(x, z, Math.hypot(w, d) / 2);
     const wt = 0.3;
@@ -898,52 +740,10 @@ export function createLandmarks(scene, maps = {}) {
   ruinShell(POS.ironValley.x + 2, POS.ironValley.z + 10, 6, 4.5, 2.0, 1.6, 0.9);
   ruinShell(POS.ironValley.x + 4, POS.ironValley.z + 18, 7.5, 5, 2.6, 2.2, 1.3);
 
-  // Mission — adobe with a campanario on the facade (not a centered cone).
-  const mission = POS.mission;
-  boxOnGround(group, mission.x, mission.z, 10, 6, 8, adobe, false);
-  // Flush roof (no front overhang) so the tower below sits on the facade
-  // plane instead of punching through the eave.
-  boxOnGround(group, mission.x, mission.z, 10.6, 0.4, 8.0, roof, false, 6);
-  // Campanario in stone on the NORTH facade (the side the audit camera faces;
-  // north is -Z). The earlier attempts were on +Z — the far side — so the
-  // camera saw only the tower's tip above the roofline, which read as a
-  // rooftop box (M2). Stone against adobe keeps the tower visible, and it sits
-  // off-center (a side campanario) so the golden-hour silhouette cannot read
-  // as a centered roof element.
-  const campX = mission.x + 2.5;
-  boxOnGround(group, campX, mission.z - 4.8, 4.0, 12.0, 1.6, stone, false);
-  // Tower entry at the base and a large dark bell chamber above — the cues
-  // that make it a campanario rather than a chimney.
-  boxOnGround(group, campX, mission.z - 5.15, 1.1, 2.2, 0.4, dark, false, 0.3);
-  boxOnGround(group, campX, mission.z - 5.15, 2.6, 3.0, 0.5, dark, false, 6.4);
-  boxOnGround(group, campX, mission.z - 4.8, 0.18, 1.5, 0.18, facadeWood, false, 12.0);
-  boxOnGround(group, campX, mission.z - 4.8, 0.8, 0.16, 0.16, facadeWood, false, 12.7);
-  // Vigas on the west half of the facade (the campanario occupies the east):
-  // protruding timber beams give M1 a visible adobe-vs-timber comparison so
-  // the walls do not read as flat generic brown.
-  const vg = vigas({ w: 5.5, eave: 6, material: facadeWood });
-  vg.rotation.y = Math.PI;
-  vg.position.set(mission.x - 2.75, heightAt(mission.x - 2.75, mission.z - 4.0), mission.z - 4.0);
-  group.add(vg);
-  // A full-size timber door on the facade: vigas alone were sub-pixel at the
-  // capture distance, so M1 needs a large wood-vs-adobe element that reads.
-  boxOnGround(group, mission.x - 1.5, mission.z - 4.12, 1.05, 2.15, 0.09, facadeWood, false);
-  boxOnGround(group, mission.x - 2.02, mission.z - 4.15, 0.12, 2.15, 0.12, dark, false);
-  boxOnGround(group, mission.x - 0.98, mission.z - 4.15, 0.12, 2.15, 0.12, dark, false);
-  boxOnGround(group, mission.x - 1.5, mission.z - 4.15, 1.28, 0.16, 0.12, dark, false, 2.15);
-  addBoxCollider(mission.x, mission.z, 5.2, 4.2);
-  // The door register: this doorway is dressing on a sealed adobe block, and
-  // it says so in the canonical aperture inventory instead of relying on the
-  // collider to speak for it.
-  registerAperture({
-    structure: "mission", side: "front", kind: "door",
-    x: mission.x - 1.5, y: heightAt(mission.x - 1.5, mission.z - 4.06) + 1.075, z: mission.z - 4.06,
-    w: 1.05, h: 2.15, nx: 0, nz: -1, state: "facade",
-    note: "no mission interior; door is facade dressing on the sealed adobe block"
-  });
-  addBoxCollider(campX, mission.z - 4.8, 2.0, 0.8);
-  boxAt(group, POS.vipers.x, POS.vipers.z, 7, 3, 5, rust);
-  boxAt(group, POS.hideout.x, POS.hideout.z, 6, 2.6, 5, dark);
+  // La Esperanza Mission is its own builder (mission.js), built here so
+  // every check that builds the landmarks sees its walls and colliders.
+  createMission(group, maps);
+  // Viper's Roost and Hidden Canyon are outlaw camps of props (props.js).
 
   // El Paso — adobe plaza: varied footprints, eaves and yaws, not three boxes.
   const ep = POS.elPaso;
@@ -973,8 +773,10 @@ export function createLandmarks(scene, maps = {}) {
   // Plaza dressing: a stone well and a mission cross give the adobe cluster
   // village furniture, so it reads as a settlement rather than repeated boxes
   // (audit E1).
-  const wellX = ep.x + 1.5;
-  const wellZ = ep.z - 1.0;
+  // Off the foothills trail that crosses the plaza (it stood 1.8 m from the
+  // trail's centreline, in the tread).
+  const wellX = ep.x + 5;
+  const wellZ = ep.z - 2;
   cylOnGround(group, wellX, wellZ, 0.55, 0.7, 0.7, stone, true);
   cylOnGround(group, wellX, wellZ, 0.32, 0.32, 0.9, dark, false, 0.7);
   boxAt(group, wellX, wellZ, 0.12, 1.3, 0.12, facadeWood, false, 1.4);
@@ -989,8 +791,8 @@ export function createLandmarks(scene, maps = {}) {
   for (let i = 0; i < tipiCount; i += 1) {
     const a = i * (Math.PI * 2 / tipiCount) + seeded(i) * 0.9;
     const r = 7 + seeded(i + 5) * 6;
-    const tx = POS.tribal.x + Math.cos(a) * r;
-    const tz = POS.tribal.z + Math.sin(a) * r;
+    const tx = POS.tribal.x + TRIBAL_CAMP.dx + Math.cos(a) * r;
+    const tz = POS.tribal.z + TRIBAL_CAMP.dz + Math.sin(a) * r;
     const s = 0.8 + seeded(i * 0.3 + 0.7) * 0.5;
     const tipi = coneOnGround(group, tx, tz, 2.6 * s, 4.2 * s, canvas, true, 0, 1.2 * s);
     tipi.rotation.y = seeded(tx * 0.1 + tz * 0.1) * Math.PI * 2;

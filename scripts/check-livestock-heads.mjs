@@ -45,6 +45,7 @@ const { bakeHeightfield } = await import("../src/heightfield.js");
 const { clearColliders, listBoxColliders } = await import("../src/collision.js");
 const { createRanch } = await import("../src/buildings.js");
 const { createLandmarks } = await import("../src/landmarks.js");
+const { planWesternProps } = await import("../src/props.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { createShore } = await import("../src/shore.js");
 const { createIndustry } = await import("../src/industry.js");
@@ -73,6 +74,7 @@ createFort(scene);
 createPines(scene);
 createHomestead(scene);
 createVegetation(scene);
+planWesternProps();
 
 const boxes = listBoxColliders();
 
