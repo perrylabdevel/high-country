@@ -4,6 +4,7 @@ import { deckHeightAt } from "./collision.js";
 import { moveAndSlide, addCylinderCollider } from "./collision.js";
 import { POS, clampWorld, headingVector } from "./map.js";
 import { tune } from "./debug.js";
+import { FACE_PLUS_X, createHorseVisual, loadHorseModel } from "./models/horseModel.js";
 
 /**
  * The horse (R10): a jointed animal in the same procedural register as the
@@ -67,8 +68,8 @@ export function createHorse() {
   haunch.castShadow = true;
   bodyGroup.add(chest, barrel, haunch);
 
-  // Saddle blanket and seat: the rider's hips sit at RIDE_SEAT = 1.42 above
-  // the object origin, so the top of this stack stays at or just under that.
+  // Saddle blanket and seat of the fallback box horse. The authored horse's
+  // seat is 1.55 m (RIDE_SEAT in player.js); this stack sits a little under it.
   const blanket = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.05, 0.68), dark);
   blanket.position.set(-0.08, 1.44, 0);
   const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.1, 0.58), hideDark);
@@ -185,6 +186,18 @@ export function createHorse() {
     parts.legs.push({ hip, knee });
   }
 
+  // The authored, skinned horse (src/models/horseModel.js) replaces the box
+  // rig's look once it loads. The pivot rig keeps running hidden underneath,
+  // so __horsePose probes and anything reading `parts` see the same numbers;
+  // a failed load leaves the box horse drawing.
+  let visual = null;
+  void loadHorseModel().then((gltf) => {
+    visual = createHorseVisual(gltf, { tack: "saddle" });
+    visual.object.rotation.y = FACE_PLUS_X;
+    bob.visible = false;
+    object.add(visual.object);
+  }).catch((err) => console.warn("Authored horse unavailable; the box horse stays.", err));
+
   object.position.set(POS.ranch.x + 10.4, heightAt(POS.ranch.x + 10.4, POS.ranch.z + 13.2), POS.ranch.z + 13.2);
   const collider = addCylinderCollider(POS.ranch.x + 10.4, POS.ranch.z + 13.2, HORSE_RADIUS);
 
@@ -260,6 +273,15 @@ export function createHorse() {
     radius: HORSE_RADIUS,
     collider,
     parts,
+    /**
+     * The riderless horse still breathes, shifts and swishes: the frame loop
+     * calls this while the horse is not mounted (update() drives it when it is).
+     */
+    idle(dt) {
+      this.speed = 0;
+      animate(dt, 0);
+      visual?.update(dt, 0);
+    },
     update(dt, input, playerYaw, mud = 1) {
       this.yaw = playerYaw;
       applyFacing(this.yaw);
@@ -302,6 +324,7 @@ export function createHorse() {
       collider.radius = this.mounted ? 0.05 : HORSE_RADIUS;
 
       animate(dt, this.speed);
+      visual?.update(dt, this.speed);
 
       // Head lead into turns: the yaw rate this frame, clamped, eased onto the
       // head's yaw. Positive yaw growth is a right turn, which in the horse's

@@ -31,7 +31,8 @@ KINDS = ("wood", "wood_grey", "wood_dark", "stave", "iron", "water", "bone", "ho
          "hay", "bark", "endgrain", "zinc", "board_grey", "paint_green", "paint_red", "stone",
          "glass", "char", "sign_board", "fieldstone", "canvas", "rope",
          "leather", "flag_red", "flag_blue",
-         "adobe", "clay", "peeled", "burlap", "brush", "blanket", "sod", "hide", "meat")
+         "adobe", "clay", "peeled", "burlap", "brush", "blanket", "sod", "hide", "meat",
+         "coach_red", "coach_yellow", "coach_black")
 # Kinds whose shader reads the part's own local UV (painted lettering centred
 # on the board): no random grain offset.
 LOCAL_UV = ("sign_board",)
