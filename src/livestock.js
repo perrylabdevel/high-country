@@ -2,6 +2,7 @@ import * as THREE from "three/webgpu";
 import { heightAt, normalAt } from "./world.js";
 import { moveAndSlide, addCylinderCollider, resolvePosition } from "./collision.js";
 import { POS, WATER, clampWorld } from "./map.js";
+import { strideRate } from "./gait.js";
 
 /**
  * Live stock: the first animals that move on their own. Three species in the
@@ -531,8 +532,9 @@ export function createLivestock() {
     const p = a.rig.parts;
     const moving = sp > 0.15;
     if (moving) {
-      a.phase += dt * (4.2 + sp * 1.1);
       const amp = Math.min(0.32, 0.14 + sp * 0.03);
+      // No-slip stride (gait.js): the leg is the hip pivot's height.
+      a.phase += dt * strideRate(sp, p.legs[0].hip.position.y, amp);
       for (const [i, leg] of p.legs.entries()) {
         const swing = Math.sin(a.phase - WALK_PHASE[i] * Math.PI * 2);
         leg.hip.rotation.z = swing * amp;
@@ -721,6 +723,8 @@ export function createLivestock() {
 
   return {
     group,
+    /** Every animal's live state and rig, for probes and checks (check:gait). */
+    animals,
     /**
      * Replace just the cattle render rigs while preserving their established
      * movement, ground seating and head-clearance colliders.  The GLB uses
@@ -754,7 +758,6 @@ export function createLivestock() {
         update(a, dt, playerPos, mudAt ? mudAt(a.rig.group.position.x, a.rig.group.position.z, a.rig.group) : 1);
         a.texturedVisual?.update(dt, {
           speed: a.speed,
-          phase: a.phase,
           grazing: a.state === "graze",
           headPitch: a.headPitch
         });

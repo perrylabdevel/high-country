@@ -20,7 +20,7 @@ def export(path=OUT):
     ad = rig.animation_data
     for tr in list(ad.nla_tracks):
         ad.nla_tracks.remove(tr)
-    for clip in ("Idle", "Walk"):
+    for clip in [c for c in ("Idle", "Walk", "Run") if c in bpy.data.actions]:
         act = bpy.data.actions[clip]
         tr = ad.nla_tracks.new()
         tr.name = clip

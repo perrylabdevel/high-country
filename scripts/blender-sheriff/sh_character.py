@@ -347,6 +347,29 @@ def stage_rig():
     log(f"rig+export done {round(time.time() - t)}s size={size}")
 
 
+def stage_run():
+    """Add the Run clip to an already rigged character and re-export."""
+    t = time.time()
+    rig = bpy.data.objects[R.RIG]
+    ob = bpy.data.objects["Sheriff"]
+    R.author_run(rig)
+    lifts = {}
+    for _ in range(3):
+        dips = R.measure_sole_dips(rig, ob, action_name="Run")
+        worst = max(max(d.values()) for d in dips.values())
+        if worst < 0.001:
+            break
+        for f, d in dips.items():
+            cur = lifts.setdefault(f, {"L": 0.0, "R": 0.0})
+            for side in ("L", "R"):
+                cur[side] += d[side]
+        R.author_run(rig, lifts=lifts)
+    log(f"run sole dip after correction {worst * 100:.2f} cm")
+    E.export(S.SPEC["out"])
+    bpy.ops.wm.save_mainfile()
+    log(f"run+export done {round(time.time() - t)}s size={os.path.getsize(S.SPEC['out'])}")
+
+
 def run_async(spec, stages=("hp", "low", "bake", "rig"), fresh=True):
     """Schedule the requested stages on a Blender timer; returns immediately."""
 
@@ -362,7 +385,7 @@ def run_async(spec, stages=("hp", "low", "bake", "rig"), fresh=True):
                     prepare(spec)
             for st in stages:
                 log(f"stage {st} start")
-                {"hp": stage_hp, "low": stage_low, "bake": stage_bake, "rig": stage_rig}[st]()
+                {"hp": stage_hp, "low": stage_low, "bake": stage_bake, "rig": stage_rig, "run": stage_run}[st]()
             log("DONE")
         except Exception:
             log("ERROR\n" + traceback.format_exc())

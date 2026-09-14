@@ -1,6 +1,7 @@
 import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { measureClipGroundSpeed } from "../gait.js";
 
 /**
  * The authored horse (scripts/blender-horse, public/models/horse.glb): one
@@ -18,27 +19,47 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 export const HORSE_URL = "/models/horse.glb";
 export const FACE_PLUS_X = Math.PI / 2;
 
-/** Ground speed (m/s) each authored gait clip covers at rate 1 (hr_rig.CLIP_SPEED). */
-const CLIP_SPEED = { Walk: 1.6, Trot: 3.7, Gallop: 10.5 };
+/**
+ * Ground speed (m/s) each gait clip covers at rate 1, measured from the
+ * clip's planted hooves when the model loads (gait.js). Blend bands below
+ * are placed between these, so a re-authored stride moves them too.
+ */
+const GAITS = ["Walk", "Trot", "Gallop"];
+const HOOVES = ["hoof_f.L", "hoof_f.R", "hoof_h.L", "hoof_h.R"];
 const TACK = { saddle: "HorseSaddle", harness: "HorseHarness" };
 
 let template = null;
 
 export function loadHorseModel(url = HORSE_URL) {
   if (!template) {
-    template = new GLTFLoader().loadAsync(url).then((gltf) => {
-      gltf.scene.traverse((o) => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
-          // Skinned bounds from the bind pose are too small once a leg swings.
-          o.frustumCulled = false;
-        }
-      });
-      return gltf;
-    });
+    template = new GLTFLoader().loadAsync(url).then(prepareHorseGltf);
   }
   return template;
+}
+
+/** Shadow flags and measured clip ground speeds on a parsed horse.glb (also for offline checks). */
+export function prepareHorseGltf(gltf) {
+  gltf.scene.traverse((o) => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+      // Skinned bounds from the bind pose are too small once a leg swings.
+      o.frustumCulled = false;
+    }
+  });
+  const speeds = {};
+  for (const name of GAITS) {
+    const clip = gltf.animations.find((c) => c.name === name);
+    const probe = cloneSkeleton(gltf.scene);
+    const feet = [];
+    probe.traverse((o) => {
+      // GLTFLoader strips the dot: hoof_f.L arrives as hoof_fL.
+      if (o.isBone && HOOVES.some((h) => h.replace(".", "") === o.name)) feet.push(o);
+    });
+    speeds[name] = measureClipGroundSpeed(probe, clip, feet);
+  }
+  gltf.userData.gaitSpeed = speeds;
+  return gltf;
 }
 
 function smooth(e0, e1, x) {
@@ -62,6 +83,7 @@ export function createHorseVisual(gltf, { tack = "saddle", phase = Math.random()
   const object = new THREE.Group();
   object.name = "horseVisual";
   object.add(source);
+  const gaitSpeed = gltf.userData.gaitSpeed || { Walk: 1.6, Trot: 3.7, Gallop: 10.5 };
   const mixer = new THREE.AnimationMixer(source);
   const actions = {};
   for (const clip of gltf.animations) {
@@ -74,6 +96,8 @@ export function createHorseVisual(gltf, { tack = "saddle", phase = Math.random()
   return {
     object,
     actions,
+    /** Ground speed (m/s) each gait clip covers at rate 1. */
+    gaitSpeed,
     /**
      * @param {number} dt frame delta
      * @param {number} speed planar ground speed, m/s (sign ignored)
@@ -82,8 +106,10 @@ export function createHorseVisual(gltf, { tack = "saddle", phase = Math.random()
       const sp = Math.abs(speed);
       // Walk takes over from idle, trot from walk, gallop from trot.
       const moving = smooth(0.15, 0.7, sp);
-      const trot = smooth(2.2, 3.6, sp);
-      const gallop = smooth(8.0, 10.5, sp);
+      // A horse walks to about 1.8 m/s and trots to about 5 m/s before it
+      // breaks into a gallop; the clips' own rates stretch across each band.
+      const trot = smooth(Math.max(1.3, gaitSpeed.Walk * 1.5), 2.3, sp);
+      const gallop = smooth(5.2, 6.5, sp);
       const w = {
         Idle: 1 - moving,
         Walk: moving * (1 - trot),
@@ -92,9 +118,9 @@ export function createHorseVisual(gltf, { tack = "saddle", phase = Math.random()
       };
       for (const [name, action] of Object.entries(actions)) {
         action.setEffectiveWeight(w[name] ?? 0);
-        const clipSpeed = CLIP_SPEED[name];
+        const clipSpeed = gaitSpeed[name];
         if (clipSpeed) {
-          action.setEffectiveTimeScale(Math.min(1.9, Math.max(0.55, sp / clipSpeed)));
+          action.setEffectiveTimeScale(Math.min(3, Math.max(0.3, sp / clipSpeed)));
         }
       }
       mixer.update(dt);

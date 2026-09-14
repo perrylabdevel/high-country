@@ -540,6 +540,93 @@ def author_walk(rig, period=None, step_len=None, stance=0.62, name="Walk", lifts
     return act
 
 
+def author_run(rig, period=0.70, step_len=1.15, stance=0.36, name="Run", lifts=None):
+    """A jog-to-run cycle with a flight phase: short ground contact on the
+    midfoot, the swing heel carried up toward the seat, a forward lean and
+    bent arms driving. Ground speed at rate 1 is step_len * scale / (stance *
+    period) — about 4.6 m/s for the default cast scale."""
+    k = S.scale()
+    L = step_len * k
+    P = Poser(rig)
+    act = bpy.data.actions.get(name)
+    if act:
+        bpy.data.actions.remove(act)
+    act = bpy.data.actions.new(name)
+    rig.animation_data_create()
+    rig.animation_data.action = act
+    frames = int(round(period * FPS))
+    drop_l, drop_r = S.SPEC["walk"].get("drop", (23, 19))
+    mid = stance / 2
+    for f in range(frames + 1):
+        t = f / frames
+        deltas = {}
+        # Pelvis lowest at each foot's mid-stance, highest in flight.
+        bob = (-0.035 - 0.035 * math.cos(4 * math.pi * (t - mid))) * k
+        sway = 0.008 * k * math.sin(2 * math.pi * t)
+        hips_off = Vector((sway, 0.0, bob))
+        yaw = math.radians(6) * math.sin(2 * math.pi * t + math.pi / 2)
+        roll = math.radians(2.0) * math.sin(2 * math.pi * t)
+        lean = math.radians(11)
+        hips_rot = Quaternion((0, 0, 1), yaw) @ Quaternion((0, 1, 0), roll) @ Quaternion((1, 0, 0), lean)
+        deltas["hips"] = hips_rot
+        spine = hips_rot @ Quaternion((0, 0, 1), -yaw * 0.7) @ Quaternion((1, 0, 0), math.radians(2))
+        deltas["spine"] = spine
+        chest = spine @ Quaternion((0, 0, 1), -yaw * 1.0) @ Quaternion((0, 1, 0), -roll * 0.8)
+        deltas["chest"] = chest
+        deltas["upper_chest"] = chest
+        # Head held level against the lean.
+        head = Quaternion((1, 0, 0), -lean * 0.8)
+        deltas["neck"] = chest.slerp(head, 0.6)
+        deltas["head"] = head
+
+        for side, phase in (("L", 0.0), ("R", 0.5)):
+            u = (t + phase) % 1.0
+            rest_ankle = P.head["foot." + side]
+            ka = k * S.SPEC["width"]
+            ball = Vector((rest_ankle.x, rest_ankle.y - 0.117 * ka, 0.0))
+            heel = Vector((rest_ankle.x, rest_ankle.y + 0.063 * ka, 0.0))
+            A0 = Vector(rest_ankle)
+            push = math.radians(34)
+            reach = math.radians(-6)
+            if u < stance:
+                su = u / stance
+                d = -L / 2 + L * su
+                off = Vector((0, d, 0))
+                if su < 0.55:
+                    th = reach * (1 - smooth(su / 0.55))
+                    ankle = heel + off + Quaternion((1, 0, 0), th) @ (A0 - heel) if th < 0 else A0 + off
+                else:
+                    kk = (su - 0.55) / 0.45
+                    th = push * kk ** 1.4
+                    ankle = ball + off + Quaternion((1, 0, 0), th) @ (A0 - ball)
+                toe = -th if th > 0 else 0.0
+            else:
+                kk = (u - stance) / (1 - stance)
+                start = ball + Vector((0, L / 2, 0)) + Quaternion((1, 0, 0), push) @ (A0 - ball)
+                end = heel + Vector((0, -L / 2, 0)) + Quaternion((1, 0, 0), reach) @ (A0 - heel)
+                e = smooth(kk)
+                ankle = start.lerp(end, e)
+                # Heel carried up behind toward the seat early in the swing,
+                # then the shin reaches forward for the next contact.
+                ankle = ankle + Vector((0, 0.22 * k * math.sin(math.pi * min(1.0, kk * 1.6)), 0.34 * k * math.sin(math.pi * kk) ** 0.8))
+                th = push + (reach - push) * smooth(min(1.0, kk / 0.8))
+                toe = -max(th, 0.0) * (1 - smooth(kk / 0.4))
+            yaw_out = math.radians(4) * (1 if side == "L" else -1)
+            ankle = ankle + Vector((0, 0, sole_clearance(A0, ankle, th, toe)))
+            if lifts:
+                ankle = ankle + Vector((0, 0, lifts.get(f + 1, {}).get(side, 0.0)))
+            deltas.update(leg_deltas(P, side, hips_off, hips_rot, ankle, th, toe, yaw_out))
+
+            arm_phase = 2 * math.pi * (t + phase)
+            swing = math.radians(34) * -math.cos(arm_phase)
+            elbow = math.radians(78 + 14 * max(0.0, math.cos(arm_phase)))
+            drop = math.radians((drop_l if side == "L" else drop_r) - 6)
+            deltas.update(arm_deltas(side, drop, swing, elbow, wrist=math.radians(6), curl=0.55, chest=chest))
+        P.apply(deltas, hips_off, f + 1)
+    _finish(act, frames)
+    return act
+
+
 def author_idle(rig, seconds=4.0, name="Idle"):
     k = S.scale()
     drop_l, drop_r = S.SPEC["walk"].get("drop", (23, 19))

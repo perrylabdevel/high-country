@@ -217,7 +217,10 @@ def _leg(u, stance, reach, flex, fore):
     hock (hind) folding and the fetlock curling, peaking mid-swing."""
     if u < stance:
         s = u / stance
-        swing = -reach + 2 * reach * s          # forward (-) to back (+)
+        # The hoof's fore-aft position under the hip is L*sin(angle), so an
+        # arcsine sweep keeps it moving at one ground speed through contact;
+        # a linear sweep in angle ran fast mid-stance and skated at the ends.
+        swing = math.asin((-1 + 2 * s) * math.sin(reach))
         fold = 0.0
         fet = 0.12 * math.sin(math.pi * s)      # fetlock drops under load
     else:

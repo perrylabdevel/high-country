@@ -3,6 +3,7 @@ import { heightAt } from "./world.js";
 import { deckHeightAt, addCylinderCollider } from "./collision.js";
 import { ROADS, ROAD_LIFT, mapToWorld, headingRotationY } from "./map.js";
 import { createFigure } from "./figures.js";
+import { strideRate } from "./gait.js";
 import { createHorseVisual, loadHorseModel } from "./models/horseModel.js";
 import { COACH, loadCoachModel } from "./models/coachModel.js";
 
@@ -492,8 +493,8 @@ export function createTraffic() {
     const moving = sp > 0.15;
     const m = t.mount;
     if (moving) {
-      t.phase += dt * (4.2 + sp * 1.1);
       const amp = Math.min(0.34, 0.14 + sp * 0.035);
+      t.phase += dt * strideRate(sp, 1.0, amp);
       for (const [i, leg] of m.legs.entries()) {
         const swing = Math.sin(t.phase - WALK_PHASE[i] * Math.PI * 2);
         leg.hip.rotation.z = swing * amp;

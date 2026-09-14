@@ -1,6 +1,7 @@
 import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { measureClipGroundSpeed, strideRate } from "../gait.js";
 
 // GLTFLoader's PropertyBinding.sanitizeNodeName strips colons, dots and
 // slashes from node names and three's exporter renumbers with a trailing _NN,
@@ -39,20 +40,20 @@ const MODEL = {
   // handles onto the mixer's output each frame cannot accumulate.
   sheriff: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: "Idle", walk: "Walk", coreHandles: CORES_SHERIFF
+    idle: "Idle", walk: "Walk", run: "Run", feet: ["footL", "footR"], coreHandles: CORES_SHERIFF
   },
   // The rest of the cast (public/models/chars) comes out of the same Blender
   // pipeline as the sheriff: same skeleton names, same clip names.
   authored: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: "Idle", walk: "Walk", coreHandles: CORES_SHERIFF
+    idle: "Idle", walk: "Walk", run: "Run", feet: ["footL", "footR"], coreHandles: CORES_SHERIFF
   },
   // The player avatar is an authored Blender rig carrying its own Idle/Walk
   // clips, so it rides the clip mixer rather than a procedural gait. No
   // coreHandles: nothing composes an authored pose over the player's animation.
   player: {
     sourceForward: new THREE.Vector3(0, 0, 1), hostHeading: 0,
-    idle: "Idle", walk: "Walk"
+    idle: "Idle", walk: "Walk", run: "Run", feet: ["footL", "footR"]
   }
 };
 
@@ -197,13 +198,18 @@ function makeCowGait(bones, object) {
   const necks = [bones.get("neck2_010"), bones.get("neck_011"), bones.get("head_012")]
     .filter(Boolean).map((bone) => ({ bone, rest: bone.quaternion.clone() }));
   const axes = bodyAxes(object);
-  return ({ speed = 0, phase = 0, grazing = false, headPitch = 0 }) => {
+  // The cow's own stride clock: its swing amplitude differs from livestock's
+  // box rig, so the box rig's phase would skate these legs (gait.js).
+  let stride = 0;
+  return ({ speed = 0, grazing = false, headPitch = 0, dt = 0, legLength = 0.8 }) => {
     const axis = axes().lateral;
     const walking = speed > 0.05;
     if (walking) {
+      const amp = Math.min(0.42, 0.2 + speed * 0.12);
+      stride += dt * strideRate(speed, legLength, amp);
       const offsets = [0, Math.PI, Math.PI, 0];
       for (let i = 0; i < legs.length; i += 1) {
-        const swing = Math.sin(phase + offsets[i]) * Math.min(0.42, 0.2 + speed * 0.12);
+        const swing = Math.sin(stride + offsets[i]) * amp;
         worldAxisPose(legs[i].bone, legs[i].rest, axis, swing);
       }
     }
@@ -216,6 +222,22 @@ function makeCowGait(bones, object) {
       }
     }
   };
+}
+
+/** Walk/Run clip ground speeds at model scale, measured on a posed clone. */
+function measureGait(gltf, kind) {
+  const config = MODEL[kind];
+  const out = { walk: 0, run: 0 };
+  if (!config.feet) return out;
+  for (const [key, name] of [["walk", config.walk], ["run", config.run]]) {
+    const clip = name ? gltf.animations.find((c) => c.name === name) : null;
+    if (!clip) continue;
+    const probe = cloneSkeleton(gltf.scene);
+    const bones = findBones(probe);
+    const feet = config.feet.map((core) => boneByCore(bones, core)).filter(Boolean);
+    out[key] = measureClipGroundSpeed(probe, clip, feet);
+  }
+  return out;
 }
 
 function actorFactory(template) {
@@ -262,13 +284,22 @@ function actorFactory(template) {
     }
     const idleClip = config.idle ? template.clips.find((c) => c.name === config.idle) : null;
     const walkClip = config.walk ? template.clips.find((c) => c.name === config.walk) : null;
+    const runClip = config.run ? template.clips.find((c) => c.name === config.run) : null;
     const mixer = (idleClip || walkClip) ? new THREE.AnimationMixer(source) : null;
     const idleAction = idleClip ? mixer.clipAction(idleClip).play() : null;
     const walkAction = walkClip ? mixer.clipAction(walkClip).play() : null;
+    const runAction = runClip ? mixer.clipAction(runClip).play() : null;
     if (walkAction) walkAction.setEffectiveWeight(0);
+    if (runAction) runAction.setEffectiveWeight(0);
+    // The clips' own ground speeds at this actor's scale (measured from the
+    // planted feet at load, see gait.js), so playback keeps the soles still.
+    const walkSpeed = (template.gaitSpeed.walk || 0) * scale;
+    const runSpeed = (template.gaitSpeed.run || 0) * scale;
+    // Walk hands over to run across a band between the two natural speeds.
+    const runFrom = walkSpeed * 1.7;
+    const runTo = Math.max(runFrom + 0.6, runSpeed * 0.62);
     const gait = config.gait ? makeCowGait(bones, object) : null;
     const forwardReach = config.sourceForward.z > 0 ? template.bounds.max.z * scale : -template.bounds.min.z * scale;
-    let phaseClock = 0;
 
     // No runtime stance re-grounding. A previous pass measured the lowest
     // skinned vertex at 0.6 s and shifted the group to match; it sampled only
@@ -283,6 +314,8 @@ function actorFactory(template) {
       object,
       parts,
       forwardReach,
+      /** Ground speed (m/s, this actor's scale) the walk and run clips cover at rate 1. */
+      gaitSpeed: { walk: walkSpeed, run: runSpeed },
       // The pose author writes Eulers onto the handles; this applies them to
       // the bones. Called after visual.update in the frame loop, so the gait
       // has already primed every handle bone from its own rest.
@@ -293,15 +326,23 @@ function actorFactory(template) {
       update(dt, state = {}) {
         if (typeof state === "number") state = { speed: state };
         if (parts) for (const h of Object.values(parts)) h.restore();
-        phaseClock += dt * (state.speed > 0.05 ? 6.2 : 1.4);
-        if (state.phase == null) state.phase = phaseClock;
         if (mixer) {
-          const walkWeight = walkAction ? THREE.MathUtils.clamp((state.speed - 0.05) / 0.5, 0, 1) : 0;
+          const speed = Math.abs(state.speed || 0);
+          const walkWeight = walkAction ? THREE.MathUtils.clamp((speed - 0.05) / 0.5, 0, 1) : 0;
+          const runBlend = runAction && runSpeed > 0 ? THREE.MathUtils.smoothstep(speed, runFrom, runTo) : 0;
           if (idleAction) idleAction.setEffectiveWeight(1 - walkWeight);
-          if (walkAction) walkAction.setEffectiveWeight(walkWeight);
+          if (walkAction) {
+            walkAction.setEffectiveWeight(walkWeight * (1 - runBlend));
+            if (walkSpeed > 0) walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / walkSpeed, 0.3, 3.2));
+          }
+          if (runAction) {
+            runAction.setEffectiveWeight(walkWeight * runBlend);
+            if (runSpeed > 0) runAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / runSpeed, 0.3, 2.4));
+          }
           mixer.update(dt);
         }
-        gait?.(state);
+        // Hip height of a quadruped is about 0.55 of its standing height.
+        gait?.({ ...state, dt, legLength: template.height * scale * 0.55 });
       }
     };
   };
@@ -315,7 +356,7 @@ export function createTexturedActorFactory(gltf, url) {
   const bounds = sourceBounds(gltf.scene);
   const height = bounds.max.y - bounds.min.y;
   if (!Number.isFinite(height) || height <= 0) throw new Error(`GLB has no usable upright bounds: ${url}`);
-  return actorFactory({ scene: gltf.scene, clips: gltf.animations, bounds, height, kind });
+  return actorFactory({ scene: gltf.scene, clips: gltf.animations, bounds, height, kind, gaitSpeed: measureGait(gltf, kind) });
 }
 
 /** Load once, then return independently skinned, normalized actor visuals. */
