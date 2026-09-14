@@ -13,6 +13,7 @@ import { ENTERABLE_LOTS } from "./landmarks.js";
 import { tag, wallX, block } from "./buildings/kit.js";
 import { face, mate, anchorsOf } from "./buildings/anchors.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
+import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -26,12 +27,7 @@ function box(group, x, y, z, w, h, d, material, collide = false) {
   const mesh = block({ w, h, d, material });
   mate(mesh, "base", anchorsOf(group).get("footing"), { offset: { x, y, z } });
   if (collide) {
-    const yaw = group.userData.yaw;
-    const cos = Math.cos(yaw);
-    const sin = Math.sin(yaw);
-    const wx = group.userData.x + x * cos - z * sin;
-    const wz = group.userData.z + x * sin + z * cos;
-    addOrientedBoxCollider(wx, wz, w / 2, d / 2, yaw);
+    solidBox(group, x, z, w, d);
   }
   return mesh;
 }
@@ -88,11 +84,42 @@ function atDepth(d, depth) {
   return d / 2 - depth;
 }
 
+/**
+ * An authored furniture piece (props.js) in the lot's local frame, standing
+ * on its 0.08 m floor. `solid` [w, d] keeps the collider the old box had.
+ */
+const FLOOR = 0.08;
+function furnish(group, kind, x, z, yaw = 0, { y = FLOOR, solid = null, ...extra } = {}) {
+  addLocalPropSpot("interiors", group, kind, x, y, z, yaw, extra);
+  if (solid) {
+    solidBox(group, x, z, solid[0], solid[1]);
+  }
+}
+
+/**
+ * Collider for a w x d footprint centred at local (x, z), from the lot
+ * group's own transform. It used to rotate by +yaw by hand, the mirror of
+ * three's rotation.y, so in a lot turned 1.42 rad a counter's collider stood
+ * 4 m from the counter. Oriented boxes take the inverse of rotation.y.
+ */
+const _p = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+const _e = new THREE.Euler();
+function solidBox(group, x, z, w, d) {
+  group.updateWorldMatrix(true, false);
+  group.localToWorld(_p.set(x, 0, z));
+  _e.setFromQuaternion(group.getWorldQuaternion(_q), "YXZ");
+  addOrientedBoxCollider(_p.x, _p.z, w / 2, d / 2, -_e.y);
+}
+
+// Local frame: +Z is the door side. A piece's front (+Z) at yaw 0 faces the
+// door; yaw PI/2 turns it to +X, -PI/2 to -X, PI to the back wall.
+
 function addSheriffProps(lot, wood, dark) {
   const { w, d, group } = lot;
-  box(group, 0.2, 0, atDepth(d, d * 0.42), 1.9, 0.85, 0.85, dark, true);
-  box(group, 0.2, 0, atDepth(d, d * 0.42 + 0.85), 0.5, 0.55, 0.5, wood);
-  box(group, w * 0.32, 0, atDepth(d, d * 0.28), 0.28, 1.6, 1.1, dark);
+  furnish(group, "desk", 0.2, atDepth(d, d * 0.42), 0, { sx: 1.25, solid: [1.9, 0.85] });
+  furnish(group, "chair", 0.2, atDepth(d, d * 0.42 + 0.75), 0);
+  furnish(group, "gun_rack", w * 0.5 - 0.35, atDepth(d, d * 0.28), -Math.PI / 2);
 
   const barT = 0.07;
   const barH = lot.h * 0.78;
@@ -111,87 +138,68 @@ function addSheriffProps(lot, wood, dark) {
     box(group, -cellHalf, 0, atDepth(d, depth), barT, barH, barT, dark);
     box(group, cellHalf, 0, atDepth(d, depth), barT, barH, barT, dark);
   }
+  furnish(group, "cot", -cellHalf + 0.55, atDepth(d, (cellFront + cellBack) / 2), Math.PI / 2);
 }
 
-function addSaloonProps(lot, wood, dark) {
+function addSaloonProps(lot) {
   const { w, d, group } = lot;
   const barDepth = d * 0.55;
   const alongBar = d * 0.62;
-  box(group, w * 0.32, 0, atDepth(d, barDepth), 0.72, 1.05, alongBar, dark, true);
-
-  for (const offset of [-0.9, 0, 0.9]) {
-    box(group, w * 0.32, 1.05, atDepth(d, barDepth + offset * 0.55), 0.18, 0.32, 0.18, wood);
-  }
+  furnish(group, "bar_counter", w * 0.32, atDepth(d, barDepth), -Math.PI / 2, { sx: alongBar / 4, solid: [0.72, alongBar] });
+  furnish(group, "bottles", w * 0.32 + 0.12, atDepth(d, barDepth - 0.6), -Math.PI / 2, { y: FLOOR + 1.08, stacked: true, seat: undefined });
+  furnish(group, "bottles", w * 0.32 + 0.12, atDepth(d, barDepth + 0.7), -Math.PI / 2, { y: FLOOR + 1.08, stacked: true, seat: undefined });
 
   for (const [across, depth] of [[-1.7, d * 0.38], [0.15, d * 0.36]]) {
-    box(group, across, 0, atDepth(d, depth), 1.15, 0.72, 1.15, wood);
-    box(group, across - 0.85, 0, atDepth(d, depth), 0.42, 0.5, 0.42, dark);
-    box(group, across + 0.85, 0, atDepth(d, depth), 0.42, 0.5, 0.42, dark);
+    furnish(group, "table_square", across, atDepth(d, depth), across * 0.2);
+    furnish(group, "stool", across - 0.85, atDepth(d, depth));
+    furnish(group, "stool", across + 0.85, atDepth(d, depth));
   }
 
-  box(group, -w * 0.32, 0, atDepth(d, d * 0.78), 1.4, 1.05, 0.55, dark);
+  furnish(group, "piano", -w * 0.32, atDepth(d, d - 0.55), 0, { solid: [1.4, 0.55] });
 }
 
 function addHotelProps(lot, wood, dark) {
   const { w, d, group } = lot;
-  box(group, -w * 0.28, 0, atDepth(d, 2.75), 2.4, 1.05, 0.7, dark, true);
+  furnish(group, "bar_counter", -w * 0.28, atDepth(d, 2.75), 0, { sx: 0.6, solid: [2.4, 0.7] });
 
   for (const across of [-w * 0.28, 0.2, w * 0.28]) {
-    const z = atDepth(d, d * 0.74);
-    box(group, across, 0, z, 1.15, 0.32, 2.05, dark, true);
-    box(group, across, 0.32, z, 1.0, 0.16, 1.85, wood);
+    furnish(group, "bed_single", across, atDepth(d, d * 0.74), -Math.PI / 2, { solid: [1.15, 2.05] });
   }
 
   for (let i = 0; i < 4; i += 1) {
     box(group, w * 0.38, 0, atDepth(d, 2.45 + i * 0.42), 0.9, 0.22 * (i + 1), 0.42, wood, true);
   }
 
-  box(group, 2.2, 0, atDepth(d, 3.4), 0.95, 0.7, 0.95, wood);
-  box(group, 1.5, 0, atDepth(d, 3.4), 0.42, 0.48, 0.42, dark);
-  box(group, 2.9, 0, atDepth(d, 3.4), 0.42, 0.48, 0.42, dark);
+  furnish(group, "table_square", 2.2, atDepth(d, 3.4), 0, { s: 0.9 });
+  furnish(group, "chair", 1.5, atDepth(d, 3.4), Math.PI / 2);
+  furnish(group, "chair", 2.9, atDepth(d, 3.4), -Math.PI / 2);
 }
 
-function addStoreProps(lot, wood, dark) {
+function addStoreProps(lot) {
   const { w, d, group } = lot;
-  box(group, 0.15, 0, atDepth(d, d * 0.72), 3.2, 1.0, 0.7, dark, true);
+  furnish(group, "bar_counter", 0.15, atDepth(d, d * 0.72), 0, { sx: 0.8, solid: [3.2, 0.7] });
 
   const shelfAcross = w * 0.5 - 0.42;
-  const shelfDepths = [2.4, 4.1, 5.8];
   for (const side of [-1, 1]) {
-    for (const depth of shelfDepths) {
-      box(group, side * shelfAcross, 0, atDepth(d, depth), 0.35, 1.6, 1.55, wood, true);
+    for (const depth of [2.4, 4.1, 5.8]) {
+      furnish(group, "shelf_goods", side * shelfAcross, atDepth(d, depth), -side * Math.PI / 2, { solid: [0.35, 1.55] });
     }
-  }
-
-  const goods = [
-    [-1, 2.4, -0.35],
-    [-1, 4.1, 0.2],
-    [-1, 5.8, -0.2],
-    [-1, 4.1, -0.4],
-    [1, 2.4, 0.25],
-    [1, 4.1, -0.18],
-    [1, 5.8, 0.15],
-    [1, 2.4, -0.3]
-  ];
-  for (const [side, depth, along] of goods) {
-    box(group, side * shelfAcross, 1.6, atDepth(d, depth + along), 0.22, 0.22, 0.22, dark);
   }
 }
 
-function addChurchProps(lot, wood, dark) {
+function addChurchProps(lot) {
   const { d, group } = lot;
   const altarDepth = d * 0.82;
-  box(group, 0.05, 0, atDepth(d, altarDepth), 2.2, 0.52, 0.85, dark, true);
-  box(group, 0.05, 0.52, atDepth(d, altarDepth), 1.05, 0.7, 0.42, wood);
+  furnish(group, "altar_table", 0.05, atDepth(d, altarDepth), 0, { solid: [2.2, 0.85] });
 
   const pewAcross = 2.55;
   for (const side of [-1, 1]) {
     for (const depth of [2.85, 4.5]) {
-      box(group, side * pewAcross, 0, atDepth(d, depth), 1.85, 0.55, 0.48, wood, true);
+      furnish(group, "pew", side * pewAcross, atDepth(d, depth), Math.PI, { solid: [1.85, 0.48] });
     }
   }
 
-  box(group, 1.85, 0, atDepth(d, altarDepth - 0.12), 0.58, 1.15, 0.58, dark, true);
+  furnish(group, "pulpit", 1.85, atDepth(d, altarDepth - 0.9), 0, { solid: [0.58, 0.58] });
 }
 
 const PROPS = {
@@ -222,6 +230,7 @@ function buildLot(lot, wallLight, wallDark, stone, wood, dark) {
  * are `siding` like the ranch's interior partitions, stone lots are `rock`.
  */
 export function createInteriors(scene, maps = {}) {
+  clearPropSpots("interiors");
   if (!ENTERABLE_LOTS.length) {
     return null;
   }

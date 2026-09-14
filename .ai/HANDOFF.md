@@ -4,6 +4,28 @@
 
 ## Active work
 
+- 2026-09-14 trees: inventory — 4 procedural pine prototypes (6419 placed:
+  2032/2131/1453/803), 2 broadleaf (388/712), burnt snag (34). Per tree:
+  trunk 80 tris, near limbs 860-1620, crowns near 258-486 / far 258-312 /
+  dist 234; broadleaf crowns 192/80/48. Authored `burnt_snag` (trees.glb,
+  pr_trees) swaps in via src/treeModels.js + vegetation.applyTreeModels —
+  shipped on. Authored `pine_std` (pr_pine, public/models/trees/, geometry-only,
+  Cycles AO in COLOR_0, game needle material) replaces PINE[1] at equal
+  triangles and equal frame time, but read darker/thinner at mid range in the
+  northernPines A/B, so `enabled: false`; A/B with `__treeModels(true|false)`
+  and scripts/.tmp-tree-ab.mjs.
+
+- 2026-09-14 remaining-props pass (uncommitted): three new Blender kits via MCP —
+  `yard.glb` (pr_yard), `landmark.glb` (pr_landmark), `furniture.glb`
+  (pr_furniture) — replace the last primitive props (ranch windmill + live
+  wheel mount, lookout, dock, gate, ruins, tipis, cemetery, interiors).
+  Placement faults fixed on the way: ranch gate now spans the stage road,
+  lookout off logA/logB, overlook rail off cabinTrail, dock moved from open
+  water to the south shore under its arrival, Burn ruin off silverNorth,
+  interior colliders were mirrored (+yaw) — now from the lot transform, guarded
+  in check:western-props. Terrain shows through the ranch-house and hunting-
+  cabin floors (pre-existing; not addressed).
+
 - The 3.6 m domain warp only bent the repeating source tiles into a wavy
   checkerboard. It has been replaced locally by hash-offset triangular
   sampling in `terrainMaterial.ts`: three independently phased samples are

@@ -28,9 +28,6 @@ import {
   footprintsOverlap,
   block,
   boxOnGround,
-  boxOnPlane,
-  cylOnGround,
-  coneOnGround,
   lowestSeat
 } from "./buildings/kit.js";
 import { mate, anchorsOf, face } from "./buildings/anchors.js";
@@ -48,6 +45,9 @@ function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
 }
 
 export const ENTERABLE_LOTS = [];
+
+/** The fire lookout's offset from its POI, clear of the two logging roads. */
+export const TOWER_OFFSET = { dx: 8, dz: -12 };
 
 /**
  * One entry per street built, recording how many lots it was configured with
@@ -296,8 +296,7 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
     const signSide = perp - toward * (Math.min(w, d) * 0.5 + 1.15);
     const sx = origin.x + c * along - s * signSide;
     const sz = origin.z + s * along + c * signSide;
-    const board = boxAt(group, sx, sz, 0.12, 1.1, 0.7, dark, false);
-    board.rotation.y = yaw + Math.PI / 2;
+    addPropSpot("landmarks", { kind: "sign_stand", x: sx, z: sz, yaw });
   }
 
   group.add(st);
@@ -448,8 +447,6 @@ export function createLandmarks(scene, maps = {}) {
   // A low normal scale keeps the plaster mottle without the plank look.
   const adobe = hasMaps ? makeTexturedMat(maps.adobe, { tiling: 1.6, tint: 0xfff0d4, gain: 2.3, normalScale: 0.45 }) : mat(0xc4a06a);
   const rust = mat(0xb55220);
-  const canvas = mat(0xd2c4a0);
-  const ash = mat(0x3a342c);
   const iron = mat(0x4a4a50, { metalness: 0.85, roughness: 0.35 });
 
   const town = POS.silverCreek;
@@ -530,28 +527,31 @@ export function createLandmarks(scene, maps = {}) {
   const dock = POS.lakeMercy;
   // Dock references WATER, not terrain height.
   const dockY = WATER + 0.1;
-  boxOnPlane(group, dock.x - 20, dockY - 0.175, dock.z - 90, 4, 0.35, 18, dark, false);
-  registerWaterPlacement("dockDeck", dock.x - 20, dock.z - 90, dockY);
-  boxOnPlane(group, dock.x - 28, dockY - 0.15, dock.z - 84, 2.4, 0.3, 10, dark, false);
-  registerWaterPlacement("dockPlank", dock.x - 28, dock.z - 84, dockY);
-  for (const [dx, dz] of [[-14, -102], [-14, -101.2], [-14, -102.8]]) {
-    boxOnPlane(group, dock.x + dx, dockY - 0.1 - 0.16, dock.z + dz, 1.35, 0.32, 3.1, dark, false);
+  // The pier (landmark kit) runs north into the lake from the south shore
+  // below the 'lakeMercy.dock' arrival (dx 60, dz 392; the drawn waterline,
+  // lakeWaterSignedDistance, crosses dz ~359), deck top on WATER, walkable as a deck platform. The old slabs
+  // stood 90 m out in open water with no way onto them. A short walk along
+  // the bank to the west, two rowboats tied off the pier's east side.
+  const pier = { x: dock.x + 60, z: dock.z + 352 };
+  const pierTop = dockY + 0.175;
+  addPropSpot("landmarks", { kind: "dock_pier", x: pier.x, z: pier.z, y: pierTop, yaw: Math.PI / 2, water: true, cluster: "lake" });
+  registerWaterPlacement("dockDeck", pier.x, pier.z, dockY);
+  addDeckPlatform(pier.x, pier.z, 2, 9, 0, pierTop);
+  const walk = { x: dock.x + 50, z: dock.z + 358 };
+  addPropSpot("landmarks", { kind: "dock_walk", x: walk.x, z: walk.z, y: dockY + 0.15, yaw: 0, water: true, cluster: "lake" });
+  registerWaterPlacement("dockPlank", walk.x, walk.z, dockY);
+  addDeckPlatform(walk.x, walk.z, 5, 1.2, 0, dockY + 0.15);
+  for (const [dx, dz, yaw] of [[3.2, -4.5, Math.PI / 2 + 0.06], [3.4, -8.2, Math.PI / 2 - 0.1]]) {
+    addPropSpot("landmarks", { kind: "rowboat", x: pier.x + dx, z: pier.z + dz, y: WATER - 0.14, yaw, water: true, cluster: "lake" });
   }
-  addBoxCollider(dock.x - 20, dock.z - 90, 2.2, 9.2);
 
   // Fire watch tower — four-legged braced tower with a lookout cabin.
   const tower = POS.fireWatch;
-  const towerH = 18;
-  for (const [dx, dz] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) {
-    cylOnGround(group, tower.x + dx, tower.z + dz, 0.12, 0.18, towerH, dark, false, undefined, 0, 6);
-  }
-  for (const [dx, dz] of [[-1.6, 0], [1.6, 0], [0, -1.6], [0, 1.6]]) {
-    boxOnGround(group, tower.x + dx, tower.z + dz, 0.1, 0.1, 3.2, dark, false, towerH * 0.5 - 0.05);
-  }
-  boxOnGround(group, tower.x, tower.z, 4.2, 2.4, 4.2, facadeWood, false, towerH);
-  const lookoutRoof = coneOnGround(group, tower.x, tower.z, 3.2, 1.6, roof, false, towerH + 2.4, undefined, 4);
-  lookoutRoof.rotation.y = Math.PI / 4;
-  addBoxCollider(tower.x, tower.z, 1.8, 1.8);
+  // Authored 18 m lookout (landmark kit): legs at +-2.1 m, ladder up the +Z face.
+  // logA runs through the POI and logB ends on it, so the tower stands on the
+  // flat 13 m north-east of the junction, its ladder face toward the arrival.
+  addPropSpot("landmarks", { kind: "lookout_tower", x: tower.x + TOWER_OFFSET.dx, z: tower.z + TOWER_OFFSET.dz, yaw: -0.38, cluster: "fireWatch" });
+  addBoxCollider(tower.x + TOWER_OFFSET.dx, tower.z + TOWER_OFFSET.dz, 2.25, 2.25);
 
   // Timber camp — cabins with gable roofs.
   for (const [dx, dz] of [[-12, 8], [14, -6], [0, 16]]) {
@@ -592,9 +592,19 @@ export function createLandmarks(scene, maps = {}) {
   // roads that meet at the camp: five of them sat on logA, logB or
   // silverNorth.
 
+  // Burnt cabin remains (landmark kit, 6 x 4 m) with their low walls solid.
   for (let i = 0; i < 6; i += 1) {
-    const a = i * 1.1;
-    boxAt(group, POS.burn.x + Math.cos(a) * 18, POS.burn.z + Math.sin(a) * 14, 5 + (i % 3), 2.2, 4, ash);
+    // The fourth stood on silverNorth, which crosses the Burn 2 m off centre.
+    const a = i === 3 ? 2.75 : i * 1.1;
+    const x = POS.burn.x + Math.cos(a) * 18;
+    const z = POS.burn.z + Math.sin(a) * 14;
+    const sx = (5 + (i % 3)) / 6;
+    addPropSpot("landmarks", { kind: "burnt_ruin", x, z, yaw: 0, sx, cluster: "burn" });
+    const hw = 3 * sx;
+    addBoxCollider(x, z - 2, hw, 0.16);
+    addBoxCollider(x, z + 2, hw, 0.16);
+    addBoxCollider(x - hw, z, 0.16, 2);
+    addBoxCollider(x + hw, z, 0.16, 2);
   }
 
   boxAt(group, POS.barrett.x, POS.barrett.z, 10, 5.5, 8, facadeWood);
@@ -725,20 +735,25 @@ export function createLandmarks(scene, maps = {}) {
   // down. Walls collide; the open front means you can walk inside.
   // The middle one used to sit at (+16, +8), inside the old valley stamp
   // mill's footprint; the mill has since moved to its rail site.
-  const ruinShell = (x, z, w, d, hBack, hLeft, hRight) => {
-    const y0 = lowestSeat(x, z, Math.hypot(w, d) / 2);
-    const wt = 0.3;
-    boxOnPlane(group, x, y0, z - d / 2, w, hBack, wt, dark, true);
-    boxOnPlane(group, x - w / 2, y0, z, wt, hLeft, d, dark, true);
-    boxOnPlane(group, x + w / 2, y0, z - d / 4, wt, hRight, d / 2, dark, true);
-    boxOnPlane(group, x - w / 4, y0 + 0.14, z + d / 2 + 0.55, w / 2, 0.28, 0.28, dark, false);
+  // The shell is the authored cabin_ruin (landmark kit, 7 x 5 m, scaled);
+  // its standing walls keep their colliders.
+  const ruinShell = (x, z, w, d) => {
+    const s = w / 7;
+    // Iron Valley's bench falls ~0.18 across X: sit on the centre and let
+    // the deep stone sill carry the downhill side.
+    const y0 = heightAt(x, z) - 0.3;
+    addPropSpot("landmarks", { kind: "cabin_ruin", x, z, y: y0, yaw: 0, s, seat: "free", cluster: "ironValley" });
+    const wt = 0.3 * s;
+    addBoxCollider(x, z - d / 2, w / 2, wt / 2);
+    addBoxCollider(x - w / 2, z, wt / 2, d / 2);
+    addBoxCollider(x + w / 2, z - d / 4, wt / 2, d / 4);
   };
   // The toxic creek (12 m wide) runs through the valley west of the headframe;
   // both western placements stood in or on the bank of its channel. Cluster all
   // three shells on the dry bench east of the creek instead.
-  ruinShell(POS.ironValley.x - 8, POS.ironValley.z + 22, 7, 5, 2.4, 2.0, 1.1);
-  ruinShell(POS.ironValley.x + 2, POS.ironValley.z + 10, 6, 4.5, 2.0, 1.6, 0.9);
-  ruinShell(POS.ironValley.x + 4, POS.ironValley.z + 18, 7.5, 5, 2.6, 2.2, 1.3);
+  ruinShell(POS.ironValley.x - 8, POS.ironValley.z + 22, 7, 5);
+  ruinShell(POS.ironValley.x + 2, POS.ironValley.z + 10, 6, 4.3);
+  ruinShell(POS.ironValley.x + 4, POS.ironValley.z + 18, 7.5, 5.35);
 
   // La Esperanza Mission is its own builder (mission.js), built here so
   // every check that builds the landmarks sees its walls and colliders.
@@ -777,14 +792,10 @@ export function createLandmarks(scene, maps = {}) {
   // trail's centreline, in the tread).
   const wellX = ep.x + 5;
   const wellZ = ep.z - 2;
-  cylOnGround(group, wellX, wellZ, 0.55, 0.7, 0.7, stone, true);
-  cylOnGround(group, wellX, wellZ, 0.32, 0.32, 0.9, dark, false, 0.7);
-  boxAt(group, wellX, wellZ, 0.12, 1.3, 0.12, facadeWood, false, 1.4);
-  boxAt(group, wellX, wellZ, 1.0, 0.1, 0.1, facadeWood, false, 1.9);
+  addPropSpot("landmarks", { kind: "well", x: wellX, z: wellZ, yaw: 0.3, collide: true, cluster: "elPaso" });
   const crossX = ep.x - 6.5;
   const crossZ = ep.z + 4.5;
-  boxAt(group, crossX, crossZ, 0.16, 2.6, 0.16, facadeWood, false);
-  boxAt(group, crossX, crossZ, 1.2, 0.14, 0.14, facadeWood, false, 1.35);
+  addPropSpot("landmarks", { kind: "plaza_cross", x: crossX, z: crossZ, yaw: 0.4, collide: true, cluster: "elPaso" });
 
   // Tribal camp — tipis in a loose ring with per-instance scale and yaw.
   const tipiCount = 7;
@@ -794,8 +805,9 @@ export function createLandmarks(scene, maps = {}) {
     const tx = POS.tribal.x + TRIBAL_CAMP.dx + Math.cos(a) * r;
     const tz = POS.tribal.z + TRIBAL_CAMP.dz + Math.sin(a) * r;
     const s = 0.8 + seeded(i * 0.3 + 0.7) * 0.5;
-    const tipi = coneOnGround(group, tx, tz, 2.6 * s, 4.2 * s, canvas, true, 0, 1.2 * s);
-    tipi.rotation.y = seeded(tx * 0.1 + tz * 0.1) * Math.PI * 2;
+    // Door toward the ring's hearth, give or take.
+    const yaw = Math.atan2(-Math.cos(a), -Math.sin(a)) + (seeded(tx * 0.1 + tz * 0.1) - 0.5) * 0.6;
+    addPropSpot("landmarks", { kind: "tipi", x: tx, z: tz, yaw, s, collide: true, cluster: "tribal" });
   }
 
   // Cemetery — headstones with jitter.
@@ -805,10 +817,11 @@ export function createLandmarks(scene, maps = {}) {
     // Vary size and lean so the row does not read as identical slabs (C1).
     const sw = 0.26 + seeded(i + 9) * 0.2;
     const sh = 0.7 + seeded(i + 11) * 0.7;
-    const sd = 0.14 + seeded(i + 13) * 0.1;
-    const stone2 = boxOnGround(group, hx, hz, sw, sh, sd, stone, false);
-    stone2.rotation.z = (seeded(i + 15) - 0.5) * 0.18;
-    stone2.rotation.y = (seeded(i + 7) - 0.5) * 0.4;
+    addPropSpot("landmarks", {
+      kind: i % 3 === 1 ? "headstone_cross" : "headstone",
+      x: hx, z: hz, s: Math.min(1.3, Math.max(0.8, sh / 0.9 + (sw - 0.36))),
+      yaw: (seeded(i + 7) - 0.5) * 0.4, pitch: (seeded(i + 15) - 0.5) * 0.18, cluster: "cemetery"
+    });
   }
   // Hunting cabin — enterable. Two faults with the old build: the roof was
   // seated at heightAt(centre) while the body box seated at
@@ -866,14 +879,12 @@ export function createLandmarks(scene, maps = {}) {
   mate(hcCeiling, "base", anchorsOf(hcSt).get("footing"), { offset: { y: 2.62 } });
   // Trapper's furnishing — the room must not read as an empty shell once the
   // door opens.
-  const hcCot = block({ w: 1.0, h: 0.42, d: 2.1, material: dark });
-  mate(hcCot, "base", anchorsOf(hcSt).get("footing"), { offset: { x: -2.2, z: 1.1 } });
-  const hcBedroll = block({ w: 0.9, h: 0.14, d: 1.9, material: canvas });
-  mate(hcBedroll, "base", anchorsOf(hcSt).get("footing"), { offset: { x: -2.2, y: 0.42, z: 1.1 } });
-  const hcTable = block({ w: 1.3, h: 0.76, d: 0.85, material: facadeWood });
-  mate(hcTable, "base", anchorsOf(hcSt).get("footing"), { offset: { x: 2.3, z: -1.5 } });
-  const hcStool = block({ w: 0.45, h: 0.5, d: 0.45, material: dark });
-  mate(hcStool, "base", anchorsOf(hcSt).get("footing"), { offset: { x: 1.5, z: -1.4 } });
+  const hcFloorY = hcSt.userData.placementY + 0.08;
+  const hcFurnish = (kind, dx, dz, yaw, extra = {}) =>
+    addPropSpot("landmarks", { kind, x: hc.x + dx, z: hc.z + dz, y: hcFloorY, yaw, seat: "free", inside: true, cluster: "huntingCabin", ...extra });
+  hcFurnish("cot", -2.2, 1.1, Math.PI / 2);
+  hcFurnish("table_long", 2.3, -1.5, 0, { sx: 0.65 });
+  hcFurnish("stool", 1.5, -0.7, 0);
   addBoxCollider(hc.x - 2.2, hc.z + 1.1, 0.5, 1.05);
   addBoxCollider(hc.x + 2.3, hc.z - 1.5, 0.65, 0.43);
   // Wall colliders with the door gap cut in the north wall. The 1.1 gap is the

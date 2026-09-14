@@ -22,7 +22,7 @@ import {
 } from "./collision.js";
 import { insideStructure, lowestSeat } from "./buildings/kit.js";
 import { APPROACHES, APPROACH_CLEAR } from "./nav/arrivals.js";
-import { PROP_CABLES, PROP_CLEARINGS, PROP_SPOTS } from "./propSpots.js";
+import { PROP_CABLES, PROP_CLEARINGS, PROP_MOUNTS, PROP_SPOTS } from "./propSpots.js";
 import { addGroundClearing, clearGroundClearings } from "./groundClear.js";
 
 /**
@@ -56,7 +56,10 @@ export const PROP_KITS = {
   trail: "/models/props/trail.glb",
   mine: "/models/props/mine.glb",
   fort: "/models/props/fort.glb",
-  camp: "/models/props/camp.glb"
+  camp: "/models/props/camp.glb",
+  yard: "/models/props/yard.glb",
+  landmark: "/models/props/landmark.glb",
+  furniture: "/models/props/furniture.glb"
 };
 
 /**
@@ -133,7 +136,59 @@ export const PROP_KINDS = {
   travois: { kit: "camp", hx: 2.5, hz: 0.75, collide: null, shadow: true },
   hide_frame: { kit: "camp", hx: 1.15, hz: 0.2, collide: "posts", posts: [-1.0, 1.0], shadow: true },
   drying_rack: { kit: "camp", hx: 1.5, hz: 0.2, collide: "posts", posts: [-1.3, 1.3], shadow: true },
-  fire_pit: { kit: "camp", hx: 0.65, hz: 0.65, collide: null, shadow: false, bare: 1.4 }
+  fire_pit: { kit: "camp", hx: 0.65, hz: 0.65, collide: null, shadow: false, bare: 1.4 },
+  // Yard and landmark kits: the pieces the structure builders still drew as
+  // primitives. Most are builder spots whose builder keeps its own colliders.
+  // `live` kinds are never instanced: a builder mounts one on a moving group
+  // (addMountSpot), e.g. the windmill wheel the frame loop turns.
+  windmill_fan: { kit: "yard", hx: 1.85, hz: 0.25, collide: null, shadow: true, live: true },
+  stock_tank: { kit: "yard", hx: 1.3, hz: 1.3, collide: "cyl", r: 1.32, shadow: true },
+  anvil: { kit: "yard", hx: 0.45, hz: 0.3, collide: "cyl", r: 0.34, shadow: true },
+  forge: { kit: "yard", hx: 1.1, hz: 0.6, collide: "box", shadow: true },
+  rowboat: { kit: "yard", hx: 1.55, hz: 0.65, collide: null, shadow: true },
+  tipi: { kit: "yard", hx: 2.65, hz: 2.65, collide: "cyl", r: 1.2, shadow: true, bare: 3 },
+  headstone: { kit: "yard", hx: 0.28, hz: 0.13, collide: null, shadow: true, bare: 0.6 },
+  headstone_cross: { kit: "yard", hx: 0.25, hz: 0.18, collide: null, shadow: true, bare: 0.6 },
+  plaza_cross: { kit: "yard", hx: 0.8, hz: 0.8, collide: "cyl", r: 0.7, shadow: true },
+  gatepost_stone: { kit: "yard", hx: 0.21, hz: 0.21, collide: "cyl", r: 0.22, shadow: true },
+  charcoal_pit: { kit: "yard", hx: 1.7, hz: 1.7, collide: null, shadow: false, bare: 2.8 },
+  log_charred: { kit: "yard", hx: 2.6, hz: 0.6, collide: null, shadow: true, bare: 1.2 },
+  bench_log: { kit: "yard", hx: 1.1, hz: 0.25, collide: "box", shadow: true },
+  sign_stand: { kit: "yard", hx: 0.38, hz: 0.06, collide: null, shadow: true },
+  altar: { kit: "yard", hx: 1.15, hz: 0.5, collide: "box", shadow: true },
+  windmill_tower: { kit: "landmark", hx: 1.3, hz: 3.0, collide: null, shadow: true },
+  lookout_tower: { kit: "landmark", hx: 2.6, hz: 2.6, collide: null, shadow: true },
+  dock_pier: { kit: "landmark", hx: 9.0, hz: 2.2, collide: null, shadow: true },
+  dock_walk: { kit: "landmark", hx: 5.0, hz: 1.3, collide: null, shadow: true },
+  ranch_gate: { kit: "landmark", hx: 4.7, hz: 0.35, collide: null, shadow: true },
+  chimney_ruin: { kit: "landmark", hx: 0.75, hz: 0.75, collide: "box", shadow: true, bare: 1.8 },
+  burnt_ruin: { kit: "landmark", hx: 3.1, hz: 2.1, collide: null, shadow: true, bare: 3.4 },
+  cabin_ruin: { kit: "landmark", hx: 3.6, hz: 2.6, collide: null, shadow: true },
+  fishing_shack: { kit: "landmark", hx: 1.05, hz: 0.95, collide: null, shadow: true },
+  // Interior furniture: builder spots on floors (seat "free", inside); the
+  // builders keep whatever colliders the old boxes had.
+  bed_double: { kit: "furniture", hx: 1.05, hz: 0.72, collide: null, shadow: true },
+  bed_single: { kit: "furniture", hx: 1.0, hz: 0.5, collide: null, shadow: true },
+  cot: { kit: "furniture", hx: 1.0, hz: 0.4, collide: null, shadow: true },
+  chair: { kit: "furniture", hx: 0.23, hz: 0.25, collide: null, shadow: true },
+  stool: { kit: "furniture", hx: 0.21, hz: 0.21, collide: null, shadow: true },
+  pew: { kit: "furniture", hx: 0.93, hz: 0.27, collide: null, shadow: true },
+  table_long: { kit: "furniture", hx: 1.0, hz: 0.48, collide: null, shadow: true },
+  table_square: { kit: "furniture", hx: 0.53, hz: 0.53, collide: null, shadow: true },
+  dresser: { kit: "furniture", hx: 0.52, hz: 0.25, collide: null, shadow: true },
+  wardrobe: { kit: "furniture", hx: 0.6, hz: 0.33, collide: null, shadow: true },
+  cupboard: { kit: "furniture", hx: 0.64, hz: 0.28, collide: null, shadow: true },
+  washstand: { kit: "furniture", hx: 0.5, hz: 0.25, collide: null, shadow: true },
+  desk: { kit: "furniture", hx: 0.75, hz: 0.38, collide: null, shadow: true },
+  gun_rack: { kit: "furniture", hx: 0.55, hz: 0.13, collide: null, shadow: true },
+  cookstove: { kit: "furniture", hx: 0.57, hz: 0.34, collide: null, shadow: true },
+  hearth: { kit: "furniture", hx: 1.15, hz: 0.7, collide: null, shadow: true },
+  bar_counter: { kit: "furniture", hx: 2.05, hz: 0.5, collide: null, shadow: true },
+  bottles: { kit: "furniture", hx: 0.31, hz: 0.1, collide: null, shadow: false },
+  piano: { kit: "furniture", hx: 0.73, hz: 0.55, collide: null, shadow: true },
+  shelf_goods: { kit: "furniture", hx: 0.75, hz: 0.19, collide: null, shadow: true },
+  pulpit: { kit: "furniture", hx: 0.35, hz: 0.3, collide: null, shadow: true },
+  altar_table: { kit: "furniture", hx: 1.4, hz: 0.65, collide: null, shadow: true }
 };
 
 /**
@@ -181,7 +236,7 @@ function collide(p) {
     return;
   }
   if (spec.collide === "cyl") {
-    addCylinderCollider(p.x, p.z, spec.r);
+    addCylinderCollider(p.x, p.z, spec.r * (p.s || 1));
   } else if (spec.collide === "posts") {
     // Only the posts stop a walker; the bar is at chest height and a horse
     // is tied to it, so nothing blocks between them.
@@ -191,7 +246,7 @@ function collide(p) {
       addCylinderCollider(p.x + c * lx, p.z - s * lx, 0.12);
     }
   } else {
-    addOrientedBoxCollider(p.x, p.z, spec.hx * (p.sx || 1), spec.hz, -p.yaw);
+    addOrientedBoxCollider(p.x, p.z, spec.hx * (p.sx || 1) * (p.s || 1), spec.hz * (p.s || 1), -p.yaw);
   }
 }
 
@@ -208,9 +263,9 @@ function place(kind, x, y, z, yaw, extra = {}) {
 }
 
 /** Terrain seat for a free-standing prop: the lowest ground under its reach. */
-function groundSeat(kind, x, z) {
+function groundSeat(kind, x, z, sx = 1, scale = 1) {
   const { hx, hz } = PROP_KINDS[kind];
-  return lowestSeat(x, z, Math.hypot(hx, hz));
+  return lowestSeat(x, z, Math.hypot(hx * sx, hz) * scale);
 }
 
 // --------------------------------------------------------------------------
@@ -219,14 +274,17 @@ function groundSeat(kind, x, z) {
 /** Spots recorded by the structure builders (see propSpots.js). */
 function planSpots() {
   for (const s of PROP_SPOTS) {
-    const cluster = s.owner === "landmarks" ? "town" : s.owner;
-    place(s.kind, s.x, s.y ?? groundSeat(s.kind, s.x, s.z), s.z, s.yaw, {
+    const cluster = s.cluster ?? (s.owner === "landmarks" ? "town" : s.owner);
+    place(s.kind, s.x, s.y ?? groundSeat(s.kind, s.x, s.z, s.sx || 1, s.s || 1), s.z, s.yaw, {
       cluster,
       pitch: s.pitch,
       sx: s.sx,
+      s: s.s,
       stacked: Boolean(s.stacked),
       seat: s.seat,
       trackside: Boolean(s.trackside),
+      spans: Boolean(s.spans),
+      water: Boolean(s.water),
       inside: Boolean(s.inside),
       spot: true,
       noCollide: !s.collide
@@ -1249,7 +1307,8 @@ function propMatrix(p, out) {
   }
   // A tipped barrel lies on its side: lift its axis to the stave radius.
   const y = p.tipped ? p.y + 0.3 : p.y;
-  return out.compose(new THREE.Vector3(p.x, y, p.z), q, new THREE.Vector3(p.sx || 1, 1, 1));
+  const s = p.s || 1;
+  return out.compose(new THREE.Vector3(p.x, y, p.z), q, new THREE.Vector3((p.sx || 1) * s, s, s));
 }
 
 /**
@@ -1339,6 +1398,19 @@ export async function installWesternProps(scene, { kits = PROP_KITS, biomeOn = n
           sources.set(o.name, o);
         }
       });
+    }
+    // Live pieces hang on a builder's moving group, one plain mesh each.
+    for (const mount of PROP_MOUNTS) {
+      const src = sources.get(mount.kind);
+      if (!src) {
+        console.warn(`western props: no mesh named ${mount.kind} to mount`);
+        continue;
+      }
+      const mesh = new THREE.Mesh(src.geometry, src.material);
+      mesh.name = `props:${mount.kind}`;
+      mesh.castShadow = PROP_KINDS[mount.kind].shadow;
+      mesh.receiveShadow = true;
+      mount.group.add(mesh);
     }
     const byCell = new Map();
     for (const p of PROP_PLACEMENTS) {

@@ -84,7 +84,7 @@ const plan = planWesternProps().map((p) => ({ ...p }));
 // --- the shipped models ------------------------------------------------------
 // Default 900. Single-instance landmark pieces get more: the headframe and
 // the stone powder house are seen close and only once.
-const TRI_BUDGET = { wagon_broken: 4500, wagon_farm: 4500, wheel_lean: 1200, barrel: 1200, woodpile: 1400, campfire_ring: 1400, headframe: 1600, ore_bin: 1200, powder_magazine: 2000, cannon: 2000, cannonballs: 1100, well: 1300, saddle_rack: 1000, army_wagon: 4500, rubble_pile: 1100, sheep_wagon: 4500 };
+const TRI_BUDGET = { wagon_broken: 4500, wagon_farm: 4500, wheel_lean: 1200, barrel: 1200, woodpile: 1400, campfire_ring: 1400, headframe: 1600, ore_bin: 1200, powder_magazine: 2000, cannon: 2000, cannonballs: 1100, well: 1300, saddle_rack: 1000, army_wagon: 4500, rubble_pile: 1100, sheep_wagon: 4500, stock_tank: 1200, plaza_cross: 1100, windmill_fan: 1000, windmill_tower: 1500, lookout_tower: 2400, dock_pier: 1700, chimney_ruin: 1600, cabin_ruin: 1000, burnt_ruin: 1000, shelf_goods: 1000 };
 const meshTris = new Map();
 const meshKit = new Map();
 let glbBytes = 0;
@@ -104,6 +104,22 @@ for (const [kit, url] of Object.entries(PROP_KITS)) {
   check((json.materials || []).length === 1, `${url} should share one material, has ${(json.materials || []).length}`);
   check(glb.length < 8 * 1024 * 1024, `${url} is ${(glb.length / 1048576).toFixed(1)} MB (budget 8 MB)`);
 }
+// Authored tree parts (src/treeModels.js) share the pipeline and its budget.
+{
+  const { TREE_MODELS, TREE_MODELS_URL } = await import("../src/treeModels.js");
+  const glb = readFileSync(new URL(`../public${TREE_MODELS_URL}`, import.meta.url));
+  const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8"));
+  check((json.materials || []).length === 1, `${TREE_MODELS_URL} should share one material`);
+  const TREE_BUDGET = { burnt_snag: 900 };
+  for (const name of Object.keys(TREE_MODELS)) {
+    const node = (json.nodes || []).find((n) => n.name === name && n.mesh !== undefined);
+    check(node, `${TREE_MODELS_URL} has no node named "${name}"`);
+    if (node) {
+      const tris = json.meshes[node.mesh].primitives.reduce((n, prim) => n + json.accessors[prim.indices].count / 3, 0);
+      check(tris <= (TREE_BUDGET[name] ?? 900), `tree part ${name} is ${tris} triangles, budget ${TREE_BUDGET[name] ?? 900}`);
+    }
+  }
+}
 for (const [kind, spec] of Object.entries(PROP_KINDS)) {
   check(meshKit.get(kind) === spec.kit, `kit "${spec.kit}" GLB has no node named "${kind}" — the prop would never draw (rebuild with scripts/blender-props/pr_build.py)`);
   const budget = TRI_BUDGET[kind] ?? 900;
@@ -115,7 +131,7 @@ const counts = {};
 for (const p of plan) {
   counts[p.kind] = (counts[p.kind] || 0) + 1;
   const spec = PROP_KINDS[p.kind];
-  const reach = Math.hypot(spec.hx, spec.hz);
+  const reach = Math.hypot(spec.hx * (p.sx || 1), spec.hz) * (p.s || 1);
   if (p.deck) {
     const deck = deckHeightAt(p.x, p.z, p.y + 0.2);
     const stacked = p.y > deck + 0.3;
@@ -135,6 +151,10 @@ for (const p of plan) {
     // A sign arm hangs on its post at an explicit height.
     const post = plan.find((q) => q.kind === "signpost" && Math.abs(q.x - p.x) < 1e-6 && Math.abs(q.z - p.z) < 1e-6);
     check(post && p.y > post.y + 1.5 && p.y < post.y + 2.75, `${at(p)} is not mounted on a signpost`);
+  } else if (p.water) {
+    // On the lake (a pier on its piles, a moored boat, the island shack):
+    // authored against the water plane, not the terrain.
+    check(Math.abs(p.y - WATER) < 0.6, `${at(p)} is authored ${(p.y - WATER).toFixed(2)} m from the lake surface`);
   } else if (p.seat === "free") {
     // Authored height (track on a ramp, a car on its rails): near the ground.
     const g = heightAt(p.x, p.z);
@@ -157,8 +177,8 @@ for (const p of plan) {
 
   // --- where it stands ----------------------------------------------------------------
   check(p.inside || !insideStructure(p.x, p.z, 0), `${at(p)} stands inside a building footprint`);
-  check(heightAt(p.x, p.z) > WATER + 0.5 && lakeFactor(p.x, p.z) < 0.3, `${at(p)} stands in water`);
-  if (!p.kind.startsWith("hitch_rail") && !p.deck && !p.trackside) {
+  check(p.water || (heightAt(p.x, p.z) > WATER + 0.5 && lakeFactor(p.x, p.z) < 0.3), `${at(p)} stands in water`);
+  if (!p.kind.startsWith("hitch_rail") && !p.deck && !p.trackside && !p.spans && !p.inside) {
     for (const road of ROADS) {
       const d = distToPolyline(p.x, p.z, road.pts);
       check(d > road.width / 2 + reach * 0.5, `${at(p)} is ${d.toFixed(1)} m from ${road.name}'s centreline, on the carriageway (half width ${road.width / 2})`);
@@ -397,6 +417,21 @@ for (const w of TELEGRAPH_WIRES.filter((wire) => wire.kind === "telegraph")) {
     const P = POS[id];
     const near = plan.filter((p) => p.cluster === id && Math.hypot(p.x - P.x - ap.dx, p.z - P.z - ap.dz) < 60).length;
     check(near >= Math.min(n, 3), `${id}'s props stand away from its arrival (${near} within 60 m)`);
+  }
+}
+
+// --- interior furniture keeps its colliders under it ------------------------------
+// interiors.js rotated its colliders by +yaw by hand while the lot group turns
+// by three's rotation.y, so in the lots at yaw 1.42 a counter's collider stood
+// 4 m from the counter (invisible walls in the aisle, walk-through counters).
+{
+  const boxes = listBoxColliders();
+  const SOLID = ["desk", "bar_counter", "bed_single", "shelf_goods", "pew", "piano", "altar_table"];
+  const pieces = plan.filter((p) => p.cluster === "interiors" && SOLID.includes(p.kind));
+  check(pieces.length >= 18, `only ${pieces.length} solid interior furniture pieces planned (expected >= 18)`);
+  for (const p of pieces) {
+    const under = boxes.some((b) => Math.hypot(b.x - p.x, b.z - p.z) < 0.05);
+    check(under, `${at(p)} has no collider under it (interior collider frame mirrored?)`);
   }
 }
 

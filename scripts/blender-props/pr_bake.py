@@ -24,6 +24,10 @@ KITS = {
     "mine": (f"{MODELS}/mine.glb", "mine", "MineProps"),
     "fort": (f"{MODELS}/fort.glb", "fort", "FortProps"),
     "camp": (f"{MODELS}/camp.glb", "camp", "CampProps"),
+    "yard": (f"{MODELS}/yard.glb", "yard", "YardProps"),
+    "landmark": (f"{MODELS}/landmark.glb", "landmark", "LandmarkProps"),
+    "furniture": (f"{MODELS}/furniture.glb", "furniture", "FurnitureProps"),
+    "trees": (f"{MODELS}/trees.glb", "trees", "TreeParts"),
 }
 SPACING = 8.0
 

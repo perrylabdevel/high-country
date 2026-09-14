@@ -53,6 +53,9 @@ def _rig():
 def render(names, path=f"{OUT}/sheet.png", cols=3, yaw=-35.0, pitch=22.0):
     os.makedirs(OUT, exist_ok=True)
     cam = _rig()
+    # lay_out() moves props by location; matrix_world stays stale until the
+    # depsgraph updates, and every tile would frame the old spot.
+    bpy.context.view_layer.update()
     tiles = []
     for name in names:
         ob = bpy.data.objects[name]

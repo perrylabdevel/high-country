@@ -20,6 +20,7 @@ import { createPines } from "./pines.js";
 import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
+import { loadTreeModels } from "./treeModels.js";
 import { freezeTransforms } from "./freeze.js";
 import { biomeOn, biomesOff, loadBiomeFilter, onBiomeFilterChange } from "./biomeFilter.js";
 import { createBiomeBar } from "./dev/biomeBar.js";
@@ -902,6 +903,8 @@ async function boot() {
   freezeTransforms(statics, (o) => spinnerRoots.has(o));
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
+  // Authored tree parts replace the procedural ones once their GLB loads.
+  void loadTreeModels().then((models) => vegetation.applyTreeModels(models));
   // Filler props plan after every structure, tree and rock collider exists
   // (they keep clear of all of them) and before the nav graph prices its
   // edges against their colliders. The models draw once the GLB loads.
@@ -1096,6 +1099,9 @@ async function boot() {
     // restores the mix. The scatter is amortised, so give it a few seconds
     // (or poll __vegSettled) before judging a frame.
     window.__soloGrass = (name) => vegetation.soloGrass(name, camera.position);
+    // __treeModels(false) draws the procedural conifers again, (true) the
+    // authored ones (src/treeModels.js) — the A/B for the tree model pass.
+    window.__treeModels = (on) => vegetation.useTreeModels(on !== false);
     // __speciesColour(1) floods each blade silhouette with its species colour;
     // (2) draws the card quads solid; (0) restores. Takes effect immediately -
     // it is a uniform, not a rescatter.
