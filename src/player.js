@@ -13,7 +13,8 @@ const EYE = 1.62;
 // the horse's back, so the avatar origin rides ~0.5 m above the saddle
 // ground. RIDE_EYE is the seated eye height above that origin.
 const RIDE_HIPS = 0.92;
-const RIDE_SEAT = 1.42;
+// Hips on the authored saddle's seat (scripts/blender-horse: seat top 1.55 m).
+const RIDE_SEAT = 1.55;
 const RIDE_EYE = 1.78;
 const LOOK_SENS = 0.0024;
 const AIM_DIST = 14;

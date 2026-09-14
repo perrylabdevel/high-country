@@ -120,6 +120,27 @@ for (const [kit, url] of Object.entries(PROP_KITS)) {
     }
   }
 }
+// The authored horse and stagecoach: the game falls back to its box rigs on
+// a missing node or clip, silently, so pin the names it binds to.
+{
+  const read = (url) => {
+    const glb = readFileSync(new URL(`../public${url}`, import.meta.url));
+    return JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString("utf8"));
+  };
+  const horse = read("/models/horse.glb");
+  for (const name of ["Horse", "HorseSaddle", "HorseHarness"]) {
+    const node = (horse.nodes || []).find((n) => n.name === name);
+    check(node && node.skin !== undefined, `horse.glb has no skinned node "${name}"`);
+  }
+  const clips = (horse.animations || []).map((a) => a.name);
+  for (const clip of ["Idle", "Walk", "Trot", "Gallop"]) {
+    check(clips.includes(clip), `horse.glb has no "${clip}" clip (has ${clips.join(", ")})`);
+  }
+  const coach = read("/models/props/coach.glb");
+  for (const name of ["coach_body", "coach_gear", "wheel_front", "wheel_rear"]) {
+    check((coach.nodes || []).some((n) => n.name === name && n.mesh !== undefined), `coach.glb has no node "${name}"`);
+  }
+}
 for (const [kind, spec] of Object.entries(PROP_KINDS)) {
   check(meshKit.get(kind) === spec.kit, `kit "${spec.kit}" GLB has no node named "${kind}" — the prop would never draw (rebuild with scripts/blender-props/pr_build.py)`);
   const budget = TRI_BUDGET[kind] ?? 900;

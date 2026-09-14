@@ -2710,6 +2710,10 @@ async function boot() {
     // Riders and buggies work the roads on the same ambient clock as the
     // stock and the settlers above.
     traffic.update(dt, camera.position);
+    // A riderless horse idles on the same clock (mounted, player.update drives it).
+    if (!horse.mounted) {
+      horse.idle(dt);
+    }
     if (started && !talking && !debug.isOpen()) {
       const mudMul = weather.movementMulAt(player.object.position.x, player.object.position.z);
       player.update(dt, input, horse, mudMul);

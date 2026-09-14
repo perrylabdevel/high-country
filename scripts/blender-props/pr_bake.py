@@ -28,6 +28,7 @@ KITS = {
     "landmark": (f"{MODELS}/landmark.glb", "landmark", "LandmarkProps"),
     "furniture": (f"{MODELS}/furniture.glb", "furniture", "FurnitureProps"),
     "trees": (f"{MODELS}/trees.glb", "trees", "TreeParts"),
+    "coach": (f"{MODELS}/coach.glb", "coach", "CoachParts"),
 }
 SPACING = 8.0
 
@@ -41,11 +42,19 @@ WOOD = {
     "sign_board": ((0.46, 0.42, 0.36), (0.19, 0.17, 0.14)),
     "paint_green": ((0.40, 0.30, 0.19), (0.17, 0.11, 0.06)),
     "paint_red": ((0.40, 0.30, 0.19), (0.17, 0.11, 0.06)),
+    "coach_red": ((0.40, 0.30, 0.19), (0.17, 0.11, 0.06)),
+    "coach_yellow": ((0.40, 0.30, 0.19), (0.17, 0.11, 0.06)),
+    "coach_black": ((0.40, 0.30, 0.19), (0.17, 0.11, 0.06)),
     # Debarked logs: pale sapwood, weathered toward grey.
     "peeled": ((0.62, 0.52, 0.38), (0.36, 0.28, 0.19)),
 }
 # Faded period wagon paint over the wood (Studebaker green box, red gear).
-PAINT = {"paint_green": (0.075, 0.13, 0.085), "paint_red": (0.29, 0.065, 0.035)}
+PAINT = {"paint_green": (0.075, 0.13, 0.085), "paint_red": (0.29, 0.065, 0.035),
+         # A kept coach: Concord red body, straw-yellow running gear, black trim.
+         "coach_red": (0.30, 0.028, 0.018), "coach_yellow": (0.60, 0.38, 0.07), "coach_black": (0.018, 0.016, 0.015)}
+# Paint that has mostly survived (smoothstep window on the wear noise): the
+# default kinds are flaking wagons; the coach is maintained.
+PAINT_WEAR = {"coach_red": (0.12, 0.22), "coach_yellow": (0.14, 0.24), "coach_black": (0.12, 0.22)}
 # Seam spacing across the grain for board kinds.
 SEAMS = {"stave": 0.095, "board_grey": 0.15}
 
@@ -213,9 +222,10 @@ def _surface(mat, kind):
             wear = g.node("ShaderNodeTexNoise", Scale=4.0, Detail=9.0, Roughness=0.72)
             g.L.new(stretched(0.8, 2.5, 6.0), wear.inputs["Vector"])
             # Paint survives in the middle of boards and flakes along the grain.
-            paint = g.math("MULTIPLY", g.smooth(wear.outputs["Fac"], 0.42, 0.52), g.math("SUBTRACT", 1.0, crack))
+            lo, hi = PAINT_WEAR.get(kind, (0.42, 0.52))
+            paint = g.math("MULTIPLY", g.smooth(wear.outputs["Fac"], lo, hi), g.math("SUBTRACT", 1.0, crack))
             fade = g.mix(g.math("MULTIPLY", fibre.outputs["Fac"], 0.5), g.rgb(PAINT[kind]), g.rgb(tuple(c * 1.5 + 0.03 for c in PAINT[kind])))
-            col = g.mix(g.math("MULTIPLY", paint, 0.9), col, fade)
+            col = g.mix(g.math("MULTIPLY", paint, 0.97 if kind in PAINT_WEAR else 0.9), col, fade)
             rough = g.math("SUBTRACT", rough, g.math("MULTIPLY", paint, 0.15))
             bump_h = g.math("ADD", bump_h, g.math("MULTIPLY", paint, 0.35))
         metal = 0.0

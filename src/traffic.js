@@ -3,6 +3,8 @@ import { heightAt } from "./world.js";
 import { deckHeightAt, addCylinderCollider } from "./collision.js";
 import { ROADS, ROAD_LIFT, mapToWorld, headingRotationY } from "./map.js";
 import { createFigure } from "./figures.js";
+import { createHorseVisual, loadHorseModel } from "./models/horseModel.js";
+import { COACH, loadCoachModel } from "./models/coachModel.js";
 
 /**
  * Road traffic: the world's stage lines carry life that isn't the player's.
@@ -26,6 +28,13 @@ import { createFigure } from "./figures.js";
  *             same RIDE_SEAT - RIDE_HIPS offset the player's avatar rides at
  *   buggy   — cart bed, bench, dash, four spoked-adjacent wheels that spin
  *             with actual road speed, shafts out to the same mount
+ *   coach   — the stage road's Concord coach and four-horse team
+ *             (src/models/coachModel.js); the buggy stands in until the GLB
+ *
+ * The box mounts and the buggy are fallbacks: once public/models/horse.glb
+ * and props/coach.glb load, upgradeTravelers-style swaps put the authored
+ * horse (saddle or harness) under every rider and shaft, and the coach on
+ * the stage road.
  *
  * update advances the route distance even past CULL_DIST (traffic that
  * froze while you were away would resume in the wrong place) but skips the
@@ -41,7 +50,8 @@ const WALK_PHASE = [0, 0.5, 0.25, 0.75];
 // (terrain ~12.8 against WATER 13), which reads as a rider walking on a
 // white plain rather than a ford. The rail is freight's problem.
 const ROUTES = [
-  { road: "stage", kind: "buggy", speed: 4.0 },
+  // The stage road carries the stage: a Concord coach and a four-horse team.
+  { road: "stage", kind: "coach", speed: 4.0 },
   { road: "ranchTown", kind: "buggy", speed: 3.6 },
   { road: "townMain", kind: "rider", speed: 5.2 },
   { road: "ranchSouth", kind: "rider", speed: 4.6 }
@@ -316,7 +326,7 @@ export function createTraffic() {
     const trim = ROUTE_TRIMS[def.road] || { start: 0, end: 0 };
     route.sMin = trim.start;
     route.sMax = route.total - trim.end;
-    const built = def.kind === "buggy"
+    const built = def.kind === "buggy" || def.kind === "coach"
       ? buildBuggy(
           {
             skin: 0xe0c29a,
@@ -340,12 +350,18 @@ export function createTraffic() {
           dark
         );
     const collider = addCylinderCollider(0, 0, built.radius);
+    // The coach's team runs 4 m ahead of its centre and needs its own body.
+    const teamCollider = def.kind === "coach" ? addCylinderCollider(0, 0, 1.2) : null;
 
     const traveler = {
       ...built,
       kind: def.kind,
       route,
       collider,
+      teamCollider,
+      // Authored visuals, attached by upgradeTravelers once the GLBs load.
+      horses: null,
+      coach: null,
       baseSpeed: def.speed * (0.9 + Math.random() * 0.2),
       // Start mid-route and mid-gait so the first sighting is a traveler at
       // work, not a procession launching from a road's end.
@@ -367,7 +383,112 @@ export function createTraffic() {
     travelers.push(traveler);
   }
 
+  // Swap the box mounts and the buggy placeholder for the authored horse and
+  // coach as their GLBs arrive. Either failing leaves the box rigs running.
+  void Promise.all([loadHorseModel(), loadCoachModel().catch(() => null)]).then(([horseGltf, coachNodes]) => {
+    for (const t of travelers) {
+      if (t.kind === "coach") {
+        if (!coachNodes) {
+          continue;
+        }
+        upgradeCoach(t, horseGltf, coachNodes);
+        continue;
+      }
+      const visual = createHorseVisual(horseGltf, { tack: t.kind === "buggy" ? "harness" : "saddle" });
+      visual.object.position.copy(t.mount.mount.position);
+      t.mount.mount.visible = false;
+      t.group.add(visual.object);
+      t.horses = [visual];
+      if (t.kind === "rider") {
+        // Hips on the authored saddle's seat, over its centre.
+        t.figure.group.position.set(0, 1.55 - 0.92, 0.05);
+      }
+    }
+  }).catch((err) => console.warn("Authored traffic horses unavailable; box mounts stay.", err));
+
+  function upgradeCoach(t, horseGltf, nodes) {
+    // Drop the buggy placeholder, keep its driver.
+    for (const child of [...t.group.children]) {
+      if (child !== t.figure.group) {
+        child.visible = false;
+      }
+    }
+    const coach = new THREE.Group();
+    coach.name = "stagecoach";
+    const gear = nodes.coach_gear.clone();
+    const bodyPivot = new THREE.Group();
+    bodyPivot.position.set(0, COACH.bodyPivot.y, COACH.bodyPivot.z);
+    const body = nodes.coach_body.clone();
+    body.position.set(0, -COACH.bodyPivot.y, -COACH.bodyPivot.z);
+    bodyPivot.add(body);
+    coach.add(gear, bodyPivot);
+    const wheels = [];
+    for (const [def, node] of [[COACH.wheelFront, nodes.wheel_front], [COACH.wheelRear, nodes.wheel_rear]]) {
+      for (const side of [1, -1]) {
+        const hub = new THREE.Group();
+        hub.position.set(COACH.track * side, def.r, def.z);
+        // The nut faces +X as built; the near-side wheel turns about Y so it
+        // faces out too, which reverses its spin about its own X.
+        hub.rotation.y = side > 0 ? 0 : Math.PI;
+        const spinner = node.clone();
+        hub.add(spinner);
+        coach.add(hub);
+        wheels.push({ spinner, r: def.r, sign: side });
+      }
+    }
+    t.group.add(coach);
+    t.horses = [];
+    for (const row of [COACH.wheelers, COACH.leaders]) {
+      for (const side of [1, -1]) {
+        const h = createHorseVisual(horseGltf, { tack: "harness" });
+        h.object.position.set(row.x * side, 0, row.z);
+        t.group.add(h.object);
+        t.horses.push(h);
+      }
+    }
+    // Driver on the box, a shotgun messenger beside him.
+    t.figure.group.position.set(-0.3, COACH.seat.y - 0.92, COACH.seat.z);
+    const messenger = createFigure({ skin: 0xd6b08a, shirt: 0x5a4632, vest: 0x2e2218, pants: 0x2a2018, hat: 0x3a2a1c });
+    messenger.group.position.set(0.32, COACH.seat.y - 0.92, COACH.seat.z);
+    t.group.add(messenger.group);
+    t.figures = [t.figure, messenger];
+    t.coach = { body: bodyPivot, wheels };
+    t.radius = 1.3;
+    t.collider.radius = 1.3;
+  }
+
   function animate(t, dt, sp) {
+    if (t.horses) {
+      for (const h of t.horses) {
+        h.update(dt, sp);
+      }
+      if (t.coach) {
+        t.wheelSpin += sp * dt;
+        const c = t.coach;
+        for (const w of c.wheels) {
+          w.spinner.rotation.x = (t.wheelSpin / w.r) * w.sign;
+        }
+        // The body swings fore and aft on its thoroughbraces with the team's
+        // pull, and rolls a little with the road.
+        t.phase += dt * (2.0 + sp * 0.6);
+        c.body.rotation.x = Math.sin(t.phase * 0.9) * 0.018 * Math.min(1, sp / 3);
+        c.body.rotation.z = Math.sin(t.phase * 0.55 + 1.3) * 0.012 * Math.min(1, sp / 3);
+        for (const f of t.figures) {
+          f.update(dt, 0, true);
+        }
+        return;
+      }
+      if (t.kind === "buggy") {
+        t.wheelSpin += (sp * dt) / 0.43;
+        for (const w of t.wheels) {
+          w.rotation.x = t.wheelSpin;
+        }
+        t.figure.update(dt, 0, true);
+      } else {
+        t.figure.update(dt, sp, true);
+      }
+      return;
+    }
     const moving = sp > 0.15;
     const m = t.mount;
     if (moving) {
@@ -452,6 +573,12 @@ export function createTraffic() {
         t.group.rotation.y = headingRotationY(t.yaw);
         t.collider.x = at.x;
         t.collider.z = at.z;
+        if (t.teamCollider) {
+          // Team centre ahead along the group's facing (+Z local).
+          const ry = t.group.rotation.y;
+          t.teamCollider.x = at.x + Math.sin(ry) * COACH.teamCentre;
+          t.teamCollider.z = at.z + Math.cos(ry) * COACH.teamCentre;
+        }
         // A slow ramp on the pull: a horse-drawn load leans into its
         // collars before it is at speed, which also keeps the departure
         // from outrunning the rig's facing.
