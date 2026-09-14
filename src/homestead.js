@@ -4,7 +4,8 @@ import * as THREE from "three/webgpu";
 import { POS, TRIBAL_CAMP } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addDeckPlatform } from "./collision.js";
-import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
+import { boxOnGround } from "./buildings/kit.js";
+import { addFenceSpots, addPropSpot, clearPropSpots } from "./propSpots.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 
@@ -16,15 +17,7 @@ function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
   return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
 }
 
-function cylAt(group, x, z, rTop, rBot, h, material, collide = true) {
-  return cylOnGround(group, x, z, rTop, rBot, h, material, collide);
-}
-
-function coneAt(group, x, z, r, h, material, collide = false, yOff = 0) {
-  return coneOnGround(group, x, z, r, h, material, collide, yOff);
-}
-
-function cemeteryFence(group, wood, stone) {
+function cemeteryFence() {
   const cx = POS.cemetery.x;
   const cz = POS.cemetery.z;
   const halfX = 6;
@@ -32,21 +25,19 @@ function cemeteryFence(group, wood, stone) {
   const gap = 2.4;
   const gateZ = cz + halfZ;
 
-  for (const [dx, dz] of [[-halfX, -halfZ], [halfX, -halfZ], [-halfX, halfZ], [halfX, halfZ]]) {
-    boxAt(group, cx + dx, cz + dz, 0.32, 1.4, 0.32, stone);
+  // Dressed stone corner and gate posts (yard kit) with post-and-rail runs
+  // between them; the posts keep their colliders, the runs the side boxes.
+  for (const [x, z] of [[cx - halfX, cz - halfZ], [cx + halfX, cz - halfZ], [cx - halfX, cz + halfZ], [cx + halfX, cz + halfZ], [cx - gap / 2, gateZ], [cx + gap / 2, gateZ]]) {
+    addPropSpot("homestead", { kind: "gatepost_stone", x, z, yaw: 0, collide: true, cluster: "cemetery" });
   }
-  boxAt(group, cx - gap / 2, gateZ, 0.28, 1.4, 0.28, stone);
-  boxAt(group, cx + gap / 2, gateZ, 0.28, 1.4, 0.28, stone);
-
   const segW = halfX - gap / 2;
   const segMid = (halfX + gap / 2) / 2;
-  for (const yOff of [0.35, 0.72, 1.08]) {
-    boxAt(group, cx, cz - halfZ, halfX * 2, 0.1, 0.12, wood, false, yOff);
-    boxAt(group, cx - halfX, cz, 0.12, 0.1, halfZ * 2, wood, false, yOff);
-    boxAt(group, cx + halfX, cz, 0.12, 0.1, halfZ * 2, wood, false, yOff);
-    boxAt(group, cx - segMid, gateZ, segW, 0.1, 0.12, wood, false, yOff);
-    boxAt(group, cx + segMid, gateZ, segW, 0.1, 0.12, wood, false, yOff);
-  }
+  const run = (x0, z0, x1, z1, bays) => addFenceSpots("homestead", x0, z0, x1, z1, bays);
+  run(cx - halfX + 0.25, cz - halfZ, cx + halfX - 0.25, cz - halfZ, 4);
+  run(cx - halfX, cz - halfZ + 0.25, cx - halfX, cz + halfZ - 0.25, 3);
+  run(cx + halfX, cz - halfZ + 0.25, cx + halfX, cz + halfZ - 0.25, 3);
+  run(cx - halfX + 0.25, gateZ, cx - gap / 2 - 0.25, gateZ, 2);
+  run(cx + gap / 2 + 0.25, gateZ, cx + halfX - 0.25, gateZ, 2);
   addBoxCollider(cx, cz - halfZ, halfX, 0.14);
   addBoxCollider(cx - halfX, cz, 0.14, halfZ);
   addBoxCollider(cx + halfX, cz, 0.14, halfZ);
@@ -59,8 +50,9 @@ function cemeteryFence(group, wood, stone) {
     note: "fence gate gap between the two gatepost colliders"
   });
 
-  for (const [dx, dz] of [[-3.3, -2.2], [0.9, -2.6], [3.7, -1.9], [-1.2, -2.9]]) {
-    boxAt(group, cx + dx, cz + dz, 0.32, 1.05, 0.16, stone);
+  for (const [i, [dx, dz]] of [[-3.3, -2.2], [0.9, -2.6], [3.7, -1.9], [-1.2, -2.9]].entries()) {
+    addPropSpot("homestead", { kind: i % 2 ? "headstone_cross" : "headstone", x: cx + dx, z: cz + dz, yaw: (i - 1.5) * 0.08, s: 1.2, cluster: "cemetery" });
+    addBoxCollider(cx + dx, cz + dz, 0.18, 0.1);
   }
 
   return { x: cx, z: gateZ };
@@ -120,43 +112,22 @@ function cabinPorch(group, wood, dark, stone) {
 
   const pileX = cabin.x + 6.4;
   const pileZ = cabin.z + 0.8;
-  for (let i = 0; i < 4; i += 1) {
-    const alongX = i % 2 === 0;
-    boxAt(group, pileX, pileZ, alongX ? 1.5 : 0.42, 0.28, alongX ? 0.42 : 1.5, wood, false, i * 0.3);
-  }
+  addPropSpot("homestead", { kind: "woodpile", x: pileX, z: pileZ, yaw: Math.PI / 2, cluster: "huntingCabin" });
   addBoxCollider(pileX, pileZ, 0.85, 0.85);
-  cylAt(group, pileX + 1.8, pileZ + 1.6, 0.32, 0.38, 0.5, dark, false);
+  addPropSpot("homestead", { kind: "chopping_block", x: pileX + 1.8, z: pileZ + 1.6, yaw: 2.2, cluster: "huntingCabin" });
 
   return { x: cabin.x, z: porchZ };
 }
 
-function overlookRail(group, wood, dark) {
+function overlookRail() {
   const o = POS.overlook;
-  for (let i = 0; i < 5; i += 1) {
-    boxAt(group, o.x + (i - 2) * 1.8, o.z + 0.48, 0.14, 0.95, 0.14, dark);
-  }
-  boxAt(group, o.x, o.z + 0.48, 7.6, 0.1, 0.1, wood, false, 0.95);
-  boxAt(group, o.x - 1.2, o.z - 1.35, 3.4, 0.18, 0.7, dark, false);
+  // cabinTrail ends on the POI running along X, so the rail stands 3 m south
+  // of its end (the old one lay along the tread) with the bench inside it.
+  addFenceSpots("homestead", o.x - 3.6, o.z + 3.0, o.x + 3.6, o.z + 3.0, 4, { endPost: true, collide: true });
+  addPropSpot("homestead", { kind: "bench_log", x: o.x - 1.2, z: o.z + 2.05, yaw: 0, collide: true, cluster: "overlook" });
 }
 
-function ranchGateExtras(group, wood, dark) {
-  const g = POS.ranchGate;
-  boxAt(group, g.x + 4, g.z, 1.5, 0.8, 0.08, dark, false, 3.6);
-
-  const westMid = g.x - 3.5;
-  const westEnd = g.x - 7;
-  boxAt(group, westEnd, g.z, 0.28, 1.5, 0.22, dark);
-  boxAt(group, westMid, g.z, 7, 0.1, 0.1, wood, false, 0.45);
-  boxAt(group, westMid, g.z, 7, 0.1, 0.1, wood, false, 1.05);
-
-  const eastMid = g.x + 11.5;
-  const eastEnd = g.x + 15;
-  boxAt(group, eastEnd, g.z, 0.28, 1.5, 0.22, dark);
-  boxAt(group, eastMid, g.z, 7, 0.1, 0.1, wood, false, 0.45);
-  boxAt(group, eastMid, g.z, 7, 0.1, 0.1, wood, false, 1.05);
-}
-
-function tribalCamp(group, canvas) {
+function tribalCamp() {
   // The camp ring stands beside the foothills trail (map.js TRIBAL_CAMP).
   // Its hearth, drying racks, hide frame and travois are props (props.js
   // TRIBAL_GEAR); the two larger lodges and the stores are built here.
@@ -165,14 +136,14 @@ function tribalCamp(group, canvas) {
   return lodgeOffs.map(([dx, dz]) => {
     const x = t.x + dx;
     const z = t.z + dz;
-    boxAt(group, x, z, 2.3, 0.65, 2.3, canvas, false);
-    coneAt(group, x, z, 2.5, 4, canvas, true, 0.2);
+    addPropSpot("homestead", { kind: "tipi", x, z, yaw: Math.atan2(-dx, -dz), s: 1.05, collide: true, cluster: "tribal" });
     return { x, z };
   });
 }
 
 export function createHomestead(scene, maps = {}) {
   const group = new THREE.Group();
+  clearPropSpots("homestead");
   const hasMaps = Boolean(maps?.wood && maps?.rock);
   const wood = hasMaps
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xf0dcc0, gain: 1.9 })
@@ -183,13 +154,11 @@ export function createHomestead(scene, maps = {}) {
   const stone = hasMaps
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
     : mat(0xa89e90);
-  const canvas = mat(0xd2c4a0);
 
-  const cemeteryGate = cemeteryFence(group, wood, stone);
+  const cemeteryGate = cemeteryFence();
   const porch = cabinPorch(group, wood, dark, stone);
-  overlookRail(group, wood, dark);
-  ranchGateExtras(group, wood, dark);
-  const lodges = tribalCamp(group, canvas);
+  overlookRail();
+  const lodges = tribalCamp();
 
   scene.add(group);
   return { cemeteryGate, porch, lodges };

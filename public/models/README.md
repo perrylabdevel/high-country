@@ -21,6 +21,12 @@ All of them stand with feet at the origin and face local +Z.
 
 - `props/camp.glb` — the mission and camps kit (horno, carreta, ollas, grave_cross, log_deck, sawbuck, stump, sheep_wagon, wool_sacks, lean_to, shack, picket_line, strongbox, travois, hide_frame, drying_rack, fire_pit), `pr_camp.py`, `pr_build.start("camp")`. The tribal camp pieces are everyday working gear only.
 
+- `props/yard.glb` — the yard kit (windmill_fan, stock_tank, anvil, forge, rowboat, tipi, headstone, headstone_cross, plaza_cross, gatepost_stone, charcoal_pit, log_charred, bench_log, sign_stand, altar), `pr_yard.py`, `pr_build.start("yard")`. `windmill_fan` is the one live piece: hub at its origin, turning about glTF Z, hung by `src/props.js` on the ranch windmill's spinning group (`addMountSpot`) instead of being instanced.
+
+- `props/landmark.glb` — the landmark kit (windmill_tower, lookout_tower, dock_pier, dock_walk, ranch_gate, chimney_ruin, burnt_ruin, cabin_ruin, fishing_shack), `pr_landmark.py`, `pr_build.start("landmark")`. Attachment frames (windmill hub, pier deck tops) are in the `pr_landmark.py` docstring.
+
+- `props/furniture.glb` — interior furniture (bed_double, bed_single, cot, chair, stool, pew, table_long, table_square, dresser, wardrobe, cupboard, washstand, desk, gun_rack, cookstove, hearth, bar_counter, bottles, piano, shelf_goods, pulpit, altar_table), `pr_furniture.py`, `pr_build.start("furniture")`. Placed on floors through `addLocalPropSpot` (lot-local frames) by `src/interiors.js`, `src/buildings.js` and `src/landmarks.js`.
+
 ## Third-party
 
 `farm-cow.glb` was downloaded from the creator’s Sketchfab download control. Textures are embedded. It is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); credit the creator and preserve this notice when distributing.

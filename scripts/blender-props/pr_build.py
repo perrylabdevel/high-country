@@ -4,7 +4,8 @@
     import pr_build; pr_build.build("ranch", bake=False)   # geometry + shaders only, for review
 
 Kits: "western" (pr_props), "ranch" (pr_ranch), "trail" (pr_trail), "mine"
-(pr_mine), "fort" (pr_fort) and "camp" (pr_camp), each
+(pr_mine), "fort" (pr_fort), "camp" (pr_camp), "yard" (pr_yard),
+"landmark" (pr_landmark), "furniture" (pr_furniture) and "trees" (pr_trees), each
 to public/models/props/<kit>.glb. Status goes to
 /tmp/hc_props/status.txt.
 """
@@ -25,6 +26,10 @@ import pr_trail
 import pr_mine
 import pr_fort
 import pr_camp
+import pr_yard
+import pr_landmark
+import pr_furniture
+import pr_trees
 
 STATUS = "/tmp/hc_props/status.txt"
 
@@ -36,11 +41,11 @@ def log(msg):
 
 
 def builders(kit):
-    return {"western": pr_props.BUILDERS, "ranch": pr_ranch.BUILDERS, "trail": pr_trail.BUILDERS, "mine": pr_mine.BUILDERS, "fort": pr_fort.BUILDERS, "camp": pr_camp.BUILDERS}[kit]
+    return {"western": pr_props.BUILDERS, "ranch": pr_ranch.BUILDERS, "trail": pr_trail.BUILDERS, "mine": pr_mine.BUILDERS, "fort": pr_fort.BUILDERS, "camp": pr_camp.BUILDERS, "yard": pr_yard.BUILDERS, "landmark": pr_landmark.BUILDERS, "furniture": pr_furniture.BUILDERS, "trees": pr_trees.BUILDERS}[kit]
 
 
 def build(kit="western", samples=16, bake=True):
-    for mod in (pr_common, pr_props, pr_ranch, pr_trail, pr_mine, pr_fort, pr_camp, pr_bake, pr_preview):
+    for mod in (pr_common, pr_props, pr_ranch, pr_trail, pr_mine, pr_fort, pr_camp, pr_yard, pr_landmark, pr_furniture, pr_trees, pr_bake, pr_preview):
         importlib.reload(mod)
     for ob in list(pr_common.collection().objects):
         bpy.data.objects.remove(ob, do_unlink=True)

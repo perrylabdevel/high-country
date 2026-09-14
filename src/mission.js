@@ -91,7 +91,9 @@ export function createMission(scene, maps = {}) {
   const leaf = doorLeaf({ width: 1.0, height: 2.1, thickness: 0.09, hinge: -0.52, swing: Math.PI * 0.55, material: dark });
   mate(leaf, "frame", anchorsOf(front).get("opening.0"), { offset: { x: 0, y: 0, z: T / 2 } });
   const glass = mat(0xcfe0d8, { transparent: true, opacity: 0.32, roughness: 0.15 });
-  mate(block({ w: 2.2, h: 1.0, d: 0.9, material: adobe }), "base", anchorsOf(chapel).get("footing"), { offset: { z: -c.d / 2 + 1.2 } });
+  // The altar (yard kit) stands at the far end, its front toward the door;
+  // under the chapel's yaw PI local -Z is world +Z.
+  addPropSpot("mission", { kind: "altar", x: cp.x, z: cp.z + c.d / 2 - 1.2, y: chapel.userData.placementY, yaw: Math.PI, seat: "free", inside: true, collide: true });
   collide(chapel, cp.x, cp.z, Math.PI, [
     { x: 0, z: c.d / 2, halfX: c.w / 2, halfZ: T / 2, openings: [{ x: 0, w: 1.3 }] },
     { x: 0, z: -c.d / 2, halfX: c.w / 2, halfZ: T / 2 },

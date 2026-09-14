@@ -2,7 +2,8 @@ import * as THREE from "three/webgpu";
 import { POS, WATER, lakeShoreRadius, LAKE_NOMINAL_RX, LAKE_NOMINAL_RZ } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addCylinderCollider } from "./collision.js";
-import { boxOnPlane, coneOnPlane, registerWaterPlacement } from "./buildings/kit.js";
+import { boxOnPlane, registerWaterPlacement } from "./buildings/kit.js";
+import { addPropSpot, clearPropSpots } from "./propSpots.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 
 const BEACH_ANGLES = [0.12, 0.82, 1.68, 2.48, 3.32, 5.92];
@@ -58,6 +59,7 @@ function nearDock(angle) {
 
 export function createShore(scene, maps = {}) {
   const group = new THREE.Group();
+  clearPropSpots("shore");
   const cx = POS.lakeMercy.x;
   const cz = POS.lakeMercy.z;
   const dummy = new THREE.Object3D();
@@ -70,14 +72,6 @@ export function createShore(scene, maps = {}) {
   const rockMat = hasMaps
     ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
     : new THREE.MeshStandardNodeMaterial({ color: 0x6a645c, roughness: 0.92 });
-  // The derelict island hut: dark siding like the hunting cabin's body, and
-  // the real roof set on its cone — not `wood`, which is the floor texture.
-  const cabinMat = hasMaps
-    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
-    : new THREE.MeshStandardNodeMaterial({ color: 0x3a2a1c, roughness: 0.9 });
-  const hutRoofMat = hasMaps
-    ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
-    : cabinMat;
 
   const sandA = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[0], roughness: 0.95 });
   const sandB = new THREE.MeshStandardNodeMaterial({ color: BEACH_COLORS[1], roughness: 0.95 });
@@ -171,13 +165,10 @@ export function createShore(scene, maps = {}) {
     addCylinderCollider(x, z, Math.max(rock.r * 0.62, 0.5));
   }
 
-  boxOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.8, 1.6, 1.6, cabinMat, false);
+  // The island's fishing shack (landmark kit), on the old hut's pad.
+  addPropSpot("shore", { kind: "fishing_shack", x: islandX + 0.6, z: islandZ - 0.4, y: WATER + 0.18, yaw: 0.3, water: true, cluster: "lake" });
   addBoxCollider(islandX + 0.6, islandZ - 0.4, 0.9, 0.8);
   registerWaterPlacement("islandCabin", islandX + 0.6, islandZ - 0.4, WATER + 0.18);
-
-  const roof = coneOnPlane(group, islandX + 0.6, WATER + 0.18, islandZ - 0.4, 1.45, 0.9, hutRoofMat, false, 1.85 - 0.45, undefined, 4);
-  roof.rotation.y = Math.PI / 4;
-  roof.rotation.y = Math.PI / 4;
 
   const reedGeo = new THREE.BoxGeometry(0.07, 1.35, 0.07);
   const reedMat = new THREE.MeshStandardNodeMaterial({ color: 0x4a6a38, roughness: 0.9 });

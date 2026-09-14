@@ -1,99 +1,52 @@
 import * as THREE from "three/webgpu";
 import { POS } from "./map.js";
-import { heightAt } from "./world.js";
-import { boxOnGround, cylOnGround, coneOnGround, cylOnPlane } from "./buildings/kit.js";
+import { TOWER_OFFSET } from "./landmarks.js";
+import { addPropSpot, clearPropSpots } from "./propSpots.js";
 
-function mat(color, extra = {}) {
-  return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
-}
-
-function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
-}
-
-function charcoalPit(group, x, z, discMat, stickMat, stickCount) {
-  cylOnGround(group, x, z, 2.35, 2.45, 0.16, discMat, false, undefined, 0, 10);
-  const offsets = [
-    [0.7, 0.35],
-    [-0.85, 0.2],
-    [0.15, -0.8],
-    [-0.4, 0.95],
-    [0.95, -0.45]
-  ];
-  for (let i = 0; i < stickCount; i += 1) {
-    const [dx, dz] = offsets[i];
-    const stick = boxAt(group, x + dx, z + dz, 0.1, 0.08, 0.9, stickMat, false, 0.12);
-    stick.rotation.y = i * 0.73;
-  }
-}
-
-function ladderAt(group, x, z, wood) {
-  boxAt(group, x - 0.22, z, 0.08, 3.6, 0.08, wood, false);
-  boxAt(group, x + 0.22, z, 0.08, 3.6, 0.08, wood, false);
-  for (let i = 0; i < 7; i += 1) {
-    boxAt(group, x, z, 0.52, 0.07, 0.08, wood, false, 0.28 + i * 0.46);
-  }
-}
-
-function brokenWagon(group, x, z, rust, iron) {
-  const y = heightAt(x, z);
-  boxAt(group, x, z, 2.6, 0.7, 1.35, rust);
-  const attached = cylOnPlane(group, x + 0.85, y, z + 0.72, 0.42, 0.42, 0.12, iron, false, undefined, 0.42 - 0.06);
-  attached.children[0].rotation.z = Math.PI / 2;
-  const fallen = cylOnPlane(group, x - 1.55, y, z - 0.95, 0.42, 0.42, 0.12, iron, false, undefined, 0.12 - 0.06);
-  fallen.children[0].rotation.x = Math.PI / 2;
-}
-
-function fallenTrunk(group, x, z, len, yaw, ash) {
-  const trunk = boxAt(group, x, z, len, 0.36, 0.4, ash, false, 0.1);
-  trunk.children[0].rotation.y = yaw;
-  trunk.children[0].rotation.z = 0.07;
-}
-
+/**
+ * Timber camp charcoal pits, the fire lookout's yard and the Burn's wreckage.
+ * Every piece is an authored model (props.js) recorded here as a spot; this
+ * builder keeps the colliders the old primitive pieces owned.
+ */
 export function createPines(scene) {
   const group = new THREE.Group();
-  const wood = mat(0xc4a574);
-  const pitDisc = mat(0x2a2420);
-  const char = mat(0x3a342c);
-  const stone = mat(0x8a8478);
-  const rust = mat(0x5a4030);
-  const iron = mat(0x3a3a3c, { metalness: 0.35, roughness: 0.55 });
+  clearPropSpots("pines");
 
   const camp = POS.timberCamp;
   const tower = POS.fireWatch;
   const burn = POS.burn;
 
   const pitPositions = [
-    { x: camp.x - 8, z: camp.z - 14, sticks: 4 },
-    { x: camp.x + 10, z: camp.z + 8, sticks: 5 },
-    { x: camp.x - 16, z: camp.z + 22, sticks: 3 }
+    { x: camp.x - 8, z: camp.z - 14, yaw: 0.4 },
+    { x: camp.x + 10, z: camp.z + 8, yaw: 2.1 },
+    { x: camp.x - 16, z: camp.z + 22, yaw: 4.0 }
   ];
   for (const pit of pitPositions) {
-    charcoalPit(group, pit.x, pit.z, pitDisc, char, pit.sticks);
+    addPropSpot("pines", { kind: "charcoal_pit", x: pit.x, z: pit.z, yaw: pit.yaw, cluster: "timberCamp" });
   }
 
   // The camp's stumps, sawbuck, log decks and tent are props now
   // (props.js TIMBER_CAMP), placed clear of the three roads that meet here.
 
-  const crate = { x: tower.x + 3.6, z: tower.z + 1.8 };
-  boxAt(group, crate.x, crate.z, 0.95, 0.7, 0.85, wood);
-  ladderAt(group, tower.x + 0.15, tower.z + 2.7, wood);
+  // The lookout's own ladder is part of the tower model.
+  const crate = { x: tower.x + TOWER_OFFSET.dx + 3.4, z: tower.z + TOWER_OFFSET.dz - 2.0 };
+  addPropSpot("pines", { kind: "crate", x: crate.x, z: crate.z, yaw: 0.2, collide: true, cluster: "fireWatch" });
 
   const wagon = { x: burn.x + 28, z: burn.z - 16 };
-  brokenWagon(group, wagon.x, wagon.z, rust, iron);
+  addPropSpot("pines", { kind: "wagon_broken", x: wagon.x, z: wagon.z, yaw: 0.35, collide: true, cluster: "burn" });
   const chimney = { x: burn.x - 22, z: burn.z + 10 };
-  boxAt(group, chimney.x, chimney.z, 1.4, 2.8, 1.4, stone);
+  addPropSpot("pines", { kind: "chimney_ruin", x: chimney.x, z: chimney.z, yaw: 0.25, collide: true, cluster: "burn" });
 
   const trunks = [
     [burn.x + 8, burn.z + 22, 4.8, 0.4],
     [burn.x - 8, burn.z - 24, 5.4, 1.15],
     [burn.x + 32, burn.z + 6, 4.2, -0.55],
-    [burn.x - 30, burn.z - 8, 5.1, 2.05],
+    [burn.x - 30, burn.z + 1, 5.1, 2.05],
     [burn.x + 4, burn.z + 28, 4.6, 0.85],
     [burn.x - 14, burn.z + 24, 3.9, -1.3]
   ];
   for (const [x, z, len, yaw] of trunks) {
-    fallenTrunk(group, x, z, len, yaw, char);
+    addPropSpot("pines", { kind: "log_charred", x, z, yaw, sx: len / 5, cluster: "burn" });
   }
 
   scene.add(group);
@@ -101,7 +54,6 @@ export function createPines(scene) {
     group,
     charcoalPits: pitPositions.length,
     crates: 1,
-    ladders: 1,
     wagons: 1,
     chimneys: 1,
     fallenTrunks: trunks.length,

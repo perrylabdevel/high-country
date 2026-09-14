@@ -168,16 +168,18 @@ class Prop:
 
         self._add(build, kind, loc, rot, tint)
 
-    def lathe(self, profile, sides=16, loc=(0, 0, 0), rot=(0, 0, 0), kind="stave", cap_top=True, cap_bottom=True, tint=None, cap_kind=None, jitter=0.0):
+    def lathe(self, profile, sides=16, loc=(0, 0, 0), rot=(0, 0, 0), kind="stave", cap_top=True, cap_bottom=True, tint=None, cap_kind=None, jitter=0.0, faceted=False):
         """Solid of revolution about local Z. profile: [(radius, z), ...] bottom to top.
 
         cap_kind gives the end faces their own surface (end grain on a log);
         their grain UV is then centred on (5, 3) in metres. jitter roughens the
-        radius per side (split firewood, a stump)."""
+        radius per side (split firewood, a stump). faceted keeps the same
+        side count on the high mesh and shades flat: a square pyramid roof
+        (sides=4) would otherwise bake from an octagon."""
         seed = self._rand() if jitter else 0.0
 
         def build(high):
-            n = sides * (2 if high else 1)
+            n = sides * (2 if high and not faceted else 1)
             bm = bmesh.new()
             uv = bm.loops.layers.uv.new("grain")
             rings = []
@@ -203,7 +205,7 @@ class Prop:
                 for i in range(n):
                     j = (i + 1) % n
                     f = bm.faces.new((rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]))
-                    f.smooth = True
+                    f.smooth = not faceted
                     us = (arc[k], arc[k], arc[k + 1], arc[k + 1])
                     vs = (i, i + 1, i + 1, i)
                     for loop, u, vi in zip(f.loops, us, vs):
@@ -224,7 +226,7 @@ class Prop:
                         loop[uv].uv = (co.x + 5.0, co.y + (3.0 if top else 7.0))
             bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
             if not high:
-                caps = [e for e in bm.edges if len({f.smooth for f in e.link_faces}) > 1]
+                caps = [e for e in bm.edges if len({f.smooth for f in e.link_faces}) > 1 or (faceted and len(e.link_faces) == 2)]
                 bmesh.ops.split_edges(bm, edges=caps)
             return bm
 

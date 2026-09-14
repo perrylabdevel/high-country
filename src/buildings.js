@@ -8,7 +8,7 @@
  */
 import * as THREE from "three/webgpu";
 import { heightAt, woodTexture, shingleTexture, rockTexture } from "./world.js";
-import { addBoxCollider, addCylinderCollider, addDeckPlatform } from "./collision.js";
+import { addBoxCollider, addCylinderCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
 import { POS } from "./map.js";
 import {
   structure,
@@ -22,16 +22,14 @@ import {
   glazing,
   collide,
   steps,
-  anvil,
   block,
   grounded,
-  post,
   lowestSeat
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
-import { addFenceSpots, addPropSpot, clearPropSpots } from "./propSpots.js";
+import { addFenceSpots, addMountSpot, addPropSpot, clearPropSpots } from "./propSpots.js";
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -276,41 +274,34 @@ export function createRanch(maps = {}) {
   // Furniture, seated on each block's footing (house coords minus block centre).
   const onMain = (piece, gx, gz, y = 0) =>
     mate(piece, "base", anchorsOf(main).get("footing"), { offset: { x: gx - MCX, y, z: gz - MCZ } });
-  const onEll = (piece, gx, gz, y = 0) =>
-    mate(piece, "base", anchorsOf(ell).get("footing"), { offset: { x: gx - ECX, y, z: gz - ECZ } });
 
+  // Authored furniture (furniture kit, props.js) on the 0.1 m floor, in
+  // house coordinates; yaw PI/2 turns a piece's front (+Z) to face +X.
+  const furnish = (kind, gx, gz, yaw = 0, extra = {}) =>
+    addPropSpot("ranch", { kind, x: houseX + gx, z: houseZ + gz, y: seat.y + 0.1, yaw, seat: "free", inside: true, ...extra });
   for (const bz of [3.2, -2.8]) {
-    onMain(block({ w: 2.3, h: 0.38, d: 1.45, material: darkWood }), -7.2, bz);
-    onMain(block({ w: 2.1, h: 0.16, d: 1.25, material: wood }), -7.2, bz, 0.54 - 0.08);
+    furnish("bed_double", -7.2, bz, 0, { sx: 1.1 });
   }
-  onMain(block({ w: 0.32, h: 1.2, d: 1.6, material: darkWood }), -8.8, 0.2, 0.7 - 0.6);
-  onMain(block({ w: 1.1, h: 0.72, d: 0.55, material: wood }), -5.6, -4.6);
-  onMain(block({ w: 2.2, h: 0.12, d: 1.05, material: darkWood }), 8.4, 2.4, 0.78 - 0.06);
-  for (const [lx, lz] of [[7.6, 1.8], [9.2, 1.8], [7.6, 3.0], [9.2, 3.0]]) {
-    onMain(block({ w: 0.12, h: 0.72, d: 0.12, material: darkWood }), lx, lz, 0.4 - 0.36);
-  }
-  for (const cz2 of [1.15, 3.65]) {
-    onMain(block({ w: 0.5, h: 0.5, d: 0.5, material: wood }), 8.4, cz2, 0.34 - 0.25);
-    onMain(block({ w: 0.5, h: 0.55, d: 0.08, material: wood }), 8.4, cz2, 0.86 - 0.275);
-  }
-  onMain(block({ w: 0.9, h: 1.05, d: 2.4, material: darkWood }), 10.6, -3.4, 0.62 - 0.525);
-  onMain(block({ w: 1.15, h: 0.72, d: 1.15, material: wood }), 6.4, -3.8);
-  onMain(block({ w: 0.42, h: 0.5, d: 0.42, material: darkWood }), 6.4, -3.8, 0.34 - 0.25);
-  onMain(block({ w: 1.05, h: 0.85, d: 0.55, material: darkWood }), 0.15, -3.2);
-  onMain(block({ w: 2.2, h: 1.15, d: 0.95, material: stone }), -6.8, -4.0, 0.58 - 0.575);
+  furnish("dresser", -8.66, 0.2, Math.PI / 2);
+  furnish("washstand", -4.5, -4.72);
+  furnish("table_long", 8.4, 2.4, 0, { sx: 1.1 });
+  furnish("chair", 8.0, 1.5, 0);
+  furnish("chair", 8.9, 3.3, Math.PI);
+  furnish("cupboard", 10.9, -3.4, -Math.PI / 2, { sx: 1.6 });
+  furnish("table_square", 6.4, -3.8, 0.1);
+  furnish("stool", 7.2, -3.3);
+  furnish("desk", 0.15, -4.4, Math.PI, { sx: 0.8 });
+  furnish("hearth", -6.8, -4.6, 0, { sx: 1.05 });
   onMain(block({ w: 1.1, h: 2.2, d: 0.85, material: wood }), -2.1, 4.4, 1.2 - 1.1);
   onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 3.7, 0.55 - 0.09);
   onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 4.15, 1.05 - 0.09);
   onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 4.55, 1.55 - 0.09);
 
-  onEll(block({ w: 2.4, h: 1.15, d: 0.95, material: stone }), 10.2, -15.6, 0.68 - 0.575);
-  onEll(block({ w: 1.4, h: 0.55, d: 0.7, material: darkWood }), 10.2, -15.4, 1.5 - 0.275);
-  onEll(block({ w: 0.32, h: 1.5, d: 2.2, material: darkWood }), 13.6, -10.4, 0.85 - 0.75);
-  onEll(block({ w: 1.6, h: 0.12, d: 0.9, material: wood }), 7.2, -10.8, 0.78 - 0.06);
-  for (const [lx, lz] of [[7.2, -10.8], [6.5, -10.2], [7.9, -11.4]]) {
-    onEll(block({ w: 0.12, h: 0.72, d: 0.12, material: darkWood }), lx, lz, 0.4 - 0.36);
-  }
-  onEll(block({ w: 0.7, h: 0.55, d: 0.55, material: wood }), 13.2, -13.8, 0.38 - 0.275);
+  furnish("cookstove", 10.2, -15.7);
+  furnish("cupboard", 13.55, -10.4, -Math.PI / 2, { sx: 1.5 });
+  furnish("table_long", 7.2, -10.8, 0, { sx: 0.8 });
+  furnish("chair", 7.2, -11.75, 0);
+  furnish("barrel", 13.2, -13.8, 0.4);
 
   // Door leaf, standing open on its hinge at the jamb.
   const door = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
@@ -515,13 +506,15 @@ export function createRanch(maps = {}) {
   smithBay.userData.class = "bay";
   mate(smithBay, "frame", anchorsOf(smithSouth).get("opening.0"), { offset: { x: 0, y: 0, z: -T / 2 } });
 
-  const iron = new THREE.MeshStandardNodeMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.4 });
-  mate(
-    anvil({ width: 1.1, height: 0.7, depth: 0.5, material: iron }),
-    "base",
-    anchorsOf(smith).get("footing"),
-    { offset: { x: 0, y: 0.2, z: 0 } }
-  );
+  // Anvil on its stump mid-floor, the forge against the back wall facing the
+  // bay (yaw PI turns the model's front, +Z, toward the door at world -Z).
+  // Authored models (props.js); the anvil keeps the old block's collider.
+  const smithFloor = smith.userData.placementY;
+  addPropSpot("ranch", { kind: "anvil", x: smithX, z: smithZ, y: smithFloor, yaw: Math.PI, seat: "free", inside: true });
+  addCylinderCollider(smithX, smithZ, 0.36);
+  const forgeZ = smithZ + SD / 2 - T / 2 - 0.62;
+  addPropSpot("ranch", { kind: "forge", x: smithX + 0.6, z: forgeZ, y: smithFloor, yaw: Math.PI, seat: "free", inside: true });
+  addOrientedBoxCollider(smithX + 0.6, forgeZ, 1.1, 0.6, -Math.PI);
 
   collide(smith, smithX, smithZ, Math.PI, [
     { x: 0, z: -SD / 2, halfX: SW / 2, halfZ: T / 2 },
@@ -534,36 +527,24 @@ export function createRanch(maps = {}) {
   // ---------------- Windmill (American multi-vane) ----------------
   const millX = ox + 34;
   const millZ = oz - 6;
-  const mill = grounded({ x: millX, z: millZ, name: "windmill" });
-  const millFoot = anchorsOf(mill).get("footing");
-  const towerH = 9;
-  mate(post({ rTop: 0.5, rBot: 0.9, h: towerH, material: darkWood }), "base", millFoot);
-  for (const [dx, dz] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
-    mate(block({ w: 0.18, h: towerH, d: 0.18, material: darkWood }), "base", millFoot, {
-      offset: { x: dx, z: dz }
-    });
-  }
+  // The tower (landmark kit) is instanced by props.js; the wheel (yard kit)
+  // is a live mesh props.js hangs on `fan`, which the frame loop turns about
+  // its Z axis. Hub frame from pr_landmark.windmill_tower: (0, 9.4, -0.55)
+  // above the tower base. The tail vane is part of the static tower.
+  const millY = lowestSeat(millX, millZ, 1.5);
+  const mill = grounded({ x: millX, z: millZ, y: millY, name: "windmill" });
+  addPropSpot("ranch", { kind: "windmill_tower", x: millX, z: millZ, y: millY, yaw: 0 });
   const fan = new THREE.Group();
-  const fanMat = new THREE.MeshStandardNodeMaterial({ color: 0xd9c49a, roughness: 0.7 });
-  const fanR = 1.6;
-  for (let i = 0; i < 8; i += 1) {
-    const a = (i / 8) * Math.PI * 2;
-    const vane = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9, 0.05), fanMat);
-    vane.position.set(Math.cos(a) * fanR * 0.7, Math.sin(a) * fanR * 0.7, 0);
-    vane.rotation.z = a;
-    fan.add(vane);
-  }
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.3, 8), darkWood);
-  hub.rotation.x = Math.PI / 2;
-  fan.add(hub);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 0.6), fanMat);
-  tail.position.set(0, 0, 1.1);
-  fan.add(tail);
-  fan.position.set(0, towerH + 0.4, 0);
+  fan.name = "windmillFan";
+  fan.position.set(0, 9.4, -0.55);
   mill.add(fan);
   mill.userData.blades = fan;
+  addMountSpot("ranch", "windmill_fan", fan);
   group.add(mill);
-  addCylinderCollider(millX, millZ, 0.9);
+  // Four legs at +-1.05 m: one box keeps a walker out of the bracing.
+  addBoxCollider(millX, millZ, 1.2, 1.2);
+  // The stock tank the pump fills, its supply pipe meeting the pump spout.
+  addPropSpot("ranch", { kind: "stock_tank", x: millX + 3.45, z: millZ + 0.05, yaw: 0, collide: true });
 
   // ---------------- Fences (3 rails) ----------------
   // The corral: a closed loop of the authored post-and-rail model (props.js
@@ -587,22 +568,26 @@ export function createRanch(maps = {}) {
   // ---------------- Ranch gate (crossbeam on posts) ----------------
   const gateX = POS.ranchGate.x;
   const gateZ = POS.ranchGate.z;
-  function groundBox(x, z, w, h, d, material, yOff = 0) {
-    const pad = grounded({ x, z });
-    const piece = block({ w, h, d, material });
-    mate(piece, "base", anchorsOf(pad).get("footing"), { offset: { y: yOff } });
-    group.add(pad);
-    return piece;
+  // Authored log gate (landmark kit). The stage road runs through here along
+  // world X, so the gate stands across it: posts at gate z +-5 (the model's
+  // +-4 scaled 1.25), clear of the 9 m carriageway, beam along Z, arrival
+  // 'gate' in the opening. The old primitive posts stood 8 m apart ALONG the
+  // road, both in the carriageway, with the wings lying on it.
+  const gcx = gateX + 4;
+  addPropSpot("ranch", {
+    kind: "ranch_gate", x: gcx, z: gateZ, y: Math.min(heightAt(gcx, gateZ - 5), heightAt(gcx, gateZ + 5)) - 0.05,
+    yaw: Math.PI / 2, sx: 1.25, seat: "free", spans: true
+  });
+  for (const gz of [gateZ - 5, gateZ + 5]) {
+    addBoxCollider(gcx, gz, 0.22, 0.22);
   }
-  for (const gx of [gateX, gateX + 8]) {
-    groundBox(gx, gateZ, 0.3, 5.5, 0.3, darkWood);
-    addBoxCollider(gx, gateZ, 0.2, 0.2);
-  }
-  groundBox(gateX + 4, gateZ, 9, 0.35, 0.35, darkWood, 5.5 - 0.175);
+  // Post-and-rail wings running 7 m out from each post, square to the road.
+  addFenceSpots("ranch", gcx, gateZ - 12, gcx, gateZ - 5.3, 2, { collide: true });
+  addFenceSpots("ranch", gcx, gateZ + 12, gcx, gateZ + 5.3, 2, { collide: true });
   registerAperture({
     structure: "ranchGate", side: "east", kind: "gate",
     x: gateX + 4, y: heightAt(gateX + 4, gateZ) + 2.55, z: gateZ,
-    w: 7.6, h: 5.3, nx: 1, nz: 0, state: "traversable",
+    w: 9.6, h: 5.3, nx: 1, nz: 0, state: "traversable",
     note: "freestanding range gate on the ride-in trail; arrival approach 'gate'. NOT part of the corral fence — that rectangle (ox+12..42, oz+28..48) is a closed loop with no gate (R8)"
   });
 

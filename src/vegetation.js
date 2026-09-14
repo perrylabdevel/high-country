@@ -1217,6 +1217,56 @@ function groundClamp(geo, minY) {
   return geo;
 }
 
+/**
+ * A crown loaded from an authored GLB (src/treeModels.js) made ready for the
+ * needle material: non-indexed so no card shares a vertex, colour as three
+ * components (the AO bake arrives as RGBA), and each card's aTangent — the
+ * direction its uv u runs, which setTangent stamps on procedural cards —
+ * derived from its own uvs.
+ */
+function foliageFromModel(src) {
+  const geo = src.index ? src.toNonIndexed() : src.clone();
+  const pos = geo.attributes.position;
+  const uvA = geo.attributes.uv;
+  const colA = geo.attributes.color;
+  const n = pos.count;
+  if (colA) {
+    const c = new Float32Array(n * 3);
+    for (let v = 0; v < n; v += 1) {
+      c[v * 3] = colA.getX(v);
+      c[v * 3 + 1] = colA.getY(v);
+      c[v * 3 + 2] = colA.getZ(v);
+    }
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(c, 3));
+  } else {
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(n * 3).fill(0.8), 3));
+  }
+  const tan = new Float32Array(n * 3);
+  const e1 = new THREE.Vector3();
+  const e2 = new THREE.Vector3();
+  const t = new THREE.Vector3();
+  for (let f = 0; f + 2 < n; f += 3) {
+    const du1 = uvA.getX(f + 1) - uvA.getX(f);
+    const dv1 = uvA.getY(f + 1) - uvA.getY(f);
+    const du2 = uvA.getX(f + 2) - uvA.getX(f);
+    const dv2 = uvA.getY(f + 2) - uvA.getY(f);
+    e1.set(pos.getX(f + 1) - pos.getX(f), pos.getY(f + 1) - pos.getY(f), pos.getZ(f + 1) - pos.getZ(f));
+    e2.set(pos.getX(f + 2) - pos.getX(f), pos.getY(f + 2) - pos.getY(f), pos.getZ(f + 2) - pos.getZ(f));
+    const det = du1 * dv2 - du2 * dv1 || 1;
+    t.copy(e1).multiplyScalar(dv2).addScaledVector(e2, -dv1).divideScalar(det).normalize();
+    for (let k = 0; k < 3; k += 1) {
+      tan[(f + k) * 3] = t.x;
+      tan[(f + k) * 3 + 1] = t.y;
+      tan[(f + k) * 3 + 2] = t.z;
+    }
+  }
+  geo.setAttribute("aTangent", new THREE.Float32BufferAttribute(tan, 3));
+  if (!geo.attributes.normal) {
+    geo.computeVertexNormals();
+  }
+  return geo;
+}
+
 function makePineCanopy(tiers, cardsPerTier, baseRadius, baseY, topY) {
   const leaves = [];
   const limbs = [];
@@ -1713,6 +1763,9 @@ export function createVegetation(scene, maps = {}) {
     return { trunkNear, crownNear, limbNear, trunkFar, crownFar, crownDist, windNear, windFar, windDist };
   });
 
+  // Authored conifer swaps (applyTreeModels), kept with the procedural
+  // geometry so a dev build can A/B them.
+  const treeModelSwaps = [];
   const treePos = new Float32Array(MAX * 3);
   const treeGirth = new Float32Array(MAX);
   const treeHeight = new Float32Array(MAX);
@@ -4506,7 +4559,83 @@ export function createVegetation(scene, maps = {}) {
       runTileQueue(budget);
       scatterPass(sageRings, cameraPos, SAGE_CHUNK, runSageChunk);
     },
+    /**
+     * Swap authored tree parts (src/treeModels.js) in under the instances
+     * already placed. Only the geometry and material change; matrices,
+     * counts and colliders stay as the procedural build wrote them.
+     */
+    applyTreeModels(models) {
+      const applied = [];
+      if (models.burnt_snag) {
+        burnt.geometry = models.burnt_snag.geometry;
+        burnt.material = models.burnt_snag.material;
+        burnt.castShadow = true;
+        burnt.computeBoundingSphere();
+        applied.push("burnt_snag");
+      }
+      for (const [name, model] of Object.entries(models)) {
+        if (!model.parts) {
+          continue;
+        }
+        const p = pines[model.pine];
+        if (!p) {
+          continue;
+        }
+        const crownCentre = (geo) => {
+          geo.computeBoundingBox();
+          const b = geo.boundingBox;
+          return b.min.y + (b.max.y - b.min.y) * 0.52;
+        };
+        const crown = (geo, wind) => {
+          const g = foliageFromModel(geo);
+          sphericalNormals(g, crownCentre(g), 0.55);
+          g.setAttribute("aWind", wind);
+          return g;
+        };
+        const authored = {
+          trunkNear: model.parts.trunk,
+          trunkFar: model.parts.trunk,
+          limbNear: model.parts.limbs,
+          crownNear: crown(model.parts.crown_near, p.windNear),
+          crownFar: crown(model.parts.crown_far, p.windFar),
+          crownDist: crown(model.parts.crown_dist, p.windDist)
+        };
+        const procedural = {
+          trunkNear: p.trunkNear.geometry,
+          trunkFar: p.trunkFar.geometry,
+          limbNear: p.limbNear.geometry,
+          crownNear: p.crownNear.geometry,
+          crownFar: p.crownFar.geometry,
+          crownDist: p.crownDist.geometry
+        };
+        treeModelSwaps.push({ name, pine: p, authored, procedural, enabled: model.enabled });
+        applied.push(name);
+      }
+      for (const swap of treeModelSwaps) {
+        if (swap.enabled) {
+          this.useTreeModels(true, swap.name);
+        }
+      }
+      return applied;
+    },
+    /** Dev A/B: draw the authored conifers (true) or the procedural ones. */
+    useTreeModels(on, only = null) {
+      for (const swap of treeModelSwaps) {
+        if (only && swap.name !== only) {
+          continue;
+        }
+        const set = on ? swap.authored : swap.procedural;
+        for (const [key, geo] of Object.entries(set)) {
+          swap.pine[key].geometry = geo;
+        }
+      }
+      return treeModelSwaps.map((s) => s.name);
+    },
     treeInstances: placed,
+    // Placed trees per prototype (PINE / BROAD index), for the tree inventory
+    // and asset budgets: which silhouette the map actually leans on.
+    treeTypeCounts: PINE.map((_, t) => treeType.subarray(0, placed).filter((v) => v === t).length),
+    cottonTypeCounts: BROAD.map((_, t) => cottonType.subarray(0, cottons).filter((v) => v === t).length),
     burntInstances: burned,
     shrubInstances: shrubs,
     cottonInstances: cottons

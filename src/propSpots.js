@@ -1,3 +1,4 @@
+import * as THREE from "three/webgpu";
 import { heightAt } from "./heightfield.js";
 
 /**
@@ -12,6 +13,8 @@ import { heightAt } from "./heightfield.js";
  * spot: { kind, x, z, yaw, y?, pitch?, sx?, collide?, stacked? }
  *   yaw      three's rotation.y (model long axis +X, front +Z).
  *   y        explicit base height; omitted = lowest terrain under the prop.
+ *   cluster  placement cluster; default the owner ("landmarks" spots are "town").
+ *   s        uniform scale (a smaller tipi, a shorter headstone).
  *   sx       scale along the model's long axis (a 2.5 m fence bay from the 3 m model).
  *   collide  true when props.js should register the prop's collider; builders
  *            that already own a collider leave it false.
@@ -19,6 +22,7 @@ import { heightAt } from "./heightfield.js";
  *   seat     "free": y is authored off the ground (track on a ramp, a car on
  *            its rails, freight on a platform), checked only for sanity.
  *   trackside  meant to stand on or against a railroad (docks, cars, track).
+ *   spans    built across a road or trail on purpose (the ranch gate).
  *   inside   meant to stand inside a structure's footprint (a car in the mill).
  */
 export const PROP_SPOTS = [];
@@ -37,6 +41,17 @@ export const PROP_CABLES = [];
  */
 export const PROP_CLEARINGS = [];
 
+/**
+ * Live (non-instanced) models a builder hangs on one of its own groups, which
+ * the frame loop may move: { owner, kind, group }. The model's origin lands
+ * on the group's origin (the windmill wheel's hub on its spinning group).
+ */
+export const PROP_MOUNTS = [];
+
+export function addMountSpot(owner, kind, group) {
+  PROP_MOUNTS.push({ owner, kind, group });
+}
+
 export function clearPropSpots(owner) {
   for (let i = PROP_SPOTS.length - 1; i >= 0; i -= 1) {
     if (PROP_SPOTS[i].owner === owner) {
@@ -46,6 +61,11 @@ export function clearPropSpots(owner) {
   for (let i = PROP_CABLES.length - 1; i >= 0; i -= 1) {
     if (PROP_CABLES[i].owner === owner) {
       PROP_CABLES.splice(i, 1);
+    }
+  }
+  for (let i = PROP_MOUNTS.length - 1; i >= 0; i -= 1) {
+    if (PROP_MOUNTS[i].owner === owner) {
+      PROP_MOUNTS.splice(i, 1);
     }
   }
   for (let i = PROP_CLEARINGS.length - 1; i >= 0; i -= 1) {
@@ -67,6 +87,24 @@ export function addPropSpot(owner, spot) {
   const s = { owner, yaw: 0, pitch: 0, sx: 1, collide: false, ...spot };
   PROP_SPOTS.push(s);
   return s;
+}
+
+const _local = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
+const _euler = new THREE.Euler();
+
+/**
+ * A spot given in a parent's local frame (furniture in a rotated lot): local
+ * (lx, ly, lz) and yaw about the parent's up axis, converted to world. The
+ * parent's world matrix must be current up its chain; this refreshes it.
+ * Interior pieces stand on the floor, not the terrain: seat "free", inside.
+ */
+export function addLocalPropSpot(owner, parent, kind, lx, ly, lz, yaw = 0, extra = {}) {
+  parent.updateWorldMatrix(true, false);
+  parent.localToWorld(_local.set(lx, ly, lz));
+  parent.getWorldQuaternion(_quat);
+  _euler.setFromQuaternion(_quat, "YXZ");
+  return addPropSpot(owner, { kind, x: _local.x, y: _local.y, z: _local.z, yaw: _euler.y + yaw, seat: "free", inside: true, ...extra });
 }
 
 /**
