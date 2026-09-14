@@ -4,6 +4,7 @@ import { deckHeightAt } from "./collision.js";
 import { moveAndSlide, addCylinderCollider } from "./collision.js";
 import { POS, clampWorld, headingVector } from "./map.js";
 import { tune } from "./debug.js";
+import { strideRate } from "./gait.js";
 import { FACE_PLUS_X, createHorseVisual, loadHorseModel } from "./models/horseModel.js";
 
 /**
@@ -225,12 +226,13 @@ export function createHorse() {
     idleT += dt;
     const sp = Math.abs(speed);
     const moving = sp > 0.2;
-    if (moving) {
-      phase += dt * (6 + sp * 1.1);
-    }
     // Walk amplitude saturates by a canter; the gallop blend rises from ~9 m/s.
     const amp = Math.min(sp / 7.6, 1) * 0.55;
     const g = Math.min(1, Math.max(0, (sp - 9) / 3.5)) ** 2;
+    if (moving) {
+      // No-slip stride for the hip swing actually applied below (gait.js).
+      phase += dt * strideRate(sp, 1.02, amp + g * 0.22);
+    }
 
     if (moving) {
       for (const [i, leg] of parts.legs.entries()) {

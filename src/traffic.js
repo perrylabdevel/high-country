@@ -3,6 +3,7 @@ import { heightAt } from "./world.js";
 import { deckHeightAt, addCylinderCollider } from "./collision.js";
 import { ROADS, ROAD_LIFT, mapToWorld, headingRotationY } from "./map.js";
 import { createFigure } from "./figures.js";
+import { strideRate } from "./gait.js";
 import { createHorseVisual, loadHorseModel } from "./models/horseModel.js";
 import { COACH, loadCoachModel } from "./models/coachModel.js";
 
@@ -446,15 +447,59 @@ export function createTraffic() {
         t.horses.push(h);
       }
     }
-    // Driver on the box, a shotgun messenger beside him.
+    // Driver on the box, a shotgun messenger beside him: children of the
+    // coach, so they pitch and rise with it.
     t.figure.group.position.set(-0.3, COACH.seat.y - 0.92, COACH.seat.z);
+    coach.add(t.figure.group);
     const messenger = createFigure({ skin: 0xd6b08a, shirt: 0x5a4632, vest: 0x2e2218, pants: 0x2a2018, hat: 0x3a2a1c });
     messenger.group.position.set(0.32, COACH.seat.y - 0.92, COACH.seat.z);
-    t.group.add(messenger.group);
+    coach.add(messenger.group);
     t.figures = [t.figure, messenger];
-    t.coach = { body: bodyPivot, wheels };
+    t.coach = { root: coach, body: bodyPivot, wheels };
     t.radius = 1.3;
     t.collider.radius = 1.3;
+  }
+
+  /** The walkable surface a wheel or hoof stands on: road (lifted) or deck. */
+  function surfaceAt(x, z, nearY) {
+    return Math.max(heightAt(x, z) + ROAD_LIFT * 0.75, deckHeightAt(x, z, nearY, 1.4));
+  }
+
+  /**
+   * Seat a traveler's parts on the ground under each of them, not at the
+   * group centre's height: a coach and team is 7.5 m long, so on a grade the
+   * rear wheels hung in the air, the coach leaned and the team's hooves sank
+   * into the road ahead. The coach pitches to the line between its axles;
+   * every horse stands on the surface under its own barrel.
+   */
+  const _f = { x: 0, z: 0 };
+  function seat(t) {
+    if (!t.horses) {
+      return;
+    }
+    const gy = t.group.position.y;
+    const ry = t.group.rotation.y;
+    // Local +Z (travel) and local +X in world, for rotation.y = ry.
+    _f.x = Math.sin(ry);
+    _f.z = Math.cos(ry);
+    const rx = Math.cos(ry);
+    const rz = -Math.sin(ry);
+    const ground = (lx, lz) => surfaceAt(t.group.position.x + _f.x * lz + rx * lx, t.group.position.z + _f.z * lz + rz * lx, gy);
+    for (const h of t.horses) {
+      const p = h.object.position;
+      p.y = ground(p.x, p.z) - gy;
+    }
+    if (t.coach) {
+      const front = (ground(-COACH.track, COACH.wheelFront.z) + ground(COACH.track, COACH.wheelFront.z)) / 2;
+      const rear = (ground(-COACH.track, COACH.wheelRear.z) + ground(COACH.track, COACH.wheelRear.z)) / 2;
+      const base = COACH.wheelFront.z - COACH.wheelRear.z;
+      const pitch = Math.atan2(front - rear, base);
+      const root = t.coach.root;
+      // A +X rotation tips local +Z down, so a rising road (front higher)
+      // needs a negative one. Height at the origin, on the axle line.
+      root.rotation.x = -pitch;
+      root.position.y = rear + (front - rear) * (-COACH.wheelRear.z / base) - gy;
+    }
   }
 
   function animate(t, dt, sp) {
@@ -492,8 +537,8 @@ export function createTraffic() {
     const moving = sp > 0.15;
     const m = t.mount;
     if (moving) {
-      t.phase += dt * (4.2 + sp * 1.1);
       const amp = Math.min(0.34, 0.14 + sp * 0.035);
+      t.phase += dt * strideRate(sp, 1.0, amp);
       for (const [i, leg] of m.legs.entries()) {
         const swing = Math.sin(t.phase - WALK_PHASE[i] * Math.PI * 2);
         leg.hip.rotation.z = swing * amp;
@@ -559,10 +604,7 @@ export function createTraffic() {
         t.group.position.x = at.x;
         t.group.position.z = at.z;
         // Same walkable surface the horse crosses: ground or bridge deck.
-        const surface = Math.max(
-          heightAt(at.x, at.z) + ROAD_LIFT * 0.75,
-          deckHeightAt(at.x, at.z, t.group.position.y, 1.4)
-        );
+        const surface = surfaceAt(at.x, at.z, t.group.position.y);
         t.group.position.y += (surface - t.group.position.y) * Math.min(1, 10 * dt);
         // Ease the heading so the waystop turnaround reads as a turn, and
         // lane curvature steers the mount rather than snapping it.
@@ -585,6 +627,7 @@ export function createTraffic() {
         t.speed += (sp - t.speed) * Math.min(1, 1.6 * dt);
 
         if (!far) {
+          seat(t);
           animate(t, dt, t.speed);
         }
       }

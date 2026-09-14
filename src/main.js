@@ -309,6 +309,17 @@ async function boot() {
       horse.collider.radius = on ? 0.05 : horse.radius;
       player.state.snapCam = true;
     };
+    // The player's locomotion as the frame loop left it: position, speed, and
+    // the authored visual's clip weights, rates and foot positions.
+    window.__playerGait = () => (!player ? null : {
+      pos: player.object.position.toArray().map((v) => +v.toFixed(3)),
+      yaw: +player.state.yaw.toFixed(3),
+      speed: +player.state.speed.toFixed(3),
+      groundSpeed: +player.groundSpeed.toFixed(3),
+      facing: +player.facing.rotation.y.toFixed(3),
+      mounted: player.state.mounted,
+      visual: player.texturedVisual?.debugGait?.() ?? null
+    });
     window.__traffic = () => traffic?.travelers.map((t) => ({
       kind: t.kind,
       x: t.group.position.x,

@@ -62,7 +62,13 @@ export function createPlayer(camera) {
     hat: 0x3d2918
   });
   const body = figure.group;
-  object.add(body);
+  // The body turns within the player toward the way it is actually moving
+  // (object keeps the camera heading), so backing up or strafing runs that
+  // way instead of the legs running forward while the body slides.
+  const facing = new THREE.Group();
+  facing.name = "playerFacing";
+  object.add(facing);
+  facing.add(body);
 
   // The shipped avatar is a textured, skinned GLB. Mirror the NPC pilot: leave
   // the procedural figure parented and ticking (hidden) so the figure-pose
@@ -90,6 +96,12 @@ export function createPlayer(camera) {
     snapCam: true,
     flyAlt: 0
   };
+
+  // Ground actually covered, for the stride (see update), and the body's turn.
+  let lastX = 0;
+  let lastZ = 0;
+  let groundSpeed = 0;
+  let faceTarget = 0;
 
   const camTarget = new THREE.Vector3();
   const desiredCam = new THREE.Vector3();
@@ -328,14 +340,42 @@ export function createPlayer(camera) {
       body.visible = state.mode === "third";
     }
 
+    // Legs follow the ground the body actually covered this frame, not the
+    // speed the input asked for: a sprint into a wall stands still, and the
+    // stride stops when the feet do (the input speed decays after release).
+    const dx = object.position.x - lastX;
+    const dz = object.position.z - lastZ;
+    lastX = object.position.x;
+    lastZ = object.position.z;
+    const covered = dt > 0 ? Math.hypot(dx, dz) / dt : 0;
+    // Teleports (spawn, fast travel, dev mount) are not strides.
+    const actual = covered > 20 ? 0 : covered;
+    groundSpeed += (actual - groundSpeed) * Math.min(1, dt * 14);
+    if (groundSpeed < 0.04 && actual === 0) {
+      groundSpeed = 0;
+    }
+    if (!state.mounted && actual > 0.3) {
+      // Heading of the displacement, in the player's yaw convention
+      // (headingVector: x = sin yaw, z = -cos yaw), relative to the camera yaw.
+      const moveYaw = Math.atan2(dx, -dz);
+      let rel = moveYaw - state.yaw;
+      rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+      faceTarget = -rel;
+    } else if (state.mounted || groundSpeed < 0.1) {
+      faceTarget = 0;
+    }
+    let turn = faceTarget - facing.rotation.y;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    facing.rotation.y += turn * Math.min(1, dt * (groundSpeed > 0.1 ? 12 : 5));
+
     if (state.mounted && horse) {
       figure.update(dt, horse.speed, true);
     } else {
-      figure.update(dt, state.speed);
+      figure.update(dt, groundSpeed);
     }
     // The authored rig has no seated clip, so a mounted rider holds the idle
     // rather than cycling the walk while sitting on the horse.
-    texturedVisual?.update(dt, state.mounted ? 0 : state.speed);
+    texturedVisual?.update(dt, state.mounted ? 0 : groundSpeed);
 
     const feetY = object.position.y;
     const eyeY = feetY + (state.mounted ? RIDE_EYE : EYE);
@@ -406,7 +446,9 @@ export function createPlayer(camera) {
   }
 
   return {
-    object, body, figure, state, update, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly,
+    object, body, facing, figure, state, update,
+    /** Ground speed the legs are animated at (m/s), from actual displacement. */
+    get groundSpeed() { return groundSpeed; }, groundPlayer, radius: PLAYER_RADIUS, setFacing, toggleFly,
     // The pilot installs asynchronously, so expose it through a getter rather
     // than snapshotting null at construction time.
     get texturedVisual() { return texturedVisual; }

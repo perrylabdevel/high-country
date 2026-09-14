@@ -1,4 +1,5 @@
 import * as THREE from "three/webgpu";
+import { strideRate } from "./gait.js";
 
 /**
  * Procedural low-poly figures for everyone the player sees up close: the
@@ -313,12 +314,13 @@ export function createFigure({
   function update(dt, speed, mounted = false) {
     idleT += dt;
     const moving = speed > 0.15;
-    if (moving) {
-      // Stride frequency tracks speed; the amplitude saturates at a run so
-      // the gallop lengthens into a longer swing, not a frantic flail.
-      stride += dt * (4.4 + speed * 2.6);
-    }
+    // The amplitude saturates at a run so the stride lengthens into a longer
+    // swing, not a frantic flail; the phase rate is whatever keeps the planted
+    // boot still under that swing (gait.js).
     const amp = Math.min(speed / 3.4, 1.15) * 0.62;
+    if (moving) {
+      stride += dt * strideRate(speed, hips, amp);
+    }
     const swing = Math.sin(stride) * amp;
 
     if (mounted) {
