@@ -224,6 +224,11 @@ function makeCowGait(bones, object) {
   };
 }
 
+// Playback-rate ceiling. High enough that the tester's 8x speed multiplier
+// still plants the feet (16x sprints at 99 m/s on a 4.2 m/s run); a lower cap made
+// the legs lag the ground there.
+const MAX_RATE = 30;
+
 /** Walk/Run clip ground speeds at model scale, measured on a posed clone. */
 function measureGait(gltf, kind) {
   const config = MODEL[kind];
@@ -344,11 +349,11 @@ function actorFactory(template) {
           if (idleAction) idleAction.setEffectiveWeight(1 - walkWeight);
           if (walkAction) {
             walkAction.setEffectiveWeight(walkWeight * (1 - runBlend));
-            if (walkSpeed > 0) walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / walkSpeed, 0.3, 3.2));
+            if (walkSpeed > 0) walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / walkSpeed, 0.3, MAX_RATE));
           }
           if (runAction) {
             runAction.setEffectiveWeight(walkWeight * runBlend);
-            if (runSpeed > 0) runAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / runSpeed, 0.3, 2.4));
+            if (runSpeed > 0) runAction.setEffectiveTimeScale(THREE.MathUtils.clamp(speed / runSpeed, 0.3, MAX_RATE));
           }
           mixer.update(dt);
         }
