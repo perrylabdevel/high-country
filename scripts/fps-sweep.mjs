@@ -1,5 +1,5 @@
 /**
- * FPS sweep over the visual-campaign's 32 vantage x light poses (R7 acceptance:
+ * FPS sweep over the visual-campaign's 34 vantage x light poses (R7 acceptance:
  * "no systematic FPS drop versus the R6 V1 sweep on the same 32-frame sets").
  *
  *   npm run build

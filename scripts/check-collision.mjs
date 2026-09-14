@@ -39,6 +39,7 @@ const { createPines } = await import("../src/pines.js");
 const { createHomestead } = await import("../src/homestead.js");
 const { createVegetation } = await import("../src/vegetation.js");
 const { POS } = await import("../src/map.js");
+const { planWesternProps } = await import("../src/props.js");
 
 function assert(cond, msg) {
   if (!cond) {
@@ -59,6 +60,7 @@ function bootstrapColliders() {
   createPines(scene);
   createHomestead(scene);
   createVegetation(scene);
+  planWesternProps();
   return colliderCounts();
 }
 

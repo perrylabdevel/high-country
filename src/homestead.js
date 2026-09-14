@@ -1,7 +1,7 @@
 /** Homestead and tribal-camp dressing around existing landmark placeholders. */
 
 import * as THREE from "three/webgpu";
-import { POS } from "./map.js";
+import { POS, TRIBAL_CAMP } from "./map.js";
 import { heightAt } from "./world.js";
 import { addBoxCollider, addDeckPlatform } from "./collision.js";
 import { boxOnGround, cylOnGround, coneOnGround } from "./buildings/kit.js";
@@ -156,41 +156,19 @@ function ranchGateExtras(group, wood, dark) {
   boxAt(group, eastMid, g.z, 7, 0.1, 0.1, wood, false, 1.05);
 }
 
-function dryingRack(group, x, z, yaw, wood, dark) {
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  const half = 1.15;
-  boxAt(group, x - s * half, z + c * half, 0.16, 1.9, 0.16, dark);
-  boxAt(group, x + s * half, z - c * half, 0.16, 1.9, 0.16, dark);
-  const bar = boxAt(group, x, z, 0.12, 0.12, 2.5, wood, false, 1.85);
-  bar.rotation.y = yaw;
-}
-
-function tribalCamp(group, wood, dark, stone, canvas) {
-  const t = POS.tribal;
-  for (let i = 0; i < 6; i += 1) {
-    const a = (i / 6) * Math.PI * 2 + 0.2;
-    boxAt(group, t.x + Math.cos(a) * 1.3, t.z + Math.sin(a) * 1.3, 0.4, 0.26, 0.34, stone, false);
-  }
-
-  dryingRack(group, t.x - 4, t.z + 13, 0.35, wood, dark);
-  dryingRack(group, t.x + 10, t.z - 10, -0.6, wood, dark);
-
+function tribalCamp(group, canvas) {
+  // The camp ring stands beside the foothills trail (map.js TRIBAL_CAMP).
+  // Its hearth, drying racks, hide frame and travois are props (props.js
+  // TRIBAL_GEAR); the two larger lodges and the stores are built here.
+  const t = { x: POS.tribal.x + TRIBAL_CAMP.dx, z: POS.tribal.z + TRIBAL_CAMP.dz };
   const lodgeOffs = [[-16, -4], [18, 6]];
-  const lodges = lodgeOffs.map(([dx, dz]) => {
+  return lodgeOffs.map(([dx, dz]) => {
     const x = t.x + dx;
     const z = t.z + dz;
     boxAt(group, x, z, 2.3, 0.65, 2.3, canvas, false);
     coneAt(group, x, z, 2.5, 4, canvas, true, 0.2);
     return { x, z };
   });
-
-  const baskets = [[4, 2], [-14, 8], [16, -10], [6, -14]];
-  baskets.forEach(([dx, dz], i) => {
-    boxAt(group, t.x + dx, t.z + dz, 0.5, 0.38, 0.45, i % 2 ? dark : wood, false);
-  });
-
-  return lodges;
 }
 
 export function createHomestead(scene, maps = {}) {
@@ -211,7 +189,7 @@ export function createHomestead(scene, maps = {}) {
   const porch = cabinPorch(group, wood, dark, stone);
   overlookRail(group, wood, dark);
   ranchGateExtras(group, wood, dark);
-  const lodges = tribalCamp(group, wood, dark, stone, canvas);
+  const lodges = tribalCamp(group, canvas);
 
   scene.add(group);
   return { cemeteryGate, porch, lodges };

@@ -35,6 +35,15 @@ assert(inputSrc.includes("isBlocked"), "input skips game keys while debug is ope
 assert(inputSrc.includes("KeyF"), "F toggles fly camera");
 assert(inputSrc.includes("flyTap"), "fly tap is a consume action");
 assert(inputSrc.includes("ControlLeft"), "Ctrl descends in fly mode");
+// P is the pose-copy shortcut. It must stay out of the game keymap or a press
+// would also drive the player, and the dev hook must exist so a pose can be
+// recovered from a frame after the session that produced it has ended.
+assert(!inputSrc.includes("KeyP"), "P must stay out of the game keymap; it copies the pose");
+const mainSrc = readFileSync(join(root, "../src/main.js"), "utf8");
+assert(mainSrc.includes("window.__capturePose"), "the pose shortcut exposes __capturePose");
+assert(mainSrc.includes("window.__copyPose"), "the pose shortcut exposes __copyPose");
+assert(/event\.code !== "KeyP"/.test(mainSrc), "P is bound to the pose copy");
+assert(mainSrc.includes("window.__lastPose"), "a blocked clipboard still leaves the JSON in __lastPose");
 
 const playerSrc = readFileSync(join(root, "../src/player.js"), "utf8");
 assert(playerSrc.includes('"fly"'), "player has a fly camera mode");

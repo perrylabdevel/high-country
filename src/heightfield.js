@@ -1,4 +1,4 @@
-import { WORLD, WATER, worldToMap, lakeFactor, roadFactor, creekFactor, POS, smoothstep, ROADS } from "./map.js";
+import { WORLD, WATER, worldToMap, lakeFactor, roadFactor, creekFactor, POS, smoothstep, ROADS, polylineCache, lakeCoords } from "./map.js";
 
 export { WORLD };
 
@@ -9,6 +9,7 @@ const SPACING_Z = WORLD.depth / WORLD.segmentsZ;
 const HALF_X = WORLD.width / 2;
 const HALF_Z = WORLD.depth / 2;
 const ROAD_RUT_OFFSET = 0.9;
+const ROAD_CARVE = 0.85;
 const ROAD_RUT_DEPTH = 0.11;
 const ROAD_RUT_WIDTH = 0.34;
 export const ROAD_SUBDIVISIONS = 25;
@@ -60,6 +61,23 @@ function segmentsAt(x, z) {
   return out;
 }
 
+const slabOut = [0, 0];
+
+/** Clip [t0, t1] of p + d*t to [lo, hi]; null when empty. Reuses one array. */
+function slab(p, d, lo, hi, t0, t1) {
+  if (Math.abs(d) < 1e-8) {
+    if (p < lo || p > hi) return null;
+  } else {
+    const a = (lo - p) / d, b = (hi - p) / d;
+    t0 = Math.max(t0, Math.min(a, b));
+    t1 = Math.min(t1, Math.max(a, b));
+    if (t0 > t1) return null;
+  }
+  slabOut[0] = t0;
+  slabOut[1] = t1;
+  return slabOut;
+}
+
 function buildRefinedCache() {
   if (refinedCached) return;
   const pad = 6;
@@ -72,18 +90,11 @@ function buildRefinedCache() {
       for (let ix = ix0; ix <= ix1; ix += 1) {
         const x0 = gridX(ix) - pad, x1 = gridX(ix) + SPACING_X + pad;
         const z0 = gridZ(iz) - pad, z1 = gridZ(iz) + SPACING_Z + pad;
-        let t0 = 0, t1 = 1;
-        for (const [p, d, lo, hi] of [[s.ax, s.dx, x0, x1], [s.az, s.dz, z0, z1]]) {
-          if (Math.abs(d) < 1e-8) {
-            if (p < lo || p > hi) { t0 = 1; t1 = 0; break; }
-          } else {
-            const a = (lo - p) / d, b = (hi - p) / d;
-            const enter = Math.min(a, b), exit = Math.max(a, b);
-            t0 = Math.max(t0, enter); t1 = Math.min(t1, exit);
-            if (t0 > t1) break;
-          }
-        }
-        if (t0 <= t1) refinedCache[iz * WORLD.segmentsX + ix] = 1;
+        // Slab test of the segment against the padded cell, one axis at a time
+        // (no per-test arrays: this runs for every cell each segment spans).
+        const tx = slab(s.ax, s.dx, x0, x1, 0, 1);
+        if (tx === null) continue;
+        if (slab(s.az, s.dz, z0, z1, tx[0], tx[1]) !== null) refinedCache[iz * WORLD.segmentsX + ix] = 1;
       }
     }
   }
@@ -91,6 +102,9 @@ function buildRefinedCache() {
 }
 
 const heights = new Float32Array(COLS * ROWS);
+// Road-carve depth at each coarse vertex, filled on demand; only the corners
+// of road-refined cells need it. See refinedBaseHeight().
+const carves = new Float32Array(COLS * ROWS).fill(NaN);
 let baked = false;
 
 function hash2(ix, iy) {
@@ -124,7 +138,7 @@ function fbm(x, y) {
   return v;
 }
 
-export function sourceHeightAt(x, z) {
+export function sourceHeightAt(x, z, withRoad = true) {
   const { u, v } = worldToMap(x, z);
   // Sample the noise north-ward rather than along raw +Z, so the hills are a function
   // of where you are on the map and not of which way the Z axis happens to point.
@@ -176,7 +190,7 @@ export function sourceHeightAt(x, z) {
   // dry gorge floor below the water table, and inside the lake the clamp is
   // zero, so the drowned channel bed is the basin floor itself.
   h -= creekFactor(x, z) * Math.min(3.4, Math.max(0, h - (WATER - 0.2)));
-  h -= roadFactor(x, z) * 0.85;
+  if (withRoad) h -= roadFactor(x, z) * ROAD_CARVE;
 
   // Settlement pads win last so creek/road carves cannot drown the yard or main street.
   const ranchD = Math.hypot(x - POS.ranch.x, z - POS.ranch.z);
@@ -195,17 +209,99 @@ export function sourceHeightAt(x, z) {
 
   // Fort pad: the walls sat on a ~3 m slope, so the far corners floated and
   // the walls cast detached shadows (audit U4 at fortGrant). Flatten the
-  // enclosure area to the lowest corner height.
+  // enclosure area to the lowest corner height — 94.8 m at the fort's site
+  // off the stage road (map.js), measured from the unpadded terrain.
   const fortD = Math.hypot(x - POS.fortGrant.x, z - POS.fortGrant.z);
   if (fortD < 50) {
     const t = Math.max(0, 1 - fortD / 50);
-    h = h * (1 - t) + 94 * t;
+    h = h * (1 - t) + 94.8 * t;
   }
 
   if (lake > 0.92) {
     h = WATER - 0.2;
   }
   return h;
+}
+
+/**
+ * How deep sourceHeightAt() carves the road bed at (x, z), after the
+ * settlement pads and lake floor that are applied on top of it.
+ *
+ * sourceHeightAt subtracts roadFactor * ROAD_CARVE and then blends that height
+ * toward the ranch/town/fort pads (and replaces it inside the lake), so the
+ * carve that survives is the raw carve times each blend's weight on h. This
+ * mirrors those blends term for term; check:roads asserts it against
+ * sourceHeightAt(x, z) - sourceHeightAt(x, z, false).
+ */
+export function roadCarveAt(x, z, list = null, near = NEAR_ALL) {
+  if (!list) {
+    const { ix, iz } = cellIndex(x, z);
+    list = carveSegmentsIn(ix, iz);
+  }
+  const road = roadFactorNear(x, z, list);
+  if (road === 0) return 0;
+  let gain = 1;
+  if (near & NEAR_RANCH) {
+    const ranchD = Math.hypot(x - POS.ranch.x, z - POS.ranch.z);
+    if (ranchD < 110) return 0;
+    if (ranchD < 175) gain *= (ranchD - 110) / 65;
+  }
+  if (near & NEAR_TOWN) {
+    const townD = Math.hypot(x - POS.silverCreek.x, z - POS.silverCreek.z);
+    if (townD < 85) gain *= townD / 85;
+  }
+  if (near & NEAR_FORT) {
+    const fortD = Math.hypot(x - POS.fortGrant.x, z - POS.fortGrant.z);
+    if (fortD < 50) gain *= fortD / 50;
+  }
+  // lakeFactor > 0.92 needs d inside the rim (whose radius multiplier stays
+  // under 1.2); the cheap distance test skips the harmonic shoreline.
+  if (near & NEAR_LAKE && gain > 0 && lakeCoords(x, z).d < 1.4 && lakeFactor(x, z) > 0.92) return 0;
+  return road * ROAD_CARVE * gain;
+}
+
+// Which of roadCarveAt's blends can reach a cell; see refinedCellContext.
+const NEAR_RANCH = 1, NEAR_TOWN = 2, NEAR_FORT = 4, NEAR_LAKE = 8, NEAR_ALL = 15;
+
+// roadFactor() walks every road polyline, which is too slow for the ~2.2 M
+// fine terrain vertices. Same Gaussian per segment, binned by coarse cell and
+// dropped beyond 3 falloffs, where it is under exp(-9) (0.1 mm of carve).
+const carveSegments = [];
+for (const road of ROADS) {
+  const falloff = (road.width || 6) * 1.15;
+  const { segs } = polylineCache(road.pts);
+  for (let s = 0; s < segs.length; s += 4) {
+    const ax = segs[s], az = segs[s + 1], dx = segs[s + 2] - ax, dz = segs[s + 3] - az;
+    const len2 = dx * dx + dz * dz;
+    const reach = falloff * 3;
+    carveSegments.push({ ax, az, dx, dz, invLen2: len2 < 1e-8 ? 0 : 1 / len2, invFalloff2: 1 / (falloff * falloff),
+      minX: Math.min(ax, ax + dx) - reach, maxX: Math.max(ax, ax + dx) + reach,
+      minZ: Math.min(az, az + dz) - reach, maxZ: Math.max(az, az + dz) + reach });
+  }
+}
+const carveCellCache = new Map();
+
+function carveSegmentsIn(ix, iz) {
+  const key = iz * WORLD.segmentsX + ix;
+  let list = carveCellCache.get(key);
+  if (!list) {
+    const x0 = gridX(ix), x1 = x0 + SPACING_X, z0 = gridZ(iz), z1 = z0 + SPACING_Z;
+    list = [];
+    for (const s of carveSegments) if (s.maxX >= x0 && s.minX <= x1 && s.maxZ >= z0 && s.minZ <= z1) list.push(s);
+    carveCellCache.set(key, list);
+  }
+  return list;
+}
+
+function roadFactorNear(x, z, list) {
+  let w = 0;
+  for (const s of list) {
+    const t = Math.max(0, Math.min(1, ((x - s.ax) * s.dx + (z - s.az) * s.dz) * s.invLen2));
+    const px = x - s.ax - s.dx * t, pz = z - s.az - s.dz * t;
+    const g = Math.exp(-(px * px + pz * pz) * s.invFalloff2);
+    if (g > w) w = g;
+  }
+  return w;
 }
 
 function gridX(ix) {
@@ -302,6 +398,7 @@ export function meshHeightAt(x, z) {
     fineCellCache.set(cellKey, cell);
   }
   let cellSegments = null;
+  let context = null;
   const h = (cx, cz, px, pz) => {
     const localX = cx - ix * ROAD_SUBDIVISIONS;
     const localZ = cz - iz * ROAD_SUBDIVISIONS;
@@ -309,7 +406,8 @@ export function meshHeightAt(x, z) {
     let value = cell[index];
     if (Number.isNaN(value)) {
       if (!cellSegments) cellSegments = segmentsAt(gridX(ix) + SPACING_X * 0.5, gridZ(iz) + SPACING_Z * 0.5);
-      value = baseMeshHeightAt(px, pz) + roadRutHeight(px, pz, cellSegments);
+      if (!context) context = refinedCellContext(ix, iz);
+      value = refinedBaseHeight(context, px, pz) + roadRutHeight(px, pz, cellSegments);
       cell[index] = value;
     }
     return value;
@@ -317,6 +415,105 @@ export function meshHeightAt(x, z) {
   const h00 = h(gx, gz, ax, az), h10 = h(gx + 1, gz, ax + stepX, az);
   const h01 = h(gx, gz + 1, ax, az + stepZ), h11 = h(gx + 1, gz + 1, ax + stepX, az + stepZ);
   return dx + dz <= 1 ? h00 + dx * (h10 - h00) + dz * (h01 - h00) : h11 + (1 - dx) * (h01 - h11) + (1 - dz) * (h10 - h11);
+}
+
+/**
+ * Ground height at a fine vertex of a road-refined cell.
+ *
+ * The 0.85 m road carve is a ~7 m Gaussian, but the baked grid samples it only
+ * every 12.5 m. Refined cells used to place their 0.5 m vertices on the coarse
+ * cell's two triangles, so the fine mesh faithfully reproduced that aliased
+ * carve: planar 12.5 m facets up to 0.81 m off the real ground, and because
+ * the fine vertices sit on a plane their normals are that plane's — flat-lit
+ * triangular wedges down both sides of every road (HARD_WON 2.12).
+ *
+ * Inside the corridor the carve is evaluated at the vertex itself, over a
+ * bilinear base with the coarse carve taken back out. Along an edge shared
+ * with an unrefined cell that correction fades to zero, leaving the straight
+ * coarse edge the neighbour draws — otherwise the T-junction would crack.
+ */
+function refinedBaseHeight(c, x, z) {
+  const tx = Math.max(0, Math.min(1, (x - c.x0) / SPACING_X));
+  const tz = Math.max(0, Math.min(1, (z - c.z0) / SPACING_Z));
+  const w00 = (1 - tx) * (1 - tz), w10 = tx * (1 - tz), w01 = (1 - tx) * tz, w11 = tx * tz;
+  const h = c.h00 * w00 + c.h10 * w10 + c.h01 * w01 + c.h11 * w11;
+  // Distance (in cells) to every unrefined neighbour, diagonals included, so a
+  // vertex on an edge between two refined cells gets the same mask from both.
+  let mask = 1;
+  for (let k = 0, open = c.open; k < open.length && mask > 0; k += 2) {
+    const dx = c.open[k], dz = c.open[k + 1];
+    const ex = dx < 0 ? tx : dx > 0 ? 1 - tx : 0;
+    const ez = dz < 0 ? tz : dz > 0 ? 1 - tz : 0;
+    const e2 = ex * ex + ez * ez;
+    if (e2 >= REFINED_EDGE_FADE * REFINED_EDGE_FADE) continue;
+    const t = Math.sqrt(e2) / REFINED_EDGE_FADE;
+    mask *= t * t * (3 - 2 * t);
+  }
+  if (mask === 0) return h;
+  const coarseCarve = c.c00 * w00 + c.c10 * w10 + c.c01 * w01 + c.c11 * w11;
+  const carve = roadCarveAt(x, z, c.segments, c.near);
+  return h + mask * (coarseCarve - carve);
+}
+
+const refinedContextCache = new Map();
+
+/** Per-cell constants for refinedBaseHeight: corners, open neighbours, pads. */
+function refinedCellContext(ix, iz) {
+  const key = iz * WORLD.segmentsX + ix;
+  let c = refinedContextCache.get(key);
+  if (c) return c;
+  bakeHeightfield();
+  const x0 = gridX(ix), z0 = gridZ(iz);
+  buildRefinedCache();
+  const open = [];
+  for (let dz = -1; dz <= 1; dz += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      if ((dx !== 0 || dz !== 0) && !refinedNeighbour(ix + dx, iz + dz)) open.push(dx, dz);
+    }
+  }
+  // Only the pad blends (and lake floor) that can reach this cell are tested
+  // per vertex; a cell clear of all of them carves at full depth.
+  const cx = x0 + SPACING_X / 2, cz = z0 + SPACING_Z / 2;
+  const reach = Math.hypot(SPACING_X, SPACING_Z) / 2;
+  const near =
+    (Math.hypot(cx - POS.ranch.x, cz - POS.ranch.z) <= 175 + reach ? NEAR_RANCH : 0) |
+    (Math.hypot(cx - POS.silverCreek.x, cz - POS.silverCreek.z) <= 85 + reach ? NEAR_TOWN : 0) |
+    (Math.hypot(cx - POS.fortGrant.x, cz - POS.fortGrant.z) <= 50 + reach ? NEAR_FORT : 0) |
+    (lakeCoords(cx, cz).d <= 1.6 ? NEAR_LAKE : 0);
+  const segments = carveSegmentsIn(ix, iz);
+  c = {
+    x0, z0, open, near, segments,
+    h00: vertexHeight(ix, iz), h10: vertexHeight(ix + 1, iz), h01: vertexHeight(ix, iz + 1), h11: vertexHeight(ix + 1, iz + 1),
+    c00: 0, c10: 0, c01: 0, c11: 0
+  };
+  // The cell's segment list covers its own corners, so the corner carves reuse
+  // it rather than re-binning neighbouring cells.
+  c.c00 = cornerCarve(ix, iz, c);
+  c.c10 = cornerCarve(ix + 1, iz, c);
+  c.c01 = cornerCarve(ix, iz + 1, c);
+  c.c11 = cornerCarve(ix + 1, iz + 1, c);
+  refinedContextCache.set(key, c);
+  return c;
+}
+
+function cornerCarve(vx, vz, c) {
+  const i = vz * COLS + vx;
+  let value = carves[i];
+  if (Number.isNaN(value)) {
+    const x = gridX(vx), z = gridZ(vz);
+    value = roadCarveAt(x, z, c.segments, c.near);
+    carves[i] = value;
+  }
+  return value;
+}
+
+// Fraction of a cell over which the carve correction fades out toward an
+// unrefined neighbour.
+const REFINED_EDGE_FADE = 0.35;
+
+function refinedNeighbour(ix, iz) {
+  if (ix < 0 || iz < 0 || ix >= WORLD.segmentsX || iz >= WORLD.segmentsZ) return false;
+  return refinedCache[iz * WORLD.segmentsX + ix] === 1;
 }
 
 /** Geometric wheel-track depression shared by terrain creation and grounding. */

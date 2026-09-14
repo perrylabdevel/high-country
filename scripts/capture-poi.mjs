@@ -5,7 +5,7 @@
  *   npm run preview &                    # serves dist on 127.0.0.1:8765
  *   npm run capture -- http://127.0.0.1:8765 audit/current
  *
- * 16 POIs x 2 sun angles = 32 images, named <poi>-<light>.png so the auditing
+ * 17 POIs x 2 sun angles = 34 images, named <poi>-<light>.png so the auditing
  * agent can diff one pass against the next by opening the same path.
  *
  * Canonical captures use WebGPU. Set CAPTURE_BACKEND=webgl only for a disposable
@@ -54,7 +54,7 @@ if (BACKEND !== "webgpu" && OUT === "audit/current") {
 // dist: how far back to stand. height: camera height above local ground.
 // heading: degrees, direction the camera looks from (0 = looking north).
 // aim: height above ground of the point looked at.
-// Exported so the sky-campaign FPS sweep can walk the exact same 32 vantage ×
+// Exported so the sky-campaign FPS sweep can walk the exact same 34 vantage ×
 // light poses — a sweep over a copied table would drift from the evidence set.
 export const AUDIT_POIS = [
   { id: "ranch", dist: 46, height: 13, heading: 150, aim: 5 },
@@ -67,7 +67,13 @@ export const AUDIT_POIS = [
   { id: "timberCamp", dist: 42, height: 11, heading: 145, aim: 3 },
   { id: "burn", dist: 55, height: 14, heading: 130, aim: 4 },
   { id: "westernRange", dist: 60, height: 12, heading: 90, aim: 3 },
-  { id: "ironValley", dist: 62, height: 18, heading: 160, aim: 6 },
+  // Iron Valley is the miners' camp (the works moved to the mines): frame the
+  // tent street east of the centre.
+  { id: "ironValley", dist: 50, height: 14, heading: 160, aim: 3, targetOffset: { x: 24, z: -10 } },
+  // Silver Strike Mines: the works stand 60 m east, 55 m north of the POI
+  // centre (industry.js MINE_SITE). From south-west over the rail: headframe,
+  // hoist house and stack, ore bin and waste dump in one frame (I1).
+  { id: "mines", dist: 62, height: 18, heading: 320, aim: 6, targetOffset: { x: 60, z: -52 } },
   { id: "tribal", dist: 38, height: 10, heading: 140, aim: 3 },
   { id: "badlands", dist: 66, height: 16, heading: 110, aim: 4 },
   { id: "mission", dist: 40, height: 12, heading: 170, aim: 5 },
@@ -104,8 +110,10 @@ const CLOSE_POIS = [
   { id: "burn", dist: 14, height: 1.8, heading: 130, aim: 2.0 },
   // Herd sits 20-48 m east of the POI; stand east of the bunch, look west.
   { id: "westernRange", dist: 14, height: 2.0, heading: 100, aim: 1.5, targetOffset: { x: 34, z: -28 } },
-  // Wide enough for headframe + stamp mill + tailings in one frame (I1).
-  { id: "ironValley", dist: 22, height: 2.4, heading: 160, aim: 2.5 },
+  // The tent street and cook fly (I3).
+  { id: "ironValley", dist: 22, height: 2.4, heading: 160, aim: 2.0, targetOffset: { x: 24, z: -10 } },
+  // Headframe, ore bin and tramway at eye level from the rail side (I1/I2).
+  { id: "mines", dist: 26, height: 2.4, heading: 320, aim: 4.0, targetOffset: { x: 60, z: -50 } },
   { id: "tribal", dist: 12, height: 1.8, heading: 140, aim: 2.0 },
   { id: "badlands", dist: 14, height: 1.8, heading: 110, aim: 2.0 },
   // Facade + bell tower in frame (M2); far enough that the tower does not

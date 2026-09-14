@@ -278,6 +278,14 @@ const EXPECTED_STRUCTURE_COUNTS = {
   timberCabin: 3,
   huntingCabin: 1,
   stampMill: 1,
+  // Fort Grant's post buildings (fort.js): they were a door-less stone cube
+  // and a flat box that never registered as structures.
+  fortBarracks: 1,
+  fortStorehouse: 1,
+  fortCommissary: 1,
+  // La Esperanza Mission (mission.js): it was a sealed adobe block.
+  missionChapel: 1,
+  missionConvento: 1,
   elPasoCasa: 1,
   elPasoTwoStory: 1,
   elPasoCasita: 1,
@@ -363,9 +371,13 @@ for (const s of STRUCTURES) {
 
     // 2. Non-negative overhang — world AABB covers the footprint on both axes.
     const size = box.getSize(new THREE.Vector3());
+    // The footprint's w runs along local X; a structure turned a quarter
+    // (the fort's wall-side storehouses) lays it along world Z.
+    const quarter = Math.abs(Math.sin(u.yaw || 0)) > 0.7;
+    const [fx, fz] = quarter ? [u.d, u.w] : [u.w, u.d];
     check(
-      size.x + 0.05 >= u.w && size.z + 0.05 >= u.d,
-      `${label(s)} roof plan ${size.x.toFixed(2)}×${size.z.toFixed(2)} < footprint ${u.w}×${u.d}`
+      size.x + 0.05 >= fx && size.z + 0.05 >= fz,
+      `${label(s)} roof plan ${size.x.toFixed(2)}×${size.z.toFixed(2)} < footprint ${fx}×${fz}`
     );
 
     // Shed on equal-height walls leaves the high edge flying unless a false

@@ -274,7 +274,12 @@ export const APERTURE_DECLARATIONS = {
   elPasoTwoStory: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
   elPasoCasita: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
   elPasoStore: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
-  elPasoShed: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" }
+  elPasoShed: { state: "shell", note: "El Paso Verde facade house — walk-through shell, no interior room" },
+  fortBarracks: { state: "shell", note: "Fort Grant barracks — abandoned post, door stands open onto an empty shell, no interior room" },
+  fortStorehouse: { state: "shell", note: "Fort Grant storehouse — abandoned post, door stands open onto an empty shell, no interior room" },
+  fortCommissary: { state: "shell", note: "Fort Grant commissary — abandoned post, door stands open onto an empty shell, no interior room" },
+  missionChapel: { state: "shell", note: "La Esperanza chapel — walk-in nave with an altar, no furnished interior room" },
+  missionConvento: { state: "shell", note: "La Esperanza convento — walk-through shell, no interior room" }
 };
 
 function collectWalls(structure) {

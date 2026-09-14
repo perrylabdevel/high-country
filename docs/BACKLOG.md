@@ -19,3 +19,13 @@ Later episodes should reuse those systems rather than new prototypes.
 | 12 | Home Before Winter | Alliance checks against saved reputation; final confrontation using existing combat/dialogue hooks |
 
 Do not start Episode 2 until the implemented Episode 1 loop — find Harlan → ride the ridge to the Overlook → glass the smoke → ride back and tell Nell, reaching `loopComplete` — can be finished without developer intervention, and the versioned save survives that climax → aftermath transition.
+
+## World layout follow-ups
+
+### Roads converge inside the High Country Ranch house
+
+Five roads end at exactly the ranch POI centre (`POS.ranch`, world (-400, 300)): `stage` (from the west), `ranchTown` (to Silver Creek), `ranchSouth`, and the `rangeRanch` and `cabinTrail` trails. That point sits against the house's south wall (`src/buildings.js`: house block roughly x -10.5..16, z -24.5..-1 in ranch-local metres), so the last leg of each diagonal road runs across the house footprint and the kitchen ell; the stage road also runs through the working yard at z = 0 (half width 4.5).
+
+Symptoms so far: the old box woodpile at ranch (-16, -4) stood on the stage road shoulder (moved to -7.5 during the ranch prop slice), and several yard props had to be re-sited off the roads (`RANCH_YARD` in `src/props.js`).
+
+Proposed fix, not started: give the roads a real meeting point in the open yard, a gathering circle roughly 20–25 m south of the house, and move the house (or end the roads) so it stands behind that circle, facing it, instead of on top of the junction. Anything keyed to ranch-local offsets moves with it and must be rechecked: the `ranch.yard` / `ranch.hitch` approaches (`src/nav/arrivals.js`), the NPC posts in `src/main.js`, livestock rings, the ranch prop spots and `RANCH_YARD`, and the audit/capture vantages. Run `check:approaches`, `check:routes`, `check:nav-graph`, `check:roads` and `check:western-props` afterwards.

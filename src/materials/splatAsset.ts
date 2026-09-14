@@ -29,7 +29,7 @@ import { readSplatCache, writeSplatCache, SPLAT_CACHE_VERSION } from "./splatCac
  * which is a genuinely confusing failure: the ground disagrees with the
  * geometry and nothing errors.
  */
-export const SPLAT_ASSET_VERSION = "v1";
+export const SPLAT_ASSET_VERSION = "v2";
 
 /**
  * The literal below is what scripts/check-assets.mjs scans for. It must stay a
@@ -40,7 +40,7 @@ export const SPLAT_ASSET_VERSION = "v1";
  * the quoted pattern anywhere in src/, so a comment containing one is reported
  * as an unlisted asset. (It flagged this file for exactly that reason.)
  */
-const SPLAT_URL = "/textures/splat_v1.bin.gz";
+const SPLAT_URL = "/textures/splat_v2.bin.gz";
 
 function textureFrom(data: Uint8Array, width: number, height: number): THREE.DataTexture {
   // These settings must match bakeSplatMap's exactly — the material samples

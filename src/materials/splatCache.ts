@@ -34,7 +34,7 @@ const STORE = "splat";
  * because hashing the inputs means loading them, which is the cost we are
  * avoiding.
  */
-export const SPLAT_CACHE_VERSION = "v1-2026-09-11";
+export const SPLAT_CACHE_VERSION = "v2-2026-09-13";
 
 function idb(): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {

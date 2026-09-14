@@ -57,7 +57,7 @@ const REPORT_DIR = "audit/reports";
 const CANONICAL_CAPTURE_DIR = "audit/current";
 const POI_IDS = [
   "ranch", "silverCreek", "lakeMercy", "northernPines", "timberCamp", "burn",
-  "westernRange", "ironValley", "tribal", "badlands", "mission", "fortGrant",
+  "westernRange", "ironValley", "mines", "tribal", "badlands", "mission", "fortGrant",
   "cemetery", "huntingCabin", "overlook", "elPaso"
 ];
 const EXPECTED_CAPTURE_FILES = POI_IDS.flatMap((poi) => [

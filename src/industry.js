@@ -1,75 +1,71 @@
 import * as THREE from "three/webgpu";
 import { heightAt } from "./world.js";
-import { addBoxCollider } from "./collision.js";
-import { POS, ROADS, samplePolyline } from "./map.js";
-import { boxOnGround, grounded, block, coneOnGround, wheelOn, gableRoof } from "./buildings/kit.js";
+import { addCylinderCollider, addOrientedBoxCollider } from "./collision.js";
+import { boxOnGround, boxOnPlane, coneOnPlane, gableRoof, insideStructure, lowestSeat, post, structure } from "./buildings/kit.js";
 import { mate, anchorsOf } from "./buildings/anchors.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
+import { addCableSpot, addPropSpot, clearPropSpots } from "./propSpots.js";
+
+/**
+ * The mining district: Silver Strike Mines, the stamp mill and the company
+ * offices, strung along the iron railroad.
+ *
+ * The works follow the ore. It is hoisted up the shaft under the headframe,
+ * dumped into the ore bin beside it, chuted into tram cars, pushed along a
+ * level tramway to a loading dock at the rail, carried south to the mill's
+ * receiving bin, and trammed into the stamp mill; the tailings go downhill
+ * from the mill. Every piece stands where that chain needs it.
+ *
+ * This used to be scattered: the headframe and a second stamp mill stood in
+ * the middle of Iron Valley (placed there only so the audit camera saw them),
+ * with no road or rail within 120 m; the mines had smoke over empty ground;
+ * the mill shed and the company office were built across the railroad; ore
+ * carts sat in fields beside the main line. Iron Valley is now the miners'
+ * camp (props.js), and the works are here.
+ *
+ * Authored models (headframe, hoist house, bins, track, cars) are prop spots
+ * drawn by props.js; this builder owns the kit structures, the colliders a
+ * spot does not register, and the smoke.
+ *
+ * Model frames (glTF, see scripts/blender-props/pr_mine.py): long axis +X,
+ * front +Z, rotation.y = yaw maps local +X to world (cos yaw, -sin yaw).
+ */
+
+// Silver Strike Mines. The ground rises east at ~11 cm/m and is level
+// north-south, so the hoist line (headframe -> hoist house) runs along the
+// contour, north. Measured sites: the creek is 45+ m west, the rail 55 m
+// south, the trailhead arrival 60 m south-west.
+export const MINE_SITE = {
+  shaft: { x: 1500, z: -750 },
+  hoist: { x: 1500, z: -772 },
+  oreBin: { x: 1500, z: -744 },
+  dockRailOffset: 3.5
+};
+
+// The stamp mill stands west of the north-south rail leg (x = 1200), clear
+// of the ballast; its receiving bin is trackside to the north.
+export const MILL_SITE = {
+  mill: { x: 1188, z: -124 },
+  bin: { x: 1195.2, z: -156 }
+};
+
+// The company offices, moved off the rail corner at the POI centre.
+export const OFFICE_SITE = { x: 1178, z: -512, w: 12, d: 9, h: 6 };
+
+const HEADFRAME_SHEAVE_TOP = { x: 0, y: 13.9, z: 0 };
+const HOIST_ROPE_PORT = { x: -4.05, y: 2.2, z: 0 };
+const HOIST_STACK_TOP = { x: 4.9, y: 11.4, z: 0 };
+const TRACK_RAIL_TOP = 0.15;
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
 }
 
-function boxAt(group, x, z, w, h, d, material, collide = true, yOff = 0) {
-  return boxOnGround(group, x, z, w, h, d, material, collide, yOff);
-}
-
-function oreCart(group, x, z, yaw, rust, iron) {
-  const cart = grounded({ x, z, yaw });
-  mate(block({ w: 1.2, h: 0.85, d: 2.2, material: rust }), "base", anchorsOf(cart).get("footing"), {
-    offset: { y: 0.58 - 0.425 }
-  });
-  for (const [lx, lz] of [[0.58, 0.7], [0.58, -0.7], [-0.58, 0.7], [-0.58, -0.7]]) {
-    wheelOn(cart, { x: lx, y: 0.22, z: lz, r: 0.22, thick: 0.16, material: iron, axis: "z" });
-  }
-  group.add(cart);
-  addBoxCollider(x, z, 1.15, 1.15);
-  return { x, z };
-}
-
-function slagHeap(group, x, z, sx, sy, sz, material) {
-  const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), material);
-  mesh.scale.set(sx, sy, sz);
-  mesh.rotation.set(0.18, 0.55, -0.12);
-  mesh.position.set(x, heightAt(x, z) + sy * 0.55, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-  if (sy * 2 > 1.5) {
-    addBoxCollider(x, z, sx * 0.72, sz * 0.72);
-  }
-  return mesh;
-}
-
-function tentAt(group, x, z, canvas) {
-  boxAt(group, x, z, 2.6, 0.95, 2.4, canvas);
-  coneOnGround(group, x, z, 2.15, 2.6, canvas, false, 1.85 - 1.3);
-}
-
-function railCartSpots(mines) {
-  const rail = ROADS.find((road) => road.name === "ironRail");
-  if (!rail) {
-    return [];
-  }
-  const samples = samplePolyline(rail.pts, 28);
-  const spots = [];
-  for (let i = 1; i < samples.length - 1 && spots.length < 2; i += 1) {
-    const p = samples[i];
-    const dist = Math.hypot(p.x - mines.x, p.z - mines.z);
-    if (dist < 100 && dist > 24) {
-      const dx = samples[i + 1].x - samples[i - 1].x;
-      const dz = samples[i + 1].z - samples[i - 1].z;
-      const len = Math.hypot(dx, dz) || 1;
-      const side = spots.length % 2 === 0 ? 1 : -1;
-      spots.push({
-        x: p.x + (dz / len) * 6.2 * side,
-        z: p.z + (-dx / len) * 6.2 * side,
-        yaw: Math.atan2(dx, dz)
-      });
-      i += 2;
-    }
-  }
-  return spots;
+/** World point of a model-local offset under yaw (rotation.y). */
+function local(site, yaw, lx, lz) {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  return { x: site.x + lx * c + lz * s, z: site.z - lx * s + lz * c };
 }
 
 function smokePuff(group, x, y, z, radius, material) {
@@ -78,116 +74,226 @@ function smokePuff(group, x, y, z, radius, material) {
   group.add(puff);
 }
 
+function plume(group, x, y, z, material) {
+  smokePuff(group, x, y + 1.2, z, 1.4, material);
+  smokePuff(group, x + 0.4, y + 3.3, z + 0.25, 1.9, material);
+  smokePuff(group, x + 0.85, y + 5.6, z + 0.55, 2.4, material);
+  smokePuff(group, x + 1.3, y + 8.0, z + 0.9, 2.8, material);
+}
+
+/**
+ * A tramway of 5 m track sections from `a` to `b`, level on the ground and
+ * rising over the last `rampLen` metres to `endY` if given. Returns the
+ * track height along it, for seating cars.
+ */
+function tramway(a, b, { endY = null, rampLen = 0 } = {}) {
+  // Sections into an open-sided building (the mill) are meant to be inside it.
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const len = Math.hypot(dx, dz);
+  const n = Math.max(1, Math.round(len / 5));
+  const seg = len / n;
+  const yaw = Math.atan2(-dz, dx);
+  const ground = (t) => lowestSeat(a.x + dx * t, a.z + dz * t, 0.6) - 0.03;
+  const yAt = (t) => {
+    const g = ground(t);
+    if (endY === null || rampLen <= 0) {
+      return g;
+    }
+    const d = t * len;
+    const start = len - rampLen;
+    if (d <= start) {
+      return g;
+    }
+    const f = (d - start) / rampLen;
+    return g + (endY - g) * f;
+  };
+  for (let i = 0; i < n; i += 1) {
+    const t0 = i / n;
+    const t1 = (i + 1) / n;
+    const y0 = yAt(t0);
+    const y1 = yAt(t1);
+    addPropSpot("industry", {
+      kind: "mine_track",
+      x: a.x + dx * (t0 + t1) / 2,
+      z: a.z + dz * (t0 + t1) / 2,
+      y: (y0 + y1) / 2,
+      yaw,
+      pitch: Math.atan2(y1 - y0, seg),
+      sx: seg / 5,
+      seat: "free",
+      trackside: true,
+      inside: insideStructure(a.x + dx * (t0 + t1) / 2, a.z + dz * (t0 + t1) / 2, 0)
+    });
+  }
+  return { yaw, at: (t) => ({ x: a.x + dx * t, z: a.z + dz * t, y: yAt(t) + TRACK_RAIL_TOP }) };
+}
+
 export function createIndustry(scene, maps = {}) {
+  clearPropSpots("industry");
   const group = new THREE.Group();
-  // Rusty orange so it reads as corroded iron against the warm brown timber
-  // (audit I2: rust was indistinguishable from the wood).
-  // Brighter rust so it stays orange against the dark timber even in golden
-  // light (audit I2: rust was indistinguishable on the headframe).
   const rust = mat(0xb55220);
+  const slag = mat(0x3a342c);
   const iron = mat(0x55555c, { metalness: 0.55, roughness: 0.42 });
-  const slagDark = mat(0x3a342c);
-  const slagOlive = mat(0x4a4638);
-  const canvas = mat(0xd2c4a0);
   const dark = maps?.wood
     ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xcfa06a, gain: 1.6, rough: 0.94 })
     : mat(0x6b4226);
-  // The stamp mill's shed is a building body, so it takes `siding` — the same
-  // darkSiding read as the barn and smithy. `dark` is the floor texture.
-  const darkSiding = maps?.siding
-    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xa8845c, gain: 1.0, rough: 0.94 })
-    : mat(0x6b4226);
-  const roofMat = maps?.roof
+  const siding = maps?.siding
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xd8c4a4, gain: 1.15 })
+    : mat(0xc4a574);
+  const roof = maps?.roof
     ? makeTexturedMat(maps.roof, { tiling: 1.4, tint: 0xc9a87f, gain: 1.35 })
     : mat(0x4a3020);
-  const smokeMat = new THREE.MeshBasicNodeMaterial({
-    color: 0x9a9a9a,
-    transparent: true,
-    opacity: 0.18,
-    fog: true
+  const stone = maps?.rock
+    ? makeTexturedMat(maps.rock, { tiling: 2.2, tint: 0xe0d8c8, gain: 1.35 })
+    : mat(0xa89e90);
+  const smokeMat = new THREE.MeshBasicNodeMaterial({ color: 0x9a9a9a, transparent: true, opacity: 0.18, fog: true });
+
+  // ---------------- Silver Strike Mines ----------------
+  const { shaft, hoist, oreBin } = MINE_SITE;
+  // Hoist line runs north: both models' +X points at world -Z (yaw PI/2).
+  const lineYaw = Math.PI / 2;
+  addPropSpot("industry", { kind: "headframe", x: shaft.x, z: shaft.z, yaw: lineYaw, collide: true });
+  // The back legs' footing stones, 6.2 m along the hoist line.
+  for (const lz of [-1.5, 1.5]) {
+    const foot = local(shaft, lineYaw, 6.2, lz);
+    addCylinderCollider(foot.x, foot.z, 0.45);
+  }
+  // On an 11 % slope a lowest-terrain seat buried the uphill wall 1.4 m.
+  // Engine houses stood on a stone foundation stepped into the hill: seat
+  // the house at its centre and let the foundation show on the downhill side.
+  const hoistY = heightAt(hoist.x, hoist.z) - 0.1;
+  const footY = lowestSeat(hoist.x, hoist.z, Math.hypot(4.4, 3.4));
+  boxOnPlane(group, hoist.x, footY, hoist.z, 6.5, hoistY + 0.2 - footY, 8.5, stone, false);
+  addPropSpot("industry", { kind: "hoist_house", x: hoist.x, z: hoist.z, y: hoistY, yaw: lineYaw, collide: true, seat: "free" });
+  const stack = local(hoist, lineYaw, HOIST_STACK_TOP.x, 0);
+  addCylinderCollider(stack.x, stack.z, 0.7);
+  const shaftY = lowestSeat(shaft.x, shaft.z, Math.hypot(2.2, 2.2));
+  plume(group, stack.x, hoistY + HOIST_STACK_TOP.y, stack.z, smokeMat);
+  // Hoist rope from the drum's port in the hoist house to the sheave.
+  const port = local(hoist, lineYaw, HOIST_ROPE_PORT.x, 0);
+  addCableSpot("industry", {
+    ax: port.x, ay: hoistY + HOIST_ROPE_PORT.y, az: port.z,
+    bx: shaft.x, by: shaftY + HEADFRAME_SHEAVE_TOP.y, bz: shaft.z,
+    sag: 0.25, r: 0.022, kind: "hoist"
   });
 
-  const mines = POS.mines;
-  const mill = POS.stampMill;
-  const company = POS.company;
-  const camp = POS.ironValley;
+  // Ore bin on the headframe's rail side, chute south over the tramway.
+  addPropSpot("industry", { kind: "ore_bin", x: oreBin.x, z: oreBin.z, yaw: 0, collide: true });
+  addPropSpot("industry", { kind: "timber_stack", x: shaft.x - 11, z: shaft.z + 1, yaw: Math.PI / 2 + 0.05, collide: true });
+  addPropSpot("industry", { kind: "powder_crates", x: shaft.x - 7.5, z: shaft.z - 6, yaw: 0.4, collide: true });
+  addPropSpot("industry", { kind: "water_tank", x: hoist.x + 12, z: hoist.z + 1, yaw: 0.2, collide: true });
+  // Powder magazine well away from the works, door toward the trail.
+  addPropSpot("industry", { kind: "powder_magazine", x: 1548, z: -808, yaw: -0.64, collide: true });
+  addPropSpot("industry", { kind: "powder_crates", x: 1546.3, z: -805.2, yaw: -0.3, collide: true });
 
-  const cartPositions = [];
-  for (const spot of railCartSpots(mines)) {
-    cartPositions.push(oreCart(group, spot.x, spot.z, spot.yaw, rust, iron));
+  // Waste dump downhill (west) of the collar, clear of the creek.
+  const dumpY = lowestSeat(1478, -774, 8);
+  coneOnPlane(group, 1478, dumpY, -774, 8, 4.6, slag, true, 0, 6.4, 11);
+  coneOnPlane(group, 1483, lowestSeat(1483, -792, 5), -792, 5, 2.8, slag, true, 0, 4, 9);
+
+  // Tramway from under the chute to a loading dock on the rail's verge.
+  const chuteEnd = { x: oreBin.x, z: oreBin.z + 3.4 };
+  // Rail centreline at x = 1500 on the (1560,-675)->(1440,-700) leg.
+  const railZ = -675 + ((1560 - oreBin.x) / 120) * -25;
+  const railDir = { x: -120 / 122.58, z: -25 / 122.58 };
+  const railNormal = { x: railDir.z, z: -railDir.x };
+  // Dock: 7 m along the rail, 2.2 m deep, 0.9 m deck, its near edge on the ballast.
+  const off = 2.1 + 1.1 + 0.2;
+  const dock = { x: oreBin.x - railNormal.x * off, z: railZ - railNormal.z * off };
+  const dockYaw = Math.atan2(-railDir.z, railDir.x);
+  const dockTop = lowestSeat(dock.x, dock.z, 3.7) + 0.9;
+  const dockMesh = boxOnPlane(group, dock.x, dockTop - 0.9, dock.z, 7, 0.9, 2.2, dark, false);
+  dockMesh.parent.rotation.y = dockYaw;
+  addOrientedBoxCollider(dock.x, dock.z, 3.5, 1.1, -dockYaw);
+  const tramEnd = { x: dock.x - railNormal.x * 1.0, z: dock.z - railNormal.z * 1.0 };
+  const tram = tramway(chuteEnd, tramEnd, { endY: dockTop, rampLen: 9 });
+  // Earth ramp under the last 9 m of track up to the dock deck.
+  {
+    const len = Math.hypot(tramEnd.x - chuteEnd.x, tramEnd.z - chuteEnd.z);
+    const f0 = (len - 9) / len;
+    const p0 = tram.at(f0);
+    const p1 = tram.at(1);
+    const g = lowestSeat((p0.x + p1.x) / 2, (p0.z + p1.z) / 2, 2);
+    const rise = p1.y - TRACK_RAIL_TOP - g;
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(1.6, Math.max(rise, 0.2), 9), dark);
+    ramp.position.set((p0.x + p1.x) / 2, g + Math.max(rise, 0.2) / 2 - 0.05, (p0.z + p1.z) / 2);
+    ramp.rotation.y = Math.atan2(p1.x - p0.x, p1.z - p0.z);
+    ramp.castShadow = true;
+    ramp.receiveShadow = true;
+    group.add(ramp);
   }
-  cartPositions.push(oreCart(
-    group,
-    mill.x + 48,
-    mill.z - 82,
-    Math.atan2(mines.x - mill.x, mines.z - mill.z),
-    rust,
-    iron
-  ));
-  cartPositions.push(oreCart(group, company.x + 18, company.z + 10, 0, rust, iron));
-
-  slagHeap(group, mines.x - 16, mines.z - 10, 3.4, 1.7, 2.8, slagDark);
-  slagHeap(group, mines.x + 16, mines.z + 14, 2.8, 1.4, 3.1, slagOlive);
-  slagHeap(group, mines.x + 4, mines.z + 18, 3.1, 1.85, 2.4, slagDark);
-  slagHeap(group, mill.x - 16, mill.z + 10, 3.6, 1.9, 3.0, slagOlive);
-  slagHeap(group, mill.x + 12, mill.z + 16, 2.6, 1.35, 2.9, slagDark);
-  boxAt(group, mill.x - 12, mill.z - 14, 3.4, 1.15, 2.7, slagOlive);
-  boxAt(group, mill.x - 11.2, mill.z - 14.5, 2.2, 0.95, 1.9, slagDark, false, 1.15);
-
-  tentAt(group, camp.x, camp.z - 12, canvas);
-  tentAt(group, camp.x - 10, camp.z - 6, canvas);
-  tentAt(group, camp.x + 12, camp.z - 14, canvas);
-
-  const cribX = mines.x + 4;
-  const cribZ = mines.z - 8;
-  for (let i = 0; i < 4; i += 1) {
-    boxAt(group, cribX, cribZ, 3.5, 0.32, 0.48, dark, false, i * 0.34);
+  // Three cars: under the chute, part way down the tramway, on the dock.
+  for (const [t, yawOff] of [[0.04, 0], [0.45, 0.01], [0.985, 0]]) {
+    const c = tram.at(t);
+    addPropSpot("industry", { kind: "mine_car", x: c.x, z: c.z, y: c.y, yaw: tram.yaw + yawOff, seat: "free", trackside: true });
+    addOrientedBoxCollider(c.x, c.z, 0.7, 0.5, -tram.yaw);
   }
-  for (let i = 0; i < 3; i += 1) {
-    boxAt(group, cribX, cribZ, 0.48, 0.32, 3.3, dark, false, 1.36 + i * 0.34);
+
+  // ---------------- Stamp mill ----------------
+  // An open-sided shed with a battery of stamp rods and a camshaft, beside the
+  // rail it is served by.
+  const { mill: m, bin } = MILL_SITE;
+  const smShed = structure({ name: "stampMill", x: m.x, z: m.z, yaw: 0, w: 16, d: 12, eave: 6, foundation: true, openSided: true, material: stone });
+  const smRoof = gableRoof({ w: 16, d: 12, pitch: 0.55, overhang: 0.5, eave: 6, material: roof });
+  mate(smRoof, "base", anchorsOf(smShed).get("wallTop"));
+  const millFloor = anchorsOf(smShed).get("footing");
+  for (let i = 0; i < 6; i += 1) {
+    mate(post({ rTop: 0.28, rBot: 0.28, h: 5.5, material: iron, radialSegments: 6 }), "base", millFloor, {
+      offset: { x: -6 + i * 2.4 }
+    });
   }
-  addBoxCollider(cribX, cribZ, 1.85, 1.75);
-  boxAt(group, cribX + 2.4, cribZ + 1.1, 0.35, 0.22, 1.1, iron, false, 0.02);
-  boxAt(group, cribX - 1.8, cribZ - 0.6, 0.28, 0.18, 0.55, rust, false, 0.02);
+  const camshaft = post({ rTop: 0.4, rBot: 0.4, h: 14, material: iron });
+  // The mill seats at its lowest footing corner on an eastward-rising slope,
+  // so a shaft at floor + 1.4 dove underground at the shed's east end. Ride
+  // the shaft just clear of the highest terrain it crosses instead.
+  let camBase = smShed.userData.placementY;
+  for (let i = 0; i <= 8; i += 1) {
+    camBase = Math.max(camBase, heightAt(m.x - 7 + (i * 14) / 8, m.z));
+  }
+  const camY = camBase + 0.5;
+  mate(camshaft, "base", millFloor, { offset: { y: camY - smShed.userData.placementY - 7 } });
+  camshaft.children[0].rotation.z = Math.PI / 2;
+  // Open on all four faces: the camshaft is the only interior obstacle.
+  addOrientedBoxCollider(m.x, m.z, 7, 0.4, 0, { minY: camY - 0.4, maxY: camY + 0.4 });
+  group.add(smShed);
 
-  const platX = mill.x - 2;
-  const platZ = mill.z + 10;
-  boxAt(group, platX, platZ, 10, 0.38, 5.2, dark);
-  boxAt(group, platX - 4.2, platZ + 2.1, 0.32, 2.3, 0.32, dark, false);
-  boxAt(group, platX + 4.2, platZ + 2.1, 0.32, 2.3, 0.32, dark, false);
+  // Receiving bin north of the mill: ore trains unload into it from the
+  // rail side, and its chute feeds cars trammed south into the mill.
+  addPropSpot("industry", { kind: "ore_bin", x: bin.x, z: bin.z, yaw: 0, collide: true });
+  const millTram = tramway({ x: bin.x, z: bin.z + 3.4 }, { x: bin.x, z: m.z - 3 });
+  for (const t of [0.12, 0.9]) {
+    const c = millTram.at(t);
+    addPropSpot("industry", { kind: "mine_car", x: c.x, z: c.z, y: c.y, yaw: millTram.yaw, seat: "free", trackside: true, inside: t > 0.5 });
+    addOrientedBoxCollider(c.x, c.z, 0.7, 0.5, -millTram.yaw);
+  }
+  // Boiler stack west of the mill, and the tailings downhill (west) of it.
+  const millStack = { x: m.x - 6, z: m.z - 13 };
+  addPropSpot("industry", { kind: "smokestack", x: millStack.x, z: millStack.z, yaw: 0, collide: true });
+  plume(group, millStack.x, lowestSeat(millStack.x, millStack.z, 1) + 13, millStack.z, smokeMat);
+  const tailA = { x: m.x - 22, z: m.z + 16 };
+  const tailB = { x: m.x - 30, z: m.z + 4 };
+  coneOnPlane(group, tailA.x, lowestSeat(tailA.x, tailA.z, 7), tailA.z, 7, 5, rust, true, 0, 5.6, 10);
+  coneOnPlane(group, tailB.x, lowestSeat(tailB.x, tailB.z, 5), tailB.z, 5, 3.5, rust, true, 0, 4, 8);
+  addPropSpot("industry", { kind: "timber_stack", x: m.x - 12, z: m.z - 12, yaw: 0.1, collide: true });
 
-  // Stamp mill shed: the mill previously read as a platform and smokestack
-  // with no building (audit I1). A long timber shed with a gable roof gives
-  // the stamp battery a distinct home beside the stack.
-  const millShedX = mill.x - 2;
-  const millShedZ = mill.z - 6;
-  const shedY = heightAt(millShedX, millShedZ);
-  boxAt(group, millShedX, millShedZ, 12, 4.2, 8, darkSiding);
-  const millRoof = gableRoof({ w: 12, d: 8, pitch: 0.45, overhang: 0.4, eave: 4.2, material: roofMat });
-  millRoof.position.set(millShedX, shedY, millShedZ);
-  group.add(millRoof);
-  addBoxCollider(millShedX, millShedZ, 6, 4);
-
-  const stackX = mill.x + 8;
-  const stackZ = mill.z;
-  const stackY = heightAt(stackX, stackZ) + 14;
-  smokePuff(group, stackX, stackY, stackZ, 1.7, smokeMat);
-  smokePuff(group, stackX + 0.4, stackY + 2.3, stackZ + 0.25, 2.1, smokeMat);
-  smokePuff(group, stackX + 0.85, stackY + 4.6, stackZ + 0.55, 2.5, smokeMat);
-  smokePuff(group, stackX + 1.3, stackY + 7.0, stackZ + 0.9, 2.9, smokeMat);
-  const headY = heightAt(mines.x, mines.z) + 14;
-  smokePuff(group, mines.x + 0.3, headY + 1.2, mines.z + 0.2, 1.8, smokeMat);
-  smokePuff(group, mines.x + 0.7, headY + 3.4, mines.z + 0.5, 2.3, smokeMat);
+  // ---------------- Company offices ----------------
+  // Off the rail corner it used to be built across, west of the track.
+  const o = OFFICE_SITE;
+  boxOnGround(group, o.x, o.z, o.w, o.h, o.d, siding);
+  const roofY = lowestSeat(o.x, o.z, Math.hypot(o.w, o.d) / 2) + o.h;
+  const officeRoof = gableRoof({ w: o.w, d: o.d, pitch: 0.5, overhang: 0.4, eave: 0, material: roof });
+  officeRoof.position.set(o.x, roofY, o.z);
+  group.add(officeRoof);
+  // Freight platform on the west verge of the rail's north-south leg, which
+  // starts at the corner (1200, -500) and runs south (+z); north of the
+  // corner the line has already turned north-east and passes 20 m away.
+  const fp = { x: 1200 - 2.1 - 1.2, z: -478 };
+  boxOnGround(group, fp.x, fp.z, 2.4, 1.0, 9, dark);
+  addPropSpot("industry", { kind: "crate", x: fp.x - 0.2, z: fp.z - 2.5, y: lowestSeat(fp.x, fp.z, 4.7) + 1.0, yaw: 0.1, seat: "free", trackside: true });
+  addPropSpot("industry", { kind: "barrel", x: fp.x + 0.1, z: fp.z + 1.8, y: lowestSeat(fp.x, fp.z, 4.7) + 1.0, yaw: 0.6, seat: "free", trackside: true });
+  addPropSpot("industry", { kind: "powder_crates", x: fp.x - 6.5, z: fp.z + 3, yaw: 1.2, collide: true });
 
   scene.add(group);
-  return {
-    group,
-    carts: cartPositions.length,
-    slag: 6,
-    tents: 3,
-    cribbing: 1,
-    platform: 1,
-    smoke: 6,
-    cartPositions
-  };
+  return { group, mine: MINE_SITE, mill: MILL_SITE, office: OFFICE_SITE };
 }

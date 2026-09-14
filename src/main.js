@@ -21,7 +21,7 @@ import { createHomestead } from "./homestead.js";
 import { createRoads } from "./roads.js";
 import { createVegetation, createSmoke, loadVegetationMaps } from "./vegetation.js";
 import { freezeTransforms } from "./freeze.js";
-import { biomeOn, loadBiomeFilter, onBiomeFilterChange } from "./biomeFilter.js";
+import { biomeOn, biomesOff, loadBiomeFilter, onBiomeFilterChange } from "./biomeFilter.js";
 import { createBiomeBar } from "./dev/biomeBar.js";
 import { createWeather } from "./weather/weather.js";
 import { createRain } from "./weather/rain.js";
@@ -30,6 +30,7 @@ import { createFigure } from "./figures.js";
 import { createHorse } from "./horse.js";
 import { createLivestock } from "./livestock.js";
 import { installTexturedPilot } from "./models/texturedActors.js";
+import { planWesternProps, installWesternProps } from "./props.js";
 import { createTraffic } from "./traffic.js";
 import { addCylinderCollider, resolvePosition, clearanceAt, deckHeightAt, moveAndSlide } from "./collision.js";
 import { readSave, writeSave } from "./save.js";
@@ -901,6 +902,14 @@ async function boot() {
   freezeTransforms(statics, (o) => spinnerRoots.has(o));
   const vegMaps = await loadVegetationMaps();
   const vegetation = createVegetation(scene, vegMaps);
+  // Filler props plan after every structure, tree and rock collider exists
+  // (they keep clear of all of them) and before the nav graph prices its
+  // edges against their colliders. The models draw once the GLB loads.
+  planWesternProps();
+  let westernProps = null;
+  void installWesternProps(scene, { biomeOn: isDev ? biomeOn : null }).then((props) => {
+    westernProps = props;
+  });
   if (isDev) {
     const applyStaticBiomes = () => {
       for (const [biome, meshes] of staticPartitions || []) {
@@ -914,6 +923,7 @@ async function boot() {
     onBiomeFilterChange(() => {
       applyStaticBiomes();
       vegetation.applyBiomeFilter(camera.position);
+      westernProps?.update(camera.position);
     });
     createBiomeBar({
       currentBiome: () => (player ? biomeAt(player.object.position.x, player.object.position.z) : null)
@@ -1113,6 +1123,106 @@ async function boot() {
     // Probes assert the force/release pair against this: force() pins the
     // machine, force(null) hands it back to the seeded rolls.
     window.__weatherPinned = () => weather.serialize().pinned;
+    /**
+     * Copy this exact camera + settings state to the clipboard.
+     *
+     * __captureView is a free variable a capture script assigns, so a session
+     * that has ended leaves nothing to read back — the terrain-triangle frames
+     * shipped with no manifest and their pose had to be recovered from an agent
+     * session log. Pressing P in a ?dev build serialises the live camera,
+     * player, weather, viewport, backend and every material setting into one
+     * JSON block, so the frame that produced it can be captured again exactly.
+     * __capturePose() returns the same object to a script, and __lastPose keeps
+     * the last JSON for when the clipboard rejects an unfocused window.
+     */
+    const poseRound = (v) => Math.round(v * 1000) / 1000;
+    window.__capturePose = () => {
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      const p = camera.position;
+      const reach = 60; // target distance, matching the capture scripts
+      const meshY = meshHeightAt(p.x, p.z);
+      return {
+        version: 1,
+        at: new Date().toISOString(),
+        // Same {px,py,pz,tx,ty,tz} shape scripts assign to __captureView.
+        view: {
+          px: poseRound(p.x), py: poseRound(p.y), pz: poseRound(p.z),
+          tx: poseRound(p.x + dir.x * reach),
+          ty: poseRound(p.y + dir.y * reach),
+          tz: poseRound(p.z + dir.z * reach)
+        },
+        player: player
+          ? {
+              x: poseRound(player.object.position.x),
+              y: poseRound(player.object.position.y),
+              z: poseRound(player.object.position.z),
+              mode: player.state.mode,
+              mounted: Boolean(player.state.mounted)
+            }
+          : null,
+        camera: { fov: camera.fov, aspect: poseRound(camera.aspect), near: camera.near, far: camera.far },
+        ground: {
+          heightAt: poseRound(heightAt(p.x, p.z)),
+          meshHeight: poseRound(meshY),
+          cameraAboveGround: poseRound(p.y - meshY)
+        },
+        viewport: { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
+        capture: window.__captureInfo?.() ?? null,
+        weather: { state: weather.state(), pinned: weather.serialize().pinned },
+        grass: { settled: vegetation.scatterSettled(camera.position), center: window.__vegCenter?.() ?? null },
+        biomesOff: biomesOff(),
+        settings: { ...materialSettings }
+      };
+    };
+    window.__lastPose = null;
+    const poseToast = (text) => {
+      const el = document.createElement("div");
+      el.textContent = text;
+      el.style.cssText =
+        "position:fixed;left:50%;bottom:14%;transform:translateX(-50%);z-index:9999;" +
+        "padding:10px 16px;border-radius:8px;background:rgba(20,20,20,.86);color:#ffd76a;" +
+        "font:13px/1.4 ui-monospace,Menlo,monospace;pointer-events:none;white-space:pre-wrap;max-width:70vw";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    };
+    window.__copyPose = () => {
+      let json;
+      try {
+        json = JSON.stringify(window.__capturePose(), null, 2);
+      } catch (err) {
+        poseToast(`pose copy failed: ${err.message}`);
+        return null;
+      }
+      window.__lastPose = json;
+      // The console copy is the fallback when the clipboard rejects an
+      // unfocused headed window.
+      console.log(`[pose]\n${json}`);
+      navigator.clipboard?.writeText(json).then(
+        () => poseToast("pose + settings copied to clipboard"),
+        (err) =>
+          poseToast(
+            `clipboard blocked (${err?.name || "error"}) — JSON is in __lastPose and the console`
+          )
+      );
+      return json;
+    };
+    // P, guarded like the xray/debug shortcuts: no modifiers, no repeat, and
+    // not while a text field or the settings panel has focus.
+    window.addEventListener("keydown", (event) => {
+      if (event.code !== "KeyP" || event.repeat || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable || el.closest?.(".lil-gui"))
+      ) {
+        return;
+      }
+      event.preventDefault();
+      window.__copyPose();
+    });
     window.__grassMips = (on) => vegetation.debugGrassMips(on);
     /**
      * Dump the blade atlas as a PNG data URL - optionally its alpha channel as
@@ -2711,6 +2821,7 @@ async function boot() {
       rain.setIntensity(weather.rainIntensity());
     }
     vegetation.update(camera.position);
+    westernProps?.update(camera.position);
     renderer.render(scene, planCamera || camera);
     if (stats) {
       stats.update();
