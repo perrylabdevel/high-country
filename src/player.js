@@ -347,9 +347,13 @@ export function createPlayer(camera) {
     const dz = object.position.z - lastZ;
     lastX = object.position.x;
     lastZ = object.position.z;
-    const covered = dt > 0 ? Math.hypot(dx, dz) / dt : 0;
-    // Teleports (spawn, fast travel, dev mount) are not strides.
-    const actual = covered > 20 ? 0 : covered;
+    const jump = Math.hypot(dx, dz);
+    const covered = dt > 0 ? jump / dt : 0;
+    // Teleports (spawn, fast travel, dev mount) are not strides. Judge them by
+    // the distance of the jump, not by speed: the tester's speed multiplier
+    // runs the player at 27 m/s, and a speed cut-off froze the legs there.
+    // A real step is never much longer than the speed asked for allows.
+    const actual = jump > state.speed * dt * 2 + 1 && !state.mounted ? 0 : covered;
     groundSpeed += (actual - groundSpeed) * Math.min(1, dt * 14);
     if (groundSpeed < 0.04 && actual === 0) {
       groundSpeed = 0;

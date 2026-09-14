@@ -45,7 +45,7 @@ const report = {};
  * returns world-space foot points; `body()` the body's world position.
  * Returns the median planted slip ratio across feet.
  */
-function slip(label, limit, frames, step, feet, body, warm = 90) {
+function slip(label, limit, frames, step, feet, body, warm = 90, dt = DT) {
   const tracks = [];
   const bodies = [];
   for (let i = 0; i < frames; i += 1) {
@@ -69,14 +69,14 @@ function slip(label, limit, frames, step, feet, body, warm = 90) {
     band.push(rlo + (rhi - rlo) * 0.15);
   }
   for (let i = 1; i < n - 1; i += 1) {
-    const bv = Math.hypot(bodies[i + 1].x - bodies[i - 1].x, bodies[i + 1].z - bodies[i - 1].z) / (2 * DT);
+    const bv = Math.hypot(bodies[i + 1].x - bodies[i - 1].x, bodies[i + 1].z - bodies[i - 1].z) / (2 * dt);
     if (bv < 0.2) continue;
     // A pivot leg without a knee fold is at its lowest at mid-swing too, so
     // the foot that is standing is the slowest of the low feet this frame.
     let best = Infinity;
     for (let k = 0; k < nFeet; k += 1) {
       if (rel[k][i] > band[k] || rel[k][i - 1] > band[k] || rel[k][i + 1] > band[k]) continue;
-      const fv = Math.hypot(tracks[i + 1][k].x - tracks[i - 1][k].x, tracks[i + 1][k].z - tracks[i - 1][k].z) / (2 * DT);
+      const fv = Math.hypot(tracks[i + 1][k].x - tracks[i - 1][k].x, tracks[i + 1][k].z - tracks[i - 1][k].z) / (2 * dt);
       best = Math.min(best, fv / bv);
     }
     if (best < Infinity) ratios.push(best);
@@ -234,6 +234,35 @@ for (const [label, rel, height, speeds] of [
     failures.push(`player sprinting into a wall: legs run at ${player.groundSpeed.toFixed(2)} m/s while the body is stopped (input speed ${player.state.speed.toFixed(2)})`);
   }
   keys.clear();
+  // The tester's speed multiplier (debug.js tune.speed, up to 16x) must not be
+  // mistaken for a teleport: at 8x the player covers 27 m/s and the legs froze.
+  const { tune } = await import("../src/debug.js");
+  const saved = tune.speed;
+  tune.speed = 16;
+  const q = player.object.position;
+  q.x += 60;
+  run(20);
+  keys.add("forward");
+  run(90);
+  report["player:tuned16x:legs"] = +player.groundSpeed.toFixed(2);
+  report["player:tuned16x:input"] = +player.state.speed.toFixed(2);
+  if (Math.abs(player.groundSpeed - player.state.speed) > player.state.speed * 0.15) {
+    failures.push(`player at the 16x tester speed: legs at ${player.groundSpeed.toFixed(2)} m/s while moving at ${player.state.speed.toFixed(2)}`);
+  }
+  keys.clear();
+  tune.speed = saved;
+}
+{
+  // And the clip rate keeps up there: an actor driven at 27 m/s plants its feet.
+  const gltf = await load("public/models/player.glb");
+  const actor = createTexturedActorFactory(gltf, "public/models/player.glb")({ targetHeight: 1.855 });
+  const o = actor.object;
+  const feet = [];
+  o.traverse((n) => { if (n.isBone && /^foot[LR]$/.test(n.name)) feet.push(n); });
+  // Sampled at 240 Hz: at 6.5x the run's stride is only ~6 frames at 60 Hz.
+  const HZ240 = 1 / 240;
+  slip("player@27.2 (8x tester speed)", LIMIT.clip, 1200, () => { o.position.z += 27.2 * HZ240; actor.update(HZ240, { speed: 27.2 }); o.updateMatrixWorld(true); },
+    () => feet.map((b) => b.getWorldPosition(new THREE.Vector3())), () => o.position, 120, HZ240);
 }
 
 console.log(JSON.stringify(report, null, 1));

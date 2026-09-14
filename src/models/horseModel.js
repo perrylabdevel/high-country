@@ -120,7 +120,8 @@ export function createHorseVisual(gltf, { tack = "saddle", phase = Math.random()
         action.setEffectiveWeight(w[name] ?? 0);
         const clipSpeed = gaitSpeed[name];
         if (clipSpeed) {
-          action.setEffectiveTimeScale(Math.min(3, Math.max(0.3, sp / clipSpeed)));
+          // Capped high so the tester's speed multiplier still plants hooves.
+          action.setEffectiveTimeScale(Math.min(30, Math.max(0.3, sp / clipSpeed)));
         }
       }
       mixer.update(dt);
