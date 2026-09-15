@@ -10,7 +10,7 @@
 import * as THREE from "three/webgpu";
 import { addOrientedBoxCollider } from "./collision.js";
 import { ENTERABLE_LOTS, storeGlass } from "./landmarks.js";
-import { tag, wallX, block, glazing } from "./buildings/kit.js";
+import { tag, wallX, block, glazing, floorDeck, SHELL_FLOOR_TOP } from "./buildings/kit.js";
 import { face, mate, anchorsOf } from "./buildings/anchors.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
@@ -44,10 +44,15 @@ function addShell(lot, wallMat, floorMat) {
 
   // Floor at the structure's footing (y=0 in local frame), spanning the full
   // footprint — the walls ride on top of it, so its edge never shows.
-  const floor = box(group, 0, 0, 0, w, 0.08, d, floorMat);
-  tag(floor, "floor", { top: 0.08 });
-  // A lot with storeys (the saloon) builds its own ceilings round a stairwell.
+  const floor = box(group, 0, 0, 0, w, SHELL_FLOOR_TOP, d, floorMat);
+  tag(floor, "floor", { top: SHELL_FLOOR_TOP });
+  // A lot with storeys (the saloon) lays its own boards, decks and ceilings
+  // round a stairwell over this slab.
   if (!lot.storeys) {
+    // Stand on it: between the inner wall faces, and out through the doorway
+    // to the facade's outer face (the street wall is WALL_THICK on the lot
+    // edge), so the threshold has no gap to drop through.
+    floorDeck(group, -(w / 2 - t), w / 2 - t, -(d / 2 - t), d / 2 + t / 2, SHELL_FLOOR_TOP);
     const ceilH = Math.min(2.7, h - 0.35);
     const ceiling = box(group, 0, ceilH - 0.08, 0, w - t * 2, 0.08, d - t * 2, floorMat);
     tag(ceiling, "ceiling", { height: ceilH });
@@ -102,7 +107,7 @@ function atDepth(d, depth) {
  * An authored furniture piece (props.js) in the lot's local frame, standing
  * on its 0.08 m floor. `solid` [w, d] keeps the collider the old box had.
  */
-const FLOOR = 0.08;
+const FLOOR = SHELL_FLOOR_TOP;
 function furnish(group, kind, x, z, yaw = 0, { y = FLOOR, solid = null, ...extra } = {}) {
   addLocalPropSpot("interiors", group, kind, x, y, z, yaw, extra);
   if (solid) {

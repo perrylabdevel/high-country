@@ -12,8 +12,8 @@
  * interiors.js, and industry.js.
  */
 import * as THREE from "three/webgpu";
-import { heightAt } from "../world.js";
-import { addOrientedBoxCollider, addBoxCollider, addCylinderCollider } from "../collision.js";
+import { heightAt, meshHeightAt } from "../world.js";
+import { addOrientedBoxCollider, addBoxCollider, addCylinderCollider, addDeckPlatform } from "../collision.js";
 import { defineAnchor, recordMate, mate, anchorsOf } from "./anchors.js";
 
 /** Registry of every structure Group built via structure(), for the geometry checks. */
@@ -72,6 +72,56 @@ export function footing(x, z, w, d, yaw) {
   const y = Math.min(...ys);
   const drop = Math.max(...ys) - y;
   return { y, drop, corners };
+}
+
+/** Top of the interior shell's floor slab above the lot footing (interiors.js addShell). */
+export const SHELL_FLOOR_TOP = 0.08;
+
+/**
+ * How far a structure must be lifted off its footing so a floor `floorTop`
+ * above it clears the terrain everywhere under the footprint.
+ *
+ * footing() seats on the LOWEST corner, so on any slope the ground inside
+ * rises above the floor slab: the side-street lots had dirt 0.6 m up through
+ * their boards and the hunting cabin 0.35 m. Both the collision terrain and
+ * the rendered mesh are sampled — either one poking through is the defect.
+ */
+export function floorClearLift(x, z, w, d, yaw, floorTop, margin = 0.02) {
+  const base = footing(x, z, w, d, yaw).y;
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  const N = 12;
+  let top = -Infinity;
+  for (let i = 0; i <= N; i += 1) {
+    for (let j = 0; j <= N; j += 1) {
+      const lx = (i / N - 0.5) * w;
+      const lz = (j / N - 0.5) * d;
+      const px = x + lx * cos + lz * sin;
+      const pz = z - lx * sin + lz * cos;
+      top = Math.max(top, heightAt(px, pz), meshHeightAt(px, pz));
+    }
+  }
+  return Math.max(0, top - base - floorTop + margin);
+}
+
+/**
+ * Register a structure's floor as a walkable deck: the rectangle [x0, x1] x
+ * [z0, z1] of `group`'s local frame at local height `y` (`yFar` at its local
+ * +Z edge, for a flight of steps).
+ *
+ * Grounding is max(terrain, deck), so a floor slab nothing registers is
+ * scenery: on a plinth the player stood on the dirt under it (0.3-0.5 m down
+ * in the town lots), and on flat ground 0.1 m inside the boards. Decks take
+ * the inverse of rotation.y, like oriented box colliders.
+ */
+const _deckP = new THREE.Vector3();
+const _deckQ = new THREE.Quaternion();
+const _deckE = new THREE.Euler();
+export function floorDeck(group, x0, x1, z0, z1, y, yFar = y) {
+  group.updateWorldMatrix(true, false);
+  group.localToWorld(_deckP.set((x0 + x1) / 2, y, (z0 + z1) / 2));
+  _deckE.setFromQuaternion(group.getWorldQuaternion(_deckQ), "YXZ");
+  return addDeckPlatform(_deckP.x, _deckP.z, (x1 - x0) / 2, (z1 - z0) / 2, -_deckE.y, _deckP.y, _deckP.y + (yFar - y));
 }
 
 /**

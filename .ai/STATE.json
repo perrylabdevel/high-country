@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "astra-context-flow-2026-09-10",
-  "currentObjective": "Saloon exterior and walkable two-storey interior authored in Blender MCP (scripts/blender-saloon). Uncommitted, awaiting user review.",
+  "currentObjective": "Walkable floor decks for every enterable town lot, hunting cabin and bunkhouse (built on feat/saloon). Uncommitted, awaiting user review.",
   "defaultRoutingMode": "balanced",
   "lastRole": "scout",
   "lastModel": "gpt-5.6-luna",
   "expertCallsThisCampaign": 1,
-  "lastCheckpoint": "2026-09-15T00:00:00Z",
-  "verificationStatus": "Saloon interior: check:saloon extended (boards/treads vs decks, ceilings, camera storeys, walker to both rooms and balcony, well/under-stair/balcony blocked); fault-injected missing upstairs deck and missing stairwell partition collider both fail. western-props, interiors, apertures, buildings, collision pass; npm run check 33/34, only nav-graph's 50 ms timing budget under load (55 ms; passed in an idle run). WebGPU captures audit/saloon/interior-pass1-2."
+  "lastCheckpoint": "2026-09-15T13:10:00Z",
+  "verificationStatus": "Floor decks: check:interiors asserts deck == floor top (1 cm) and terrain under the floor at 25 interior + 3 threshold samples for all 24 enterable lots, huntingCabin, bunkhouse; fault-injected missing doctor deck fails (28 samples). Unlifted side-street lots and huntingCabin now lift to clear their slope (floorClearLift); lots with a raised sill get plank steps. npm run check 34/34 (nav-graph passed on load remeasure). WebGPU build: runtime __deckHeightAt == raycast floor for all 25 floored shells; captures of doctor interior/threshold and cross-street lot steps."
 }
