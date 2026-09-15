@@ -54,3 +54,16 @@ tmp-*.mjs
 
 # check:routes writes a timestamped evidence file per run; regenerable
 audit/evidence/nav-routes-*
+
+# Python bytecode from the Blender build scripts; rewritten on every run
+__pycache__/
+*.pyc
+
+# Blender's automatic save backups
+*.blend1
+
+# Dot-prefixed scratch probes (scripts/.tmp-*.mjs); same role as tmp-*.mjs
+.tmp-*.mjs
+
+# Claude Code worktrees are local checkouts, never repo content
+.claude/worktrees/
