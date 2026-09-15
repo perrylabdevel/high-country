@@ -88,7 +88,8 @@ function registerPorchDecks(root) {
   return registered;
 }
 
-export function createRanch(maps = {}) {
+export function createRanch(maps) {
+  maps ??= {}; // loadBuildingMaps() yields null when textures are absent
   const ox = POS.ranch.x;
   const oz = POS.ranch.z;
   clearPropSpots("ranch");
@@ -536,12 +537,12 @@ export function createRanch(maps = {}) {
     floor: wood,
     timber: darkWood,
     stone,
-    paint: neutral(maps.siding, 0.3, 0.8),
-    plaster: neutral(maps.rock, 0.05, 0.95),
+    paint: neutral(maps?.siding, 0.3, 0.8),
+    plaster: neutral(maps?.rock, 0.05, 0.95),
     brick: hasMaps
       ? makeTexturedMat(maps.rock, { tiling: 0.9, tint: 0xb4644a, gain: 1.1 })
       : new THREE.MeshStandardNodeMaterial({ color: 0x8a4a36, roughness: 0.95 }),
-    fabric: neutral(maps.siding, 0.35, 1),
+    fabric: neutral(maps?.siding, 0.35, 1),
     iron: new THREE.MeshStandardNodeMaterial({ color: 0x2c2c2a, roughness: 0.6, metalness: 0.5 }),
     brass: new THREE.MeshStandardNodeMaterial({ color: 0xb58a42, roughness: 0.35, metalness: 0.85 })
   });
