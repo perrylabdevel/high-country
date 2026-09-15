@@ -1,0 +1,14 @@
+{
+  "info": {
+    "backend": "webgpu",
+    "adapter": "webgpu-no-adapter-info",
+    "antialias": true,
+    "build": "development"
+  },
+  "origin": [
+    -399.9999999999999,
+    16.095635941044964,
+    292
+  ],
+  "errors": []
+}

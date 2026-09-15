@@ -171,7 +171,7 @@ def dresser():
             p.box((0.07, 0.025, 0.025), loc=(sx * 0.25, -D / 2 - 0.03, z + 0.11), kind="iron", bevel=0.004)
     for sx in (-1, 1):
         p.box((0.035, 0.035, 0.7), loc=(sx * 0.33, 0.12, H + 0.35), kind="wood_dark", grain="z", bevel=0.005)
-    p.box((0.58, 0.02, 0.5), loc=(0, 0.12, H + 0.4), rot=(-0.08, 0, 0), kind="glass", bevel=0)
+    p.box((0.58, 0.02, 0.5), loc=(0, 0.12, H + 0.4), rot=(-0.08, 0, 0), kind="zinc", bevel=0)  # silvered, not bottle glass
     p.box((0.62, 0.03, 0.54), loc=(0, 0.14, H + 0.4), rot=(-0.08, 0, 0), kind="wood_dark", grain="x", bevel=0.006)
     return p
 

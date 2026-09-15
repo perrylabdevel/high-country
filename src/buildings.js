@@ -7,6 +7,8 @@
  * square pyramids. Doors and windows are human-scale with head heights.
  */
 import * as THREE from "three/webgpu";
+import { color } from "three/tsl";
+import { ranchInterior, ranchRemodel } from "./buildings/ranchRemodel.js";
 import { heightAt, woodTexture, shingleTexture, rockTexture } from "./world.js";
 import { addBoxCollider, addCylinderCollider, addDeckPlatform, addOrientedBoxCollider } from "./collision.js";
 import { POS } from "./map.js";
@@ -30,6 +32,22 @@ import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addFenceSpots, addMountSpot, addPropSpot, clearPropSpots } from "./propSpots.js";
+
+/**
+ * Ranch house storeys in metres above its footing, and the hall stair in
+ * house coordinates (x east, z south of the house origin). Shared with the
+ * Blender interior (scripts/blender-ranch/interior.py reads them from
+ * interior-layout.json) and check:ranch-interior.
+ */
+export const RANCH_HOUSE = {
+  FLOOR: 0.13, // floorboard top
+  CEIL: 2.7, // ground-floor ceiling; its slab is the upstairs floor
+  UPPER: 2.8, // upstairs floorboard top
+  UPPER_CEIL: 5.45,
+  // 14 risers climbing north along the hall side of the east partition.
+  // `well` is the ceiling opening [x0, x1, z0, z1] over the upper flight.
+  STAIR: { x0: 4.09, x1: 5.09, zTop: 3.02, zBottom: 6.4, risers: 14, well: [3.95, 5.09, 3.02, 5.9] }
+};
 
 function groundY(x, z) {
   return heightAt(x, z);
@@ -135,7 +153,7 @@ export function createRanch(maps = {}) {
   const ECZ = -10.925;
   const EEAVE = 4.6; // one-and-a-half story eave
 
-  const CEIL = 2.7; // ground-floor ceiling, shared by both blocks
+  const { FLOOR, CEIL, UPPER, UPPER_CEIL, STAIR } = RANCH_HOUSE;
 
   // One footing over the union of both footprints, so the ell cannot step off
   // the main block on a slope.
@@ -156,6 +174,14 @@ export function createRanch(maps = {}) {
     blk.userData.placementY = seat.y;
     blk.userData.wallTop = seat.y + eave;
   }
+  // Two storeys: the camera ducks under whichever ceiling is over the feet
+  // (interiorCeilingAt), and the stairwell opens the ground floor's.
+  main.userData.storeys = {
+    ceiling: CEIL - 0.08,
+    upperFloor: UPPER,
+    upperCeiling: UPPER_CEIL,
+    well: [STAIR.well[0] - MCX, STAIR.well[1] - MCX, STAIR.well[2] - MCZ, STAIR.well[3] - MCZ]
+  };
 
   // Main block shell. The north wall stops where the ell joins (house x = 4).
   const mSouth = wallX({
@@ -175,7 +201,8 @@ export function createRanch(maps = {}) {
     length: mNorthLen, extend: true, height: MEAVE, thickness: T, material: siding,
     openings: [
       { x: -4, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 },
-      { x: 2.5, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
+      // House x -5.2: clear of the chimney breast in the bedroom behind it.
+      { x: 1.95, w: 1.25, h: 1.4, fromFloor: CEIL + 0.9 }
     ]
   });
   mate(mNorth, "wallSide", face(main, "back", { along: (-10.5 + 4) / 2 - MCX }));
@@ -212,7 +239,8 @@ export function createRanch(maps = {}) {
   mate(eEast, "wallSide", face(ell, "right"));
   const eSouth = wallX({
     length: EW, extend: true, height: EEAVE, thickness: T, material: siding,
-    openings: [{ x: -(10.2 - ECX), w: 1.25, h: 1.4, fromFloor: 0.9 }]
+    // Beside the kitchen chimney, not behind it.
+    openings: [{ x: -(13.0 - ECX), w: 1.25, h: 1.4, fromFloor: 0.9 }]
   });
   mate(eSouth, "wallSide", face(ell, "back"));
   const eJoinLen = 16 - 12;
@@ -221,27 +249,48 @@ export function createRanch(maps = {}) {
 
   // Roofs — hips, both seated on their own eave.
   mate(hipRoof({ w: MW, d: MD, pitch: 0.5, overhang: 0.45, eave: MEAVE, material: roof }), "base", anchorsOf(main).get("wallTop"));
-  mate(hipRoof({ w: EW, d: ED, pitch: 0.5, overhang: 0.45, eave: EEAVE, material: roof }), "base", anchorsOf(ell).get("wallTop"));
+  // No overhang where the ell butts the main block: a full
+  // 0.45 m eave there ran through the upstairs rooms at 4.6 m.
+  mate(hipRoof({ w: EW, d: ED - 0.45, pitch: 0.5, overhang: 0.45, eave: EEAVE, material: roof }), "base", anchorsOf(ell).get("wallTop"), { offset: { z: -0.225 } });
 
-  // Floors and ground-floor ceilings, seated on footing. The floor spans the
-  // full footprint — a floor inset from the footprint leaves a strip of
-  // exposed terrain between its edge and the wall's inner face (the walls
-  // centre on the footprint edges, so their inner faces sit at w/2 − T/2).
+  // Floors and ceilings, seated on footing. The floor spans the full
+  // footprint — a floor inset from the footprint leaves a strip of exposed
+  // terrain between its edge and the wall's inner face. The ranch pad puts
+  // the terrain at footing + ~0.10 m, so the kit slab (top 0.11) is only the
+  // underlay: the Blender floorboards (ranchInterior) are the walking surface
+  // at FLOOR, and check:ranch-interior keeps the terrain below them.
   for (const [blk, w, d] of [[main, MW, MD], [ell, EW, ED]]) {
     mate(
-      block({ w, h: 0.1, d, material: wood, role: "floor", extra: { top: 0.1 } }),
+      block({ w, h: 0.11, d, material: wood, role: "floor", extra: { top: 0.11 } }),
       "base",
       anchorsOf(blk).get("footing")
     );
+  }
+  mate(
+    block({ w: EW - 0.4, h: 0.16, d: ED - 0.4, material: wood, role: "ceiling", extra: { height: CEIL } }),
+    "base",
+    anchorsOf(ell).get("footing"),
+    { offset: { y: CEIL - 0.08 } }
+  );
+  // The main block's ceiling is the upstairs floor, open over the stair.
+  // Pieces in house coords [x0, x1, z0, z1] around the stairwell.
+  const [wellX0, wellX1, wellZ0, wellZ1] = STAIR.well;
+  for (const [x0, x1, z0, z1] of [
+    [-10.3, wellX0, -5.15, 6.8],
+    [wellX0, 11.8, -5.15, wellZ0],
+    [wellX1, 11.8, wellZ0, 6.8],
+    [wellX0, wellX1, wellZ1, 6.8]
+  ]) {
     mate(
-      block({ w: w - 0.4, h: 0.16, d: d - 0.4, material: wood, role: "ceiling", extra: { height: CEIL } }),
+      block({ w: x1 - x0, h: 0.16, d: z1 - z0, material: wood, role: "ceiling", extra: { height: CEIL } }),
       "base",
-      anchorsOf(blk).get("footing"),
-      { offset: { y: CEIL - 0.08 } }
+      anchorsOf(main).get("footing"),
+      { offset: { x: (x0 + x1) / 2 - MCX, y: CEIL - 0.08, z: (z0 + z1) / 2 - MCZ } }
     );
   }
 
-  // Interior partitions, with doorways that have a head height.
+  // Interior partitions, with doorways that have a head height. The upstairs
+  // pair stands on the same lines so the rooms stack.
   defineAnchor(main, "partition.west", {
     position: { x: -4 - MCX, y: 0, z: 0 },
     normal: { x: 1, y: 0, z: 0 }
@@ -250,18 +299,28 @@ export function createRanch(maps = {}) {
     position: { x: 5.2 - MCX, y: 0, z: 0 },
     normal: { x: 1, y: 0, z: 0 }
   });
-  const partA = wallX({
-    length: MD, extend: true, height: CEIL, thickness: T, material: darkSiding,
-    openings: [{ x: 2.6 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
-  });
-  mate(partA, "wallSide", anchorsOf(main).get("partition.west"), { offset: { y: 0.12 } });
-  const partB = wallX({
-    length: MD, extend: true, height: CEIL, thickness: T, material: darkSiding,
-    openings: [{ x: 1.8 - MCZ, w: 0.92, h: 2.03, fromFloor: 0 }]
-  });
-  mate(partB, "wallSide", anchorsOf(main).get("partition.east"), { offset: { y: 0.12 } });
+  // Partition frames run along -Z, so a doorway at house z sits at MCZ - z.
+  const PARTITION_DOORS = { "partition.west": -0.95, "partition.east": -0.15 };
+  for (const [anchor, doorZ] of Object.entries(PARTITION_DOORS)) {
+    const opening = { x: MCZ - doorZ, w: 0.92, h: 2.03, fromFloor: 0 };
+    const low = wallX({ length: MD, extend: true, height: CEIL, thickness: T, material: darkSiding, openings: [opening] });
+    mate(low, "wallSide", anchorsOf(main).get(anchor), { offset: { y: 0.12 } });
+    const high = wallX({ length: MD, extend: true, height: UPPER_CEIL - UPPER + 0.1, thickness: T, material: darkSiding, openings: [{ ...opening }] });
+    mate(high, "wallSide", anchorsOf(main).get(anchor), { offset: { y: UPPER } });
+  }
   const partC = wallX({ length: 12 - 8.8, extend: true, height: CEIL, thickness: T, material: darkSiding });
   mate(partC, "wallSide", face(main, "back", { along: (8.8 + 12) / 2 - MCX }), { offset: { y: 0.12 } });
+  // Dining room to kitchen: a doorway instead of a 3.4 m gap, built as two
+  // piers and a lintel (x 6.05..7.15) — the join line is the house perimeter,
+  // where a kit opening would be inventoried as an exterior door into the ell.
+  for (const [x0, x1, y, h] of [[5.31, 6.05, 0.12, CEIL], [7.15, 8.69, 0.12, CEIL], [6.05, 7.15, 0.12 + 2.03, CEIL - 2.03]]) {
+    const pier = wallX({ length: x1 - x0 - T, extend: true, height: h, thickness: T, material: darkSiding });
+    mate(pier, "wallSide", face(main, "back", { along: (x0 + x1) / 2 - MCX }), { offset: { y } });
+  }
+  // Upstairs, the main block's north wall carries on over the ell up to the
+  // exterior junction boarding (ranchRemodel, from 4.55 m).
+  const upNorth = wallX({ length: 12 - 4, extend: true, height: 4.6 - UPPER, thickness: T, material: darkSiding });
+  mate(upNorth, "wallSide", face(main, "back", { along: 8 - MCX }), { offset: { y: UPPER } });
 
   // Chimneys — continuous from the hearth, topping out above each ridge.
   const mainRidge = MEAVE + ((MD + 0.9) / 2) * 0.5;
@@ -271,37 +330,112 @@ export function createRanch(maps = {}) {
   const ellStack = chimney({ width: 1.05, height: ellRidge + 1.3, material: stone });
   mate(ellStack, "base", anchorsOf(ell).get("footing"), { offset: { x: 10.2 - ECX, y: 0, z: -16.35 - ECZ } });
 
-  // Furniture, seated on each block's footing (house coords minus block centre).
-  const onMain = (piece, gx, gz, y = 0) =>
-    mate(piece, "base", anchorsOf(main).get("footing"), { offset: { x: gx - MCX, y, z: gz - MCZ } });
+  // Authored furniture (furniture kit, props.js) on the floorboards, in house
+  // coordinates; yaw PI/2 turns a piece's front (+Z) to face +X.
+  const furnish = (kind, gx, gz, yaw = 0, extra = {}, level = FLOOR) =>
+    addPropSpot("ranch", { kind, x: houseX + gx, z: houseZ + gz, y: seat.y + level, yaw, seat: "free", inside: true, ...extra });
+  const upstairs = (kind, gx, gz, yaw = 0, extra = {}) => furnish(kind, gx, gz, yaw, extra, UPPER);
 
-  // Authored furniture (furniture kit, props.js) on the 0.1 m floor, in
-  // house coordinates; yaw PI/2 turns a piece's front (+Z) to face +X.
-  const furnish = (kind, gx, gz, yaw = 0, extra = {}) =>
-    addPropSpot("ranch", { kind, x: houseX + gx, z: houseZ + gz, y: seat.y + 0.1, yaw, seat: "free", inside: true, ...extra });
-  for (const bz of [3.2, -2.8]) {
-    furnish("bed_double", -7.2, bz, 0, { sx: 1.1 });
+  // Parlor (west), round the fireplace.
+  furnish("piano", -9.78, 2.2, Math.PI / 2);
+  furnish("table_square", -7.0, 1.2, 0.08);
+  furnish("chair", -7.9, -1.25, Math.PI - 0.5);
+  furnish("chair", -5.75, -1.1, Math.PI + 0.45);
+  furnish("gun_rack", -4.26, 4.2, -Math.PI / 2);
+  furnish("desk", -8.7, 6.47, Math.PI, { sx: 0.9 });
+  furnish("chair", -8.7, 5.75, 0.15);
+  // Entry hall.
+  furnish("chair", -3.62, 5.4, Math.PI / 2);
+  // Dining room (east).
+  furnish("table_long", 8.6, 2.0, 0, { sx: 1.15 });
+  for (const cx of [8.0, 9.2]) {
+    furnish("chair", cx, 1.22, 0);
+    furnish("chair", cx, 2.78, Math.PI);
   }
-  furnish("dresser", -8.66, 0.2, Math.PI / 2);
-  furnish("washstand", -4.5, -4.72);
-  furnish("table_long", 8.4, 2.4, 0, { sx: 1.1 });
-  furnish("chair", 8.0, 1.5, 0);
-  furnish("chair", 8.9, 3.3, Math.PI);
-  furnish("cupboard", 10.9, -3.4, -Math.PI / 2, { sx: 1.6 });
-  furnish("table_square", 6.4, -3.8, 0.1);
-  furnish("stool", 7.2, -3.3);
-  furnish("desk", 0.15, -4.4, Math.PI, { sx: 0.8 });
-  furnish("hearth", -6.8, -4.6, 0, { sx: 1.05 });
-  onMain(block({ w: 1.1, h: 2.2, d: 0.85, material: wood }), -2.1, 4.4, 1.2 - 1.1);
-  onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 3.7, 0.55 - 0.09);
-  onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 4.15, 1.05 - 0.09);
-  onMain(block({ w: 1.0, h: 0.18, d: 0.7, material: darkWood }), -2.1, 4.55, 1.55 - 0.09);
+  furnish("chair", 7.15, 2.0, Math.PI / 2);
+  furnish("chair", 10.05, 2.0, -Math.PI / 2);
+  furnish("cupboard", 11.58, 4.6, -Math.PI / 2, { sx: 1.5 });
+  furnish("shelf_goods", 10.4, -5.03);
+  // Kitchen (ell).
+  furnish("cookstove", 10.2, -15.38);
+  furnish("cupboard", 15.58, -13.4, -Math.PI / 2, { sx: 1.5 });
+  furnish("shelf_goods", 4.32, -12.2, Math.PI / 2);
+  furnish("table_long", 8.2, -10.6, 0, { sx: 0.85 });
+  furnish("chair", 7.7, -11.38, 0);
+  furnish("chair", 8.7, -9.82, Math.PI);
+  furnish("stool", 9.3, -11.3);
+  furnish("barrel", 15.35, -15.85, 0.4);
+  furnish("barrel", 4.62, -15.9, 1.3);
 
-  furnish("cookstove", 10.2, -15.7);
-  furnish("cupboard", 13.55, -10.4, -Math.PI / 2, { sx: 1.5 });
-  furnish("table_long", 7.2, -10.8, 0, { sx: 0.8 });
-  furnish("chair", 7.2, -11.75, 0);
-  furnish("barrel", 13.2, -13.8, 0.4);
+  // Upstairs: the Calders' room (west) and the children's room (east).
+  upstairs("bed_double", -8.9, -0.9, Math.PI / 2, { sx: 1.05 });
+  upstairs("wardrobe", -4.48, 4.9, -Math.PI / 2);
+  upstairs("dresser", -9.9, 3.4, Math.PI / 2);
+  upstairs("washstand", -4.4, -3.8, -Math.PI / 2);
+  upstairs("chair", -8.4, 5.9, 2.6);
+  upstairs("bed_single", 10.85, 4.2, -Math.PI / 2);
+  upstairs("bed_single", 10.85, -3.6, -Math.PI / 2);
+  upstairs("dresser", 7.6, -4.98, 0);
+  upstairs("chair", 6.2, 5.6, 0.7);
+  upstairs("trunk", 9.0, 5.0, 0);
+  // Landing.
+  upstairs("table_square", -1.8, -4.4, 0, { sx: 0.8 });
+  upstairs("chair", -0.8, -4.55, -0.3);
+
+  // Walkable surfaces: floorboards on both blocks, the stair as a ramp through
+  // its tread centres, and the upstairs floor around the well.
+  const deck = (x0, x1, z0, z1, y, yFar = y) =>
+    addDeckPlatform(houseX + (x0 + x1) / 2, houseZ + (z0 + z1) / 2, (x1 - x0) / 2, (z1 - z0) / 2, 0, seat.y + y, seat.y + yFar);
+  deck(-10.5, 12, -5.35, 7, FLOOR);
+  deck(4, 16, -16.5, -5.35, FLOOR);
+  const rise = (UPPER - FLOOR) / STAIR.risers;
+  deck(STAIR.x0, STAIR.x1, STAIR.zTop, STAIR.zBottom, UPPER - rise / 2, FLOOR + rise / 2);
+  deck(-10.5, wellX0, -5.35, 7, UPPER);
+  deck(wellX0, 12, -5.35, wellZ0, UPPER);
+  deck(wellX1, 12, wellZ0, 7, UPPER);
+  deck(wellX0, wellX1, wellZ1, 7, UPPER);
+
+  // Colliders by storey. Ground-floor walls stop below the upstairs floor and
+  // upstairs walls start at it, so each floor keeps its own plan.
+  const low = { minY: seat.y - 1, maxY: seat.y + CEIL };
+  const high = { minY: seat.y + UPPER + 0.1, maxY: seat.y + UPPER_CEIL };
+  const full = { minY: seat.y - 1, maxY: seat.y + UPPER_CEIL };
+  const wallZ = (x, z0, z1, span, doors = []) => {
+    let cursor = z0;
+    for (const [c, w] of [...doors, [z1 + 1, 0]].sort((a, b) => a[0] - b[0])) {
+      const end = Math.min(z1, c - w / 2);
+      if (end > cursor + 0.05) {
+        addBoxCollider(houseX + x, houseZ + (cursor + end) / 2, T / 2 + 0.05, (end - cursor) / 2, span);
+      }
+      cursor = c + w / 2;
+    }
+  };
+  const wallAlongX = (z, x0, x1, span, doors = []) => {
+    let cursor = x0;
+    for (const [c, w] of [...doors, [x1 + 1, 0]].sort((a, b) => a[0] - b[0])) {
+      const end = Math.min(x1, c - w / 2);
+      if (end > cursor + 0.05) {
+        addBoxCollider(houseX + (cursor + end) / 2, houseZ + z, (end - cursor) / 2, T / 2 + 0.05, span);
+      }
+      cursor = c + w / 2;
+    }
+  };
+  for (const [anchor, doorZ] of Object.entries(PARTITION_DOORS)) {
+    const x = anchor === "partition.west" ? -4 : 5.2;
+    wallZ(x, -5.35, 7, low, [[doorZ, 0.92]]);
+    wallZ(x, -5.35, 7, high, [[doorZ, 0.92]]);
+  }
+  wallAlongX(-5.35, 8.8, 12, low);
+  wallAlongX(-5.35, 5.2, 8.8, low, [[6.6, 1.1]]);
+  wallAlongX(-5.35, 4, 12, high);
+  // Stair: open balustrade on the hall side, a closet wall under the top so
+  // nobody walks beneath the flight, and a guard across the well's far end.
+  addBoxCollider(houseX + STAIR.x0 - 0.05, houseZ + (STAIR.zTop + wellZ1) / 2, 0.05, (wellZ1 - STAIR.zTop) / 2, full);
+  addBoxCollider(houseX + (STAIR.x0 + STAIR.x1) / 2, houseZ + STAIR.zTop, (STAIR.x1 - STAIR.x0) / 2, 0.05, { minY: seat.y - 1, maxY: seat.y + 2.3 });
+  addBoxCollider(houseX + (wellX0 + wellX1) / 2, houseZ + wellZ1, (wellX1 - wellX0) / 2, 0.05, high);
+  // Chimney breasts (authored stone round the kit stacks), both storeys.
+  addBoxCollider(houseX - 6.8, houseZ - 3.82, 0.95, 1.42, full);
+  addBoxCollider(houseX + 10.2, houseZ - 16.08, 0.55, 0.33, full);
 
   // Door leaf, standing open on its hinge at the jamb.
   const door = doorLeaf({ width: 0.86, height: 2.03, thickness: 0.18, hinge: -0.46, swing: Math.PI / 2, material: darkWood });
@@ -330,12 +464,12 @@ export function createRanch(maps = {}) {
   // L-shaped porch: along the south face, wrapping the east face.
   const southPorch = porch({
     width: MW, depth: 4.6, eave: 3.4, postSpacing: 3.4,
-    material: darkWood, roofMaterial: roof
+    material: darkWood, roofMaterial: roof, roofPitch: 0.025
   });
   mate(southPorch, "wallSide", face(main, "front"));
   const eastPorch = porch({
     width: 9.2, depth: 4.2, eave: 3.4, postSpacing: 3.1,
-    material: darkWood, roofMaterial: roof
+    material: darkWood, roofMaterial: roof, roofPitch: 0.025
   });
   mate(eastPorch, "wallSide", face(main, "right", { along: 2.575 - MCZ }));
 
@@ -360,6 +494,58 @@ export function createRanch(maps = {}) {
   ]);
   group.add(main);
   group.add(ell);
+
+  const trim = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0xded7bc, gain: 1.8 })
+    : new THREE.MeshStandardNodeMaterial({ map: woodTexture(), color: 0xc6bda6, roughness: 0.86 });
+  if (hasMaps) trim.colorNode = trim.colorNode.mul(0.22).add(color(0xc6bda6).mul(0.78));
+  const shutter = hasMaps
+    ? makeTexturedMat(maps.wood, { tiling: 1.8, tint: 0x627d6d, gain: 1.0 })
+    : new THREE.MeshStandardNodeMaterial({ map: woodTexture(), color: 0x627465, roughness: 0.9 });
+  const cedar = hasMaps
+    ? makeTexturedMat(maps.siding, { tiling: 1.4, tint: 0xd8cfb6, gain: 1.0 })
+    : new THREE.MeshStandardNodeMaterial({ color: 0xa79b7f, roughness: 0.9 });
+  if (hasMaps) cedar.colorNode = cedar.colorNode.mul(0.24).add(color(0xb2a58a).mul(0.76));
+  const cedarLight = cedar.clone();
+  const cedarDark = cedar.clone();
+  if (hasMaps) {
+    cedarLight.colorNode = cedar.colorNode.mul(1.08);
+    cedarDark.colorNode = cedar.colorNode.mul(0.91);
+  } else {
+    cedarLight.color.multiplyScalar(1.08);
+    cedarDark.color.multiplyScalar(0.91);
+  }
+  const remodel = ranchRemodel({
+    wall: cedar, wall_light: cedarLight, wall_dark: cedarDark,
+    timber: darkWood, trim, shutter, stone, roof,
+    iron: new THREE.MeshStandardNodeMaterial({ color: 0x242c28, roughness: 0.75, metalness: 0.4 })
+  });
+  remodel.position.set(houseX, seat.y, houseZ);
+  group.add(remodel);
+
+  // Interior finishes take their colour from per-face tints, so each base
+  // here is the texture's grain over near-white (or its own natural tone).
+  const neutral = (set, grain, rough = 0.9) => {
+    if (!hasMaps) return new THREE.MeshStandardNodeMaterial({ color: 0xe8e2d6, roughness: rough });
+    const m = makeTexturedMat(set, { tiling: 1.6, tint: 0xffffff, gain: 1.4, rough });
+    m.colorNode = m.colorNode.mul(grain).add(color(0xf2eee6).mul(1 - grain));
+    return m;
+  };
+  const interior = ranchInterior({
+    floor: wood,
+    timber: darkWood,
+    stone,
+    paint: neutral(maps.siding, 0.3, 0.8),
+    plaster: neutral(maps.rock, 0.05, 0.95),
+    brick: hasMaps
+      ? makeTexturedMat(maps.rock, { tiling: 0.9, tint: 0xb4644a, gain: 1.1 })
+      : new THREE.MeshStandardNodeMaterial({ color: 0x8a4a36, roughness: 0.95 }),
+    fabric: neutral(maps.siding, 0.35, 1),
+    iron: new THREE.MeshStandardNodeMaterial({ color: 0x2c2c2a, roughness: 0.6, metalness: 0.5 }),
+    brass: new THREE.MeshStandardNodeMaterial({ color: 0xb58a42, roughness: 0.35, metalness: 0.85 })
+  });
+  interior.position.set(houseX, seat.y, houseZ);
+  group.add(interior);
 
 
   // ---------------- Barn ----------------

@@ -419,7 +419,7 @@ export function createPlayer(camera) {
       const minY = walkSurface(cleared.x, cleared.z, feetY) + 0.55;
       // cameraClearance only resolves x/z, so nothing stopped the boom rising
       // through a room's ceiling. Duck under it when the camera is indoors.
-      const ceiling = interiorCeilingAt(cleared.x, cleared.z);
+      const ceiling = interiorCeilingAt(cleared.x, cleared.z, feetY);
       let camY = Math.max(cleared.y, minY);
       if (Number.isFinite(ceiling)) {
         camY = Math.min(camY, ceiling - 0.28);
@@ -436,7 +436,7 @@ export function createPlayer(camera) {
         camera.position.y += (desiredCam.y - camera.position.y) * aY;
         // The smoothing lerps toward a clamped target but can still sit above
         // the ceiling on the way there, which is exactly when it pops through.
-        const settledCeiling = interiorCeilingAt(camera.position.x, camera.position.z);
+        const settledCeiling = interiorCeilingAt(camera.position.x, camera.position.z, feetY);
         if (Number.isFinite(settledCeiling)) {
           camera.position.y = Math.min(camera.position.y, settledCeiling - 0.28);
         }

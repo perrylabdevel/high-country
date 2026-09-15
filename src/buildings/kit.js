@@ -87,7 +87,7 @@ export function footing(x, z, w, d, yaw) {
  * to world as (lx*cos + lz*sin, -lx*sin + lz*cos), so world to local inverts
  * to (dx*cos - dz*sin, dx*sin + dz*cos).
  */
-export function interiorCeilingAt(x, z) {
+export function interiorCeilingAt(x, z, y = null) {
   let lowest = Infinity;
   for (const group of STRUCTURES) {
     const u = group.userData;
@@ -103,7 +103,14 @@ export function interiorCeilingAt(x, z) {
     if (Math.abs(lx) > u.w / 2 || Math.abs(lz) > u.d / 2) {
       continue;
     }
-    const ceiling = u.placementY + Math.min(2.7, u.eave - 0.35);
+    let ceiling = u.placementY + Math.min(2.7, u.eave - 0.35);
+    const st = u.storeys;
+    if (st) {
+      const [wx0, wx1, wz0, wz1] = st.well;
+      const aboveStair = lx >= wx0 && lx <= wx1 && lz >= wz0 && lz <= wz1;
+      const upstairs = y !== null && y - u.placementY > st.upperFloor - 0.6;
+      ceiling = u.placementY + (upstairs || aboveStair ? st.upperCeiling : st.ceiling);
+    }
     if (ceiling < lowest) {
       lowest = ceiling;
     }
@@ -1035,7 +1042,7 @@ export function glazing({ width, height, thickness, material }) {
  * A porch: deck, posts, beam, rail, and a shed roof over it. `depth` is the
  * porch depth (along +Z from the front wall). Returns a Group.
  */
-export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMaterial, y = 0 }) {
+export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMaterial, roofPitch = 0.2, y = 0 }) {
   const group = new THREE.Group();
   const DECK_T = 0.2;
   // A porch is a raised deck people stand on, so it has to publish its walking
@@ -1070,7 +1077,7 @@ export function porch({ width, depth, eave, postSpacing = 2.4, material, roofMat
   rail.position.set(0, y + 0.9, depth);
   group.add(rail);
 
-  const shed = shedRoof({ w: width, d: depth, pitch: 0.2, overhang: 0.2, eave: y + eave, material: roofMaterial });
+  const shed = shedRoof({ w: width, d: depth, pitch: roofPitch, overhang: 0.2, eave: y + eave, material: roofMaterial });
   shed.position.z = depth / 2;
   group.add(shed);
   defineAnchor(group, "wallSide", {

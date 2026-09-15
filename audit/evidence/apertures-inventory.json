@@ -1,15 +1,15 @@
 {
   "summary": {
-    "total": 99,
+    "total": 101,
     "byKind": {
-      "door": 67,
+      "door": 69,
       "window": 26,
       "barn": 2,
       "bay": 1,
       "gate": 3
     },
     "byState": {
-      "traversable": 57,
+      "traversable": 59,
       "window": 26,
       "shell": 16
     },
@@ -203,7 +203,7 @@
         "height": 1.4
       },
       "center": {
-        "x": -405.75,
+        "x": -405.2,
         "y": 20.4,
         "z": 286.65
       },
@@ -351,6 +351,31 @@
       }
     },
     {
+      "id": "ranchHouse.partition.west.door.1",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "partition.west",
+      "width": 0.92,
+      "height": 2.03,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -404,
+        "y": 19.91,
+        "z": 291.05
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
       "id": "ranchHouse.partition.east.door.0",
       "poi": "ranch",
       "kind": "door",
@@ -367,6 +392,31 @@
       "center": {
         "x": -394.8,
         "y": 17.23,
+        "z": 291.85
+      },
+      "normal": {
+        "x": 1,
+        "y": 0,
+        "z": 2.2204460492503136e-16
+      }
+    },
+    {
+      "id": "ranchHouse.partition.east.door.1",
+      "poi": "ranch",
+      "kind": "door",
+      "class": null,
+      "side": "partition.east",
+      "width": 0.92,
+      "height": 2.03,
+      "fromFloor": 0,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": -394.8,
+        "y": 19.91,
         "z": 291.85
       },
       "normal": {
@@ -421,7 +471,7 @@
         "height": 1.4
       },
       "center": {
-        "x": -389.8,
+        "x": -387,
         "y": 17.7,
         "z": 275.5
       },

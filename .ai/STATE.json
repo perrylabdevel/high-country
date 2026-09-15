@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "astra-context-flow-2026-09-10",
-  "currentObjective": "Remove the angular wedges beside roads at the reporter's storm pose (audit/terrain-macro-detail/supplied-view.json) without regressing terrain or road checks.",
+  "currentObjective": "Ranch house interior authored in Blender MCP (scripts/blender-ranch/interior.py) on top of the uncommitted exterior remodel; walkable upstairs added. Uncommitted, awaiting user review/commit.",
   "defaultRoutingMode": "balanced",
   "lastRole": "scout",
   "lastModel": "gpt-5.6-luna",
   "expertCallsThisCampaign": 1,
-  "lastCheckpoint": "2026-09-13T16:55:00Z",
-  "verificationStatus": "Reverted the other agent's uncommitted terrain material/texture/tiling/rut changes to HEAD (its full diff is not kept in-repo; pose hook in main.js retained). Road-edge wedges were geometry: refined road cells copied the 12.5 m-aliased 0.85 m road carve (drawn ground up to 0.81 m off true, flat-shaded). heightfield.js refined cells now use bilinear base minus coarse carve plus per-vertex roadCarveAt, faded to the coarse edge at unrefined neighbours. check:roads: pose corridor worst 0.18 m (was 0.81), carve mirror 1.2e-5 m, seam gap 5e-5 m; negative injections fail with intended messages. check:road-geometry trough base now true ground (min trough 0.060 m). npm run build passes; npm run check 29/29. nav-graph cold build ~45 ms vs HEAD ~41 ms (budget 50) after removing buildRefinedCache per-test allocations. WebGPU storm capture at the supplied pose: audit/road-edge-geometry/storm-pose-before-after.png; clear-weather A/B shows no new seams. Not addressed (not requested): the square texture grid across grass fields at that pose."
+  "lastCheckpoint": "2026-09-14T21:10:00Z",
+  "verificationStatus": "Ranch interior: floor z-fight with the terrain pad fixed (boards at 0.13 m on walking decks); walkable 14-riser stair and upstairs (decks, per-storey colliders, storey-aware camera ceiling); ell roof north overhang and entry gable no longer intrude indoors; kitchen and upstairs north windows moved off chimneys; dresser mirror rebaked as zinc. New check:ranch-interior (fault-injected: removed balustrade collider and floor deck both fail). npm run build passes; npm run check 33/33. WebGPU captures: audit/ranch-interior/{before,pass1-3,final,exterior}. Interior+exterior JSON quantized (bundle 8.2 MB)."
 }
