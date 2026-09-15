@@ -120,7 +120,7 @@ function tinted(maps) {
  * Parented to the saloon lot group. The kit keeps the openings and walls; this
  * adds the posts, and the balcony as a deck with its railings.
  */
-export function attachSaloon(lot, maps = {}) {
+export function attachSaloon(lot, maps) {
   const group = batched('saloon', model, tinted(maps));
   lot.group.add(group);
   const f = lotFrame(lot);
@@ -142,7 +142,7 @@ export function attachSaloon(lot, maps = {}) {
  * colliders of each storey, the camera ceilings, the Blender interior
  * (scripts/blender-saloon/interior.py) and its furniture.
  */
-export function saloonInterior(lot, maps = {}, slabMaterial) {
+export function saloonInterior(lot, maps, slabMaterial) {
   const { FLOOR, CEIL, UPPER, UPPER_CEIL, INNER, STAIR, PARTITIONS, DOOR, BAR, BACK_BAR, STOVE } = SALOON;
   const g = lot.group;
   const [wx0, wx1, wz0, wz1] = STAIR.well;
