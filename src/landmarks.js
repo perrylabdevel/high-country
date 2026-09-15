@@ -35,6 +35,7 @@ import { registerAperture } from "./buildings/apertures.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addPropSpot, clearPropSpots } from "./propSpots.js";
 import { createMission } from "./mission.js";
+import { attachSaloon, SALOON } from "./buildings/saloon.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -153,6 +154,16 @@ export function adobeHouse(parent, { name, x, z, yaw, w, d, eave, adobe, roofMat
  * lots register their rotated group so interiors.js can build in the local
  * frame.
  */
+// The ranch and adobe glass, but storefront windows stack two panes (facade
+// wall and interior shell), so each is half as dense: together they match.
+let _storeGlass = null;
+export function storeGlass() {
+  _storeGlass ??= mat(0xcfe0d8, {
+    transparent: true, opacity: 0.18, emissive: 0x6a4018, emissiveIntensity: 0.12, roughness: 0.15, metalness: 0.0
+  });
+  return _storeGlass;
+}
+
 function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lift = 0, facade = null, falseFrontWood = facadeWood) {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
@@ -205,10 +216,11 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
   // building was enterable only because the collider had a hole where the
   // facade is solid. The gable entry was a half-finished idea; the church now
   // faces the street like its neighbours and keeps its steeple.
-  const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }];
+  const frontOpenings = [{ x: 0, w: 0.92, h: 2.1, fromFloor: 0 }, ...(lot.windows || [])];
   const front = wallX({ length: w, extend: true, height: h, thickness: T, material: bodyMat, openings: frontOpenings });
   mate(front, "wallSide", face(st, "front"));
-  const back = wallX({ length: w, extend: true, height: h, thickness: T, material: bodyMat });
+  const backOpenings = lot.backWindows || [];
+  const back = wallX({ length: w, extend: true, height: h, thickness: T, material: bodyMat, openings: backOpenings });
   mate(back, "wallSide", face(st, "back"));
   const east = wallX({ length: d, extend: true, height: h, thickness: T, material: bodyMat });
   mate(east, "wallSide", face(st, "right"));
@@ -223,6 +235,19 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
       anchorsOf(doorWall).get("opening.0"),
       { offset: { x: 0, y: 0, z: T / 2 } }
     );
+  }
+
+  for (const [wall, list] of [[front, frontOpenings], [back, backOpenings]]) {
+    list.forEach((o, n) => {
+      if (o.fromFloor >= 0.5 && o.class !== "door") {
+        mate(
+          glazing({ width: o.w, height: o.h, thickness: 0.1, material: storeGlass() }),
+          "frame",
+          anchorsOf(wall).get(`opening.${n}`),
+          { offset: { x: 0, y: 0, z: -T / 2 } }
+        );
+      }
+    });
   }
 
   // Shed only behind a false front — otherwise the high edge flies above
@@ -286,6 +311,9 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
       toward,
       stone: Boolean(lot.stone),
       dark: Boolean(lot.dark),
+      windows: lot.windows || [],
+      backWindows: lot.backWindows || [],
+      storeys: Boolean(lot.storeys),
       streetDirX,
       streetDirZ,
       group: st
@@ -458,10 +486,16 @@ export function createLandmarks(scene, maps = {}) {
     { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
     { name: "store", w: 9.5, h: 5.8, d: 8, sign: true, falseFront: true, falseFrontHeight: 3.2, enterable: true },
     { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
-    { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 3.2, sign: true, enterable: true },
+    // The saloon's facade is Blender-authored (src/buildings/saloon.js) and
+    // carries its own painted sign, so it takes no street sign stand.
+    { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: SALOON.FRONT, backWindows: SALOON.BACK, storeys: true },
     { name: "blacksmith", w: 12, h: 4.6, d: 9, dark: true, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "livery", w: 11, h: 4.2, d: 8, dark: true, falseFront: true, falseFrontHeight: 2.8, enterable: true }
   ], facadeWood, dark, stone, roof, maps, falseFrontWood);
+  const saloonLot = ENTERABLE_LOTS.find((l) => l.name === "saloon");
+  if (saloonLot) {
+    attachSaloon(saloonLot, maps);
+  }
   street(group, { x: town.x, z: town.z - 22 }, 0.15, [
     { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },
     { w: 7, h: 4.2, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },

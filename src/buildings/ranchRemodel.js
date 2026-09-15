@@ -6,7 +6,7 @@ import interior from '../models/ranch-interior.json';
 /** Material-batched Blender geometry in house-local metres. A batch with a
  * `color` attribute is tinted per face: the batch's material is cloned and
  * its colour multiplied by the vertex colour. */
-function batched(name, model, materials) {
+export function batched(name, model, materials) {
   const group = new THREE.Group();
   group.name = name;
   // Quantized models store integers (millimetres, hundredths of a tint) and

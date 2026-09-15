@@ -9,11 +9,12 @@
  */
 import * as THREE from "three/webgpu";
 import { addOrientedBoxCollider } from "./collision.js";
-import { ENTERABLE_LOTS } from "./landmarks.js";
-import { tag, wallX, block } from "./buildings/kit.js";
+import { ENTERABLE_LOTS, storeGlass } from "./landmarks.js";
+import { tag, wallX, block, glazing } from "./buildings/kit.js";
 import { face, mate, anchorsOf } from "./buildings/anchors.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
+import { saloonInterior } from "./buildings/saloon.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -45,30 +46,43 @@ function addShell(lot, wallMat, floorMat) {
   // footprint — the walls ride on top of it, so its edge never shows.
   const floor = box(group, 0, 0, 0, w, 0.08, d, floorMat);
   tag(floor, "floor", { top: 0.08 });
-  const ceilH = Math.min(2.7, h - 0.35);
-  const ceiling = box(group, 0, ceilH - 0.08, 0, w - t * 2, 0.08, d - t * 2, floorMat);
-  tag(ceiling, "ceiling", { height: ceilH });
+  // A lot with storeys (the saloon) builds its own ceilings round a stairwell.
+  if (!lot.storeys) {
+    const ceilH = Math.min(2.7, h - 0.35);
+    const ceiling = box(group, 0, ceilH - 0.08, 0, w - t * 2, 0.08, d - t * 2, floorMat);
+    tag(ceiling, "ceiling", { height: ceilH });
+  }
 
   const front = wallX({
     length: w,
     height: h,
     thickness: t,
-    openings: [{ x: 0, w: DOOR_W, h: DOOR_H, fromFloor: 0 }],
+    openings: [{ x: 0, w: DOOR_W, h: DOOR_H, fromFloor: 0 }, ...(lot.windows || [])],
     material: wallMat
   });
   mate(front, "wallSide", face(group, "front"), { offset: { z: -t / 2 } });
   front.traverse((n) => {
-    if (n.userData.role === "header") {
+    // Only the door's header is its lintel; storefront window heads are not.
+    if (n.userData.role === "header" && !(n.userData.fromFloor > 0)) {
       tag(n, "lintel", { openingW: DOOR_W, openingH: DOOR_H, fromFloor: 0 });
     }
   });
+  // The shell's own pane in each window: the facade wall carries the outer
+  // one, so the pair reads as a single pane of store glass.
+  const glaze = (wall, list, first) => list.forEach((o, i) => {
+    if (o.class === "door") return;
+    mate(glazing({ width: o.w, height: o.h, thickness: 0.04, material: storeGlass() }), "frame",
+      anchorsOf(wall).get(`opening.${i + first}`), { offset: { x: 0, y: 0, z: -t / 2 } });
+  });
+  glaze(front, lot.windows || [], 1);
   if (front.userData.fullHeightDoor) {
     group.userData.fullHeightDoor = true;
   }
   group.userData.interiorDoor = { w: DOOR_W, h: DOOR_H };
 
-  const back = wallX({ length: w, height: h, thickness: t, material: wallMat });
+  const back = wallX({ length: w, height: h, thickness: t, material: wallMat, openings: (lot.backWindows || []).map((o) => ({ ...o })) });
   mate(back, "wallSide", face(group, "back"), { offset: { z: t / 2 } });
+  glaze(back, lot.backWindows || [], 0);
   const right = wallX({ length: d, height: h, thickness: t, material: wallMat });
   mate(right, "wallSide", face(group, "right"), { offset: { x: -t / 2 } });
   const left = wallX({ length: d, height: h, thickness: t, material: wallMat });
@@ -141,23 +155,6 @@ function addSheriffProps(lot, wood, dark) {
   furnish(group, "cot", -cellHalf + 0.55, atDepth(d, (cellFront + cellBack) / 2), Math.PI / 2);
 }
 
-function addSaloonProps(lot) {
-  const { w, d, group } = lot;
-  const barDepth = d * 0.55;
-  const alongBar = d * 0.62;
-  furnish(group, "bar_counter", w * 0.32, atDepth(d, barDepth), -Math.PI / 2, { sx: alongBar / 4, solid: [0.72, alongBar] });
-  furnish(group, "bottles", w * 0.32 + 0.12, atDepth(d, barDepth - 0.6), -Math.PI / 2, { y: FLOOR + 1.08, stacked: true, seat: undefined });
-  furnish(group, "bottles", w * 0.32 + 0.12, atDepth(d, barDepth + 0.7), -Math.PI / 2, { y: FLOOR + 1.08, stacked: true, seat: undefined });
-
-  for (const [across, depth] of [[-1.7, d * 0.38], [0.15, d * 0.36]]) {
-    furnish(group, "table_square", across, atDepth(d, depth), across * 0.2);
-    furnish(group, "stool", across - 0.85, atDepth(d, depth));
-    furnish(group, "stool", across + 0.85, atDepth(d, depth));
-  }
-
-  furnish(group, "piano", -w * 0.32, atDepth(d, d - 0.55), 0, { solid: [1.4, 0.55] });
-}
-
 function addHotelProps(lot, wood, dark) {
   const { w, d, group } = lot;
   furnish(group, "bar_counter", -w * 0.28, atDepth(d, 2.75), 0, { sx: 0.6, solid: [2.4, 0.7] });
@@ -204,7 +201,6 @@ function addChurchProps(lot) {
 
 const PROPS = {
   sheriff: addSheriffProps,
-  saloon: addSaloonProps,
   hotel: addHotelProps,
   store: addStoreProps,
   church: addChurchProps
@@ -256,6 +252,9 @@ export function createInteriors(scene, maps = {}) {
     : mat(0x6b4226);
   for (const lot of ENTERABLE_LOTS) {
     buildLot(lot, wallLight, wallDark, stone, wood, dark);
+    if (lot.name === "saloon") {
+      saloonInterior(lot, maps, wood);
+    }
   }
   scene.add(group);
   return group;
