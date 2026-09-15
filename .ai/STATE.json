@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "astra-context-flow-2026-09-10",
-  "currentObjective": "Ranch house interior authored in Blender MCP (scripts/blender-ranch/interior.py) on top of the uncommitted exterior remodel; walkable upstairs added. Uncommitted, awaiting user review/commit.",
+  "currentObjective": "Saloon exterior and walkable two-storey interior authored in Blender MCP (scripts/blender-saloon). Uncommitted, awaiting user review.",
   "defaultRoutingMode": "balanced",
   "lastRole": "scout",
   "lastModel": "gpt-5.6-luna",
   "expertCallsThisCampaign": 1,
-  "lastCheckpoint": "2026-09-14T21:10:00Z",
-  "verificationStatus": "Ranch interior: floor z-fight with the terrain pad fixed (boards at 0.13 m on walking decks); walkable 14-riser stair and upstairs (decks, per-storey colliders, storey-aware camera ceiling); ell roof north overhang and entry gable no longer intrude indoors; kitchen and upstairs north windows moved off chimneys; dresser mirror rebaked as zinc. New check:ranch-interior (fault-injected: removed balustrade collider and floor deck both fail). npm run build passes; npm run check 33/33. WebGPU captures: audit/ranch-interior/{before,pass1-3,final,exterior}. Interior+exterior JSON quantized (bundle 8.2 MB)."
+  "lastCheckpoint": "2026-09-15T00:00:00Z",
+  "verificationStatus": "Saloon interior: check:saloon extended (boards/treads vs decks, ceilings, camera storeys, walker to both rooms and balcony, well/under-stair/balcony blocked); fault-injected missing upstairs deck and missing stairwell partition collider both fail. western-props, interiors, apertures, buildings, collision pass; npm run check 33/34, only nav-graph's 50 ms timing budget under load (55 ms; passed in an idle run). WebGPU captures audit/saloon/interior-pass1-2."
 }

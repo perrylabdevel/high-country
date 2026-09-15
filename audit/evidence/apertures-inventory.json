@@ -1,16 +1,16 @@
 {
   "summary": {
-    "total": 101,
+    "total": 115,
     "byKind": {
-      "door": 69,
-      "window": 26,
+      "door": 71,
+      "window": 38,
       "barn": 2,
       "bay": 1,
       "gate": 3
     },
     "byState": {
-      "traversable": 59,
-      "window": 26,
+      "traversable": 61,
+      "window": 38,
       "shell": 16
     },
     "failures": 0
@@ -951,7 +951,200 @@
       }
     },
     {
+      "id": "saloon.front.window.0",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 2,
+      "height": 1.7,
+      "fromFloor": 0.8,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 2,
+        "height": 1.7
+      },
+      "center": {
+        "x": 269.55,
+        "y": 17.85,
+        "z": -189.97
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.1",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 2,
+      "height": 1.7,
+      "fromFloor": 0.8,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 2,
+        "height": 1.7
+      },
+      "center": {
+        "x": 264.17,
+        "y": 17.85,
+        "z": -190.78
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.2",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.05,
+      "height": 1.75,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.05,
+        "height": 1.75
+      },
+      "center": {
+        "x": 269.45,
+        "y": 21.37,
+        "z": -189.99
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.3",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.05,
+      "height": 1.75,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.05,
+        "height": 1.75
+      },
+      "center": {
+        "x": 264.27,
+        "y": 21.37,
+        "z": -190.77
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
       "id": "saloon.front.door.1",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": "door",
+      "side": "front",
+      "width": 1,
+      "height": 2.1,
+      "fromFloor": 3.44,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 266.86,
+        "y": 20.69,
+        "z": -190.38
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.back.window.0",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.95,
+      "height": 1.6,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.95,
+        "height": 1.6
+      },
+      "center": {
+        "x": 262.95,
+        "y": 21.3,
+        "z": -182.88
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.back.window.1",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.95,
+      "height": 1.6,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.95,
+        "height": 1.6
+      },
+      "center": {
+        "x": 267.74,
+        "y": 21.3,
+        "z": -182.15
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.door.2",
       "poi": "silverCreek",
       "kind": "door",
       "class": null,
@@ -973,6 +1166,199 @@
         "x": 0.14943813247359922,
         "y": 0,
         "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.4",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 2,
+      "height": 1.7,
+      "fromFloor": 0.8,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 2,
+        "height": 1.7
+      },
+      "center": {
+        "x": 269.54,
+        "y": 17.85,
+        "z": -189.86
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.5",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 2,
+      "height": 1.7,
+      "fromFloor": 0.8,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 2,
+        "height": 1.7
+      },
+      "center": {
+        "x": 264.16,
+        "y": 17.85,
+        "z": -190.68
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.6",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.05,
+      "height": 1.75,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.05,
+        "height": 1.75
+      },
+      "center": {
+        "x": 269.44,
+        "y": 21.37,
+        "z": -189.88
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.window.7",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 1.05,
+      "height": 1.75,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.05,
+        "height": 1.75
+      },
+      "center": {
+        "x": 264.26,
+        "y": 21.37,
+        "z": -190.66
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.front.door.3",
+      "poi": "silverCreek",
+      "kind": "door",
+      "class": "door",
+      "side": "front",
+      "width": 1,
+      "height": 2.1,
+      "fromFloor": 3.44,
+      "state": "traversable",
+      "note": null,
+      "traversable": true,
+      "leaf": null,
+      "glass": null,
+      "center": {
+        "x": 266.85,
+        "y": 20.69,
+        "z": -190.27
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.back.window.2",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.95,
+      "height": 1.6,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.95,
+        "height": 1.6
+      },
+      "center": {
+        "x": 262.97,
+        "y": 21.3,
+        "z": -182.99
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
+      }
+    },
+    {
+      "id": "saloon.back.window.3",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.95,
+      "height": 1.6,
+      "fromFloor": 4.3,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.95,
+        "height": 1.6
+      },
+      "center": {
+        "x": 267.76,
+        "y": 21.3,
+        "z": -182.26
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
       }
     },
     {

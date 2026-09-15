@@ -1,0 +1,9 @@
+{
+  "info": {
+    "backend": "webgpu",
+    "adapter": "webgpu-no-adapter-info",
+    "antialias": true,
+    "build": "development"
+  },
+  "errors": []
+}
