@@ -11,6 +11,9 @@ import {
 } from "./materials/waterMaterial.ts";
 import {
   structure,
+  floorClearLift,
+  floorDeck,
+  SHELL_FLOOR_TOP,
   gableRoof,
   shedRoof,
   flatRoof,
@@ -199,10 +202,15 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
     return null;
   }
 
+  // An enterable lot's floor slab (interiors.js addShell, top 0.08) has to
+  // clear the ground under it. The boardwalk plinth already does; off the
+  // boardwalk a lot seated on its lowest corner had the slope come up through
+  // the boards.
+  const seatLift = lot.enterable ? Math.max(lift, floorClearLift(x, z, w, d, lotYaw, SHELL_FLOOR_TOP)) : lift;
   const st = structure({
     name: lot.name || "streetLot",
     habitable: Boolean(lot.enterable),
-    x, z, yaw: lotYaw, w, d, eave: h, foundation: true, material: stone, lift
+    x, z, yaw: lotYaw, w, d, eave: h, foundation: true, material: stone, lift: seatLift
   });
   st.userData.streetYaw = yaw;
 
@@ -248,6 +256,32 @@ function buildLot(group, origin, yaw, lot, i, facadeWood, dark, stone, roof, lif
         );
       }
     });
+  }
+
+  // Off the boardwalk, a lot lifted to clear its slope can stand its sill
+  // well above the street (0.64 m on the cross street) — a knee-high doorway
+  // over a bare skirt. Give it a flight of plank steps down to the ground,
+  // walkable as a ramp through the tread centres.
+  if (lift === 0 && seatLift > 0) {
+    const TREAD = 0.32;
+    const STOOP_W = 1.5;
+    const sill = st.userData.placementY + SHELL_FLOOR_TOP;
+    const groundUnder = (lz) => Math.min(...[-STOOP_W / 2, STOOP_W / 2].map((lx) =>
+      heightAt(x + Math.cos(lotYaw) * lx + Math.sin(lotYaw) * lz, z - Math.sin(lotYaw) * lx + Math.cos(lotYaw) * lz)));
+    const z0 = d / 2 + T / 2;
+    const risers = Math.ceil((sill - groundUnder(z0 + TREAD)) / 0.2);
+    if (risers >= 2) {
+      const landing = groundUnder(z0 + (risers - 0.5) * TREAD);
+      const rise = (sill - landing) / risers;
+      const bottom = Math.min(groundUnder(z0), landing) - st.userData.placementY - 0.1;
+      for (let j = 0; j < risers - 1; j += 1) {
+        const top = SHELL_FLOOR_TOP - (j + 1) * rise;
+        const tread = block({ w: STOOP_W, h: top - bottom, d: TREAD, material: dark, role: "steps", extra: { top } });
+        mate(tread, "base", anchorsOf(st).get("footing"), { offset: { y: bottom, z: z0 + (j + 0.5) * TREAD } });
+      }
+      floorDeck(st, -STOOP_W / 2, STOOP_W / 2, z0, z0 + (risers - 1) * TREAD,
+        SHELL_FLOOR_TOP - rise / 2, SHELL_FLOOR_TOP - (risers - 0.5) * rise);
+    }
   }
 
   // Shed only behind a false front — otherwise the high edge flies above
@@ -870,10 +904,13 @@ export function createLandmarks(scene, maps = {}) {
   const hcW = 7;
   const hcD = 5.5;
   const hcH = 3.6;
+  // Lifted so the slope under the cabin (0.43 m corner to corner) stays under
+  // the floorboards instead of coming up through them.
   const hcSt = structure({
     name: "huntingCabin", habitable: true,
     x: hc.x, z: hc.z, yaw: 0, w: hcW, d: hcD, eave: hcH,
-    foundation: true, material: stone
+    foundation: true, material: stone,
+    lift: floorClearLift(hc.x, hc.z, hcW, hcD, 0, SHELL_FLOOR_TOP)
   });
   group.add(hcSt);
   // Door on the north wall (-Z) — the face the audit camera sees (H1).
@@ -907,13 +944,15 @@ export function createLandmarks(scene, maps = {}) {
   // Floor spans the full footprint — an inset floor leaves a strip of
   // exposed terrain between its edge and the wall's inner face (walls centre
   // on the footprint edges, so their inner faces sit at w/2 − T/2).
-  const hcFloor = block({ w: hcW, h: 0.08, d: hcD, material: floorWood, role: "floor", extra: { top: 0.08 } });
+  const hcFloor = block({ w: hcW, h: SHELL_FLOOR_TOP, d: hcD, material: floorWood, role: "floor", extra: { top: SHELL_FLOOR_TOP } });
   mate(hcFloor, "base", anchorsOf(hcSt).get("footing"));
+  // Walkable from the inner wall faces out through the north doorway.
+  floorDeck(hcSt, -(hcW / 2 - T / 2), hcW / 2 - T / 2, -(hcD / 2 + T / 2), hcD / 2 - T / 2, SHELL_FLOOR_TOP);
   const hcCeiling = block({ w: hcW - T * 2, h: 0.08, d: hcD - T * 2, material: floorWood, role: "ceiling", extra: { height: 2.7 } });
   mate(hcCeiling, "base", anchorsOf(hcSt).get("footing"), { offset: { y: 2.62 } });
   // Trapper's furnishing — the room must not read as an empty shell once the
   // door opens.
-  const hcFloorY = hcSt.userData.placementY + 0.08;
+  const hcFloorY = hcSt.userData.placementY + SHELL_FLOOR_TOP;
   const hcFurnish = (kind, dx, dz, yaw, extra = {}) =>
     addPropSpot("landmarks", { kind, x: hc.x + dx, z: hc.z + dz, y: hcFloorY, yaw, seat: "free", inside: true, cluster: "huntingCabin", ...extra });
   hcFurnish("cot", -2.2, 1.1, Math.PI / 2);

@@ -26,7 +26,8 @@ import {
   steps,
   block,
   grounded,
-  lowestSeat
+  lowestSeat,
+  floorDeck
 } from "./buildings/kit.js";
 import { face, mate, anchorsOf, defineAnchor } from "./buildings/anchors.js";
 import { registerAperture } from "./buildings/apertures.js";
@@ -641,6 +642,9 @@ export function createRanch(maps = {}) {
     "base",
     anchorsOf(bunk).get("footing")
   );
+  // Walkable from the inner wall faces out through the south doorway; without
+  // it you stood on the yard pad 0.1 m inside the boards.
+  floorDeck(bunk, -(BKW / 2 - T / 2), BKW / 2 - T / 2, -(BKD / 2 - T / 2), BKD / 2 + T / 2, 0.1);
   mate(
     block({ w: BKW - 0.4, h: 0.16, d: BKD - 0.4, material: wood, role: "ceiling", extra: { height: 2.6 } }),
     "base",
