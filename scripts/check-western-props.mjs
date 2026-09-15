@@ -176,6 +176,9 @@ for (const p of plan) {
     // On the lake (a pier on its piles, a moored boat, the island shack):
     // authored against the water plane, not the terrain.
     check(Math.abs(p.y - WATER) < 0.6, `${at(p)} is authored ${(p.y - WATER).toFixed(2)} m from the lake surface`);
+  } else if (p.inside && Math.abs(deckHeightAt(p.x, p.z, p.y + 0.2) - p.y) < 0.02) {
+    // Furniture on a registered floor deck (the ranch house's upstairs): it
+    // stands where a walker stands, however far above the terrain.
   } else if (p.seat === "free") {
     // Authored height (track on a ramp, a car on its rails): near the ground.
     const g = heightAt(p.x, p.z);
