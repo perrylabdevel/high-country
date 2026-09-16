@@ -15,6 +15,7 @@ import { face, mate, anchorsOf } from "./buildings/anchors.js";
 import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
 import { saloonInterior } from "./buildings/saloon.js";
+import { hotelInterior } from "./buildings/hotel.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -160,23 +161,6 @@ function addSheriffProps(lot, wood, dark) {
   furnish(group, "cot", -cellHalf + 0.55, atDepth(d, (cellFront + cellBack) / 2), Math.PI / 2);
 }
 
-function addHotelProps(lot, wood, dark) {
-  const { w, d, group } = lot;
-  furnish(group, "bar_counter", -w * 0.28, atDepth(d, 2.75), 0, { sx: 0.6, solid: [2.4, 0.7] });
-
-  for (const across of [-w * 0.28, 0.2, w * 0.28]) {
-    furnish(group, "bed_single", across, atDepth(d, d * 0.74), -Math.PI / 2, { solid: [1.15, 2.05] });
-  }
-
-  for (let i = 0; i < 4; i += 1) {
-    box(group, w * 0.38, 0, atDepth(d, 2.45 + i * 0.42), 0.9, 0.22 * (i + 1), 0.42, wood, true);
-  }
-
-  furnish(group, "table_square", 2.2, atDepth(d, 3.4), 0, { s: 0.9 });
-  furnish(group, "chair", 1.5, atDepth(d, 3.4), Math.PI / 2);
-  furnish(group, "chair", 2.9, atDepth(d, 3.4), -Math.PI / 2);
-}
-
 function addStoreProps(lot) {
   const { w, d, group } = lot;
   furnish(group, "bar_counter", 0.15, atDepth(d, d * 0.72), 0, { sx: 0.8, solid: [3.2, 0.7] });
@@ -204,9 +188,11 @@ function addChurchProps(lot) {
   furnish(group, "pulpit", 1.85, atDepth(d, altarDepth - 0.9), 0, { solid: [0.58, 0.58] });
 }
 
+// The hotel is not here: hotelInterior() (src/buildings/hotel.js) builds its
+// two storeys from the authored model. Its old procedural props climbed a
+// four-box "stair" to 0.88 m under a 2.7 m ceiling.
 const PROPS = {
   sheriff: addSheriffProps,
-  hotel: addHotelProps,
   store: addStoreProps,
   church: addChurchProps
 };
@@ -259,6 +245,9 @@ export function createInteriors(scene, maps = {}) {
     buildLot(lot, wallLight, wallDark, stone, wood, dark);
     if (lot.name === "saloon") {
       saloonInterior(lot, maps, wood);
+    }
+    if (lot.name === "hotel") {
+      hotelInterior(lot, maps, wood);
     }
   }
   scene.add(group);
