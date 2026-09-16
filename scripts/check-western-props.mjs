@@ -452,7 +452,10 @@ for (const w of TELEGRAPH_WIRES.filter((wire) => wire.kind === "telegraph")) {
   const boxes = listBoxColliders();
   const SOLID = ["desk", "bar_counter", "bed_single", "shelf_goods", "pew", "piano", "altar_table"];
   const pieces = plan.filter((p) => p.cluster === "interiors" && SOLID.includes(p.kind));
-  check(pieces.length >= 18, `only ${pieces.length} solid interior furniture pieces planned (expected >= 18)`);
+  // 18 until the authored interiors replaced the prop furniture: the store's
+  // counter and six shelf units are now its own model and colliders. The
+  // floor guards against the plan silently losing the rest.
+  check(pieces.length >= 11, `only ${pieces.length} solid interior furniture pieces planned (expected >= 11)`);
   for (const p of pieces) {
     const under = boxes.some((b) => Math.hypot(b.x - p.x, b.z - p.z) < 0.05);
     check(under, `${at(p)} has no collider under it (interior collider frame mirrored?)`);

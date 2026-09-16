@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "currentCampaign": "astra-context-flow-2026-09-10",
-  "currentObjective": "Blender-authored exteriors AND interiors, to the saloon's depth, for hotel + store + sheriff. On main (#22): store facade + display-window fix, check:occlusion, sheriff fixes. Hotel: PR #23 (feat/occlusion-audit-sheriff -> main; its #21 landed on a branch already merged). Store interior: committed on feat/store-interior (based on the hotel tip, not pushed): storage loft behind the facade loft door, sales floor, shared interior kit. NEXT: sheriff interior.",
+  "currentObjective": "Blender-authored exteriors AND interiors, to the saloon's depth, for hotel + store + sheriff. On main (#22): store facade, check:occlusion, sheriff fixes. Hotel: PR #23. Store interior: committed on feat/store-interior. Sheriff interior: committed on feat/sheriff-interior (branched from feat/store-interior, not pushed): office + two barred cells, roof stovepipe, exact-cut option in the shared interior kit. All three buildings done pending review/merge.",
   "defaultRoutingMode": "balanced",
   "lastRole": "builder",
   "lastModel": "claude-opus-5",
   "expertCallsThisCampaign": 1,
-  "lastCheckpoint": "2026-09-16T14:05:00Z",
-  "verificationStatus": "Store: 12 checks PASS (store, hotel, occlusion, sheriff, saloon, buildings, interiors, apertures, collision, anchors, grounding, deck-grounding). check:store walker: street->sales floor->loft; blocked under stair, into well, through the closed loft door, through the counter. Fault-injected: no loading gate, no well rail, loft deck +5 cm, flue at stove centre -- all FAIL. Shared interior kit accepted on a byte-identical hotel re-export. Captures at EYE 1.62 with weather and sun pinned and verified, served from a content-verified worktree build with textures linked (hotel lobby 52.9 vs 53.0 earlier)."
+  "lastCheckpoint": "2026-09-16T19:40:00Z",
+  "verificationStatus": "Sheriff: 15 checks PASS (sheriff, interiors, buildings, occlusion, collision, apertures, deck-grounding, western-props, store, hotel, saloon, anchors, grounding, prop-grounding, assets). check:sheriff walker: street->office->cell A via open door; blocked at locked cell B door, bar front, street-end bars, desk. Bare-kit-wall raycast guard over all four walls. Fault-injected: locked open door, no bar colliders, no desk collider, flue moved, no end bars, no head board (45 bare points) -- all FAIL. Kit change opt-in; store and hotel interiors re-export byte-identical. check:western-props furniture floor 18->11 (pre-existing failure from the store interior). WebGPU captures at EYE 1.62, clear/midday verified, served build verified by content: audit/sheriff-interior/final{,-b}."
 }

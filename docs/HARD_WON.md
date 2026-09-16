@@ -917,6 +917,28 @@ the runtime model envelope and the matching procedural aperture contract.
 
 ---
 
+### 3.9 A pale shell hides a gappy finish (2026-09-16)
+
+The shared interior kit (`scripts/blender-kit/interior_kit.py`) had two holes
+in its wall finish that the hotel and the store never showed, because their kit
+shells are pale siding under pale paper. The sheriff's shell is stone, and in
+game every front opening was framed in grey rock:
+
+- `finish_wall` dropped a whole paper panel (0.3 m) or beadboard (0.11 m)
+  wherever one touched an opening, not just the part over it.
+- `casing` has side boards and a head cap starting 0.13 m over the opening,
+  but nothing across that band, so the wall over every head was bare.
+
+Blender could not show either: it has no kit wall behind the finish, and a
+missing panel reads as dark background next to a dark window. `check:sheriff`
+now casts rays from 1 m into the room at every wall, on a 10 cm grid from floor
+to ceiling, and fails if the first surface hit is kit rather than authored
+finish, except through a real opening. Cast three rays 1 cm apart: one ray down
+a beadboard groove reads the groove as a missing board. The fix is opt-in
+(`finish_wall(..., exact=True)` plus a head board in the sheriff's own script),
+so the hotel and store exports stay byte-identical. Their gaps are still
+there, only hidden.
+
 ## 4. Tooling and capture
 
 - **The title overlay swallows synthetic clicks.** Dispatch

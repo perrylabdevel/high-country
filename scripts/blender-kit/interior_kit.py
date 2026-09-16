@@ -46,12 +46,16 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
             out.append((cur, b))
         return [(x0, x1) for x0, x1 in out if x1 - x0 > 1e-3]
 
-    F, C, U, UC = CONTRACT['FLOOR'], CONTRACT['CEIL'], CONTRACT['UPPER'], CONTRACT['UPPER_CEIL']
+    # A single-storey building (the sheriff) has no upper floor and no stair:
+    # its upper storey collapses onto the ceiling and the stair helpers go unused.
+    F, C = CONTRACT['FLOOR'], CONTRACT['CEIL']
+    U, UC = CONTRACT.get('UPPER', C), CONTRACT.get('UPPER_CEIL', C)
     X, Z = CONTRACT['INNER']['x'], CONTRACT['INNER']['z']
-    ST = CONTRACT['STAIR']
-    RISE = (U - F) / ST['risers']
-    TREAD = (ST['z1'] - ST['z0']) / (ST['risers'] - 1)
-    WX0, WX1, WZ0, WZ1 = ST['well']
+    ST = CONTRACT.get('STAIR')
+    if ST:
+        RISE = (U - F) / ST['risers']
+        TREAD = (ST['z1'] - ST['z0']) / (ST['risers'] - 1)
+        WX0, WX1, WZ0, WZ1 = ST['well']
     DOOR = CONTRACT['DOOR']
     rng = random.Random(seed)
 
@@ -141,10 +145,23 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
         return (-X, X) if WALLS[wall][0] == 'x' else (-Z, Z)
 
 
-    def finish_wall(wall, y0, y1, holes, scheme):
+    def finish_wall(wall, y0, y1, holes, scheme, exact=False):
         """Skirting, optional beadboard wainscot, striped paper, picture rail and
-        crown, from y0 to y1, cut round holes (u0, u1, v0, v1)."""
+        crown, from y0 to y1, cut round holes (u0, u1, v0, v1).
+
+        By default a board or paper panel that touches a hole is cut out over its
+        whole width, leaving up to a panel's width (0.3 m) of the kit wall bare
+        beside the casing. Over the hotel's and store's pale shells that never
+        showed; over the sheriff's stone it framed every opening in rock.
+        `exact` splits each panel at the hole edges instead. It is opt-in so the
+        existing exports stay byte-identical."""
         ua, ub = wall_span(wall)
+
+        def split(u0, u1):
+            if not exact:
+                return [(u0, u1)]
+            edges = sorted({u0, u1, *(e for h in holes for e in h[:2] if u0 < e < u1)})
+            return list(zip(edges, edges[1:]))
         paper, stripe, wains = scheme
         base = y0
         cap = base + 1.0 if wains else base
@@ -156,10 +173,12 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
             for i in range(n):
                 u0 = ua + i * (ub - ua) / n
                 u1 = u0 + (ub - ua) / n
-                cuts = [(h[2], h[3]) for h in holes if h[0] < u1 and h[1] > u0]
-                for v0, v1 in runs(base + 0.2, cap, cuts):
-                    wbox(wall, u0 + 0.004, u1 - 0.004, v0, v1, 0, 0.015, 'timber',
-                         tuple(c * (0.92 + 0.12 * rng.random()) for c in WAINSCOT))
+                parts = split(u0, u1)
+                for pa, pb in parts:
+                    cuts = [(h[2], h[3]) for h in holes if h[0] < pb and h[1] > pa]
+                    for v0, v1 in runs(base + 0.2, cap, cuts):
+                        wbox(wall, pa + (0.004 if pa == u0 else 0), pb - (0.004 if pb == u1 else 0), v0, v1, 0, 0.015, 'timber',
+                             tuple(c * (0.92 + 0.12 * rng.random()) for c in WAINSCOT))
             for u0, u1 in runs(ua, ub, [(h[0], h[1]) for h in holes if h[2] < cap + 0.08 and h[3] > cap]):
                 wprofile(wall, [(cap, 0), (cap, 0.045), (cap + 0.05, 0.045), (cap + 0.08, 0)], u0, u1, 'timber', TRIM)
         top = y1 - 0.16
@@ -167,11 +186,21 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
         for i in range(n):
             u0 = ua + i * (ub - ua) / n
             u1 = u0 + (ub - ua) / n
-            cuts = [(h[2], h[3]) for h in holes if h[0] < u1 and h[1] > u0]
-            for v0, v1 in runs(cap + 0.08 if wains else base + 0.24, top, cuts):
-                wbox(wall, u0, u0 + (u1 - u0) * 0.62, v0, v1, 0, 0.006, 'paint', paper)
-                wbox(wall, u0 + (u1 - u0) * 0.62, u1 - 0.012, v0, v1, 0, 0.006, 'paint', stripe)
-                wbox(wall, u1 - 0.012, u1, v0, v1, 0, 0.008, 'paint', GILT)
+            if not exact:
+                cuts = [(h[2], h[3]) for h in holes if h[0] < u1 and h[1] > u0]
+                for v0, v1 in runs(cap + 0.08 if wains else base + 0.24, top, cuts):
+                    wbox(wall, u0, u0 + (u1 - u0) * 0.62, v0, v1, 0, 0.006, 'paint', paper)
+                    wbox(wall, u0 + (u1 - u0) * 0.62, u1 - 0.012, v0, v1, 0, 0.006, 'paint', stripe)
+                    wbox(wall, u1 - 0.012, u1, v0, v1, 0, 0.008, 'paint', GILT)
+                continue
+            # The panel's three bands, each split at the hole edges.
+            for ba, bb, tint, depth in ((u0, u0 + (u1 - u0) * 0.62, paper, 0.006),
+                                        (u0 + (u1 - u0) * 0.62, u1 - 0.012, stripe, 0.006),
+                                        (u1 - 0.012, u1, GILT, 0.008)):
+                for pa, pb in split(ba, bb):
+                    cuts = [(h[2], h[3]) for h in holes if h[0] < pb and h[1] > pa]
+                    for v0, v1 in runs(cap + 0.08 if wains else base + 0.24, top, cuts):
+                        wbox(wall, pa, pb, v0, v1, 0, depth, 'paint', tint)
         for u0, u1 in runs(ua, ub, [(h[0], h[1]) for h in holes if h[3] > top - 0.3]):
             wprofile(wall, [(top - 0.3, 0), (top - 0.26, 0.03), (top - 0.24, 0)], u0, u1, 'timber', TRIM)
         wprofile(wall, [(top, 0), (y1, 0), (y1, 0.16), (y1 - 0.05, 0.12), (top + 0.04, 0.03)], ua, ub, 'timber', TRIM)

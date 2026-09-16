@@ -352,6 +352,24 @@ def side_jail_detail():
             box('iron', IRON, x - 0.18, x - 0.03, 1.18, 2.22, zz - 0.035, zz + 0.035)
 
 
+def stovepipe():
+    """The office stove's pipe out through the roof, over the stove it serves
+    (SHERIFF_REMODEL.FLUE; interior.py runs it up from the stove to the ceiling).
+    The roof falls 1.18 over 4.72 from the 5.58 ridge."""
+    x, z = 2.55, -2.55
+    roof = 5.58 - 1.18 * abs(x) / 4.72
+    n = 12
+    ring = lambda r, y: [(x + r * math.cos(2 * math.pi * i / n), y, z + r * math.sin(2 * math.pi * i / n)) for i in range(n)]
+    solid('iron', IRON, ring(0.075, roof - 0.2), ring(0.075, roof + 1.05))
+    solid('iron', IRON, ring(0.16, roof - 0.06), ring(0.12, roof + 0.1))
+    solid('iron', IRON, ring(0.15, roof + 1.05), ring(0.15, roof + 1.09))
+    solid('iron', IRON, ring(0.19, roof + 1.2), ring(0.04, roof + 1.34))
+    for a in range(3):
+        t = a * 2 * math.pi / 3
+        box('iron', IRON, x + 0.1 * math.cos(t) - 0.01, x + 0.1 * math.cos(t) + 0.01, roof + 1.07, roof + 1.22,
+            z + 0.1 * math.sin(t) - 0.01, z + 0.1 * math.sin(t) + 0.01)
+
+
 def ensure_materials():
     mats = {}
     for name, colour in MATERIALS.items():
@@ -382,6 +400,7 @@ def build():
     roof_and_cupola()
     porch_canopy()
     side_jail_detail()
+    stovepipe()
     mats = ensure_materials()
     total = 0
     for name, batch in ACC.items():
@@ -515,6 +534,6 @@ def export():
             obj.select_set(True)
     bpy.ops.export_scene.gltf(filepath=str(dest / 'sheriff-building.glb'), export_format='GLB', use_selection=True, use_active_scene=True)
     bpy.ops.object.select_all(action='DESELECT')
-    bpy.ops.wm.save_as_mainfile(filepath=str(HERE / 'sheriff-building.blend'))
+    bpy.ops.wm.save_as_mainfile(filepath=str(HERE / 'sheriff-building.blend'), copy=True)
     print('Exported', sum(len(b['index']) // 3 for b in batches.values()), 'triangles;', len(batches), 'batches;', target)
     return str(target)
