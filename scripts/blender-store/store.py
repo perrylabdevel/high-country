@@ -37,6 +37,55 @@ FALSE_FRONT = 3.2
 TOP = EAVE + FALSE_FRONT
 FRONT = D / 2 + 0.11
 BACK = -D / 2 - 0.11
+
+# The kit's real openings, via layout.json (export-layout.mjs). The back wall
+# grew a loft window when the store gained its loft, and siding drawn in
+# full-width runs covers any opening it crosses (HARD_WON 2.14).
+LAYOUT = json.loads((Path(__file__).resolve().parent / 'layout.json').read_text())
+STORE = LAYOUT['store']
+
+
+def _exterior_openings(sign):
+    """Openings of the kit's exterior wall at z = sign * D/2, in LOT x. The
+    back wall's frame faces -z, so its opening x runs opposite the lot's."""
+    for wall in LAYOUT['walls']:
+        if abs(wall['matrix'][14] - sign * D / 2) < 1e-3 and wall['openings']:
+            return [dict(o, x=o['x'] if sign > 0 else -o['x']) for o in wall['openings']]
+    return []
+
+
+BACK_OPENINGS = _exterior_openings(-1)
+
+
+def runs(a, b, cuts):
+    """The interval [a, b] with every (lo, hi) in `cuts` removed."""
+    out, cur = [], a
+    for lo, hi in sorted(cuts):
+        if hi <= cur or lo >= b:
+            continue
+        if lo > cur:
+            out.append((cur, min(lo, b)))
+        cur = max(cur, hi)
+    if cur < b:
+        out.append((cur, b))
+    return [(x0, x1) for x0, x1 in out if x1 - x0 > 1e-3]
+
+
+def bands(y0, y1, openings):
+    """Split [y0, y1] at every opening sill and head inside it."""
+    edges = {y0, y1}
+    for o in openings:
+        for e in (o['fromFloor'], o['fromFloor'] + o['h']):
+            if y0 < e < y1:
+                edges.add(e)
+    e = sorted(edges)
+    return list(zip(e, e[1:]))
+
+
+def cuts_at(openings, ya, yb, pad=0.02):
+    return [(o['x'] - o['w'] / 2 - pad, o['x'] + o['w'] / 2 + pad)
+            for o in openings
+            if o['fromFloor'] < yb - 1e-6 and o['fromFloor'] + o['h'] > ya + 1e-6]
 SIDE = W / 2 + 0.11
 
 # The kit does not stop at the wall planes above, and trim drawn against them
@@ -320,8 +369,12 @@ def shop_nook(x):
     # Two risers, back higher, so the goods read as tiered.
     box('wood', WOOD_GREY, x0, x1, BULK - 0.02, BULK + 0.16, zb, zb + 0.30)
     box('wood', WOOD_GREY, x0, x1, BULK - 0.02, BULK + 0.04, zb + 0.30, zf)
-    # Backboard so the dark interior does not swallow the display.
-    box('paint', GREEN_DARK, x0 - 0.06, x1 + 0.06, BULK, HEAD - 0.05, zb - 0.05, zb)
+    # Backboard so the dark interior does not swallow the display -- half height.
+    # Run up to the window head it filled the whole window as seen from inside
+    # the shop, a green panel in a cased opening; the goods top out near 1.83,
+    # so stopping there still frames them and leaves ~0.7 m of glass to see out.
+    box('paint', GREEN_DARK, x0 - 0.06, x1 + 0.06, BULK, BULK + 1.08, zb - 0.05, zb)
+    box('wood', WOOD_GREY, x0 - 0.06, x1 + 0.06, BULK + 1.08, BULK + 1.12, zb - 0.07, zb + 0.02)
     return x0, x1, zb, zf
 
 
@@ -570,14 +623,30 @@ def side_and_back(scene):
             px - 0.07 if sx < 0 else px - 0.02, px + 0.02 if sx < 0 else px + 0.07,
             0.0, 0.34, -D / 2 - 0.3, D / 2 + 0.3)
 
-    # The back wall is not covered by the returns, so it dresses at BACK.
-    box('paint', BOARD, -W / 2, W / 2, 0.30, EAVE - 0.12, BACK - 0.016, BACK)
+    # The back wall is not covered by the returns, so it dresses at BACK: boards
+    # and battens as the wall MINUS its openings, and the loft window cased.
+    y0, y1 = 0.30, EAVE - 0.12
+    for ya, yb in bands(y0, y1, BACK_OPENINGS):
+        for xa, xb in runs(-W / 2, W / 2, cuts_at(BACK_OPENINGS, ya, yb)):
+            box('paint', BOARD, xa, xb, ya, yb, BACK - 0.016, BACK)
     n = 28
     pitch = (W - 0.36) / n
     for i in range(n + 1):
-        x0 = -W / 2 + 0.18 + i * pitch
-        box('paint', WOOD_GREY, x0 - 0.042, x0 + 0.042, 0.30, EAVE - 0.12,
-            BACK - 0.045, BACK)
+        bx = -W / 2 + 0.18 + i * pitch
+        blocked = [(o['fromFloor'] - 0.02, o['fromFloor'] + o['h'] + 0.02)
+                   for o in BACK_OPENINGS if abs(bx - o['x']) < o['w'] / 2 + 0.06]
+        for ya, yb in runs(y0, y1, blocked):
+            box('paint', WOOD_GREY, bx - 0.042, bx + 0.042, ya, yb, BACK - 0.045, BACK)
+    for o in BACK_OPENINGS:
+        ox0, ox1 = o['x'] - o['w'] / 2, o['x'] + o['w'] / 2
+        oy0, oy1 = o['fromFloor'], o['fromFloor'] + o['h']
+        z = BACK - 0.04
+        # A frame round the opening -- no pane: the kit glazes it.
+        box('paint', CREAM, o['x'] - 0.03, o['x'] + 0.03, oy0, oy1, z - 0.055, z)
+        for xx in (ox0 - 0.085, ox1 + 0.085):
+            box('paint', CREAM, xx - 0.085, xx + 0.085, oy0 - 0.06, oy1 + 0.10, z - 0.15, BACK)
+        box('paint', CREAM, ox0 - 0.20, ox1 + 0.20, oy1 + 0.10, oy1 + 0.24, z - 0.20, BACK)
+        box('paint', CREAM_DIM, ox0 - 0.20, ox1 + 0.20, oy0 - 0.14, oy0 - 0.04, z - 0.22, BACK)
     box('stone', STONE, -W / 2, W / 2, 0.0, 0.34, BACK - 0.07, BACK + 0.02)
 
     # Ghost sign on the west return, painted over the battens and weathered.
@@ -587,9 +656,12 @@ def side_and_back(scene):
     text(scene, 'wood', GREEN_DARK, '& SEED', ghost, 3.08, 0.1, 0.44, 0.012, 1.12, plane='west')
     text(scene, 'wood', GREEN_DARK, 'SILVER CREEK', ghost, 2.30, 0.1, 0.24, 0.012, 1.12, plane='west')
 
-    # A stovepipe over the back, so the roofline is not a bare edge.
-    cylinder('iron', IRON, -W / 2 + 1.5, EAVE - 0.2, -D / 2 + 1.4, 0.10, 1.35)
-    cylinder('iron', TIN, -W / 2 + 1.5, EAVE + 1.15, -D / 2 + 1.4, 0.145, 0.12)
+    # The stovepipe through the roof, directly over the sales-floor stove
+    # (STORE.STOVE) that interior.py pipes up through the loft. It used to stand
+    # beside the stair with no stove under it.
+    fl = STORE['STOVE']['flue']
+    cylinder('iron', IRON, fl['x'], STORE['UPPER_CEIL'] + 0.02, fl['z'], 0.10, 1.40)
+    cylinder('iron', TIN, fl['x'], STORE['UPPER_CEIL'] + 1.42, fl['z'], 0.145, 0.12)
 
 
 # ------------------------------------------------------------------ plumbing

@@ -16,6 +16,8 @@ import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
 import { saloonInterior } from "./buildings/saloon.js";
 import { hotelInterior } from "./buildings/hotel.js";
+import { storeInterior } from "./buildings/store.js";
+import { sheriffInterior } from "./buildings/sheriff.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -135,44 +137,6 @@ function solidBox(group, x, z, w, d) {
 // Local frame: +Z is the door side. A piece's front (+Z) at yaw 0 faces the
 // door; yaw PI/2 turns it to +X, -PI/2 to -X, PI to the back wall.
 
-function addSheriffProps(lot, wood, dark) {
-  const { w, d, group } = lot;
-  furnish(group, "desk", 0.2, atDepth(d, d * 0.42), 0, { sx: 1.25, solid: [1.9, 0.85] });
-  furnish(group, "chair", 0.2, atDepth(d, d * 0.42 + 0.75), 0);
-  furnish(group, "gun_rack", w * 0.5 - 0.35, atDepth(d, d * 0.28), -Math.PI / 2);
-
-  const barT = 0.07;
-  const barH = lot.h * 0.78;
-  const cellFront = d * 0.55;
-  const cellBack = d - 0.45;
-  const cellHalf = w * 0.5 - 0.55;
-  const openFrom = cellHalf - 1.05;
-  const spacing = 0.26;
-  for (let across = -cellHalf; across <= cellHalf + 0.01; across += spacing) {
-    if (across > openFrom && across < cellHalf) {
-      continue;
-    }
-    box(group, across, 0, atDepth(d, cellFront), barT, barH, barT, dark);
-  }
-  for (let depth = cellFront; depth < cellBack; depth += spacing) {
-    box(group, -cellHalf, 0, atDepth(d, depth), barT, barH, barT, dark);
-    box(group, cellHalf, 0, atDepth(d, depth), barT, barH, barT, dark);
-  }
-  furnish(group, "cot", -cellHalf + 0.55, atDepth(d, (cellFront + cellBack) / 2), Math.PI / 2);
-}
-
-function addStoreProps(lot) {
-  const { w, d, group } = lot;
-  furnish(group, "bar_counter", 0.15, atDepth(d, d * 0.72), 0, { sx: 0.8, solid: [3.2, 0.7] });
-
-  const shelfAcross = w * 0.5 - 0.42;
-  for (const side of [-1, 1]) {
-    for (const depth of [2.4, 4.1, 5.8]) {
-      furnish(group, "shelf_goods", side * shelfAcross, atDepth(d, depth), -side * Math.PI / 2, { solid: [0.35, 1.55] });
-    }
-  }
-}
-
 function addChurchProps(lot) {
   const { d, group } = lot;
   const altarDepth = d * 0.82;
@@ -188,12 +152,11 @@ function addChurchProps(lot) {
   furnish(group, "pulpit", 1.85, atDepth(d, altarDepth - 0.9), 0, { solid: [0.58, 0.58] });
 }
 
-// The hotel is not here: hotelInterior() (src/buildings/hotel.js) builds its
-// two storeys from the authored model. Its old procedural props climbed a
-// four-box "stair" to 0.88 m under a 2.7 m ceiling.
+// The hotel, the store and the sheriff are not here: their interiors are
+// authored models. The hotel's old props climbed a four-box "stair" to 0.88 m
+// under a 2.7 m ceiling; the store's stood under a facade loft door that
+// opened onto nothing; the sheriff's cell bars collided with nothing.
 const PROPS = {
-  sheriff: addSheriffProps,
-  store: addStoreProps,
   church: addChurchProps
 };
 
@@ -248,6 +211,12 @@ export function createInteriors(scene, maps = {}) {
     }
     if (lot.name === "hotel") {
       hotelInterior(lot, maps, wood);
+    }
+    if (lot.name === "store") {
+      storeInterior(lot, maps, wood);
+    }
+    if (lot.name === "sheriff") {
+      sheriffInterior(lot, maps);
     }
   }
   scene.add(group);

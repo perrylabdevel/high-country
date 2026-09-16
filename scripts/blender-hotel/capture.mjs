@@ -43,12 +43,46 @@ const browser = await chromium.launch(launchOptions());
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on("pageerror", (e) => { if (!/pointer lock/i.test(e.message)) errors.push(e.message); });
-await page.goto("http://127.0.0.1:8765/?dev", { waitUntil: "domcontentloaded", timeout: 60000 });
+// CAPTURE_BASE picks the server. A default port can be held by a server for a
+// different checkout, and the capture then shows that checkout's build
+// without any error -- the store interior's first capture was the old store.
+const BASE = process.env.CAPTURE_BASE || "http://127.0.0.1:8765";
+await page.goto(`${BASE}/?dev`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForFunction(() => document.getElementById("btn-enter"), null, { timeout: 90000 });
 await page.waitForTimeout(4000);
 await page.evaluate(() => document.getElementById("btn-enter")?.click());
 await page.waitForTimeout(5000);
 await page.evaluate(() => window.__captureMode(true));
+
+// Pin the conditions, as capture-poi.mjs does. These scripts first ran with the
+// weather and sun left to boot: the hotel lobby measured mean luma 53 in one
+// pass and 12.7 in the next with byte-identical models -- an interior lit
+// through its windows swings 4x with overcast or a low sun while the street
+// barely moves. Poll for the late-assigned hook, force, then VERIFY what took
+// (HARD_WON 4: a manifest records what was requested, never what took).
+const WEATHER = process.env.CAPTURE_WEATHER || "clear";
+const LIGHT = { midday: { hdri: "midday", elevation: 62, azimuth: -120 },
+  golden: { hdri: "golden", elevation: 9, azimuth: -78 } }[process.env.CAPTURE_LIGHT || "midday"];
+if (!LIGHT) throw new Error(`unknown CAPTURE_LIGHT ${process.env.CAPTURE_LIGHT}`);
+let hook = false;
+for (let i = 0; i < 240 && !hook; i += 1) {
+  hook = await page.evaluate(() => typeof window.__weatherForce === "function" && Boolean(window.__materialSettings));
+  if (!hook) await page.waitForTimeout(500);
+}
+if (!hook) throw new Error("weather/material hooks never appeared within 120s; conditions cannot be pinned");
+await page.evaluate((s) => window.__weatherForce(s), WEATHER);
+const weatherNow = await page.evaluate(() => window.__weatherState());
+if (weatherNow !== WEATHER) throw new Error(`weather force did not take: asked ${WEATHER}, page reports ${weatherNow}`);
+await page.evaluate((l) => {
+  Object.assign(window.__materialSettings, { hdri: l.hdri, sunElevation: l.elevation, sunAzimuth: l.azimuth });
+  window.__syncMaterialSettings();
+}, LIGHT);
+const lightNow = await page.evaluate(() => ({ hdri: window.__materialSettings.hdri,
+  elevation: window.__materialSettings.sunElevation, azimuth: window.__materialSettings.sunAzimuth }));
+if (lightNow.hdri !== LIGHT.hdri || lightNow.elevation !== LIGHT.elevation || lightNow.azimuth !== LIGHT.azimuth) {
+  throw new Error(`light did not take: asked ${JSON.stringify(LIGHT)}, page reports ${JSON.stringify(lightNow)}`);
+}
+await page.waitForTimeout(800);
 const info = await page.evaluate(() => window.__captureInfo?.());
 if (info?.backend !== "webgpu") throw new Error(`backend ${info?.backend}`);
 await mkdir(OUT, { recursive: true });
@@ -64,5 +98,5 @@ for (const [name, pose] of Object.entries(POSES)) {
   await page.screenshot({ path: `${OUT}/${name}.png` });
   console.log("captured", name);
 }
-await writeFile(`${OUT}/capture.json`, JSON.stringify({ info, errors, poses: POSES }, null, 2));
+await writeFile(`${OUT}/capture.json`, JSON.stringify({ info, errors, weather: weatherNow, light: lightNow, poses: POSES }, null, 2));
 await browser.close();

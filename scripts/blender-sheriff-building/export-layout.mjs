@@ -1,5 +1,5 @@
 /**
- * Write the store lot's world frame to layout.json for capture.mjs.
+ * Write the sheriff lot's world frame to layout.json for capture.mjs.
  *
  * The lot is placed by the street builder, not by hand: its world x/z, yaw and
  * seated floor all fall out of the row's spacing and the terrain under it. So
@@ -21,16 +21,16 @@ const { bakeHeightfield } = await import("../../src/heightfield.js");
 const { clearColliders } = await import("../../src/collision.js");
 const { createLandmarks, ENTERABLE_LOTS } = await import("../../src/landmarks.js");
 const { createInteriors } = await import("../../src/interiors.js");
-const { STORE } = await import("../../src/buildings/store.js");
+const { SHERIFF_REMODEL } = await import("../../src/buildings/sheriff.js");
 
 bakeHeightfield();
 clearColliders();
 createLandmarks(new THREE.Scene());
 createInteriors(new THREE.Scene());
-const lot = ENTERABLE_LOTS.find((l) => l.name === "store");
-if (!lot) throw new Error("store lot missing");
+const lot = ENTERABLE_LOTS.find((l) => l.name === "sheriff");
+if (!lot) throw new Error("sheriff lot missing");
 
-// Every kit wall frame with its openings, in lot-local metres. store.py and
+// Every kit wall frame with its openings, in lot-local metres. sheriff_building.py and
 // interior.py cut their siding and finishes round these, so the authored work
 // cannot disagree with the apertures the kit actually cuts.
 lot.group.updateMatrixWorld(true);
@@ -43,7 +43,7 @@ lot.group.traverse((o) => {
 });
 
 const layout = {
-  generator: "scripts/blender-store/export-layout.mjs",
+  generator: "scripts/blender-sheriff-building/export-layout.mjs",
   walls,
   lot: {
     x: lot.x,
@@ -54,7 +54,7 @@ const layout = {
     d: lot.d,
     h: lot.h
   },
-  store: STORE
+  sheriff: SHERIFF_REMODEL
 };
 const target = new URL("./layout.json", import.meta.url);
 await writeFile(target, JSON.stringify(layout, null, 2));

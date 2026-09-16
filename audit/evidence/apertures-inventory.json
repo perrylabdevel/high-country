@@ -1,16 +1,16 @@
 {
   "summary": {
-    "total": 147,
+    "total": 149,
     "byKind": {
       "door": 73,
-      "window": 68,
+      "window": 70,
       "barn": 2,
       "bay": 1,
       "gate": 3
     },
     "byState": {
       "traversable": 63,
-      "window": 68,
+      "window": 70,
       "shell": 16
     },
     "failures": 0
@@ -1677,6 +1677,34 @@
       }
     },
     {
+      "id": "store.back.window.0",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.9,
+      "height": 1.1,
+      "fromFloor": 4.05,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 1.1
+      },
+      "center": {
+        "x": 236.2,
+        "y": 20.68,
+        "z": -186.92
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
+      }
+    },
+    {
       "id": "store.front.door.1",
       "poi": "silverCreek",
       "kind": "door",
@@ -1755,6 +1783,34 @@
         "x": 0.14943813247359922,
         "y": 0,
         "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "store.back.window.1",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 0.9,
+      "height": 1.1,
+      "fromFloor": 4.05,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 1.1
+      },
+      "center": {
+        "x": 236.22,
+        "y": 20.68,
+        "z": -187.03
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
       }
     },
     {

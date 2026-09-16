@@ -16,8 +16,9 @@ globalThis.document = {
   })
 };
 
-const { bakeHeightfield } = await import("../src/heightfield.js");
-const { clearColliders, movementBlocked } = await import("../src/collision.js");
+const { bakeHeightfield, heightAt } = await import("../src/heightfield.js");
+const { clearColliders, deckHeightAt, moveAndSlide, movementBlocked } = await import("../src/collision.js");
+const { interiorCeilingAt } = await import("../src/buildings/kit.js");
 const { createLandmarks, ENTERABLE_LOTS } = await import("../src/landmarks.js");
 const { createInteriors } = await import("../src/interiors.js");
 const { STORE } = await import("../src/buildings/store.js");
@@ -122,6 +123,133 @@ const overhead = lot.group.userData.placementY + STORE.awningHeight + 0.5;
 assert.equal(walkTo(STORE.awningPosts[0].x, STORE.awningPosts[0].z + 0.7,
   STORE.awningPosts[0].z, overhead), false,
   "store awning post collider extends above the awning and fences the boardwalk");
+
+// ---------------------------------------------------------------------------
+// The storeys: a sales floor and a storage loft behind the facade's loft door.
+const { FLOOR, CEIL, UPPER, UPPER_CEIL, INNER, STAIR, LOFT_RAIL, LOFT_GATE, COUNTER } = STORE;
+const st = lot.group;
+const py = st.userData.placementY;
+assert.ok(CEIL >= 2.3 && CEIL <= 3.2, `store ceiling ${CEIL} breaks the 2.3-3.2 invariant`);
+assert.ok(Math.abs(UPPER - CEIL - 0.24) < 1e-9, "store loft floor is not the ceiling plus its structure");
+const rise = (UPPER - FLOOR) / STAIR.risers;
+assert.ok(rise >= 0.165 && rise <= 0.2, `store stair riser ${rise.toFixed(3)} outside 165-200 mm`);
+assert.ok(STAIR.z0 - -INNER.z >= 0.9 && INNER.z - STAIR.z1 >= 0.9, "store stair lacks a landing");
+assert.ok(UPPER_CEIL - UPPER >= 2.0, `store loft headroom ${(UPPER_CEIL - UPPER).toFixed(2)}`);
+// The loft ceiling boards have to sit under the kit's roof, whose flat
+// underside is at 5.74, or they are inside it.
+assert.ok(UPPER_CEIL + 0.02 < 5.74, `store loft ceiling ${UPPER_CEIL} is inside the kit roof`);
+// The loading gate must stay out of the street door's column, which
+// check-interiors and check-buildings probe height-blind.
+for (const r of LOFT_GATE) {
+  const acrossDoor = r.x0 < 0.42 && r.x1 > -0.42;
+  assert.ok(!acrossDoor || r.z1 < 2.28, `store loft gate crosses the street door's probe (${JSON.stringify(r)})`);
+}
+
+// The authored flue has to meet the cookstove model's own pipe, wherever the
+// stove stands and however it is turned (rotation.y = yaw maps model +Z to +X).
+{
+  const { x, z, yaw, flueModel: m, flue } = STORE.STOVE;
+  const fx = x + m.x * Math.cos(yaw) + m.z * Math.sin(yaw);
+  const fz = z - m.x * Math.sin(yaw) + m.z * Math.cos(yaw);
+  assert.ok(Math.hypot(fx - flue.x, fz - flue.z) < 0.01,
+    `store flue ${JSON.stringify(flue)} is not over the cookstove model's pipe (${fx.toFixed(2)}, ${fz.toFixed(2)})`);
+}
+
+const interior = st.children.find((c) => c.name === "generalStoreInterior");
+assert.ok(interior, "store interior not attached to its lot");
+const inner = interior.children;
+const ibox = new THREE.Box3();
+for (const m of inner) { m.geometry.computeBoundingBox(); ibox.union(m.geometry.boundingBox); }
+assert.ok(ibox.min.x > -INNER.x - 0.01 && ibox.max.x < INNER.x + 0.01 &&
+  ibox.min.z > -INNER.z - 0.23 && ibox.max.z < INNER.z + 0.34,
+  `store interior leaves the shell ${JSON.stringify(ibox)}`);
+assert.ok(ibox.min.y > FLOOR - 0.1 && ibox.max.y < UPPER_CEIL + 0.1, `store interior height ${ibox.min.y}..${ibox.max.y}`);
+
+const w3 = (x, z) => new THREE.Vector3(x, 0, z).applyMatrix4(st.matrixWorld);
+const probe = new THREE.Raycaster();
+const boards = inner.filter((m) => !m.name.endsWith(".fabric"));
+// Three samples 5 cm apart, keeping the highest: floorboards are 0.14 m wide
+// with 3 mm gaps, and a single ray that lands in a gap (the store's loft probe
+// at x 2.03 hit a board edge at 2.029) falls through to the ceiling below.
+const surface = (x, z, fromY) => {
+  let best = null;
+  for (const dx of [-0.05, 0, 0.05]) {
+    const p = w3(x + dx, z);
+    probe.set(new THREE.Vector3(p.x, py + fromY, p.z), new THREE.Vector3(0, -1, 0));
+    probe.far = 0.6;
+    const hit = probe.intersectObjects(boards, false)[0];
+    if (hit && (best === null || hit.point.y - py > best)) best = hit.point.y - py;
+  }
+  return best;
+};
+for (const [x, z, y, label] of [
+  [0, 0, FLOOR, "sales floor"], [-2.0, 2.6, FLOOR, "sales floor by the window"], [0.5, -2.9, FLOOR, "sales floor at the back"],
+  [2.0, 1.0, UPPER, "loft"], [-2.5, -2.5, UPPER, "loft over the back"], [3.0, -1.0, UPPER, "loft east"]
+]) {
+  const top = surface(x + 0.03, z + 0.05, y + 0.3);
+  assert.ok(top !== null && Math.abs(top - y) < 0.012, `store ${label}: boards at ${top} not ${y}`);
+  const p = w3(x, z);
+  assert.ok(Math.abs(deckHeightAt(p.x, p.z, py + y + 0.1, 0.4) - py - y) < 0.012, `store ${label}: deck does not register the boards`);
+}
+const tread = (STAIR.z1 - STAIR.z0) / (STAIR.risers - 1);
+for (let k = 1; k < STAIR.risers; k += 1) {
+  const z = STAIR.z0 + (k - 0.5) * tread;
+  const y = FLOOR + k * rise;
+  const top = surface((STAIR.x0 + STAIR.x1) / 2, z, y + 0.3);
+  assert.ok(top !== null && Math.abs(top - y) < 0.012, `store tread ${k} at ${top} not ${y}`);
+  const p = w3((STAIR.x0 + STAIR.x1) / 2, z);
+  assert.ok(Math.abs(deckHeightAt(p.x, p.z, py + y, 0.4) - py - y) <= rise / 2 + 0.01, `store tread ${k} off the stair ramp`);
+}
+for (const [x, z, y, ceil, label] of [[0, 0, FLOOR, CEIL, "sales floor"], [2.0, 1.0, UPPER, UPPER_CEIL, "loft"]]) {
+  const p = w3(x, z);
+  probe.set(new THREE.Vector3(p.x, py + y + 1.5, p.z), new THREE.Vector3(0, 1, 0));
+  probe.far = 3.5;
+  const hit = probe.intersectObjects(inner, false)[0];
+  assert.ok(hit && Math.abs(hit.point.y - py - ceil) < 0.07, `store ${label}: ceiling at ${hit && hit.point.y - py}, not ${ceil}`);
+  assert.ok(Math.abs(interiorCeilingAt(p.x, p.z, py + y) - py - ceil) < 0.01,
+    `store ${label}: camera ceiling ${interiorCeilingAt(p.x, p.z, py + y) - py}`);
+}
+{
+  const [wx0, wx1, wz0, wz1] = STAIR.well;
+  const p = w3((wx0 + wx1) / 2, (wz0 + wz1) / 2);
+  assert.ok(Math.abs(interiorCeilingAt(p.x, p.z, py + 2) - py - UPPER_CEIL) < 0.01, "store camera still ducks under the loft over the stairwell");
+}
+
+function stroll(path, label, blocked = false) {
+  const start = w3(...path[0]);
+  const w = { x: start.x, z: start.z, y: Math.max(heightAt(start.x, start.z), deckHeightAt(start.x, start.z, py + 0.5, 1.4)) };
+  let t;
+  for (const [lx, lz] of path.slice(1)) {
+    t = w3(lx, lz);
+    for (let i = 0; i < 1600; i += 1) {
+      const dx = t.x - w.x;
+      const dz = t.z - w.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.06) break;
+      const s = Math.min(0.05, d);
+      const n = moveAndSlide(w.x, w.z, (dx / d) * s, (dz / d) * s, 0.42, null, w.y);
+      const ground = Math.max(heightAt(n.x, n.z), deckHeightAt(n.x, n.z, w.y, 0.45));
+      if (ground > w.y + 0.3) break;
+      w.x = n.x; w.z = n.z; w.y = ground;
+    }
+  }
+  const off = Math.hypot(t.x - w.x, t.z - w.z);
+  if (blocked) assert.ok(off > 0.3, `walker got into ${label}`);
+  else assert.ok(off < 0.3, `walker could not reach ${label} (off by ${off.toFixed(2)})`);
+  return w.y - py;
+}
+const salesY = stroll([[0, 6.0], [0, 4.2], [0, 1.0], [-1.0, 0.0]], "the sales floor through the street door");
+assert.ok(Math.abs(salesY - FLOOR) < 0.02, `walker stands at ${salesY} on the sales floor`);
+const sx = (STAIR.x0 + STAIR.x1) / 2;
+const climb = [[0, 6.0], [0, 2.5], [-2.8, -2.85], [sx, -2.85], [sx, 1.6], [sx, 2.8]];
+const topY = stroll(climb, "the top of the loft stair");
+assert.ok(Math.abs(topY - UPPER) < 0.02, `walker at the stair top stands at ${topY}, not ${UPPER}`);
+const loftY = stroll([...climb, [-2.5, 2.8], [-2.5, 1.4], [2.0, 1.4], [2.0, -1.8]], "the back of the loft");
+assert.ok(Math.abs(loftY - UPPER) < 0.02, `walker in the loft stands at ${loftY}, not ${UPPER}`);
+stroll([[0, 6.0], [0, 2.5], [-2.8, 0.2], [sx, 0.2]], "the space under the stair", true);
+stroll([...climb, [-2.5, 2.8], [-2.5, 0.5], [sx, 0.5]], "a fall into the stairwell from the loft", true);
+stroll([...climb, [-2.5, 2.8], [-2.5, 1.4], [0, 1.4], [0, 4.6]], "the street through the closed loft door", true);
+stroll([[0, 6.0], [0, 0.5], [1.6, 0.5], [3.6, 0.5]], "the clerk's side through the counter", true);
 
 const triangles = model.children.reduce((sum, mesh) => sum + mesh.geometry.index.count / 3, 0);
 console.log(JSON.stringify({

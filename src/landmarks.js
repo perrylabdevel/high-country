@@ -527,7 +527,7 @@ export function createLandmarks(scene, maps = {}) {
     // Like the saloon, the store's facade is Blender-authored
     // (src/buildings/store.js) and carries its own painted sign board, so it
     // takes no street sign stand.
-    { name: "store", w: 9.5, h: 5.8, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: STORE.frontWindows },
+    { name: "store", w: 9.5, h: 5.8, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: STORE.frontWindows, backWindows: STORE.backWindows, storeys: true },
     { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
     // The saloon's facade is Blender-authored (src/buildings/saloon.js) and
     // carries its own painted sign, so it takes no street sign stand.

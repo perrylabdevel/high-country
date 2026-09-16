@@ -917,6 +917,28 @@ the runtime model envelope and the matching procedural aperture contract.
 
 ---
 
+### 3.9 A pale shell hides a gappy finish (2026-09-16)
+
+The shared interior kit (`scripts/blender-kit/interior_kit.py`) had two holes
+in its wall finish that the hotel and the store never showed, because their kit
+shells are pale siding under pale paper. The sheriff's shell is stone, and in
+game every front opening was framed in grey rock:
+
+- `finish_wall` dropped a whole paper panel (0.3 m) or beadboard (0.11 m)
+  wherever one touched an opening, not just the part over it.
+- `casing` has side boards and a head cap starting 0.13 m over the opening,
+  but nothing across that band, so the wall over every head was bare.
+
+Blender could not show either: it has no kit wall behind the finish, and a
+missing panel reads as dark background next to a dark window. `check:sheriff`
+now casts rays from 1 m into the room at every wall, on a 10 cm grid from floor
+to ceiling, and fails if the first surface hit is kit rather than authored
+finish, except through a real opening. Cast three rays 1 cm apart: one ray down
+a beadboard groove reads the groove as a missing board. The fix is opt-in
+(`finish_wall(..., exact=True)` plus a head board in the sheriff's own script),
+so the hotel and store exports stay byte-identical. Their gaps are still
+there, only hidden.
+
 ## 4. Tooling and capture
 
 - **The title overlay swallows synthetic clicks.** Dispatch
@@ -955,6 +977,31 @@ the runtime model envelope and the matching procedural aperture contract.
   took. `capture-poi.mjs` now polls for the hook (120 s budget) and verifies
   the `__weatherState()` readback, failing loudly on either. Any new
   page-side hook a capture depends on needs the same poll-then-verify.
+
+- **A git worktree has no art, and nothing says so (2026-09-16).** Textures are
+  deliberately kept out of git (`public/textures/`, `public/basis/`), so a fresh
+  worktree builds and runs without them. Every material silently falls back to
+  flat colour, with no page error: a store interior captured at mean luma 9.8
+  looked like a lighting defect, and the hotel lobby measured 12.7 against 53.0
+  for byte-identical models. Link the main checkout's `public/textures` and
+  `public/basis` into the worktree, and confirm by content — a texture served
+  at its exact byte size. The symlinks are not covered by `public/textures/`
+  in `.gitignore` (a trailing slash matches a real directory only), so exclude
+  them locally or they are one `git add -A` from being committed.
+- **The capture server can be serving a different checkout (2026-09-16).**
+  `vite preview` takes its root from the process's working directory, which was
+  not the worktree it was launched from; and the default port 8765 was already
+  held by a server for the main checkout, so a `--strictPort` launch failed
+  silently and the capture showed the old store. Pass the root explicitly
+  (`vite preview <root>`), set `CAPTURE_BASE` in the building capture scripts,
+  and verify by content: fetch the served entry bundle and grep it for a symbol
+  only the new build has. Process metadata (`lsof` cwd) and asset file names
+  both misled at least once; a 1,890-byte "bundle" was the SPA fallback page.
+- **Pin weather and sun in every capture, not just `capture-poi` (2026-09-16).**
+  The per-building capture scripts left them to boot. An interior lit through
+  its windows swings several times over while the street barely moves, so the
+  building scripts now poll for the hooks, force clear/midday, and verify what
+  took, as `capture-poi.mjs` does.
 
 ---
 

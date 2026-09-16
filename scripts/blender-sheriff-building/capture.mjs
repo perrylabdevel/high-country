@@ -1,6 +1,7 @@
-/** WebGPU captures of the general store from lot-local poses (x across the
- * facade, +z toward the street). Needs `npm run build` and a preview on :8765.
- *   node scripts/blender-store/capture.mjs audit/store/current [pose...]
+/** WebGPU captures of the sheriff's office from lot-local poses (x across the
+ * facade, +z toward the street). Needs `npm run build` and a preview; set
+ * CAPTURE_BASE to it.
+ *   node scripts/blender-sheriff-building/capture.mjs audit/sheriff-interior/current [pose...]
  * Run export-layout.mjs first if the lot or the row moved.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -10,25 +11,19 @@ import { launchOptions } from "../probe/drive.mjs";
 
 const { lot: LOT } = JSON.parse(readFileSync(new URL("./layout.json", import.meta.url)));
 const c = Math.cos(LOT.yaw), sn = Math.sin(LOT.yaw);
-const OUT = process.argv[2] || "audit/store/current";
+const OUT = process.argv[2] || "audit/sheriff-interior/current";
 const only = process.argv.slice(3);
 
-// EYE = 1.62 above the floor stood on (HARD_WON 5): 0.10 + 1.62 on the sales
-// floor and the boardwalk, UPPER 3.44 + 1.62 = 5.06 in the loft.
-const G = 0.10 + 1.62;
-const U = 3.44 + 1.62;
+// EYE = 1.62 above the floor stood on (HARD_WON 5): FLOOR 0.08 + 1.62.
+const G = 0.08 + 1.62;
 export const POSES = {
-  street: { cam: [-8.5, G, 16], at: [0.5, 4.6, 3] },
-  boardwalk: { cam: [-4.6, G, 6.4], at: [3.4, 2.2, 5.2] },
-  display: { cam: [-1.2, G, 6.6], at: [-2.8, 1.6, 4.2] },
-  back: { cam: [2.0, G, -14], at: [0.0, 3.0, -4.0] },
-  // Sales floor.
-  shop: { cam: [-0.4, G, 3.2], at: [1.6, 1.6, -3.0] },
-  counter: { cam: [-1.8, G, 0.8], at: [4.2, 1.5, -0.6] },
-  stair: { cam: [-2.4, G, -3.2], at: [-4.03, 3.2, 1.4] },
-  // Loft.
-  loft: { cam: [-3.2, U, 2.9], at: [3.5, 4.3, -2.2] },
-  gate: { cam: [2.6, U, 0.6], at: [0.0, 4.5, 3.6] }
+  street: { cam: [-7.5, G, 15], at: [0.5, 3.5, 3] },
+  roof: { cam: [10, 7.5, -11], at: [2.0, 4.8, -2.0] },
+  office: { cam: [3.6, G, 3.3], at: [-2.6, 1.2, -2.6] },
+  cells: { cam: [0.6, G, 0.4], at: [-3.8, 1.1, -1.0] },
+  desk: { cam: [-1.0, G, 3.0], at: [3.6, 1.3, -2.8] },
+  door: { cam: [2.2, G, -2.0], at: [-1.6, 1.4, 3.8] },
+  inCell: { cam: [-3.2, G, -3.3], at: [1.5, 1.3, 1.0] }
 };
 
 const browser = await chromium.launch(launchOptions());

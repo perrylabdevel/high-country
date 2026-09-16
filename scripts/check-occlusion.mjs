@@ -107,8 +107,13 @@ for (const [lotName, groupName] of Object.entries(AUTHORED)) {
   };
   lot.group.traverse((o) => {
     if (!o.isMesh || underRoof(o)) return;
-    // The authored group is not an occluder of itself.
-    for (let p = o; p; p = p.parent) if (p === authored) return;
+    // Authored geometry is not an occluder: neither the group under test nor an
+    // authored interior. The store's interior was first counted as kit, and
+    // because a batch's bounding box spans the whole room it "buried" the
+    // display goods standing behind the glass.
+    for (let p = o; p; p = p.parent) {
+      if (p === authored || (p.parent === lot.group && /Interior$/.test(p.name))) return;
+    }
     o.geometry.computeBoundingBox();
     const b = o.geometry.boundingBox.clone();
     b.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld));

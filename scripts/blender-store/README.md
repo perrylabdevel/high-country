@@ -62,6 +62,48 @@ The runtime multiplies the batch texture by that tint and `store.py` puts the
 colour renders every tint identically and cannot be used to judge the paint at
 all.
 
+## The loft and the interior
+
+The facade always carried a loft door and a hoist beam over a void: a 2.7 m
+shop ceiling with nothing above it until the roof's flat underside at 5.74. The
+store now has a storage loft behind that door, on the saloon's and hotel's
+section — ceiling 3.20 (within `check:buildings`' 2.3–3.2 invariant), loft
+floor 3.44, loft ceiling 5.62 just under the roof — and an authored interior to
+the saloon's depth:
+
+- **Sales floor:** beadboard wainscot and painted board walls cased round the
+  display windows and the door; a beaded ceiling open over the stair; the
+  18-riser stair up the west wall, clear of the display nook; the counter with a
+  glazed show case, brass scale and cash register; floor-to-ceiling shelving
+  behind it and along the back wall, stocked with tins, jars, crocks, boxes and
+  bolts of cloth; the cookstove and its flue; hanging lamps.
+- **Loft:** boards round the well, a rail along its open edges, a loading gate
+  round the loft door, the inside of that door with its bar and hoist rope, a
+  back window, stock.
+
+`interior.py` builds on the shared kit, `scripts/blender-kit/interior_kit.py`,
+extracted from the hotel's interior. That refactor was accepted only because
+the hotel re-exported through it byte-identically. Run order:
+`export-layout.mjs`, then `store.py`, then `interior.py`.
+
+### Traps this interior hit
+
+- **A loft needs a rail, and a closed loft door needs more.** The kit's street
+  wall collider has a 3 m gap for the ground doorway, full height, so a walker
+  in the loft could pass through the closed loft door and drop onto the awning.
+  A wall collider across it is not allowed: `check-interiors` and
+  `check-buildings` probe the street door **height-blind**, so no collider at
+  any height may cross the door's column. A loading gate round the loft door's
+  bay does the job without crossing it; `check:store` asserts it stays clear.
+- **Measure a prop before building to it.** The cookstove model is one merged
+  mesh with its own flue, measured from its vertices at (0.350, −0.210) in its
+  frame. The authored pipe first rose from the stove's centre — two pipes side
+  by side. It now continues from the model's pipe top, the roof pipe from the
+  same point, and `check:store` recomputes the rotation.
+- **A display backboard to the window head blinds the window from inside.** It
+  now stops above the goods, leaving ~0.7 m of glass to see the street through.
+- **`wool_sacks` stand as tall pale cocoons indoors.** Crates and barrels instead.
+
 ## Checks and captures
 
 `npm run check:store` guards the fit offline.
