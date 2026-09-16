@@ -16,6 +16,7 @@ import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addLocalPropSpot, clearPropSpots } from "./propSpots.js";
 import { saloonInterior } from "./buildings/saloon.js";
 import { hotelInterior } from "./buildings/hotel.js";
+import { storeInterior } from "./buildings/store.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -161,18 +162,6 @@ function addSheriffProps(lot, wood, dark) {
   furnish(group, "cot", -cellHalf + 0.55, atDepth(d, (cellFront + cellBack) / 2), Math.PI / 2);
 }
 
-function addStoreProps(lot) {
-  const { w, d, group } = lot;
-  furnish(group, "bar_counter", 0.15, atDepth(d, d * 0.72), 0, { sx: 0.8, solid: [3.2, 0.7] });
-
-  const shelfAcross = w * 0.5 - 0.42;
-  for (const side of [-1, 1]) {
-    for (const depth of [2.4, 4.1, 5.8]) {
-      furnish(group, "shelf_goods", side * shelfAcross, atDepth(d, depth), -side * Math.PI / 2, { solid: [0.35, 1.55] });
-    }
-  }
-}
-
 function addChurchProps(lot) {
   const { d, group } = lot;
   const altarDepth = d * 0.82;
@@ -188,12 +177,12 @@ function addChurchProps(lot) {
   furnish(group, "pulpit", 1.85, atDepth(d, altarDepth - 0.9), 0, { solid: [0.58, 0.58] });
 }
 
-// The hotel is not here: hotelInterior() (src/buildings/hotel.js) builds its
-// two storeys from the authored model. Its old procedural props climbed a
-// four-box "stair" to 0.88 m under a 2.7 m ceiling.
+// The hotel and the store are not here: hotelInterior() and storeInterior()
+// build their storeys from authored models. The hotel's old props climbed a
+// four-box "stair" to 0.88 m under a 2.7 m ceiling; the store's stood under a
+// facade loft door that opened onto nothing.
 const PROPS = {
   sheriff: addSheriffProps,
-  store: addStoreProps,
   church: addChurchProps
 };
 
@@ -248,6 +237,9 @@ export function createInteriors(scene, maps = {}) {
     }
     if (lot.name === "hotel") {
       hotelInterior(lot, maps, wood);
+    }
+    if (lot.name === "store") {
+      storeInterior(lot, maps, wood);
     }
   }
   scene.add(group);

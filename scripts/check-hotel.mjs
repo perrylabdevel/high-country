@@ -178,18 +178,24 @@ assert.ok(ibox.min.y > FLOOR - 0.1 && ibox.max.y < UPPER_CEIL + 0.1,
   `hotel interior height ${ibox.min.y}..${ibox.max.y}`);
 
 const w3 = (x, z) => new THREE.Vector3(x, 0, z).applyMatrix4(st.matrixWorld);
-const down = new THREE.Vector3(0, -1, 0);
 const probe = new THREE.Raycaster();
 // Probe the BOARDS, not what lies on them. Rugs are 12 mm of fabric dressing
 // on the floor -- a walker's feet sit in them, as they would -- so a probe that
 // read the rug reported the lobby floor at 0.112 instead of its boards at 0.100.
 const boards = inner.filter((m) => !m.name.endsWith(".fabric"));
+// Three samples 5 cm apart, keeping the highest: floorboards are 0.14 m wide
+// with 3 mm gaps, and a single ray that lands in a gap (the store's loft probe
+// at x 2.03 hit a board edge at 2.029) falls through to the ceiling below.
 const surface = (x, z, fromY) => {
-  const p = w3(x, z);
-  probe.set(new THREE.Vector3(p.x, py + fromY, p.z), down);
-  probe.far = 0.6;
-  const hit = probe.intersectObjects(boards, false)[0];
-  return hit ? hit.point.y - py : null;
+  let best = null;
+  for (const dx of [-0.05, 0, 0.05]) {
+    const p = w3(x + dx, z);
+    probe.set(new THREE.Vector3(p.x, py + fromY, p.z), new THREE.Vector3(0, -1, 0));
+    probe.far = 0.6;
+    const hit = probe.intersectObjects(boards, false)[0];
+    if (hit && (best === null || hit.point.y - py > best)) best = hit.point.y - py;
+  }
+  return best;
 };
 // Boards where the decks say the floor is, on both storeys.
 for (const [x, z, y, label] of [
