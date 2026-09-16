@@ -33,8 +33,10 @@ export const STORE = {
   ],
   /** The stepped display nooks standing just inside the window glass. */
   displayNooks: [
-    { x: -2.75, z: 3.77, halfX: 1.14, halfZ: 0.30 },
-    { x: 2.75, z: 3.77, halfX: 1.14, halfZ: 0.30 }
+    // Behind the interior shell's inner face (z 3.78), not in the wall's
+    // reveal: store.py sets the display zf = 3.73, zb = 3.17.
+    { x: -2.75, z: 3.45, halfX: 1.14, halfZ: 0.30 },
+    { x: 2.75, z: 3.45, halfX: 1.14, halfZ: 0.30 }
   ],
   displayTop: 2.62
 };
