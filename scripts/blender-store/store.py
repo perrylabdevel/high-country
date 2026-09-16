@@ -293,8 +293,9 @@ def display_window(x):
     # Sill and its water table.
     box('wood', CREAM, x0 - 0.22, x1 + 0.22, BULK, BULK + 0.11, FRONT, z + 0.20)
 
-    # The pane itself, set back inside the casing.
-    box('glass', GLASS, x0, x1, BULK + 0.11, HEAD, z - 0.02, z + 0.005)
+    # No authored pane. The kit glazes the opening with two half-density panes
+    # (facade wall and interior shell) that read as one; a third here made the
+    # display murky and, being solid, blocked the opening outright.
     # Mullions: two verticals and a slim horizontal near the head.
     for m in (x0 + WIN_W / 3, x1 - WIN_W / 3):
         box('wood', CREAM, m - 0.035, m + 0.035, BULK + 0.11, HEAD, z, z + 0.065)
@@ -311,7 +312,11 @@ def display_window(x):
 def shop_nook(x):
     """Goods on a stepped riser just inside the display glass."""
     x0, x1 = x - WIN_W / 2 + 0.06, x + WIN_W / 2 - 0.06
-    zb, zf = FRONT - 0.62, FRONT - 0.06
+    # Inside the room, just behind the interior shell's inner face (D/2 - 0.22).
+    # It used to reach FRONT - 0.06, pushing the goods into the wall's reveal
+    # where they sat in the aperture itself rather than behind the glass.
+    zf = D / 2 - 0.22 - 0.05
+    zb = zf - 0.56
     # Two risers, back higher, so the goods read as tiered.
     box('wood', WOOD_GREY, x0, x1, BULK - 0.02, BULK + 0.16, zb, zb + 0.30)
     box('wood', WOOD_GREY, x0, x1, BULK - 0.02, BULK + 0.04, zb + 0.30, zf)

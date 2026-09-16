@@ -736,6 +736,82 @@ the rut shallower does nothing here; rut depth 0 still showed the wedges.
 `check:roads` pins drawn-versus-true height at the reporter's pose, the carve
 mirror, and seam watertightness.
 
+### 2.13 Authored trim buried inside the kit — invisible, with no error
+
+**Symptom:** a Blender-authored facade looked finished in Blender and in its
+own preview renders, and shipped a blank panel in the game. The general
+store's whole crown — frieze, MERCANTILE sign board, cornice, brackets,
+pediment — rendered as a flat dark board, and its side walls showed none of
+their battens or the FEED & SEED ghost sign. The sheriff's barred side
+windows, the detail its script says *"sell the office's jail function"*,
+never appeared at all.
+
+**Cause:** the kit does not stop at the wall planes. `falseFront` adds a board
+0.4 m proud of the facade, a cap over its top, and two returns 0.4 m proud of
+*both* side walls over the full depth and height. `gableRoof` overhangs the
+eaves by 0.45 m, and every lot's foundation is wider than its walls. Trim
+drawn against `FRONT` or `SIDE` — the obvious planes — lands inside those
+solids. Blender has no idea the kit exists, so it renders the trim; the game
+renders the kit in front of it; WebGPU raises nothing. Measured on the built
+lots: sheriff return |x| 4.60–5.00 with its jail detail at −4.81…−4.61;
+store board z 4.10–4.50 with its crown at 4.11–4.59.
+
+**Fix:** apply trim to the **outer** face of the kit part it dresses, from a
+named, measured constant rather than the wall plane (`FF`, `FF_CAP`, `RET` in
+`store.py`; `RET`, `SILL_Z` in `sheriff_building.py`). Authoring previews now
+proxy the kit's occluders to scale, because a preview that cannot see the kit
+cannot catch this. And `check:occlusion` computes it: every authored vertex
+against the kit's solid boxes in the lot's own frame, scored per batch and per
+1 m height band. Roof prisms are skipped, since authored dormers and chimneys
+are meant to cut the roof plane.
+
+**Found by:** screenshots, twice — which is the lesson. It is a point-in-box
+question (§6). Once computed, the audit found the sheriff's buried jail
+windows in seconds, on a building nobody had looked at: `iron` 63.2% buried.
+
+**Thresholds are measured, and the check was proven to fail (§3.1):**
+healthy buildings sit at ≤16% overall and ≤42% in their worst band — that 42%
+is the saloon's roof tin, which really does flash up behind the kit parapet.
+Reverting the store's crown to the facade plane took its `wood` batch from
+0.7% to 57.1% (96% in band y8–9) and failed; reverting the sheriff's `RET` to
+the wall plane failed at 80% in band y1–2. The band tier exists because the
+first injection also showed a whole-batch average **dilutes** a local defect:
+the store's `paint` reached only 16.6%, outvoted by ~1300 correctly placed
+storefront vertices.
+
+### 2.14 Authored trim covering the kit's openings — doors that render shut
+
+**Symptom:** §2.13's mirror image. Instead of trim hidden inside the kit, the
+kit's own apertures hidden behind trim. The sheriff's entrance rendered as a
+closed door; the store's display windows were murky; the hotel's entrance and
+all six of its windows were covered, so a window seen from inside looked onto
+the back of a board.
+
+**Cause:** three shapes, one mistake — drawing *across* an opening:
+- siding laid in full-width courses from one end of the wall to the other,
+  with the window casings drawn on top (hotel);
+- a solid door slab or a slab-shaped casing filling the doorway — the sheriff's
+  sat under a comment saying the door *"remains visually openable by the kit's
+  actual leaf"*, with its stiles 0.085 m inside the jambs;
+- an authored glass pane over an opening the kit already glazes with two
+  half-density panes, facade wall and interior shell, that read as one (all
+  three). A third pane muddies the view and, being solid, blocks it.
+
+**Fix:** siding is the wall *minus* its openings, split at every sill and head
+so no sliver enters a hole; casings are frames, not slabs; no authored pane
+over kit glazing; a door leaf swings beside its opening, never across it.
+`check:occlusion` computes it with the saloon's ray grid — 12 × 12 rays per
+opening from 1.2 m outside — needing 80% clear for glazing and 100% for doors.
+Unlike `check-saloon`, the rays stop 5 cm past the interior shell's inner face:
+reaching 0.6 m into the room confuses "the opening is covered" with "the room
+behind it has contents", and flags a shop display that is meant to sit behind
+the glass.
+
+**Measured:** hotel door and windows 0% → 97–100%; sheriff door and windows
+0% → 100%; store display windows 0% → 94% (mullions and lettering). The saloon
+passes unchanged. Fault-injected: letting the hotel's siding ignore its
+openings put all eight front openings back to 0%.
+
 ## 3. Verification — the expensive lessons
 
 ### 3.1 A check that cannot fail is not a check
@@ -828,6 +904,16 @@ stands; the U1 swap is the outstanding defect to fix.
 *more prominent* → *decisively readable* → *solid raised platform*, with the
 score never leaving 1. The question — is it visible from the street? — is a
 raycast, or an ID-buffer read. It is not an adjective.
+
+### 3.8 A correct GLB can hide a broken runtime export
+
+The sheriff remodel looked complete in Blender and its GLB, but the synchronous
+JSON path used by the game inverted the wrong axes while converting Blender
+coordinates back to game coordinates. Every authored vertex landed below the
+floor and behind the lot; WebGPU rendered only the procedural shell and emitted
+no error. The export must be the exact inverse of the authoring transform:
+`(x, -game_z, game_y)` back to `(x, game_y, game_z)`. `check:sheriff` now guards
+the runtime model envelope and the matching procedural aperture contract.
 
 ---
 
