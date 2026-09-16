@@ -779,6 +779,39 @@ first injection also showed a whole-batch average **dilutes** a local defect:
 the store's `paint` reached only 16.6%, outvoted by ~1300 correctly placed
 storefront vertices.
 
+### 2.14 Authored trim covering the kit's openings — doors that render shut
+
+**Symptom:** §2.13's mirror image. Instead of trim hidden inside the kit, the
+kit's own apertures hidden behind trim. The sheriff's entrance rendered as a
+closed door; the store's display windows were murky; the hotel's entrance and
+all six of its windows were covered, so a window seen from inside looked onto
+the back of a board.
+
+**Cause:** three shapes, one mistake — drawing *across* an opening:
+- siding laid in full-width courses from one end of the wall to the other,
+  with the window casings drawn on top (hotel);
+- a solid door slab or a slab-shaped casing filling the doorway — the sheriff's
+  sat under a comment saying the door *"remains visually openable by the kit's
+  actual leaf"*, with its stiles 0.085 m inside the jambs;
+- an authored glass pane over an opening the kit already glazes with two
+  half-density panes, facade wall and interior shell, that read as one (all
+  three). A third pane muddies the view and, being solid, blocks it.
+
+**Fix:** siding is the wall *minus* its openings, split at every sill and head
+so no sliver enters a hole; casings are frames, not slabs; no authored pane
+over kit glazing; a door leaf swings beside its opening, never across it.
+`check:occlusion` computes it with the saloon's ray grid — 12 × 12 rays per
+opening from 1.2 m outside — needing 80% clear for glazing and 100% for doors.
+Unlike `check-saloon`, the rays stop 5 cm past the interior shell's inner face:
+reaching 0.6 m into the room confuses "the opening is covered" with "the room
+behind it has contents", and flags a shop display that is meant to sit behind
+the glass.
+
+**Measured:** hotel door and windows 0% → 97–100%; sheriff door and windows
+0% → 100%; store display windows 0% → 94% (mullions and lettering). The saloon
+passes unchanged. Fault-injected: letting the hotel's siding ignore its
+openings put all eight front openings back to 0%.
+
 ## 3. Verification — the expensive lessons
 
 ### 3.1 A check that cannot fail is not a check

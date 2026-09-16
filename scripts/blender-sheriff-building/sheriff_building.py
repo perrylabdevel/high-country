@@ -204,8 +204,8 @@ def window(x, y0, width=1.45, height=1.18):
     x0, x1 = x - width / 2, x + width / 2
     y1 = y0 + height
     z = FRONT + 0.05
-    # Deep recess and dark glass are intentionally inset behind the casing.
-    box('glass', GLASS, x0, x1, y0, y1, z, z + 0.025)
+    # No authored pane: the kit glazes the opening (two half-density panes that
+    # read as one). A third pane here blocked the window outright.
     for xx in (x0 - 0.09, x1 + 0.09):
         box('wood', CREAM, xx - 0.065, xx + 0.065, y0 - 0.05, y1 + 0.08, z + 0.02, z + 0.15)
     box('wood', CREAM, x0 - 0.12, x1 + 0.12, y1 + 0.07, y1 + 0.20, z, z + 0.16)
@@ -260,15 +260,19 @@ def front_wall():
     for x, width, y0, height in windows:
         window(x, y0, width, height)
 
-    # Double-leaf oak door remains visually openable by the kit's actual leaf.
+    # The doorway is the kit's: it hangs the real leaf, standing open. This
+    # used to draw a solid oak slab across the whole 0.92 x 2.10 opening -- under
+    # a comment claiming the door "remains visually openable" -- with stiles
+    # 0.085 m inside the jambs, so the entrance rendered shut (0% clear). Only a
+    # frame belongs here, and it starts outside the opening.
     z = FRONT + 0.08
-    box('wood', WOOD, -0.46, 0.46, 0.0, 2.10, z, z + 0.07)
-    for xx in (-0.46, 0.46):
-        box('wood', CREAM, xx - 0.085, xx + 0.085, 0.0, 2.55, z + 0.04, z + 0.18)
+    for sx in (-1, 1):
+        box('wood', CREAM, min(sx * 0.46, sx * 0.63), max(sx * 0.46, sx * 0.63),
+            0.0, 2.55, z + 0.04, z + 0.18)
     box('wood', CREAM, -0.68, 0.68, 2.48, 2.70, z + 0.03, z + 0.18)
     box('glass', GLASS, -0.43, 0.43, 2.12, 2.45, z + 0.09, z + 0.11)
     box('wood', CREAM, -0.03, 0.03, 2.12, 2.45, z + 0.11, z + 0.17)
-    box('iron', IRON, 0.18, 0.24, 1.02, 1.10, z + 0.12, z + 0.20)
+    # (The door handle went with the slab: it would float in the open doorway.)
 
 
 def false_front():
