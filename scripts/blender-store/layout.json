@@ -1,0 +1,89 @@
+{
+  "generator": "scripts/blender-store/export-layout.mjs",
+  "lot": {
+    "x": 238.58033774150104,
+    "z": -190.60667475960776,
+    "yaw": 2.991592653589793,
+    "placementY": 16.078525623692798,
+    "w": 9.5,
+    "d": 8,
+    "h": 5.8
+  },
+  "store": {
+    "model": "scripts/blender-store/store.py",
+    "footprint": {
+      "w": 9.5,
+      "d": 8
+    },
+    "frontWindows": [
+      {
+        "x": -2.75,
+        "w": 2.4,
+        "h": 1.73,
+        "fromFloor": 0.89
+      },
+      {
+        "x": 2.75,
+        "w": 2.4,
+        "h": 1.73,
+        "fromFloor": 0.89
+      }
+    ],
+    "awningPosts": [
+      {
+        "x": -4.2,
+        "z": 5.81
+      },
+      {
+        "x": 4.2,
+        "z": 5.81
+      }
+    ],
+    "awningHeight": 2.56,
+    "boardwalkGoods": [
+      {
+        "x": -4.03,
+        "z": 4.73,
+        "halfX": 0.34,
+        "halfZ": 0.34,
+        "top": 0.86
+      },
+      {
+        "x": -3.37,
+        "z": 4.69,
+        "halfX": 0.32,
+        "halfZ": 0.32,
+        "top": 0.8
+      },
+      {
+        "x": 3.95,
+        "z": 4.71,
+        "halfX": 0.33,
+        "halfZ": 0.28,
+        "top": 0.8
+      },
+      {
+        "x": 3.03,
+        "z": 4.67,
+        "halfX": 0.36,
+        "halfZ": 0.26,
+        "top": 0.62
+      }
+    ],
+    "displayNooks": [
+      {
+        "x": -2.75,
+        "z": 3.77,
+        "halfX": 1.14,
+        "halfZ": 0.3
+      },
+      {
+        "x": 2.75,
+        "z": 3.77,
+        "halfX": 1.14,
+        "halfZ": 0.3
+      }
+    ],
+    "displayTop": 2.62
+  }
+}

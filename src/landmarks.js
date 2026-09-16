@@ -39,6 +39,7 @@ import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addPropSpot, clearPropSpots } from "./propSpots.js";
 import { createMission } from "./mission.js";
 import { attachSaloon, SALOON } from "./buildings/saloon.js";
+import { attachStore, STORE } from "./buildings/store.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -518,7 +519,10 @@ export function createLandmarks(scene, maps = {}) {
     { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
-    { name: "store", w: 9.5, h: 5.8, d: 8, sign: true, falseFront: true, falseFrontHeight: 3.2, enterable: true },
+    // Like the saloon, the store's facade is Blender-authored
+    // (src/buildings/store.js) and carries its own painted sign board, so it
+    // takes no street sign stand.
+    { name: "store", w: 9.5, h: 5.8, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: STORE.frontWindows },
     { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
     // The saloon's facade is Blender-authored (src/buildings/saloon.js) and
     // carries its own painted sign, so it takes no street sign stand.
@@ -529,6 +533,10 @@ export function createLandmarks(scene, maps = {}) {
   const saloonLot = ENTERABLE_LOTS.find((l) => l.name === "saloon");
   if (saloonLot) {
     attachSaloon(saloonLot, maps);
+  }
+  const storeLot = ENTERABLE_LOTS.find((l) => l.name === "store");
+  if (storeLot) {
+    attachStore(storeLot, maps);
   }
   street(group, { x: town.x, z: town.z - 22 }, 0.15, [
     { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },
