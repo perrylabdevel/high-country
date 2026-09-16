@@ -39,6 +39,7 @@ import { makeTexturedMat } from "./materials/texturedMat.ts";
 import { addPropSpot, clearPropSpots } from "./propSpots.js";
 import { createMission } from "./mission.js";
 import { attachSaloon, SALOON } from "./buildings/saloon.js";
+import { attachSheriff, SHERIFF_REMODEL } from "./buildings/sheriff.js";
 import { attachStore, STORE } from "./buildings/store.js";
 
 function mat(color, extra = {}) {
@@ -515,7 +516,7 @@ export function createLandmarks(scene, maps = {}) {
   const town = POS.silverCreek;
   const townYaw = 0.15;
   street(group, town, townYaw, [
-    { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 3.2 },
+    { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 3.2, windows: SHERIFF_REMODEL.frontWindows },
     { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
@@ -533,6 +534,10 @@ export function createLandmarks(scene, maps = {}) {
   const saloonLot = ENTERABLE_LOTS.find((l) => l.name === "saloon");
   if (saloonLot) {
     attachSaloon(saloonLot, maps);
+  }
+  const sheriffLot = ENTERABLE_LOTS.find((l) => l.name === "sheriff");
+  if (sheriffLot) {
+    attachSheriff(sheriffLot, maps);
   }
   const storeLot = ENTERABLE_LOTS.find((l) => l.name === "store");
   if (storeLot) {
