@@ -41,6 +41,7 @@ import { createMission } from "./mission.js";
 import { attachSaloon, SALOON } from "./buildings/saloon.js";
 import { attachSheriff, SHERIFF_REMODEL } from "./buildings/sheriff.js";
 import { attachStore, STORE } from "./buildings/store.js";
+import { attachHotel, HOTEL } from "./buildings/hotel.js";
 
 function mat(color, extra = {}) {
   return new THREE.MeshStandardNodeMaterial({ color, roughness: 0.88, ...extra });
@@ -519,7 +520,10 @@ export function createLandmarks(scene, maps = {}) {
     { name: "sheriff", w: 9, h: 4.4, d: 8, stone: true, sign: true, enterable: true, falseFront: true, falseFrontHeight: 3.2, windows: SHERIFF_REMODEL.frontWindows },
     { name: "newspaper", w: 7.5, h: 5.4, d: 7, falseFront: true, falseFrontHeight: 3.0, enterable: true },
     { name: "doctor", w: 8, h: 5.2, d: 7.5, falseFront: true, falseFrontHeight: 3.0, enterable: true },
-    { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true },
+    // The hotel's facade is Blender-authored (src/buildings/hotel.js). Its
+    // front wall carried nothing but a door, so the gallery elevation brings
+    // its own apertures with it.
+    { name: "hotel", w: 11, h: 8.2, d: 9, gable: true, enterable: true, windows: HOTEL.frontWindows, backWindows: HOTEL.backWindows, storeys: true },
     // Like the saloon, the store's facade is Blender-authored
     // (src/buildings/store.js) and carries its own painted sign board, so it
     // takes no street sign stand.
@@ -542,6 +546,10 @@ export function createLandmarks(scene, maps = {}) {
   const storeLot = ENTERABLE_LOTS.find((l) => l.name === "store");
   if (storeLot) {
     attachStore(storeLot, maps);
+  }
+  const hotelLot = ENTERABLE_LOTS.find((l) => l.name === "hotel");
+  if (hotelLot) {
+    attachHotel(hotelLot, maps);
   }
   street(group, { x: town.x, z: town.z - 22 }, 0.15, [
     { w: 7, h: 4, d: 6, falseFront: true, falseFrontHeight: 2.8, enterable: true },
