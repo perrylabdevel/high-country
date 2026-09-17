@@ -40,6 +40,7 @@ import { addPropSpot, clearPropSpots } from "./propSpots.js";
 import { createMission } from "./mission.js";
 import { attachSaloon, SALOON } from "./buildings/saloon.js";
 import { attachSheriff, SHERIFF_REMODEL } from "./buildings/sheriff.js";
+import { attachChurch, CHURCH } from "./buildings/church.js";
 import { attachStore, STORE } from "./buildings/store.js";
 import { attachHotel, HOTEL } from "./buildings/hotel.js";
 
@@ -528,7 +529,12 @@ export function createLandmarks(scene, maps = {}) {
     // (src/buildings/store.js) and carries its own painted sign board, so it
     // takes no street sign stand.
     { name: "store", w: 9.5, h: 5.8, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: STORE.frontWindows, backWindows: STORE.backWindows, storeys: true },
-    { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true },
+    // The church's trim, tracery and steeple dressing are Blender-authored
+    // (src/buildings/church.js). Its nave had no window at all, so the
+    // authored elevation brings its apertures with it, and `storeys` lets the
+    // interior lay its own floor deck and its 3.2 m ceiling in place of the
+    // kit's 2.7 m cap.
+    { name: "church", w: 8, h: 7.2, d: 8, steeple: true, gable: true, enterable: true, windows: CHURCH.frontWindows, backWindows: CHURCH.backWindows, storeys: true },
     // The saloon's facade is Blender-authored (src/buildings/saloon.js) and
     // carries its own painted sign, so it takes no street sign stand.
     { name: "saloon", w: 9, h: 7.4, d: 8, falseFront: true, falseFrontHeight: 3.2, enterable: true, windows: SALOON.FRONT, backWindows: SALOON.BACK, storeys: true },
@@ -542,6 +548,10 @@ export function createLandmarks(scene, maps = {}) {
   const sheriffLot = ENTERABLE_LOTS.find((l) => l.name === "sheriff");
   if (sheriffLot) {
     attachSheriff(sheriffLot, maps);
+  }
+  const churchLot = ENTERABLE_LOTS.find((l) => l.name === "church");
+  if (churchLot) {
+    attachChurch(churchLot, maps);
   }
   const storeLot = ENTERABLE_LOTS.find((l) => l.name === "store");
   if (storeLot) {
