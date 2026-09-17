@@ -9,6 +9,7 @@
  * offline.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import * as THREE from "three/webgpu";
 
 globalThis.document = {
@@ -281,6 +282,23 @@ stroll([[0, 6.4], [0, 3.0], [-3.0, 0.4], [sx, 0.4]], "the space under the stair"
 stroll([...climb, [-1.6, 2.2], [-1.6, 0.6]], "room 1 straight through the hall partition", true);
 stroll([...climb, [-2.5, 2.2], [-2.5, 0.6], [-3.0, -0.5], [sx, -0.5]], "the stairwell from room 1", true);
 stroll([...climb, [0, 2.6], [0, 4.6], [2.5, 6.2], [2.5, GALLERY.rail + 1.4]], "a fall off the gallery", true);
+
+
+// The closet door in the stair's spandrel has to be backed by spandrel: the
+// kit used to pin it 0.35 m from the foot of the flight, where the boarding is
+// one step high, and drew the leaf its full height anyway -- a door standing in
+// the open air of the the hotel (reported in game, the store, 2026-09-17).
+{
+  const model = JSON.parse(readFileSync(new URL("../src/models/hotel-interior.json", import.meta.url), "utf8"));
+  const closet = model.stairCloset;
+  assert.ok(closet, "hotel interior lost its under-stair closet door");
+  const tread = (STAIR.z1 - STAIR.z0) / (STAIR.risers - 1);
+  const riser = (UPPER - FLOOR) / STAIR.risers;
+  const spandrel = (z) => ((z - STAIR.z0) / tread) * riser - 0.05;
+  assert.ok(spandrel(closet.z0) >= closet.h,
+    `hotel closet door at z ${closet.z0.toFixed(2)} stands in open air: spandrel ${spandrel(closet.z0).toFixed(2)} m under a ${closet.h} m leaf`);
+  assert.ok(closet.z1 < STAIR.z1, `hotel closet door runs past the top of the flight`);
+}
 
 const triangles = model.children.reduce((sum, mesh) => sum + mesh.geometry.index.count / 3, 0);
 console.log(JSON.stringify({
