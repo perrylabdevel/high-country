@@ -6,6 +6,7 @@
  * apertures, and the door/goods collision contract offline.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import * as THREE from "three/webgpu";
 
 globalThis.document = {
@@ -250,6 +251,23 @@ stroll([[0, 6.0], [0, 2.5], [-2.8, 0.2], [sx, 0.2]], "the space under the stair"
 stroll([...climb, [-2.5, 2.8], [-2.5, 0.5], [sx, 0.5]], "a fall into the stairwell from the loft", true);
 stroll([...climb, [-2.5, 2.8], [-2.5, 1.4], [0, 1.4], [0, 4.6]], "the street through the closed loft door", true);
 stroll([[0, 6.0], [0, 0.5], [1.6, 0.5], [3.6, 0.5]], "the clerk's side through the counter", true);
+
+
+// The closet door in the stair's spandrel has to be backed by spandrel: the
+// kit used to pin it 0.35 m from the foot of the flight, where the boarding is
+// one step high, and drew the leaf its full height anyway -- a door standing in
+// the open air of the the store (reported in game, the store, 2026-09-17).
+{
+  const model = JSON.parse(readFileSync(new URL("../src/models/general-store-interior.json", import.meta.url), "utf8"));
+  const closet = model.stairCloset;
+  assert.ok(closet, "store interior lost its under-stair closet door");
+  const tread = (STAIR.z1 - STAIR.z0) / (STAIR.risers - 1);
+  const riser = (UPPER - FLOOR) / STAIR.risers;
+  const spandrel = (z) => ((z - STAIR.z0) / tread) * riser - 0.05;
+  assert.ok(spandrel(closet.z0) >= closet.h,
+    `store closet door at z ${closet.z0.toFixed(2)} stands in open air: spandrel ${spandrel(closet.z0).toFixed(2)} m under a ${closet.h} m leaf`);
+  assert.ok(closet.z1 < STAIR.z1, `store closet door runs past the top of the flight`);
+}
 
 const triangles = model.children.reduce((sum, mesh) => sum + mesh.geometry.index.count / 3, 0);
 console.log(JSON.stringify({

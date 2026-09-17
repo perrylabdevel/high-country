@@ -58,6 +58,7 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
         WX0, WX1, WZ0, WZ1 = ST['well']
     DOOR = CONTRACT['DOOR']
     rng = random.Random(seed)
+    STATE = {}
 
     MATERIALS = dict(H['MATERIALS'])
     MATERIALS.update(extra_materials or {
@@ -312,21 +313,34 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
         sx = x1 - 0.04
         solid('timber', TRIM, [(sx, F, z0 - 0.03), (sx, F + RISE, z0 - 0.03), (sx, U, z1), (sx, U - 0.3, z1)],
               [(x1 + 0.01, F, z0 - 0.03), (x1 + 0.01, F + RISE, z0 - 0.03), (x1 + 0.01, U, z1), (x1 + 0.01, U - 0.3, z1)])
-        # Spandrel: beaded boards under the stringer, with a closet door near the foot.
-        door_z = (z0 + 0.35, z0 + 1.15)
+        # Spandrel: beaded boards under the stringer, with a closet door where the
+        # boards are tall enough to hold one. The door used to be pinned 0.35 m
+        # from the foot of the flight, where the spandrel is only a step or two
+        # high, and the leaf was drawn its full 1.95 m regardless: in the store a
+        # door stood in the open air beside the bottom steps, hinged to nothing.
+        def spandrel_top(z):
+            return F + max(0.0, (z - z0) / TREAD) * RISE - 0.05
+
+        DOOR_H, DOOR_W = 1.95, 0.8
+        start = z0 + (DOOR_H + 0.1) / RISE * TREAD
+        door_z = (start, start + DOOR_W) if start + DOOR_W < z1 - 0.1 else None
+        # The export records it: check:store and check:hotel re-derive the
+        # spandrel height here and fail if the leaf would stand in open air.
+        STATE['stairCloset'] = {'z0': door_z[0], 'z1': door_z[1], 'h': DOOR_H} if door_z else None
         for i in range(int((z1 - z0) / 0.11)):
             za = z0 + i * 0.11
             zb = za + 0.107
-            ytop = F + max(0.0, (zb - z0) / TREAD) * RISE - 0.05
+            ytop = spandrel_top(zb)
             if ytop <= F + 0.05:
                 continue
-            cuts = [(F, F + 1.95)] if door_z[0] < za < door_z[1] else []
+            cuts = [(F, F + DOOR_H)] if door_z and door_z[0] < za < door_z[1] else []
             for v0, v1 in runs(F, min(ytop, C - 0.14), cuts):
                 box('timber', tuple(c * (0.92 + 0.12 * rng.random()) for c in WAINSCOT), x1 - 0.03, x1, v0, v1, za, zb)
-        box('timber', MAHOGANY, x1 - 0.02, x1 + 0.01, F, F + 1.95, door_z[0], door_z[1])
-        for v0, v1 in ((F + 0.15, F + 0.85), (F + 1.0, F + 1.8)):
-            box('timber', tuple(c * 1.1 for c in MAHOGANY), x1 + 0.01, x1 + 0.03, v0, v1, door_z[0] + 0.1, door_z[1] - 0.1)
-        box('brass', BRASS, x1 + 0.03, x1 + 0.06, F + 0.95, F + 1.0, door_z[1] - 0.14, door_z[1] - 0.08)
+        if door_z:
+            box('timber', MAHOGANY, x1 - 0.02, x1 + 0.01, F, F + DOOR_H, door_z[0], door_z[1])
+            for v0, v1 in ((F + 0.15, F + 0.85), (F + 1.0, F + 1.8)):
+                box('timber', tuple(c * 1.1 for c in MAHOGANY), x1 + 0.01, x1 + 0.03, v0, v1, door_z[0] + 0.1, door_z[1] - 0.1)
+            box('brass', BRASS, x1 + 0.03, x1 + 0.06, F + 0.95, F + 1.0, door_z[1] - 0.14, door_z[1] - 0.08)
         # Balustrade: newel, raked handrail, two turned balusters per tread.
         rail = 0.9
         bx = x1 - 0.06
@@ -482,6 +496,7 @@ def make(CONTRACT, H, TINTS, *, tag, target, generator, seed, material_prefix, o
         target.write_text(json.dumps({
             'generator': generator,
             'units': {'position': 0.001, 'color': 0.01},
+            **({'stairCloset': STATE['stairCloset']} if STATE.get('stairCloset') else {}),
             'batches': batches
         }, separators=(',', ':')))
         print('Exported', sum(len(b['index']) // 3 for b in batches.values()), 'triangles;', len(batches), 'batches;', target)
