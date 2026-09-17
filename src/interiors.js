@@ -18,6 +18,7 @@ import { saloonInterior } from "./buildings/saloon.js";
 import { hotelInterior } from "./buildings/hotel.js";
 import { storeInterior } from "./buildings/store.js";
 import { sheriffInterior } from "./buildings/sheriff.js";
+import { churchInterior } from "./buildings/church.js";
 
 const WALL_THICK = 0.22;
 const DOOR_W = 0.92;
@@ -137,28 +138,12 @@ function solidBox(group, x, z, w, d) {
 // Local frame: +Z is the door side. A piece's front (+Z) at yaw 0 faces the
 // door; yaw PI/2 turns it to +X, -PI/2 to -X, PI to the back wall.
 
-function addChurchProps(lot) {
-  const { d, group } = lot;
-  const altarDepth = d * 0.82;
-  furnish(group, "altar_table", 0.05, atDepth(d, altarDepth), 0, { solid: [2.2, 0.85] });
-
-  const pewAcross = 2.55;
-  for (const side of [-1, 1]) {
-    for (const depth of [2.85, 4.5]) {
-      furnish(group, "pew", side * pewAcross, atDepth(d, depth), Math.PI, { solid: [1.85, 0.48] });
-    }
-  }
-
-  furnish(group, "pulpit", 1.85, atDepth(d, altarDepth - 0.9), 0, { solid: [0.58, 0.58] });
-}
-
-// The hotel, the store and the sheriff are not here: their interiors are
-// authored models. The hotel's old props climbed a four-box "stair" to 0.88 m
-// under a 2.7 m ceiling; the store's stood under a facade loft door that
-// opened onto nothing; the sheriff's cell bars collided with nothing.
-const PROPS = {
-  church: addChurchProps
-};
+// Every authored interior lives in its own building module: hotelInterior,
+// storeInterior, sheriffInterior, churchInterior. The hotel's old props climbed
+// a four-box "stair" to 0.88 m under a 2.7 m ceiling; the store's stood under a
+// facade loft door that opened onto nothing; the sheriff's cell bars collided
+// with nothing; the church's nave was four pews in a 2.7 m box.
+const PROPS = {};
 
 function buildLot(lot, wallLight, wallDark, stone, wood, dark) {
   const wallMat = lot.stone ? stone : lot.dark ? wallDark : wallLight;
@@ -217,6 +202,9 @@ export function createInteriors(scene, maps = {}) {
     }
     if (lot.name === "sheriff") {
       sheriffInterior(lot, maps);
+    }
+    if (lot.name === "church") {
+      churchInterior(lot, maps, wood);
     }
   }
   scene.add(group);

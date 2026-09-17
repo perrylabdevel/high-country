@@ -939,6 +939,34 @@ a beadboard groove reads the groove as a missing board. The fix is opt-in
 so the hotel and store exports stay byte-identical. Their gaps are still
 there, only hidden.
 
+### 3.10 Shapes the check cannot see (2026-09-17)
+
+The church is the first authored building with arched openings, and every
+mistake it made was invisible in Blender and obvious in game:
+
+- Cladding was cut to a RECTANGLE over each arched head, leaving the shell bare
+  in the corners beside every lancet. The cut now follows the arch in columns,
+  outside and in. Inside, a column takes the LOWEST arch height across its
+  width; taking the highest leaves the plaster stopping short of the lining.
+- The stone plinth ran straight across the doorway, covering the bottom 0.55 m
+  of a 2.1 m opening. `check:occlusion` caught it (75% clear, needs 100%) only
+  because the church was added to its AUTHORED map -- a new building is not
+  audited until it is listed there.
+- A casing drawn exactly on the kit's jamb line clips the doorway's edge rays.
+  Applied casings stand 4 cm clear.
+- Authored panes over a kit-glazed light are a blocked window; only muntins are
+  allowed. Colour belongs where the kit has no opening at all.
+- A window head can sit above its own ceiling: the first lancets and the cross
+  over the altar were drawn above the 3.2 m ceiling boards, where the nave
+  cannot see them. `check:church` asserts every head clears the ceiling.
+
+Two more, not about arches. A `box()` helper that mirrors through `sx`/`sz`
+must sort its own bounds: a reversed pair was dropped in silence and the whole
+west face of the steeple went missing with no error anywhere. And gain alone
+cannot whitewash a brown texture -- a near-white tint over the siding still
+multiplies down to weathered plank, so the painted batches keep the texture as
+grain over a near-white base, the way the interiors already did.
+
 ## 4. Tooling and capture
 
 - **The title overlay swallows synthetic clicks.** Dispatch

@@ -1,16 +1,16 @@
 {
   "summary": {
-    "total": 149,
+    "total": 155,
     "byKind": {
       "door": 73,
-      "window": 70,
+      "window": 76,
       "barn": 2,
       "bay": 1,
       "gate": 3
     },
     "byState": {
       "traversable": 63,
-      "window": 70,
+      "window": 76,
       "shell": 16
     },
     "failures": 0
@@ -1843,6 +1843,90 @@
       }
     },
     {
+      "id": "church.front.window.0",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.9,
+      "height": 2,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 2
+      },
+      "center": {
+        "x": 255.39,
+        "y": 18.01,
+        "z": -192.11
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.front.window.1",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.9,
+      "height": 2,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 2
+      },
+      "center": {
+        "x": 250.65,
+        "y": 18.01,
+        "z": -192.83
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.back.window.0",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 1.1,
+      "height": 1.7,
+      "fromFloor": 0.95,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.1,
+        "height": 1.7
+      },
+      "center": {
+        "x": 251.83,
+        "y": 17.91,
+        "z": -184.56
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
+      }
+    },
+    {
       "id": "church.front.door.1",
       "poi": "silverCreek",
       "kind": "door",
@@ -1865,6 +1949,90 @@
         "x": 0.14943813247359922,
         "y": 0,
         "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.front.window.2",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.9,
+      "height": 2,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 2
+      },
+      "center": {
+        "x": 255.38,
+        "y": 18.01,
+        "z": -192
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.front.window.3",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "front",
+      "width": 0.9,
+      "height": 2,
+      "fromFloor": 0.9,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 0.9,
+        "height": 2
+      },
+      "center": {
+        "x": 250.63,
+        "y": 18.01,
+        "z": -192.72
+      },
+      "normal": {
+        "x": 0.14943813247359922,
+        "y": 0,
+        "z": -0.9887710779360424
+      }
+    },
+    {
+      "id": "church.back.window.1",
+      "poi": "silverCreek",
+      "kind": "window",
+      "class": null,
+      "side": "back",
+      "width": 1.1,
+      "height": 1.7,
+      "fromFloor": 0.95,
+      "state": "window",
+      "note": null,
+      "traversable": false,
+      "leaf": null,
+      "glass": {
+        "width": 1.1,
+        "height": 1.7
+      },
+      "center": {
+        "x": 251.84,
+        "y": 17.91,
+        "z": -184.67
+      },
+      "normal": {
+        "x": -0.14943813247359922,
+        "y": 0,
+        "z": 0.9887710779360424
       }
     },
     {

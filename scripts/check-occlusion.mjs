@@ -58,6 +58,7 @@ scene.updateMatrixWorld(true);
 // name -> the authored group added by that building's attach*().
 const AUTHORED = {
   sheriff: "sheriffRemodel",
+  church: "church",
   store: "generalStore",
   hotel: "hotelBuilding",
   saloon: "saloon"
